@@ -22,10 +22,10 @@ function AntecedenteRow({
 }) {
   return (
     <div className="rounded-md border p-3">
-      <div className="flex items-center justify-between gap-4">
-        <Label className="font-medium">{label}</Label>
+      <div className="flex items-center gap-2">
+        <Label className="w-40 shrink-0 whitespace-nowrap font-medium">{label}</Label>
         <RadioGroup
-          className="flex gap-4"
+          className="flex shrink-0 gap-4"
           value={antecedente.respuesta ? "SI" : "NO"}
           onValueChange={(v) => onChange({ respuesta: v === "SI" })}
         >

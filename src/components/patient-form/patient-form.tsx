@@ -79,7 +79,7 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
     const payload = {
       ...values,
       estadoCivil: values.estadoCivil || null,
-      evoluciones: mode === "create" ? evoluciones : [],
+      evoluciones: [],
     };
 
     try {
@@ -116,7 +116,7 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
           <TabsTrigger value="antecedentes">Antecedentes Personales</TabsTrigger>
           <TabsTrigger value="examen-fisico">Exámen Físico</TabsTrigger>
           <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
-          <TabsTrigger value="evolucion">Evolución Clínica</TabsTrigger>
+          {mode === "edit" && <TabsTrigger value="evolucion">Evolución Clínica</TabsTrigger>}
         </TabsList>
 
         <Card className="mt-2">
@@ -140,13 +140,15 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
             <TabsContent value="diagnostico">
               <DiagnosticoTab values={values} onChange={handleChange} />
             </TabsContent>
-            <TabsContent value="evolucion">
-              <EvolucionTab
-                patientId={patientId}
-                evoluciones={evoluciones}
-                onChangeEvoluciones={setEvoluciones}
-              />
-            </TabsContent>
+            {mode === "edit" && (
+              <TabsContent value="evolucion">
+                <EvolucionTab
+                  patientId={patientId}
+                  evoluciones={evoluciones}
+                  onChangeEvoluciones={setEvoluciones}
+                />
+              </TabsContent>
+            )}
           </CardContent>
         </Card>
       </Tabs>
