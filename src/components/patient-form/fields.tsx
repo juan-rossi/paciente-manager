@@ -1,20 +1,27 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
+import type { LucideProps } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 type FormSectionProps = {
   title: string;
+  icon: ComponentType<LucideProps>;
   children: ReactNode;
 };
 
-export function FormSection({ title, children }: FormSectionProps) {
+export function FormSection({ title, icon: Icon, children }: FormSectionProps) {
   return (
-    <div className="flex flex-col gap-4">
-      <h3 className="border-b border-border pb-1.5 text-sm font-semibold text-foreground">
+    <div className="overflow-hidden rounded-xl border border-border/60">
+      <h3 className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5">
+        <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Icon className="size-3.5" />
+        </span>
         {title}
       </h3>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4">
+        {children}
+      </div>
     </div>
   );
 }

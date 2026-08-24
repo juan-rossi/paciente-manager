@@ -119,8 +119,8 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
           <TabsTrigger value="evolucion">Evolución Clínica</TabsTrigger>
         </TabsList>
 
-        <Card className="mt-4">
-          <CardContent className="pt-6">
+        <Card className="mt-2">
+          <CardContent>
             <TabsContent value="datos-personales">
               <DatosPersonalesTab
                 values={values}

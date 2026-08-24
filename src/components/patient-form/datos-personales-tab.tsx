@@ -1,3 +1,4 @@
+import { IdCard, Phone, ShieldPlus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -22,7 +23,7 @@ type Props = {
 export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
   return (
     <div className="flex flex-col gap-8">
-      <FormSection title="Identidad">
+      <FormSection title="Identidad" icon={IdCard}>
         <div className="col-span-full">
           <TextField
             label="Nombre Y Apellido"
@@ -119,7 +120,7 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
         </div>
       </FormSection>
 
-      <FormSection title="Contacto">
+      <FormSection title="Contacto" icon={Phone}>
         <div className="col-span-full">
           <TextField
             label="Domicilio"
@@ -151,7 +152,7 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
         />
       </FormSection>
 
-      <FormSection title="Cobertura de salud">
+      <FormSection title="Cobertura de salud" icon={ShieldPlus}>
         <div className="lg:col-span-2">
           <TextField
             label="Obra Social"
