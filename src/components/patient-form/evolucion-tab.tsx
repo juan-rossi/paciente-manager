@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
 
 type Props = {
@@ -15,10 +23,17 @@ type Props = {
 };
 
 export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Props) {
+  const [open, setOpen] = useState(false);
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [contenido, setContenido] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function resetForm() {
+    setFecha(new Date().toISOString().slice(0, 10));
+    setContenido("");
+    setError(null);
+  }
 
   async function handleAgregar() {
     if (!contenido.trim()) return;
@@ -41,13 +56,15 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
           { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido },
           ...evoluciones,
         ]);
-        setContenido("");
+        setOpen(false);
+        resetForm();
       } finally {
         setSaving(false);
       }
     } else {
       onChangeEvoluciones([{ fecha, contenido }, ...evoluciones]);
-      setContenido("");
+      setOpen(false);
+      resetForm();
     }
   }
 
@@ -65,32 +82,51 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardContent className="flex flex-col gap-3 pt-6">
-          <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
-            <div className="flex flex-col gap-1.5">
-              <Label>Fecha</Label>
-              <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+    <div className="flex flex-col gap-4">
+      <div>
+        <Dialog
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next);
+            if (!next) resetForm();
+          }}
+        >
+          <Button type="button" onClick={() => setOpen(true)}>
+            <Plus className="size-4" />
+            Nueva evolución
+          </Button>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nueva evolución</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label>Fecha</Label>
+                <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Observación</Label>
+                <Textarea
+                  rows={4}
+                  value={contenido}
+                  onChange={(e) => setContenido(e.target.value)}
+                  placeholder="Escribí la evolución del paciente..."
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Nueva observación</Label>
-              <Textarea
-                rows={3}
-                value={contenido}
-                onChange={(e) => setContenido(e.target.value)}
-                placeholder="Escribí la evolución del paciente..."
-              />
-            </div>
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <div>
-            <Button type="button" onClick={handleAgregar} disabled={saving || !contenido.trim()}>
-              {saving ? "Agregando..." : "Agregar"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <DialogFooter>
+              <Button
+                type="button"
+                onClick={handleAgregar}
+                disabled={saving || !contenido.trim()}
+              >
+                {saving ? "Agregando..." : "Agregar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <div className="flex flex-col gap-4">
         {evoluciones.length === 0 && (
