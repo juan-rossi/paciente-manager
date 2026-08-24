@@ -75,6 +75,8 @@ type TextAreaFieldProps = {
   onChange: (value: string) => void;
   helpText?: string;
   rows?: number;
+  required?: boolean;
+  invalid?: boolean;
 };
 
 export function TextAreaField({
@@ -83,12 +85,19 @@ export function TextAreaField({
   onChange,
   helpText,
   rows = 4,
+  required,
+  invalid,
 }: TextAreaFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label>{label}</Label>
+      <Label>{required ? `${label} *` : label}</Label>
       {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
-      <Textarea rows={rows} value={value} onChange={(e) => onChange(e.target.value)} />
+      <Textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={invalid ? "border-destructive" : undefined}
+      />
     </div>
   );
 }

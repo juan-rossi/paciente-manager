@@ -7,16 +7,6 @@ const optionalString = z
   .nullable()
   .optional();
 
-const optionalPhoneString = z
-  .string()
-  .trim()
-  .refine((value) => value.length === 0 || /^\+?\d+$/.test(value), {
-    message: "El teléfono solo puede contener números y, opcionalmente, un + inicial.",
-  })
-  .transform((value) => (value.length === 0 ? null : value))
-  .nullable()
-  .optional();
-
 export const TIPO_ANTECEDENTE_VALUES = [
   "DISLIPEMIA",
   "HIPOTIROIDISMO",
@@ -65,7 +55,9 @@ export const patientSchema = z.object({
   sexo: z.enum(["MASCULINO", "FEMENINO"], {
     message: "El sexo es obligatorio.",
   }),
-  estadoCivil: z.enum(["SOLTERO", "CASADO", "VIUDO", "CONCUBINO"]).nullable().optional(),
+  estadoCivil: z.enum(["SOLTERO", "CASADO", "VIUDO", "CONCUBINO"], {
+    message: "El estado civil es obligatorio.",
+  }),
   profesion: optionalString,
   nroDocumento: z
     .string()
@@ -75,20 +67,27 @@ export const patientSchema = z.object({
   nacionalidad: optionalString,
   obraSocial: optionalString,
   obraSocialNro: optionalString,
-  domicilio: optionalString,
+  domicilio: z.string().trim().min(1, "El domicilio es obligatorio."),
   telefono: z
     .string()
     .trim()
     .min(1, "El teléfono es obligatorio.")
     .regex(/^\+?\d+$/, "El teléfono solo puede contener números y, opcionalmente, un + inicial."),
-  contactoEmergencia: optionalString,
-  telefonoEmergencia: optionalPhoneString,
+  contactoEmergencia: z.string().trim().min(1, "El contacto de emergencia es obligatorio."),
+  telefonoEmergencia: z
+    .string()
+    .trim()
+    .min(1, "El teléfono de emergencia es obligatorio.")
+    .regex(
+      /^\+?\d+$/,
+      "El teléfono de emergencia solo puede contener números y, opcionalmente, un + inicial."
+    ),
 
   // Consulta inicial
   autoValidoTotal: optionalString,
   autoValidoParcial: optionalString,
   dependiente: optionalString,
-  motivoConsulta: optionalString,
+  motivoConsulta: z.string().trim().min(1, "El motivo de consulta es obligatorio."),
   antecedentesEnfermedad: optionalString,
   habitoAlcohol: z.boolean().default(false),
   habitoCigarrillos: z.boolean().default(false),

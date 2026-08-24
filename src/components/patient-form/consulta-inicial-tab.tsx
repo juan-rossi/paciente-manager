@@ -6,9 +6,10 @@ import type { PatientFormValues } from "./types";
 type Props = {
   values: PatientFormValues;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
+  invalidFields: Set<string>;
 };
 
-export function ConsultaInicialTab({ values, onChange }: Props) {
+export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 md:grid-cols-3">
@@ -34,6 +35,8 @@ export function ConsultaInicialTab({ values, onChange }: Props) {
         value={values.motivoConsulta}
         onChange={(v) => onChange("motivoConsulta", v)}
         rows={3}
+        required
+        invalid={invalidFields.has("motivoConsulta")}
       />
 
       <TextAreaField

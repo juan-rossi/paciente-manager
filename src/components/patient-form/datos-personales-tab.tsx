@@ -86,12 +86,16 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
         </div>
 
         <div className="flex flex-col gap-1.5 lg:col-span-2">
-          <Label>Estado Civil</Label>
+          <Label>Estado Civil *</Label>
           <Select
             value={values.estadoCivil}
             onValueChange={(v) => onChange("estadoCivil", v as PatientFormValues["estadoCivil"])}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              className={
+                invalidFields.has("estadoCivil") ? "w-full border-destructive" : "w-full"
+              }
+            >
               <SelectValue placeholder="Seleccionar..." />
             </SelectTrigger>
             <SelectContent>
@@ -126,6 +130,8 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
             label="Domicilio"
             value={values.domicilio}
             onChange={(v) => onChange("domicilio", v)}
+            required
+            invalid={invalidFields.has("domicilio")}
           />
         </div>
 
@@ -142,6 +148,8 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
             label="Contacto de Emergencia"
             value={values.contactoEmergencia}
             onChange={(v) => onChange("contactoEmergencia", v)}
+            required
+            invalid={invalidFields.has("contactoEmergencia")}
           />
         </div>
         <TextField
@@ -149,6 +157,8 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
           value={values.telefonoEmergencia}
           onChange={(v) => onChange("telefonoEmergencia", v)}
           numeric="phone"
+          required
+          invalid={invalidFields.has("telefonoEmergencia")}
         />
       </FormSection>
 

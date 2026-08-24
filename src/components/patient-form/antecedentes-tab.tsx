@@ -22,8 +22,8 @@ function AntecedenteRow({
 }) {
   return (
     <div className="rounded-md border p-3">
-      <div className="flex items-center gap-2">
-        <Label className="w-40 shrink-0 whitespace-nowrap font-medium">{label}</Label>
+      <div className="flex items-center gap-1">
+        <Label className="w-32 shrink-0 whitespace-nowrap font-medium">{label}</Label>
         <RadioGroup
           className="flex shrink-0 gap-4"
           value={antecedente.respuesta ? "SI" : "NO"}

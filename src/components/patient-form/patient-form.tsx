@@ -25,9 +25,27 @@ const REQUIRED_FIELDS = [
   "nombreYApellido",
   "fechaNacimiento",
   "sexo",
+  "estadoCivil",
   "nroDocumento",
+  "domicilio",
   "telefono",
+  "contactoEmergencia",
+  "telefonoEmergencia",
+  "motivoConsulta",
 ] as const satisfies readonly (keyof PatientFormValues)[];
+
+const FIELD_TAB: Record<(typeof REQUIRED_FIELDS)[number], string> = {
+  nombreYApellido: "datos-personales",
+  fechaNacimiento: "datos-personales",
+  sexo: "datos-personales",
+  estadoCivil: "datos-personales",
+  nroDocumento: "datos-personales",
+  domicilio: "datos-personales",
+  telefono: "datos-personales",
+  contactoEmergencia: "datos-personales",
+  telefonoEmergencia: "datos-personales",
+  motivoConsulta: "consulta-inicial",
+};
 
 function isFieldEmpty(values: PatientFormValues, field: (typeof REQUIRED_FIELDS)[number]) {
   const value = values[field];
@@ -67,8 +85,8 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
 
     if (missing.length > 0) {
       setInvalidFields(new Set(missing));
-      setError("Completá los campos obligatorios (*) en Datos Personales.");
-      setActiveTab("datos-personales");
+      setError("Completá los campos obligatorios (*).");
+      setActiveTab(FIELD_TAB[missing[0]]);
       return;
     }
 
@@ -129,7 +147,11 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
               />
             </TabsContent>
             <TabsContent value="consulta-inicial">
-              <ConsultaInicialTab values={values} onChange={handleChange} />
+              <ConsultaInicialTab
+                values={values}
+                onChange={handleChange}
+                invalidFields={invalidFields}
+              />
             </TabsContent>
             <TabsContent value="antecedentes">
               <AntecedentesTab values={values} onAntecedenteChange={handleAntecedenteChange} />
