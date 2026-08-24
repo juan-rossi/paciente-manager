@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,6 +53,16 @@ function isFieldEmpty(values: PatientFormValues, field: (typeof REQUIRED_FIELDS)
   return typeof value === "string" ? value.trim().length === 0 : !value;
 }
 
+const TAB_ORDER_CREATE = [
+  "datos-personales",
+  "consulta-inicial",
+  "antecedentes",
+  "examen-fisico",
+  "diagnostico",
+] as const;
+
+const TAB_ORDER_EDIT = [...TAB_ORDER_CREATE, "evolucion"] as const;
+
 export function PatientForm({ mode, patientId, initialValues, initialEvoluciones }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
@@ -78,6 +89,33 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
       ...prev,
       antecedentes: prev.antecedentes.map((a) => (a.tipo === tipo ? { ...a, ...patch } : a)),
     }));
+  }
+
+  const tabOrder: readonly string[] = mode === "edit" ? TAB_ORDER_EDIT : TAB_ORDER_CREATE;
+  const currentTabIndex = tabOrder.indexOf(activeTab);
+
+  function handlePrevious() {
+    setError(null);
+    if (currentTabIndex > 0) {
+      setActiveTab(tabOrder[currentTabIndex - 1]);
+    }
+  }
+
+  function handleNext() {
+    const missing = REQUIRED_FIELDS.filter(
+      (field) => FIELD_TAB[field] === activeTab && isFieldEmpty(values, field)
+    );
+
+    if (missing.length > 0) {
+      setInvalidFields((prev) => new Set([...prev, ...missing]));
+      setError("Completá los campos obligatorios (*) antes de continuar.");
+      return;
+    }
+
+    setError(null);
+    if (currentTabIndex < tabOrder.length - 1) {
+      setActiveTab(tabOrder[currentTabIndex + 1]);
+    }
   }
 
   async function handleSubmit() {
@@ -175,11 +213,34 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
         </Card>
       </Tabs>
 
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSubmit} disabled={saving}>
-          {saving ? "Guardando..." : "Guardar"}
-        </Button>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentTabIndex <= 0}
+          >
+            <ChevronLeft className="size-4" />
+            Anterior
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleNext}
+            disabled={currentTabIndex >= tabOrder.length - 1}
+          >
+            Siguiente
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-3">
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button onClick={handleSubmit} disabled={saving}>
+            <Save className="size-4" />
+            {saving ? "Guardando..." : "Guardar"}
+          </Button>
+        </div>
       </div>
     </div>
   );
