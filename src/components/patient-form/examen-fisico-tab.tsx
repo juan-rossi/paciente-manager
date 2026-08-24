@@ -1,20 +1,11 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { TextField } from "./fields";
+import { Activity, Bone, Brain, HeartPulse, ScanFace, Waves } from "lucide-react";
+import { FormSection, TextField } from "./fields";
 import type { PatientFormValues } from "./types";
 
 type Props = {
   values: PatientFormValues;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
 };
-
-function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-4 pb-4 pt-1 sm:grid-cols-2 lg:grid-cols-3">{children}</div>;
-}
 
 type StringField = {
   [K in keyof PatientFormValues]: PatientFormValues[K] extends string ? K : never;
@@ -27,105 +18,75 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
   );
 
   return (
-    <Accordion multiple defaultValue={["signos-vitales", "osteomuscular"]} className="w-full">
-      <AccordionItem value="signos-vitales">
-        <AccordionTrigger>Signos Vitales</AccordionTrigger>
-        <AccordionContent>
-          <Grid>
-            {f("frecuenciaCardiaca", "Frecuencia Cardíaca")}
-            {f("pulsoRadial", "Pulso Radial")}
-            {f("ritmo", "Ritmo")}
-            {f("presionArterial", "Presión Arterial")}
-            {f("frecuenciaRespiratoria", "Frecuencia Respiratoria")}
-            {f("pesoActual", "Peso Actual")}
-            {f("pesoHabitual", "Peso Habitual")}
-            {f("estatura", "Estatura")}
-            {f("temperatura", "Temperatura")}
-          </Grid>
-        </AccordionContent>
-      </AccordionItem>
+    <div className="flex flex-col gap-8">
+      <FormSection title="Signos Vitales" icon={Activity}>
+        {f("frecuenciaCardiaca", "Frecuencia Cardíaca")}
+        {f("pulsoRadial", "Pulso Radial")}
+        {f("ritmo", "Ritmo")}
+        {f("presionArterial", "Presión Arterial")}
+        {f("frecuenciaRespiratoria", "Frecuencia Respiratoria")}
+        {f("pesoActual", "Peso Actual")}
+        {f("pesoHabitual", "Peso Habitual")}
+        {f("estatura", "Estatura")}
+        {f("temperatura", "Temperatura")}
+      </FormSection>
 
-      <AccordionItem value="cabeza-torax">
-        <AccordionTrigger>Cabeza, Tórax y Cardiovascular</AccordionTrigger>
-        <AccordionContent>
-          <Grid>
-            {f("craneo", "Cráneo")}
-            {f("ojo", "Ojo")}
-            {f("oido", "Oído")}
-            {f("pcfg", "PCFG")}
-            {f("toraxForma", "Tórax - Forma")}
-            {f("toraxMamas", "Tórax - Mamas")}
-            {f("auscultacionMV", "Auscultación MV")}
-            {f("auscultacionVV", "Auscultación VV")}
-            {f("rales", "Rales")}
-            {f("excursion", "Excursión")}
-            {f("acvR1", "ACV R1")}
-            {f("acvR2", "ACV R2")}
-            {f("soplos", "Soplos")}
-            {f("carotideo", "Carotídeo")}
-            {f("radial", "Radial")}
-            {f("femoral", "Femoral")}
-            {f("pedio", "Pedio")}
-            {f("ppRenalDerecha", "PP Renal Derecha")}
-            {f("ppRenalIzquierda", "PP Renal Izquierda")}
-            {f("mamas", "Mamas")}
-          </Grid>
-        </AccordionContent>
-      </AccordionItem>
+      <FormSection title="Cabeza, Tórax y Cardiovascular" icon={HeartPulse}>
+        {f("craneo", "Cráneo")}
+        {f("ojo", "Ojo")}
+        {f("oido", "Oído")}
+        {f("pcfg", "PCFG")}
+        {f("toraxForma", "Tórax - Forma")}
+        {f("toraxMamas", "Tórax - Mamas")}
+        {f("auscultacionMV", "Auscultación MV")}
+        {f("auscultacionVV", "Auscultación VV")}
+        {f("rales", "Rales")}
+        {f("excursion", "Excursión")}
+        {f("acvR1", "ACV R1")}
+        {f("acvR2", "ACV R2")}
+        {f("soplos", "Soplos")}
+        {f("carotideo", "Carotídeo")}
+        {f("radial", "Radial")}
+        {f("femoral", "Femoral")}
+        {f("pedio", "Pedio")}
+        {f("ppRenalDerecha", "PP Renal Derecha")}
+        {f("ppRenalIzquierda", "PP Renal Izquierda")}
+        {f("mamas", "Mamas")}
+      </FormSection>
 
-      <AccordionItem value="cuello">
-        <AccordionTrigger>Cuello</AccordionTrigger>
-        <AccordionContent>
-          <Grid>
-            {f("cuelloPalpacion", "Palpación")}
-            {f("cuelloTamanio", "Tamaño")}
-            {f("cuelloAuscultacion", "Auscultación")}
-          </Grid>
-        </AccordionContent>
-      </AccordionItem>
+      <FormSection title="Cuello" icon={ScanFace}>
+        {f("cuelloPalpacion", "Palpación")}
+        {f("cuelloTamanio", "Tamaño")}
+        {f("cuelloAuscultacion", "Auscultación")}
+      </FormSection>
 
-      <AccordionItem value="abdomen">
-        <AccordionTrigger>Abdomen</AccordionTrigger>
-        <AccordionContent>
-          <Grid>
-            {f("abdomenInspeccion", "Inspección")}
-            {f("abdomenPalpacion", "Palpación")}
-            {f("abdomenAuscultacion", "Auscultación")}
-          </Grid>
-        </AccordionContent>
-      </AccordionItem>
+      <FormSection title="Abdomen" icon={Waves}>
+        {f("abdomenInspeccion", "Inspección")}
+        {f("abdomenPalpacion", "Palpación")}
+        {f("abdomenAuscultacion", "Auscultación")}
+      </FormSection>
 
-      <AccordionItem value="osteomuscular">
-        <AccordionTrigger>Osteomuscular</AccordionTrigger>
-        <AccordionContent>
-          <Grid>
-            {f("columnaCervical", "Columna Cervical")}
-            {f("dorsal", "Dorsal")}
-            {f("lumbar", "Lumbar")}
-            {f("articulaciones", "Articulaciones: Movilidad")}
-            {f("movilidad", "Movilidad")}
-            {f("dolor", "Dolor")}
-            {f("tumefaccion", "Tumefacción")}
-          </Grid>
-        </AccordionContent>
-      </AccordionItem>
+      <FormSection title="Osteomuscular" icon={Bone}>
+        {f("columnaCervical", "Columna Cervical")}
+        {f("dorsal", "Dorsal")}
+        {f("lumbar", "Lumbar")}
+        {f("articulaciones", "Articulaciones: Movilidad")}
+        {f("movilidad", "Movilidad")}
+        {f("dolor", "Dolor")}
+        {f("tumefaccion", "Tumefacción")}
+      </FormSection>
 
-      <AccordionItem value="sistema-nervioso">
-        <AccordionTrigger>Sistema Nervioso</AccordionTrigger>
-        <AccordionContent>
-          <Grid>
-            {f("sensorio", "Sensorio")}
-            {f("lenguaje", "Lenguaje")}
-            {f("marcha", "Marcha")}
-            {f("temblor", "Temblor")}
-            {f("taxia", "Taxia")}
-            {f("reflejosFotomotor", "Reflejos Fotomotor")}
-            {f("reflejosAcomodacion", "Reflejos Acomodación")}
-            {f("osteotendinosos", "Osteotendinosos")}
-            {f("sensibilidad", "Sensibilidad")}
-          </Grid>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+      <FormSection title="Sistema Nervioso" icon={Brain}>
+        {f("sensorio", "Sensorio")}
+        {f("lenguaje", "Lenguaje")}
+        {f("marcha", "Marcha")}
+        {f("temblor", "Temblor")}
+        {f("taxia", "Taxia")}
+        {f("reflejosFotomotor", "Reflejos Fotomotor")}
+        {f("reflejosAcomodacion", "Reflejos Acomodación")}
+        {f("osteotendinosos", "Osteotendinosos")}
+        {f("sensibilidad", "Sensibilidad")}
+      </FormSection>
+    </div>
   );
 }
