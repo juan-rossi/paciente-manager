@@ -1,6 +1,23 @@
+import type { ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+
+type FormSectionProps = {
+  title: string;
+  children: ReactNode;
+};
+
+export function FormSection({ title, children }: FormSectionProps) {
+  return (
+    <div className="flex flex-col gap-4">
+      <h3 className="border-b border-border pb-1.5 text-sm font-semibold text-foreground">
+        {title}
+      </h3>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+    </div>
+  );
+}
 
 type NumericMode = "digits" | "phone";
 
