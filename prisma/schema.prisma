@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Sexo {
+  MASCULINO
+  FEMENINO
+}
+
+enum EstadoCivil {
+  SOLTERO
+  CASADO
+  VIUDO
+  CONCUBINO
+}
+
+enum TipoAntecedente {
+  DISLIPEMIA
+  HIPOTIROIDISMO
+  HIPERTIROIDISMO
+  ARTRITIS
+  DIABETES
+  ALERGIA
+  NEOPLASIAS
+  ARRITMIAS
+  HTA
+  ARTROSIS
+  ALCOHOLISMO
+  PSIQUIATRICAS
+  INFECCIOSAS
+  PROSTATA
+  NOD_MAMAS
+  EPOC
+  CARDIOPATIAS
+  NEUROLOGICAS
+  ASMA
+  OTROS
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nombre       String
+  createdAt    DateTime @default(now())
+}
+
+model Patient {
+  id String @id @default(cuid())
+
+  // Datos personales
+  nombreYApellido    String
+  fechaNacimiento    DateTime?
+  sexo               Sexo?
+  estadoCivil        EstadoCivil?
+  profesion          String?
+  nroDocumento       String?
+  nacionalidad       String?
+  obraSocial         String?
+  obraSocialNro      String?
+  domicilio          String?
+  telefono           String?
+  contactoEmergencia String?
+  telefonoEmergencia String?
+
+  // Consulta inicial
+  autoValidoTotal        String?
+  autoValidoParcial      String?
+  dependiente            String?
+  motivoConsulta         String?
+  antecedentesEnfermedad String?
+  habitoAlcohol          Boolean @default(false)
+  habitoCigarrillos      Boolean @default(false)
+  habitoDrogas           Boolean @default(false)
+
+  // Examen fisico - signos vitales
+  frecuenciaCardiaca     String?
+  pulsoRadial            String?
+  ritmo                  String?
+  presionArterial        String?
+  frecuenciaRespiratoria String?
+  pesoActual             String?
+  pesoHabitual           String?
+  estatura               String?
+  temperatura            String?
+
+  // Examen fisico - cabeza / torax / cardiovascular
+  craneo         String?
+  ojo            String?
+  oido           String?
+  pcfg           String?
+  toraxForma     String?
+  toraxMamas     String?
+  auscultacionMV String?
+  auscultacionVV String?
+  rales          String?
+  excursion      String?
+  acvR1          String?
+  acvR2          String?
+  soplos         String?
+  carotideo      String?
+  radial         String?
+  femoral        String?
+  pedio          String?
+  ppRenalDerecha String?
+  ppRenalIzquierda String?
+  mamas          String?
+
+  // Examen fisico - cuello
+  cuelloPalpacion    String?
+  cuelloTamanio      String?
+  cuelloAuscultacion String?
+
+  // Examen fisico - abdomen
+  abdomenInspeccion   String?
+  abdomenPalpacion    String?
+  abdomenAuscultacion String?
+
+  // Examen fisico - osteomuscular
+  columnaCervical String?
+  dorsal          String?
+  lumbar          String?
+  articulaciones  String?
+  movilidad       String?
+  dolor           String?
+  tumefaccion     String?
+
+  // Examen fisico - sistema nervioso
+  sensorio            String?
+  lenguaje            String?
+  marcha              String?
+  temblor             String?
+  taxia               String?
+  reflejosFotomotor   String?
+  reflejosAcomodacion String?
+  osteotendinosos     String?
+  sensibilidad        String?
+
+  // Diagnostico
+  diagnosticoPresuntivo  String?
+  metodosComplementarios String?
+  tratamiento            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  antecedentes PatientAntecedente[]
+  evoluciones  PatientEvolucion[]
+
+  @@index([nroDocumento])
+  @@index([nombreYApellido])
+}
+
+model PatientAntecedente {
+  id          String          @id @default(cuid())
+  patientId   String
+  patient     Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  tipo        TipoAntecedente
+  respuesta   Boolean         @default(false)
+  descripcion String?
+  fechaInicio String?
+  medicacion  String?
+  resolucion  String?
+
+  @@unique([patientId, tipo])
+}
+
+model PatientEvolucion {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fecha     DateTime
+  contenido String
+}
