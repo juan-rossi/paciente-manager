@@ -33,7 +33,8 @@ export async function getDaySlots(
   const slots = generarSlots(date, blocks, doctor.slotDurationMinutes);
 
   const dayStart = new Date(date);
-  const dayEnd = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({
     where: { inicio: { gte: dayStart, lt: dayEnd }, estado: "CONFIRMADO" },

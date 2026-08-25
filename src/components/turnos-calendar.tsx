@@ -7,7 +7,8 @@ import {
   formatCaption as defaultFormatCaption,
   formatWeekdayName as defaultFormatWeekdayName,
 } from "react-day-picker";
-import { Calendar as CalendarIcon, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,11 +39,24 @@ type Slot = {
   turno: TurnoInfo | null;
 };
 
+const DEFAULT_START_HOUR = 8;
+const DEFAULT_END_HOUR = 18;
+
 function toDateParam(date: Date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
 }
 
 function capitalize(text: string) {
@@ -51,7 +65,25 @@ function capitalize(text: string) {
 
 function formatHora(iso: string) {
   const date = new Date(iso);
-  return date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const period = hours < 12 ? "a. m." : "p. m.";
+  const displayHour = hours % 12 === 0 ? 12 : hours % 12;
+  return `${displayHour}:${minutes} ${period}`;
+}
+
+function minutesFromMidnight(iso: string) {
+  const date = new Date(iso);
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function getGridRange(slots: Slot[]) {
+  if (slots.length === 0) return { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR };
+  const starts = slots.map((s) => minutesFromMidnight(s.inicio));
+  const ends = slots.map((s) => minutesFromMidnight(s.fin));
+  const startHour = Math.floor(Math.min(...starts) / 60);
+  const endHour = Math.ceil(Math.max(...ends) / 60);
+  return { startHour, endHour: Math.max(endHour, startHour + 1) };
 }
 
 type Props = {
@@ -156,98 +188,166 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
     }
   }
 
+  const { startHour, endHour } = getGridRange(slots);
+  const totalHours = endHour - startHour;
+  const today = new Date();
+  const isToday = isSameDay(selectedDate, today);
+  const nowOffsetPct =
+    (((today.getHours() - startHour) * 60 + today.getMinutes()) / 60 / totalHours) * 100;
+  const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
+
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[auto_1fr]">
-      <Card className="h-fit">
-        <CardContent className="pt-6">
-          <Calendar
-            mode="single"
-            locale={es}
-            formatters={{
-              formatCaption: (month, options) => capitalize(defaultFormatCaption(month, options)),
-              formatWeekdayName: (weekday, options) =>
-                capitalize(defaultFormatWeekdayName(weekday, options)),
-            }}
-            selected={selectedDate}
-            onSelect={handleSelectDate}
-          />
-        </CardContent>
-      </Card>
+    <div className="flex flex-1 min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
+        <Button type="button" variant="outline" size="sm" onClick={() => handleSelectDate(new Date())}>
+          Hoy
+        </Button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleSelectDate(addDays(selectedDate, -1))}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label="Día anterior"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectDate(addDays(selectedDate, 1))}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label="Día siguiente"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+        <h2 className="text-lg font-semibold">
+          {capitalize(
+            selectedDate.toLocaleDateString("es-AR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          )}
+        </h2>
+      </div>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 pt-6">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <CalendarIcon className="size-4 text-primary" />
-            {capitalize(
-              selectedDate.toLocaleDateString("es-AR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })
+      <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
+        <Card className="lg:self-start">
+          <CardContent className="pt-6">
+            <Calendar
+              mode="single"
+              locale={es}
+              formatters={{
+                formatCaption: (month, options) =>
+                  capitalize(defaultFormatCaption(month, options)),
+                formatWeekdayName: (weekday, options) =>
+                  capitalize(defaultFormatWeekdayName(weekday, options)),
+              }}
+              selected={selectedDate}
+              onSelect={handleSelectDate}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="flex-1 min-h-0">
+          <CardContent className="flex flex-1 min-h-0 flex-col pt-6">
+            {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
+
+            {!loading && sinConfigurar && (
+              <p className="text-sm text-muted-foreground">
+                Todavía no se configuró el horario de trabajo.
+              </p>
             )}
-          </h2>
 
-          {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
+            {!loading && !sinConfigurar && slots.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No hay horario configurado para este día.
+              </p>
+            )}
 
-          {!loading && sinConfigurar && (
-            <p className="text-sm text-muted-foreground">
-              Todavía no se configuró el horario de trabajo.
-            </p>
-          )}
-
-          {!loading && !sinConfigurar && slots.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No hay horario configurado para este día.
-            </p>
-          )}
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {slots.map((slot) => (
-              <div
-                key={slot.inicio}
-                className="flex items-center justify-between gap-3 rounded-md border p-3"
-              >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold">
-                    {formatHora(slot.inicio)} - {formatHora(slot.fin)}
-                  </span>
-                  {slot.turno ? (
-                    <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                      <User className="size-3" />
-                      {slot.turno.nombreYApellido} · DNI {slot.turno.dni}
-                      {role === "DOCTOR" && slot.turno.patientId && (
-                        <Link
-                          href={`/patients/${slot.turno.patientId}`}
-                          className="text-primary underline-offset-2 hover:underline"
-                        >
-                          Ver ficha
-                        </Link>
-                      )}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Libre</span>
-                  )}
-                </div>
-                {slot.turno ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCancelTarget(slot)}
+            {!loading && slots.length > 0 && (
+              <div className="relative flex-1 min-h-0">
+                {Array.from({ length: totalHours }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute inset-x-0 border-t border-border/70"
+                    style={{ top: `${(i / totalHours) * 100}%` }}
                   >
-                    Cancelar
-                  </Button>
-                ) : (
-                  <Button type="button" size="sm" onClick={() => openBooking(slot)}>
-                    Reservar
-                  </Button>
+                    <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
+                      {String(startHour + i).padStart(2, "0")}:00
+                    </span>
+                  </div>
+                ))}
+
+                <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
+                  {slots.map((slot) => {
+                    const top =
+                      (((minutesFromMidnight(slot.inicio) - startHour * 60) / 60) / totalHours) *
+                      100;
+                    const height =
+                      (((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / 60) /
+                        totalHours) *
+                      100;
+                    const ocupado = Boolean(slot.turno);
+
+                    return (
+                      <button
+                        key={slot.inicio}
+                        type="button"
+                        onClick={() => (slot.turno ? setCancelTarget(slot) : openBooking(slot))}
+                        style={{ top: `${top}%`, height: `${height}%`, minHeight: 22 }}
+                        aria-label={
+                          ocupado
+                            ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}. Cancelar.`
+                            : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}. Reservar.`
+                        }
+                        className={cn(
+                          "absolute left-1 w-[calc(100%-0.5rem)] flex flex-col overflow-hidden rounded-md border px-2 py-1 text-left transition-colors",
+                          ocupado
+                            ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
+                            : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+                        )}
+                      >
+                        <span className="truncate text-xs font-semibold">
+                          {formatHora(slot.inicio)} - {formatHora(slot.fin)}
+                        </span>
+                        {ocupado ? (
+                          <span className="flex items-center gap-1 truncate text-xs">
+                            <User className="size-3 shrink-0" />
+                            {slot.turno!.nombreYApellido}
+                            {role === "DOCTOR" && slot.turno!.patientId && (
+                              <Link
+                                href={`/patients/${slot.turno!.patientId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 underline-offset-2 hover:underline"
+                              >
+                                Ver ficha
+                              </Link>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="truncate text-xs">Libre</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {showNowLine && (
+                  <div
+                    className="pointer-events-none absolute left-12 z-10 flex w-[calc(100%-3rem)] items-center"
+                    style={{ top: `${nowOffsetPct}%` }}
+                  >
+                    <span className="-ml-1 size-2 shrink-0 rounded-full bg-destructive" />
+                    <div className="h-px flex-1 bg-destructive" />
+                  </div>
                 )}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={bookingSlot !== null} onOpenChange={(open) => !open && setBookingSlot(null)}>
         <DialogContent>
