@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TURNOS_ENABLED } from "@/lib/feature-flags";
 
 export function LoginForm() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function LoginForm() {
       }
 
       const from = searchParams.get("from");
-      const fallback = data.role === "DOCTOR" ? "/dashboard" : "/turnos";
+      const fallback = TURNOS_ENABLED && data.role !== "DOCTOR" ? "/turnos" : "/dashboard";
       router.replace(from && from.startsWith("/") ? from : fallback);
       router.refresh();
     } catch {

@@ -15,7 +15,7 @@ export default async function EditPatientPage({ params }: Props) {
     where: { id },
     include: {
       antecedentes: true,
-      evoluciones: { orderBy: { fecha: "desc" } },
+      evoluciones: { orderBy: { fecha: "asc" } },
     },
   });
 

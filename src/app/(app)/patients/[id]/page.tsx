@@ -11,7 +11,7 @@ export default async function PatientDetailPage({ params }: Props) {
     where: { id },
     include: {
       antecedentes: true,
-      evoluciones: { orderBy: { fecha: "desc" } },
+      evoluciones: { orderBy: { fecha: "asc" } },
     },
   });
 

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySession } from "@/lib/auth";
+import { TURNOS_ENABLED } from "@/lib/feature-flags";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/configuracion"];
 const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
+const TURNOS_PREFIXES = ["/turnos", "/configuracion"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,7 +19,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (session && session.role === "SECRETARY") {
+  if (!TURNOS_ENABLED && session) {
+    const isTurnosRoute = TURNOS_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    if (isTurnosRoute) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
+  if (TURNOS_ENABLED && session && session.role === "SECRETARY") {
     const isDoctorOnly = DOCTOR_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
     if (isDoctorOnly) {
       return NextResponse.redirect(new URL("/turnos", request.url));
@@ -25,7 +34,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname === "/login" && session) {
-    const fallback = session.role === "DOCTOR" ? "/dashboard" : "/turnos";
+    const fallback = TURNOS_ENABLED && session.role !== "DOCTOR" ? "/turnos" : "/dashboard";
     return NextResponse.redirect(new URL(fallback, request.url));
   }
 

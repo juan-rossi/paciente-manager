@@ -73,6 +73,16 @@ const TEXT_FIELDS = [
   "tratamiento",
 ] as const satisfies readonly (keyof PatientFormValues)[];
 
+// `patient.fechaNacimiento`/`evolucion.fecha` llegan como Date reales cuando este
+// helper corre server-side (directo desde Prisma). `String(date)` da el formato
+// verboso ("Tue Nov 12 1989...") y no un valor válido para <input type="date">.
+function toDateInputValue(value: unknown): string {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
 function emptyAntecedentes(): AntecedenteValue[] {
   return ANTECEDENTES_ORDEN.map(({ tipo }) => ({
     tipo,
@@ -115,9 +125,7 @@ export function patientFromApi(patient: any): {
     }
   }
 
-  base.fechaNacimiento = patient.fechaNacimiento
-    ? String(patient.fechaNacimiento).slice(0, 10)
-    : "";
+  base.fechaNacimiento = toDateInputValue(patient.fechaNacimiento);
   base.sexo = patient.sexo ?? "";
   base.estadoCivil = patient.estadoCivil ?? "";
   base.habitoAlcohol = Boolean(patient.habitoAlcohol);
@@ -146,7 +154,7 @@ export function patientFromApi(patient: any): {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e: any) => ({
       id: e.id,
-      fecha: String(e.fecha).slice(0, 10),
+      fecha: toDateInputValue(e.fecha),
       contenido: e.contenido ?? "",
     })
   );

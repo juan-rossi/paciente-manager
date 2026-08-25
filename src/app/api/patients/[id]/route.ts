@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     where: { id },
     include: {
       antecedentes: true,
-      evoluciones: { orderBy: { fecha: "desc" } },
+      evoluciones: { orderBy: { fecha: "asc" } },
     },
   });
 

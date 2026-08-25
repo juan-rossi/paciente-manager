@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
 
+function sortByFechaAsc(evoluciones: EvolucionValue[]) {
+  return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
 type Props = {
   patientId?: string;
   evoluciones: EvolucionValue[];
@@ -77,10 +81,12 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
             return;
           }
           onChangeEvoluciones(
-            evoluciones.map((e, i) =>
-              i === editingIndex
-                ? { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido }
-                : e
+            sortByFechaAsc(
+              evoluciones.map((e, i) =>
+                i === editingIndex
+                  ? { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido }
+                  : e
+              )
             )
           );
           setOpen(false);
@@ -89,7 +95,9 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
           setSaving(false);
         }
       } else {
-        onChangeEvoluciones(evoluciones.map((e, i) => (i === editingIndex ? { ...e, fecha, contenido } : e)));
+        onChangeEvoluciones(
+          sortByFechaAsc(evoluciones.map((e, i) => (i === editingIndex ? { ...e, fecha, contenido } : e)))
+        );
         setOpen(false);
         resetForm();
       }
@@ -109,17 +117,19 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
           setError(data.error ?? "No se pudo agregar la evolución.");
           return;
         }
-        onChangeEvoluciones([
-          { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido },
-          ...evoluciones,
-        ]);
+        onChangeEvoluciones(
+          sortByFechaAsc([
+            ...evoluciones,
+            { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido },
+          ])
+        );
         setOpen(false);
         resetForm();
       } finally {
         setSaving(false);
       }
     } else {
-      onChangeEvoluciones([{ fecha, contenido }, ...evoluciones]);
+      onChangeEvoluciones(sortByFechaAsc([...evoluciones, { fecha, contenido }]));
       setOpen(false);
       resetForm();
     }
