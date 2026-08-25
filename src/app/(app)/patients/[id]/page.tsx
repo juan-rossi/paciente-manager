@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { PatientForm } from "@/components/patient-form/patient-form";
-import { patientFromApi } from "@/components/patient-form/utils";
+import { PatientSummary } from "@/components/patient-summary";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -20,17 +19,5 @@ export default async function PatientDetailPage({ params }: Props) {
     notFound();
   }
 
-  const { values, evoluciones } = patientFromApi(patient);
-
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
-      <PatientForm
-        mode="edit"
-        patientId={patient.id}
-        initialValues={values}
-        initialEvoluciones={evoluciones}
-      />
-    </div>
-  );
+  return <PatientSummary patient={patient} />;
 }

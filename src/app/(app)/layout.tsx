@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { Stethoscope } from "lucide-react";
-import { getCurrentUser } from "@/lib/session";
 import { LogoutButton } from "@/components/logout-button";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
+const DOCTOR_NAME = process.env.DOCTOR_NAME ?? "Dr. Juan Pablo Beligoy";
 
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border bg-card shadow-sm">
@@ -14,14 +13,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Stethoscope className="size-4.5" />
             </span>
-            <span className="text-lg font-semibold tracking-tight">Paciente Manager</span>
+            <span className="text-lg font-semibold tracking-tight">{DOCTOR_NAME}</span>
           </Link>
           <div className="flex items-center gap-3">
-            {user && (
-              <span className="hidden text-sm text-muted-foreground sm:inline">
-                {user.nombre}
-              </span>
-            )}
             <LogoutButton />
           </div>
         </div>

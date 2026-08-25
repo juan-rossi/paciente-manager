@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { PatientSearch } from "@/components/patient-search";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Sin esto, Next.js puede prerenderizar la página en build time y congelar la
+// lista de "últimos pacientes" en vez de consultarla en cada request.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const patients = await prisma.patient.findMany({
     select: {

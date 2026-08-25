@@ -45,9 +45,9 @@ function AntecedenteRow({
       </div>
 
       {antecedente.respuesta && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[3fr_7fr]">
           <Input
-            placeholder="Fecha de inicio"
+            type="date"
             value={antecedente.fechaInicio}
             onChange={(e) => onChange({ fechaInicio: e.target.value })}
           />
@@ -55,12 +55,6 @@ function AntecedenteRow({
             placeholder="Medicación"
             value={antecedente.medicacion}
             onChange={(e) => onChange({ medicacion: e.target.value })}
-          />
-          <Input
-            placeholder="Descripción"
-            className="sm:col-span-2"
-            value={antecedente.descripcion}
-            onChange={(e) => onChange({ descripcion: e.target.value })}
           />
           <Input
             placeholder="Resolución"

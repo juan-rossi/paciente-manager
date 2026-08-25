@@ -22,8 +22,9 @@ a Next.js + Postgres.
    - **Prisma Dev** (sin Docker): `npx prisma dev` — imprime una connection string local,
      pegala en `DATABASE_URL` dentro de `.env`.
 
-3. Copiar `.env` y ajustar `DATABASE_URL`, `JWT_SECRET` y las credenciales del usuario semilla
-   (`SEED_USER_EMAIL` / `SEED_USER_PASSWORD` / `SEED_USER_NOMBRE`).
+3. Copiar `.env` y ajustar `DATABASE_URL`, `JWT_SECRET`, las credenciales del usuario semilla
+   (`SEED_USER_EMAIL` / `SEED_USER_PASSWORD` / `SEED_USER_NOMBRE`) y `DOCTOR_NAME` (nombre que se
+   muestra en el header de la app — configurar distinto por entorno/deploy).
 
 4. Crear las tablas y el usuario médico inicial:
 

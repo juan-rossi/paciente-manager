@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { LucideProps } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -8,9 +9,10 @@ type FormSectionProps = {
   title: string;
   icon: ComponentType<LucideProps>;
   children: ReactNode;
+  contentClassName?: string;
 };
 
-export function FormSection({ title, icon: Icon, children }: FormSectionProps) {
+export function FormSection({ title, icon: Icon, children, contentClassName }: FormSectionProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border/60">
       <h3 className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5">
@@ -19,7 +21,12 @@ export function FormSection({ title, icon: Icon, children }: FormSectionProps) {
         </span>
         {title}
       </h3>
-      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4",
+          contentClassName
+        )}
+      >
         {children}
       </div>
     </div>

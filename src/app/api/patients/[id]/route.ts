@@ -28,6 +28,17 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   return NextResponse.json({ patient });
 }
 
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const { response } = await requireUser();
+  if (response) return response;
+
+  const { id } = await params;
+
+  await prisma.patient.deleteMany({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { response } = await requireUser();
   if (response) return response;
