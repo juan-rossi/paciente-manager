@@ -19,6 +19,26 @@ enum EstadoCivil {
   CONCUBINO
 }
 
+enum UserRole {
+  DOCTOR
+  SECRETARY
+}
+
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+enum TurnoEstado {
+  CONFIRMADO
+  CANCELADO
+}
+
 enum TipoAntecedente {
   DISLIPEMIA
   HIPOTIROIDISMO
@@ -43,11 +63,51 @@ enum TipoAntecedente {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  nombre       String
-  createdAt    DateTime @default(now())
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  passwordHash        String
+  nombre              String
+  role                UserRole @default(SECRETARY)
+  slotDurationMinutes Int      @default(20)
+  createdAt           DateTime @default(now())
+
+  workScheduleBlocks WorkScheduleBlock[]
+  turnosCreados      Turno[]             @relation("TurnoCreadoPor")
+}
+
+model WorkScheduleBlock {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diaSemana  DiaSemana
+  horaInicio String
+  horaFin    String
+
+  @@index([userId])
+}
+
+model Turno {
+  id     String      @id @default(cuid())
+  inicio DateTime
+  fin    DateTime
+  estado TurnoEstado @default(CONFIRMADO)
+
+  nombreYApellido String
+  fechaNacimiento DateTime
+  dni             String
+  obraSocial      String?
+  obraSocialNro   String?
+
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id])
+
+  creadoPorId String
+  creadoPor   User   @relation("TurnoCreadoPor", fields: [creadoPorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([inicio])
 }
 
 model Patient {
@@ -90,26 +150,26 @@ model Patient {
   temperatura            String?
 
   // Examen fisico - cabeza / torax / cardiovascular
-  craneo         String?
-  ojo            String?
-  oido           String?
-  pcfg           String?
-  toraxForma     String?
-  toraxMamas     String?
-  auscultacionMV String?
-  auscultacionVV String?
-  rales          String?
-  excursion      String?
-  acvR1          String?
-  acvR2          String?
-  soplos         String?
-  carotideo      String?
-  radial         String?
-  femoral        String?
-  pedio          String?
-  ppRenalDerecha String?
+  craneo           String?
+  ojo              String?
+  oido             String?
+  pcfg             String?
+  toraxForma       String?
+  toraxMamas       String?
+  auscultacionMV   String?
+  auscultacionVV   String?
+  rales            String?
+  excursion        String?
+  acvR1            String?
+  acvR2            String?
+  soplos           String?
+  carotideo        String?
+  radial           String?
+  femoral          String?
+  pedio            String?
+  ppRenalDerecha   String?
   ppRenalIzquierda String?
-  mamas          String?
+  mamas            String?
 
   // Examen fisico - cuello
   cuelloPalpacion    String?
@@ -151,6 +211,7 @@ model Patient {
 
   antecedentes PatientAntecedente[]
   evoluciones  PatientEvolucion[]
+  turnos       Turno[]
 
   @@index([nroDocumento])
   @@index([nombreYApellido])

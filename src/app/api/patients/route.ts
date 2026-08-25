@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/api-auth";
+import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 
 const listSelect = {
@@ -14,7 +14,7 @@ const listSelect = {
 } satisfies Prisma.PatientSelect;
 
 export async function GET(request: NextRequest) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const body = await request.json().catch(() => null);

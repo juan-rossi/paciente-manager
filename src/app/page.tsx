@@ -3,5 +3,6 @@ import { getCurrentUser } from "@/lib/session";
 
 export default async function Home() {
   const user = await getCurrentUser();
-  redirect(user ? "/dashboard" : "/login");
+  if (!user) redirect("/login");
+  redirect(user.role === "DOCTOR" ? "/dashboard" : "/turnos");
 }

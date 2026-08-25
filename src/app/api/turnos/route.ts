@@ -1,0 +1,84 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/api-auth";
+import { turnoInputSchema } from "@/lib/turno-schema";
+import { serializeTurno } from "@/lib/turno-serialize";
+import { getDaySlots } from "@/lib/get-day-slots";
+
+function parseDateParam(value: string | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export async function GET(request: NextRequest) {
+  const { user, response } = await requireUser();
+  if (response) return response;
+
+  const date = parseDateParam(request.nextUrl.searchParams.get("date"));
+  if (!date) {
+    return NextResponse.json({ error: "Parámetro 'date' inválido (YYYY-MM-DD)." }, { status: 400 });
+  }
+
+  const result = await getDaySlots(date, user.role);
+
+  return NextResponse.json(result);
+}
+
+export async function POST(request: NextRequest) {
+  const { user, response } = await requireUser();
+  if (response) return response;
+
+  const body = await request.json().catch(() => null);
+  const parsed = turnoInputSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Datos inválidos.", issues: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const doctor = await prisma.user.findFirst({ where: { role: "DOCTOR" } });
+  if (!doctor) {
+    return NextResponse.json(
+      { error: "Todavía no se configuró el horario de trabajo." },
+      { status: 409 }
+    );
+  }
+
+  const inicio = new Date(parsed.data.inicio);
+  if (Number.isNaN(inicio.getTime())) {
+    return NextResponse.json({ error: "Fecha y hora inválidas." }, { status: 400 });
+  }
+
+  const existente = await prisma.turno.findFirst({
+    where: { inicio, estado: "CONFIRMADO" },
+  });
+  if (existente) {
+    return NextResponse.json({ error: "Ese turno ya fue reservado." }, { status: 409 });
+  }
+
+  const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);
+
+  const patient = await prisma.patient.findFirst({
+    where: { nroDocumento: parsed.data.dni },
+    select: { id: true },
+  });
+
+  const turno = await prisma.turno.create({
+    data: {
+      inicio,
+      fin,
+      nombreYApellido: parsed.data.nombreYApellido,
+      fechaNacimiento: new Date(parsed.data.fechaNacimiento),
+      dni: parsed.data.dni,
+      obraSocial: parsed.data.obraSocial,
+      obraSocialNro: parsed.data.obraSocialNro,
+      patientId: patient?.id ?? null,
+      creadoPorId: user.id,
+    },
+  });
+
+  return NextResponse.json({ turno: serializeTurno(turno, user.role) }, { status: 201 });
+}

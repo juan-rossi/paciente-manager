@@ -4,11 +4,12 @@ import {
   SESSION_MAX_AGE,
   signSession,
   verifySession,
+  type UserRole,
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function createSession(userId: string) {
-  const token = await signSession({ userId });
+export async function createSession(userId: string, role: UserRole) {
+  const token = await signSession({ userId, role });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,

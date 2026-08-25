@@ -20,8 +20,11 @@ export function verifyPassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
+export type UserRole = "DOCTOR" | "SECRETARY";
+
 export type SessionPayload = {
   userId: string;
+  role: UserRole;
 };
 
 export async function signSession(payload: SessionPayload) {
@@ -36,7 +39,8 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
   try {
     const { payload } = await jwtVerify(token, getSecretKey());
     if (typeof payload.userId !== "string") return null;
-    return { userId: payload.userId };
+    if (payload.role !== "DOCTOR" && payload.role !== "SECRETARY") return null;
+    return { userId: payload.userId, role: payload.role };
   } catch {
     return null;
   }

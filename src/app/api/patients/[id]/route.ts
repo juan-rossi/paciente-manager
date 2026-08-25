@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/api-auth";
+import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 
 const patientUpdateSchema = patientSchema.omit({ evoluciones: true });
@@ -8,7 +8,7 @@ const patientUpdateSchema = patientSchema.omit({ evoluciones: true });
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
@@ -40,7 +40,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;

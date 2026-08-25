@@ -36,7 +36,8 @@ export function LoginForm() {
       }
 
       const from = searchParams.get("from");
-      router.replace(from && from.startsWith("/") ? from : "/dashboard");
+      const fallback = data.role === "DOCTOR" ? "/dashboard" : "/turnos";
+      router.replace(from && from.startsWith("/") ? from : fallback);
       router.refresh();
     } catch {
       setError("No se pudo conectar con el servidor.");

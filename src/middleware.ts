@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySession } from "@/lib/auth";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/patients"];
+const PROTECTED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/configuracion"];
+const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -16,13 +17,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (session && session.role === "SECRETARY") {
+    const isDoctorOnly = DOCTOR_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    if (isDoctorOnly) {
+      return NextResponse.redirect(new URL("/turnos", request.url));
+    }
+  }
+
   if (pathname === "/login" && session) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const fallback = session.role === "DOCTOR" ? "/dashboard" : "/turnos";
+    return NextResponse.redirect(new URL(fallback, request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/patients/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/patients/:path*", "/turnos/:path*", "/configuracion/:path*", "/login"],
 };

@@ -8,3 +8,12 @@ export async function requireUser() {
   }
   return { user, response: null };
 }
+
+export async function requireDoctor() {
+  const { user, response } = await requireUser();
+  if (response) return { user: null, response };
+  if (user.role !== "DOCTOR") {
+    return { user: null, response: NextResponse.json({ error: "No autorizado." }, { status: 403 }) };
+  }
+  return { user, response: null };
+}

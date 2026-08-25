@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/api-auth";
+import { requireDoctor } from "@/lib/api-auth";
 
 type RouteParams = { params: Promise<{ id: string; evolucionId: string }> };
 
@@ -11,7 +11,7 @@ const evolucionInput = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const { id, evolucionId } = await params;
@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireUser();
+  const { response } = await requireDoctor();
   if (response) return response;
 
   const { id, evolucionId } = await params;
