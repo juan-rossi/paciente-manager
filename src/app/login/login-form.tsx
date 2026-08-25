@@ -48,7 +48,7 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-sm">
-      <CardHeader className="items-center text-center">
+      <CardHeader className="items-center justify-items-center text-center">
         <span className="mb-1 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Stethoscope className="size-5.5" />
         </span>
