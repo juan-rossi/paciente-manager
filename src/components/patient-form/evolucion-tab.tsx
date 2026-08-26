@@ -22,6 +22,17 @@ function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
+// `new Date().toISOString()` da la fecha en UTC: cerca de medianoche, en un huso
+// horario negativo (ej. Argentina), ya cayó en el día siguiente en UTC. Hay que
+// armar la fecha "de hoy" con los componentes LOCALES, no los de UTC.
+function todayLocal() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 type Props = {
   patientId?: string;
   evoluciones: EvolucionValue[];
@@ -32,7 +43,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(todayLocal());
   const [contenido, setContenido] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +54,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
   const isEditing = editingIndex !== null;
 
   function resetForm() {
-    setFecha(new Date().toISOString().slice(0, 10));
+    setFecha(todayLocal());
     setContenido("");
     setError(null);
     setEditingIndex(null);
