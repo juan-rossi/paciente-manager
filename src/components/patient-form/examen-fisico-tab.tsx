@@ -25,8 +25,10 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
         {f("ritmo", "Ritmo")}
         {f("presionArterial", "Presión Arterial")}
         {f("frecuenciaRespiratoria", "Frecuencia Respiratoria")}
-        {f("pesoActual", "Peso Actual")}
-        {f("pesoHabitual", "Peso Habitual")}
+        <div className="grid grid-cols-2 gap-4">
+          {f("pesoActual", "Peso Actual")}
+          {f("pesoHabitual", "Peso Habitual")}
+        </div>
         {f("estatura", "Estatura")}
         {f("temperatura", "Temperatura")}
       </FormSection>

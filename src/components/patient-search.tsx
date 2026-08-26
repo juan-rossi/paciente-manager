@@ -73,30 +73,28 @@ export function PatientSearch({ initialPatients }: Props) {
               <TableHead>Nombre y Apellido</TableHead>
               <TableHead>DNI</TableHead>
               <TableHead>Teléfono</TableHead>
-              <TableHead className="text-right">Ver</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {patients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={3} className="text-center text-muted-foreground">
                   {searched ? "No se encontraron pacientes." : "Últimos pacientes cargados."}
                 </TableCell>
               </TableRow>
             )}
             {patients.map((patient) => (
               <TableRow key={patient.id}>
-                <TableCell className="font-medium">{patient.nombreYApellido}</TableCell>
+                <TableCell className="font-medium">
+                  <Link
+                    href={`/patients/${patient.id}`}
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    {patient.nombreYApellido}
+                  </Link>
+                </TableCell>
                 <TableCell>{patient.nroDocumento ?? "—"}</TableCell>
                 <TableCell>{patient.telefono ?? "—"}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    nativeButton={false}
-                    render={<Link href={`/patients/${patient.id}`}>Abrir</Link>}
-                  />
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
