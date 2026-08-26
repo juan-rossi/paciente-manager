@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
+import { formatFechaCorta } from "./utils";
 
 function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -168,7 +169,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
             <CardContent className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-bold">
-                  {new Date(entry.fecha).toLocaleDateString("es-AR")}
+                  {formatFechaCorta(entry.fecha)}
                 </span>
                 <div className="flex items-center gap-3">
                   <button

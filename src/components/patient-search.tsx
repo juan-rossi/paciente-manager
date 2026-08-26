@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,28 +22,50 @@ export type PatientRow = {
   fechaNacimiento: string | null;
 };
 
-type Props = {
-  initialPatients: PatientRow[];
-};
+const QUERY_STORAGE_KEY = "patient-search-query";
+const SEARCH_DEBOUNCE_MS = 500;
 
-export function PatientSearch({ initialPatients }: Props) {
+export function PatientSearch() {
   const [query, setQuery] = useState("");
-  const [patients, setPatients] = useState<PatientRow[]>(initialPatients);
+  const [patients, setPatients] = useState<PatientRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSearched(true);
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/patients?q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-      setPatients(data.patients ?? []);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    // Restaura el último filtro buscado en esta pestaña — sessionStorage no
+    // existe en el servidor, así que esto no puede resolverse con props.
+    const saved = sessionStorage.getItem(QUERY_STORAGE_KEY);
+    if (saved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQuery(saved);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed === "") {
+      // Limpia resultados stale de una búsqueda previa; sin esto, tipear un
+      // nuevo filtro después de borrar todo mostraría por un instante los
+      // resultados de la búsqueda anterior mientras arranca el debounce.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPatients([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      sessionStorage.setItem(QUERY_STORAGE_KEY, query);
+      try {
+        const response = await fetch(`/api/patients?q=${encodeURIComponent(trimmed)}`);
+        const data = await response.json();
+        setPatients(data.patients ?? []);
+      } finally {
+        setLoading(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <Card>
@@ -56,16 +78,11 @@ export function PatientSearch({ initialPatients }: Props) {
         />
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Input
-            placeholder="DNI, nombre o apellido..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <Button type="submit" disabled={loading}>
-            {loading ? "Buscando..." : "Buscar"}
-          </Button>
-        </form>
+        <Input
+          placeholder="DNI, nombre o apellido..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
 
         <Table>
           <TableHeader>
@@ -76,27 +93,35 @@ export function PatientSearch({ initialPatients }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {patients.length === 0 && (
+            {query.trim() === "" && (
               <TableRow>
                 <TableCell colSpan={3} className="text-center text-muted-foreground">
-                  {searched ? "No se encontraron pacientes." : "Últimos pacientes cargados."}
+                  Escribí un DNI, nombre o apellido para buscar.
                 </TableCell>
               </TableRow>
             )}
-            {patients.map((patient) => (
-              <TableRow key={patient.id}>
-                <TableCell className="font-medium">
-                  <Link
-                    href={`/patients/${patient.id}`}
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    {patient.nombreYApellido}
-                  </Link>
+            {query.trim() !== "" && patients.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  {loading ? "Buscando..." : "No se encontraron pacientes."}
                 </TableCell>
-                <TableCell>{patient.nroDocumento ?? "—"}</TableCell>
-                <TableCell>{patient.telefono ?? "—"}</TableCell>
               </TableRow>
-            ))}
+            )}
+            {query.trim() !== "" &&
+              patients.map((patient) => (
+                <TableRow key={patient.id}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/patients/${patient.id}`}
+                      className="text-foreground underline-offset-4 hover:underline"
+                    >
+                      {patient.nombreYApellido}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{patient.nroDocumento ?? "—"}</TableCell>
+                  <TableCell>{patient.telefono ?? "—"}</TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </CardContent>

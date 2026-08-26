@@ -11,23 +11,6 @@ import { TURNOS_ENABLED } from "@/lib/feature-flags";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const patients = await prisma.patient.findMany({
-    select: {
-      id: true,
-      nombreYApellido: true,
-      nroDocumento: true,
-      telefono: true,
-      fechaNacimiento: true,
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 10,
-  });
-
-  const initialPatients = patients.map((patient) => ({
-    ...patient,
-    fechaNacimiento: patient.fechaNacimiento?.toISOString() ?? null,
-  }));
-
   const turnosHoy = TURNOS_ENABLED
     ? await (async () => {
         const inicioHoy = new Date();
@@ -42,7 +25,7 @@ export default async function DashboardPage() {
   return (
     <div className={TURNOS_ENABLED ? "grid gap-6 lg:grid-cols-3" : undefined}>
       <div className={TURNOS_ENABLED ? "lg:col-span-2" : undefined}>
-        <PatientSearch initialPatients={initialPatients} />
+        <PatientSearch />
       </div>
       {turnosHoy !== null && (
         <Card>

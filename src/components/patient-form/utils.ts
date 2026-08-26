@@ -162,15 +162,28 @@ export function patientFromApi(patient: any): {
   return { values: base, evoluciones };
 }
 
+// Parsea "YYYY-MM-DD" a sus partes sin construir un `Date` — `new Date("YYYY-MM-DD")`
+// se interpreta como medianoche UTC, y leerlo de nuevo con getFullYear/getMonth/getDate
+// (locales) corre el día para atrás en cualquier huso horario negativo (ej. Argentina).
+function parseFechaISO(fecha: string): { year: number; month: number; day: number } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(fecha);
+  if (!match) return null;
+  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+}
+
+export function formatFechaCorta(fecha: string): string {
+  const parts = parseFechaISO(fecha);
+  return parts ? `${parts.day}/${parts.month}/${parts.year}` : fecha;
+}
+
 export function calcularEdad(fechaNacimiento: string): string {
-  if (!fechaNacimiento) return "";
-  const nacimiento = new Date(fechaNacimiento);
-  if (Number.isNaN(nacimiento.getTime())) return "";
+  const nacimiento = parseFechaISO(fechaNacimiento);
+  if (!nacimiento) return "";
 
   const hoy = new Date();
-  let edad = hoy.getFullYear() - nacimiento.getFullYear();
-  const mes = hoy.getMonth() - nacimiento.getMonth();
-  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+  let edad = hoy.getFullYear() - nacimiento.year;
+  const mes = hoy.getMonth() + 1 - nacimiento.month;
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.day)) {
     edad -= 1;
   }
   return edad >= 0 ? String(edad) : "";
