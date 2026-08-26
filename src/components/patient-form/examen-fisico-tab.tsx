@@ -31,8 +31,15 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
       <TextField label={label} value={values[field]} onChange={(v) => setField(field, v)} />
     </div>
   );
+  const fSpan = (field: StringField, label: string, span: 2 | 3) => (
+    <div className={span === 2 ? "sm:col-span-2" : "sm:col-span-2 lg:col-span-3"}>
+      <TextField label={label} value={values[field]} onChange={(v) => setField(field, v)} />
+    </div>
+  );
   const fArea = (field: StringField, label: string) => (
-    <TextAreaField label={label} rows={3} value={values[field]} onChange={(v) => setField(field, v)} />
+    <div className="col-span-full">
+      <TextAreaField label={label} rows={3} value={values[field]} onChange={(v) => setField(field, v)} />
+    </div>
   );
 
   return (
@@ -52,7 +59,7 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
       </FormSection>
 
       <FormSection title="Cabeza" icon={ScanFace}>
-        {f("craneo", "Cráneo")}
+        {fSpan("craneo", "Cráneo", 2)}
         {f("ojo", "Ojo: Agudeza Visual")}
         {f("oido", "Oído: Agudeza Auditiva")}
         {fArea("pcfg", "Piel, Faneras, Celular Subcutáneo y Ganglios")}
@@ -61,15 +68,23 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
       <FormSection title="Cuello" icon={Stethoscope}>
         {f("cuelloPalpacion", "Palpación")}
         {f("cuelloTamanio", "Tamaño")}
-        {f("cuelloAuscultacion", "Auscultación")}
+        <div className="sm:col-span-2">
+          <TextField
+            label="Auscultación"
+            value={values.cuelloAuscultacion}
+            onChange={(v) => setField("cuelloAuscultacion", v)}
+          />
+        </div>
       </FormSection>
 
       <FormSection title="Tórax" icon={HeartPulse}>
         {f("toraxForma", "Forma")}
-        {f("toraxMamas", "Mamas")}
-        {f("auscultacionMV", "Auscultación M V")}
-        {f("auscultacionVV", "Auscultación V V")}
-        {f("rales", "Rales")}
+        {fSpan("toraxMamas", "Mamas", 3)}
+        <div className="col-span-full grid grid-cols-3 gap-4">
+          {f("auscultacionMV", "Auscultación M V")}
+          {f("auscultacionVV", "Auscultación V V")}
+          {f("rales", "Rales")}
+        </div>
         {fArea("excursion", "Excursión de Bases y Vértices")}
       </FormSection>
 
@@ -90,16 +105,18 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
       </FormSection>
 
       <FormSection title="Aparato Genito-Urinario" icon={Droplet}>
-        {f("ppRenalDerecha", "PP Renal Derecha")}
-        {f("ppRenalIzquierda", "PP Renal Izquierda")}
+        {fSpan("ppRenalDerecha", "PP Renal Derecha", 2)}
+        {fSpan("ppRenalIzquierda", "PP Renal Izquierda", 2)}
         {fFull("mamas", "Mamas")}
       </FormSection>
 
       <FormSection title="Sistema Nervioso" icon={Brain}>
         {f("sensorio", "Sensorio")}
         {f("lenguaje", "Lenguaje")}
-        {f("marcha", "Marcha")}
-        {f("temblor", "Temblor")}
+        <div className="grid grid-cols-2 gap-4">
+          {f("marcha", "Marcha")}
+          {f("temblor", "Temblor")}
+        </div>
         {f("taxia", "Taxia")}
         {f("reflejosFotomotor", "Reflejo Fotomotor")}
         {f("reflejosAcomodacion", "Reflejos de Acomodación")}
@@ -109,8 +126,8 @@ export function ExamenFisicoTab({ values, onChange }: Props) {
 
       <FormSection title="Osteomuscular" icon={Bone}>
         {fFull("columnaCervical", "Columna Cervical")}
-        {f("dorsal", "Dorsal")}
-        {f("lumbar", "Lumbar")}
+        {fSpan("dorsal", "Dorsal", 2)}
+        {fSpan("lumbar", "Lumbar", 2)}
         {fFull("movilidad", "Articulaciones: Movilidad")}
         {fFull("dolor", "Dolor")}
         {fFull("tumefaccion", "Tumefacción")}
