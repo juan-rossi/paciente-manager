@@ -93,7 +93,7 @@ model Turno {
   estado TurnoEstado @default(CONFIRMADO)
 
   nombreYApellido String
-  fechaNacimiento DateTime
+  fechaNacimiento DateTime?
   dni             String
   obraSocial      String?
   obraSocialNro   String?

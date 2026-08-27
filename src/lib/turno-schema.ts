@@ -21,7 +21,11 @@ export const slotDurationSchema = z.object({
 export const turnoInputSchema = z.object({
   inicio: z.string().min(1, "La fecha y hora son obligatorias."),
   nombreYApellido: z.string().trim().min(1, "El nombre y apellido es obligatorio."),
-  fechaNacimiento: z.string().trim().min(1, "La fecha de nacimiento es obligatoria."),
+  fechaNacimiento: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
   dni: z
     .string()
     .trim()
@@ -43,4 +47,15 @@ export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
+});
+
+export const secretaryUpdateSchema = z.object({
+  email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
+  nombre: z.string().trim().min(1, "El nombre es obligatorio."),
+  password: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null))
+    .refine((v) => v === null || v.length >= 6, "La contraseña debe tener al menos 6 caracteres."),
 });

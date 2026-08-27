@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Clock, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SettingsSection } from "@/components/settings-section";
 import { DIA_SEMANA_VALUES, type DiaSemana } from "@/lib/slots";
 
 const DIA_LABELS: Record<DiaSemana, string> = {
@@ -50,11 +51,15 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
   const [durationError, setDurationError] = useState<string | null>(null);
 
   const [open, setOpen] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<Block | null>(null);
   const [diaSemana, setDiaSemana] = useState<DiaSemana>("LUNES");
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("17:00");
-  const [addingBlock, setAddingBlock] = useState(false);
+  const [savingBlock, setSavingBlock] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
+
+  const [deleteTarget, setDeleteTarget] = useState<Block | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleGuardarDuracion() {
     setSavingDuration(true);
@@ -75,6 +80,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
   }
 
   function openAddBlock() {
+    setEditingBlock(null);
     setDiaSemana("LUNES");
     setHoraInicio("09:00");
     setHoraFin("17:00");
@@ -82,36 +88,63 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
     setOpen(true);
   }
 
-  async function handleAgregarBloque() {
+  function openEditBlock(block: Block) {
+    setEditingBlock(block);
+    setDiaSemana(block.diaSemana);
+    setHoraInicio(block.horaInicio);
+    setHoraFin(block.horaFin);
     setBlockError(null);
-    setAddingBlock(true);
+    setOpen(true);
+  }
+
+  async function handleGuardarBloque() {
+    setBlockError(null);
+    setSavingBlock(true);
     try {
-      const response = await fetch("/api/schedule/blocks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ diaSemana, horaInicio, horaFin }),
-      });
+      const response = await fetch(
+        editingBlock ? `/api/schedule/blocks/${editingBlock.id}` : "/api/schedule/blocks",
+        {
+          method: editingBlock ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ diaSemana, horaInicio, horaFin }),
+        }
+      );
       const data = await response.json();
       if (!response.ok) {
-        setBlockError(data.error ?? "No se pudo agregar el bloque.");
+        setBlockError(data.error ?? "No se pudo guardar el bloque.");
         return;
       }
-      setBlocks((prev) => [...prev, data.block]);
+      setBlocks((prev) =>
+        editingBlock
+          ? prev.map((b) => (b.id === data.block.id ? data.block : b))
+          : [...prev, data.block]
+      );
       setOpen(false);
     } finally {
-      setAddingBlock(false);
+      setSavingBlock(false);
     }
   }
 
-  async function handleEliminarBloque(id: string) {
-    await fetch(`/api/schedule/blocks/${id}`, { method: "DELETE" });
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
+  async function handleEliminarBloque() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/schedule/blocks/${deleteTarget.id}`, { method: "DELETE" });
+      setBlocks((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <Label>Duración de cada turno (minutos)</Label>
+      <SettingsSection
+        title="Duración de turnos"
+        description="Define cuántos minutos dura cada turno disponible para reservar."
+        icon={Clock}
+      >
+        <Label>Minutos por turno</Label>
         <div className="flex gap-2">
           <Input
             type="number"
@@ -126,11 +159,13 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
           </Button>
         </div>
         {durationError && <p className="text-sm text-destructive">{durationError}</p>}
-      </div>
+      </SettingsSection>
 
-      <div className="flex flex-col gap-3">
-        <Label>Bloques de horario</Label>
-
+      <SettingsSection
+        title="Bloques de horario"
+        description="Configurá los días y horarios en los que atendés; a partir de esto se generan los turnos disponibles."
+        icon={CalendarDays}
+      >
         {blocks.length === 0 && (
           <p className="text-sm text-muted-foreground">Todavía no agregaste ningún bloque.</p>
         )}
@@ -141,17 +176,27 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
             className="flex items-center justify-between gap-3 rounded-md border p-3"
           >
             <span className="text-sm">
-              <span className="font-medium">{DIA_LABELS[block.diaSemana]}</span> ·{" "}
+              <strong>{DIA_LABELS[block.diaSemana]}</strong> ·{" "}
               {block.horaInicio} a {block.horaFin}
             </span>
-            <button
-              type="button"
-              onClick={() => handleEliminarBloque(block.id)}
-              className="text-muted-foreground hover:text-destructive"
-              aria-label="Eliminar bloque"
-            >
-              <Trash2 className="size-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => openEditBlock(block)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Editar bloque"
+              >
+                <Pencil className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(block)}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Eliminar bloque"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
           </div>
         ))}
 
@@ -163,7 +208,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
             </Button>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Nuevo bloque de horario</DialogTitle>
+                <DialogTitle>{editingBlock ? "Editar bloque de horario" : "Nuevo bloque de horario"}</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
@@ -202,14 +247,47 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
                 {blockError && <p className="text-sm text-destructive">{blockError}</p>}
               </div>
               <DialogFooter>
-                <Button type="button" onClick={handleAgregarBloque} disabled={addingBlock}>
-                  {addingBlock ? "Agregando..." : "Agregar"}
+                <Button type="button" onClick={handleGuardarBloque} disabled={savingBlock}>
+                  {savingBlock
+                    ? editingBlock
+                      ? "Guardando..."
+                      : "Agregando..."
+                    : editingBlock
+                      ? "Guardar"
+                      : "Agregar"}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+      </SettingsSection>
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar bloque de horario</DialogTitle>
+          </DialogHeader>
+          {deleteTarget && (
+            <p className="text-sm text-muted-foreground">
+              Se eliminará el bloque de <strong>{DIA_LABELS[deleteTarget.diaSemana]}</strong> de{" "}
+              {deleteTarget.horaInicio} a {deleteTarget.horaFin}.
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleEliminarBloque}
+              disabled={deleting}
+            >
+              {deleting ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

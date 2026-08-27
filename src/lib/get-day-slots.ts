@@ -7,7 +7,7 @@ export type SerializedTurno = {
   id: string;
   estado: string;
   nombreYApellido: string;
-  fechaNacimiento: string;
+  fechaNacimiento: string | null;
   dni: string;
   obraSocial: string | null;
   obraSocialNro: string | null;
@@ -48,7 +48,7 @@ export async function getDaySlots(
       fin: slot.fin.toISOString(),
       turno: turno
         ? (serializeTurno(
-            { ...turno, fechaNacimiento: turno.fechaNacimiento.toISOString() },
+            { ...turno, fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null },
             role
           ) as SerializedTurno)
         : null,

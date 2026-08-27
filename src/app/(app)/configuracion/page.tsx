@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { ScheduleSettings } from "@/components/schedule-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 
@@ -38,19 +37,15 @@ export default async function ConfiguracionPage() {
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
         </TabsList>
 
-        <Card className="mt-2">
-          <CardContent>
-            <TabsContent value="horario">
-              <ScheduleSettings
-                initialBlocks={blocks}
-                initialSlotDurationMinutes={user.slotDurationMinutes}
-              />
-            </TabsContent>
-            <TabsContent value="usuarios">
-              <SecretaryUsers initialSecretarias={initialSecretarias} />
-            </TabsContent>
-          </CardContent>
-        </Card>
+        <TabsContent value="horario" className="mt-2">
+          <ScheduleSettings
+            initialBlocks={blocks}
+            initialSlotDurationMinutes={user.slotDurationMinutes}
+          />
+        </TabsContent>
+        <TabsContent value="usuarios" className="mt-2">
+          <SecretaryUsers initialSecretarias={initialSecretarias} />
+        </TabsContent>
       </Tabs>
     </div>
   );

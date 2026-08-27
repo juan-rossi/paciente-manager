@@ -26,7 +26,7 @@ import {
 type TurnoInfo = {
   id: string;
   nombreYApellido: string;
-  fechaNacimiento: string;
+  fechaNacimiento: string | null;
   dni: string;
   obraSocial: string | null;
   obraSocialNro: string | null;
@@ -65,11 +65,9 @@ function capitalize(text: string) {
 
 function formatHora(iso: string) {
   const date = new Date(iso);
-  const hours = date.getHours();
+  const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  const period = hours < 12 ? "a. m." : "p. m.";
-  const displayHour = hours % 12 === 0 ? 12 : hours % 12;
-  return `${displayHour}:${minutes} ${period}`;
+  return `${hours}:${minutes}`;
 }
 
 function minutesFromMidnight(iso: string) {
@@ -101,10 +99,8 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
 
   const [bookingSlot, setBookingSlot] = useState<Slot | null>(null);
   const [nombreYApellido, setNombreYApellido] = useState("");
-  const [fechaNacimiento, setFechaNacimiento] = useState("");
   const [dni, setDni] = useState("");
   const [obraSocial, setObraSocial] = useState("");
-  const [obraSocialNro, setObraSocialNro] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -132,17 +128,15 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
   function openBooking(slot: Slot) {
     setBookingSlot(slot);
     setNombreYApellido("");
-    setFechaNacimiento("");
     setDni("");
     setObraSocial("");
-    setObraSocialNro("");
     setError(null);
   }
 
   async function handleReservar() {
     if (!bookingSlot) return;
-    if (!nombreYApellido.trim() || !fechaNacimiento || !dni.trim()) {
-      setError("Completá nombre y apellido, fecha de nacimiento y DNI.");
+    if (!nombreYApellido.trim() || !dni.trim()) {
+      setError("Completá nombre y apellido y DNI.");
       return;
     }
     setError(null);
@@ -154,10 +148,8 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
         body: JSON.stringify({
           inicio: bookingSlot.inicio,
           nombreYApellido,
-          fechaNacimiento,
           dni,
           obraSocial,
-          obraSocialNro,
         }),
       });
       const data = await response.json();
@@ -370,14 +362,6 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label>Fecha de Nacimiento *</Label>
-                <Input
-                  type="date"
-                  value={fechaNacimiento}
-                  onChange={(e) => setFechaNacimiento(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
                 <Label>DNI *</Label>
                 <Input
                   inputMode="numeric"
@@ -385,15 +369,9 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
                 />
               </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label>Obra Social</Label>
                 <Input value={obraSocial} onChange={(e) => setObraSocial(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Nro Obra Social</Label>
-                <Input value={obraSocialNro} onChange={(e) => setObraSocialNro(e.target.value)} />
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
