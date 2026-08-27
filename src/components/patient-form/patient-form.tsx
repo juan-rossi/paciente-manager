@@ -6,6 +6,13 @@ import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DatosPersonalesTab } from "./datos-personales-tab";
 import { ConsultaInicialTab } from "./consulta-inicial-tab";
 import { AntecedentesTab } from "./antecedentes-tab";
@@ -71,6 +78,9 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dniConflict, setDniConflict] = useState<{ id: string; nombreYApellido: string } | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState("datos-personales");
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
 
@@ -82,6 +92,10 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
       next.delete(field as string);
       return next;
     });
+    if (field === "nroDocumento") {
+      setDniConflict(null);
+      setError(null);
+    }
   }
 
   function handleAntecedenteChange(tipo: AntecedenteValue["tipo"], patch: Partial<AntecedenteValue>) {
@@ -118,7 +132,7 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
     }
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(options?: { resolveDniConflict?: boolean }) {
     const missing = REQUIRED_FIELDS.filter((field) => isFieldEmpty(values, field));
 
     if (missing.length > 0) {
@@ -131,11 +145,13 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
     setInvalidFields(new Set());
     setSaving(true);
     setError(null);
+    setDniConflict(null);
 
     const payload = {
       ...values,
       estadoCivil: values.estadoCivil || null,
       evoluciones: [],
+      ...(options?.resolveDniConflict ? { resolveDniConflict: true } : {}),
     };
 
     try {
@@ -150,6 +166,12 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 409 && data.dniConflict) {
+          setDniConflict(data.dniConflict);
+          setInvalidFields(new Set(["nroDocumento"]));
+          setActiveTab("datos-personales");
+          return;
+        }
         setError(data.error ?? "No se pudo guardar el paciente.");
         return;
       }
@@ -236,12 +258,49 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
         </div>
         <div className="flex items-center gap-3">
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button onClick={handleSubmit} disabled={saving}>
+          <Button onClick={() => handleSubmit()} disabled={saving}>
             <Save className="size-4" />
             {saving ? "Guardando..." : "Guardar"}
           </Button>
         </div>
       </div>
+
+      <Dialog open={dniConflict !== null} onOpenChange={(open) => !open && setDniConflict(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>DNI ya utilizado</DialogTitle>
+          </DialogHeader>
+          {dniConflict && (
+            <p className="text-sm text-muted-foreground">
+              El DNI <strong className="text-foreground">{values.nroDocumento}</strong> ya está
+              asignado a{" "}
+              <a
+                href={`/patients/${dniConflict.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+              >
+                {dniConflict.nombreYApellido}
+              </a>. 
+              <br /><br />
+              Podés cancelar y usar otro DNI, o asignárselo a este paciente y dejar sin DNI a{" "}
+              {dniConflict.nombreYApellido}.
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDniConflict(null)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => handleSubmit({ resolveDniConflict: true })}
+              disabled={saving}
+            >
+              {saving ? "Asignando..." : "Asignar este DNI"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
