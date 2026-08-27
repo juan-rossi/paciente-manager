@@ -95,6 +95,7 @@ model Turno {
   nombreYApellido String
   fechaNacimiento DateTime?
   dni             String
+  telefono        String?
   obraSocial      String?
   obraSocialNro   String?
 

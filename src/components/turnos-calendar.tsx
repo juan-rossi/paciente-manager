@@ -28,6 +28,7 @@ type TurnoInfo = {
   nombreYApellido: string;
   fechaNacimiento: string | null;
   dni: string;
+  telefono: string | null;
   obraSocial: string | null;
   obraSocialNro: string | null;
   patientId?: string | null;
@@ -100,9 +101,11 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
   const [bookingSlot, setBookingSlot] = useState<Slot | null>(null);
   const [nombreYApellido, setNombreYApellido] = useState("");
   const [dni, setDni] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [obraSocial, setObraSocial] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [triedSubmit, setTriedSubmit] = useState(false);
 
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -129,13 +132,16 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
     setBookingSlot(slot);
     setNombreYApellido("");
     setDni("");
+    setTelefono("");
     setObraSocial("");
     setError(null);
+    setTriedSubmit(false);
   }
 
   async function handleReservar() {
     if (!bookingSlot) return;
     if (!nombreYApellido.trim() || !dni.trim()) {
+      setTriedSubmit(true);
       setError("Completá nombre y apellido y DNI.");
       return;
     }
@@ -149,6 +155,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
           inicio: bookingSlot.inicio,
           nombreYApellido,
           dni,
+          telefono,
           obraSocial,
         }),
       });
@@ -345,19 +352,32 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reservar turno</DialogTitle>
-            {bookingSlot && (
-              <DialogDescription>
-                {selectedDate.toLocaleDateString("es-AR")} · {formatHora(bookingSlot.inicio)} a{" "}
-                {formatHora(bookingSlot.fin)}
-              </DialogDescription>
-            )}
           </DialogHeader>
           <div className="flex flex-col gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <Label>Día</Label>                
+                <strong className="text-sm">
+                  {selectedDate.toLocaleDateString("es-AR")}
+                </strong>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label>Hora</Label>
+                <strong className="text-sm">
+                  {bookingSlot &&
+                    `${formatHora(bookingSlot.inicio)} a ${formatHora(bookingSlot.fin)}`}
+                </strong>
+              </div>
+            </div>
+            <hr className="mt-2 mb-2" />
             <div className="flex flex-col gap-1.5">
               <Label>Nombre y Apellido *</Label>
               <Input
                 value={nombreYApellido}
                 onChange={(e) => setNombreYApellido(e.target.value)}
+                className={
+                  triedSubmit && !nombreYApellido.trim() ? "border-destructive" : undefined
+                }
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -367,12 +387,17 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                   inputMode="numeric"
                   value={dni}
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+                  className={triedSubmit && !dni.trim() ? "border-destructive" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Obra Social</Label>
-                <Input value={obraSocial} onChange={(e) => setObraSocial(e.target.value)} />
+                <Label>Teléfono</Label>
+                <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
               </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Obra Social</Label>
+              <Input value={obraSocial} onChange={(e) => setObraSocial(e.target.value)} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

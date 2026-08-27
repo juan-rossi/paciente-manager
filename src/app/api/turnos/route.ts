@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
       nombreYApellido: parsed.data.nombreYApellido,
       fechaNacimiento: parsed.data.fechaNacimiento ? new Date(parsed.data.fechaNacimiento) : null,
       dni: parsed.data.dni,
+      telefono: parsed.data.telefono,
       obraSocial: parsed.data.obraSocial,
       obraSocialNro: parsed.data.obraSocialNro,
       patientId: patient?.id ?? null,
