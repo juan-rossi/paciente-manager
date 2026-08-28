@@ -127,7 +127,6 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
 
   async function handleSelectDate(date: Date | undefined) {
     if (!date) return;
-    if (date < todayStart) return;
     setSelectedDate(date);
     await loadSlots(date);
   }
@@ -195,6 +194,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
   const totalHours = endHour - startHour;
   const today = new Date();
   const isToday = isSameDay(selectedDate, today);
+  const isPastDay = selectedDate < todayStart;
   const nowOffsetPct =
     (((today.getHours() - startHour) * 60 + today.getMinutes()) / 60 / totalHours) * 100;
   const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
@@ -209,8 +209,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
           <button
             type="button"
             onClick={() => handleSelectDate(addDays(selectedDate, -1))}
-            disabled={isToday}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
             aria-label="Día anterior"
           >
             <ChevronLeft className="size-4" />
@@ -250,7 +249,8 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
               }}
               selected={selectedDate}
               onSelect={handleSelectDate}
-              disabled={{ before: todayStart }}
+              modifiers={{ past: (date) => date < todayStart }}
+              modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
             />
           </CardContent>
         </Card>
@@ -304,15 +304,16 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                       <button
                         key={slot.inicio}
                         type="button"
+                        disabled={isPastDay}
                         onClick={() => (slot.turno ? setCancelTarget(slot) : openBooking(slot))}
                         style={{ top: `${top}%`, height: `${height}%`, minHeight: 22 }}
                         aria-label={
                           ocupado
-                            ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}. Cancelar.`
-                            : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}. Reservar.`
+                            ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Cancelar."}`
+                            : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
                         }
                         className={cn(
-                          "absolute left-1 w-[calc(100%-0.5rem)] flex overflow-hidden rounded-md border px-2 py-1 text-left transition-colors",
+                          "absolute left-1 w-[calc(100%-0.5rem)] flex overflow-hidden rounded-md border px-2 py-1 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
                           ocupado
                             ? "flex-col border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
                             : "items-center border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
