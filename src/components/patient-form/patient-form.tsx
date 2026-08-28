@@ -2,7 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Save } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCheck,
+  ClipboardList,
+  History,
+  Save,
+  Stethoscope,
+  TrendingUp,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -189,12 +199,32 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
     <div className="flex flex-col gap-4">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList className="flex w-full flex-wrap justify-start">
-          <TabsTrigger value="datos-personales">Datos Personales</TabsTrigger>
-          <TabsTrigger value="consulta-inicial">Consulta Inicial</TabsTrigger>
-          <TabsTrigger value="antecedentes">Antecedentes Personales</TabsTrigger>
-          <TabsTrigger value="examen-fisico">Exámen Físico</TabsTrigger>
-          <TabsTrigger value="diagnostico">Diagnóstico</TabsTrigger>
-          {mode === "edit" && <TabsTrigger value="evolucion">Evolución Clínica</TabsTrigger>}
+          <TabsTrigger value="datos-personales">
+            <User className="size-4" />
+            Datos Personales
+          </TabsTrigger>
+          <TabsTrigger value="consulta-inicial">
+            <ClipboardList className="size-4" />
+            Consulta Inicial
+          </TabsTrigger>
+          <TabsTrigger value="antecedentes">
+            <History className="size-4" />
+            Antecedentes Personales
+          </TabsTrigger>
+          <TabsTrigger value="examen-fisico">
+            <Stethoscope className="size-4" />
+            Exámen Físico
+          </TabsTrigger>
+          <TabsTrigger value="diagnostico">
+            <ClipboardCheck className="size-4" />
+            Diagnóstico
+          </TabsTrigger>
+          {mode === "edit" && (
+            <TabsTrigger value="evolucion">
+              <TrendingUp className="size-4" />
+              Evolución Clínica
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <Card className="mt-2">

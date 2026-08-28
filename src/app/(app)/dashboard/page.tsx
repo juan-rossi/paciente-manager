@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, UserPlus } from "lucide-react";
+import { CalendarClock, ChevronRight, Search, UserPlus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PatientSearch } from "@/components/patient-search";
 import { Badge } from "@/components/ui/badge";
@@ -85,8 +85,14 @@ export default async function DashboardPage() {
   return (
     <Tabs defaultValue="turnos">
       <TabsList>
-        <TabsTrigger value="turnos">Turnos de hoy</TabsTrigger>
-        <TabsTrigger value="buscar">Buscar paciente</TabsTrigger>
+        <TabsTrigger value="turnos">
+          <CalendarClock className="size-4" />
+          Turnos de hoy
+        </TabsTrigger>
+        <TabsTrigger value="buscar">
+          <Search className="size-4" />
+          Buscar paciente
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="turnos">
         <Card>
@@ -104,7 +110,7 @@ export default async function DashboardPage() {
                         href={`/patients/${turno.patientId}`}
                         className="flex items-center gap-3 rounded-md border border-border p-2 transition-colors hover:bg-accent/40"
                       >
-                        <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold tabular-nums">
+                        <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
                           {formatHora(turno.inicio)}
                         </span>
                         <div className="flex-1">

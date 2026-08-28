@@ -13,12 +13,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const navLinks = [
     ...(isDoctor
-      ? [{ href: "/dashboard", label: "Pacientes", matchPrefixes: ["/dashboard", "/patients"] }]
+      ? [
+          {
+            href: "/dashboard",
+            label: "Pacientes",
+            icon: "Users" as const,
+            matchPrefixes: ["/dashboard", "/patients"],
+          },
+        ]
       : []),
-    ...(TURNOS_ENABLED ? [{ href: "/turnos", label: "Turnos" }] : []),
-    ...(TURNOS_ENABLED ? [{ href: "/recordatorios", label: "Recordatorios" }] : []),
-    ...(TURNOS_ENABLED && isDoctor ? [{ href: "/configuracion", label: "Configuración" }] : []),
+    ...(TURNOS_ENABLED ? [{ href: "/turnos", label: "Turnos", icon: "CalendarDays" as const }] : []),
+    ...(TURNOS_ENABLED
+      ? [{ href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const }]
+      : []),
   ];
+
+  const configLink =
+    TURNOS_ENABLED && isDoctor
+      ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
+      : [];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -36,7 +49,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
             <NavLinks links={navLinks} />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
+            <NavLinks links={configLink} />
             <LogoutButton />
           </div>
         </div>

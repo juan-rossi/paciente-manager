@@ -1,3 +1,4 @@
+import { CalendarDays, MessageSquare, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,9 +34,18 @@ export default async function ConfiguracionPage() {
 
       <Tabs defaultValue="horario">
         <TabsList>
-          <TabsTrigger value="horario">Horario de trabajo</TabsTrigger>
-          <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
-          <TabsTrigger value="mensajeria">Mensajería</TabsTrigger>
+          <TabsTrigger value="horario">
+            <CalendarDays className="size-4" />
+            Horario de trabajo
+          </TabsTrigger>
+          <TabsTrigger value="usuarios">
+            <Users className="size-4" />
+            Usuarios
+          </TabsTrigger>
+          <TabsTrigger value="mensajeria">
+            <MessageSquare className="size-4" />
+            Mensajería
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="horario" className="mt-2">
