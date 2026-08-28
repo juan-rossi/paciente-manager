@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { PatientSearch } from "@/components/patient-search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TURNOS_ENABLED } from "@/lib/feature-flags";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
@@ -77,23 +78,25 @@ function newPatientHref(turno: TurnoHoy) {
 export default async function DashboardPage() {
   const turnosHoy = TURNOS_ENABLED ? await getTurnosHoy() : null;
 
+  if (turnosHoy === null) {
+    return <PatientSearch />;
+  }
+
   return (
-    <div className={TURNOS_ENABLED ? "grid gap-6 lg:grid-cols-3" : undefined}>
-      <div className={TURNOS_ENABLED ? "lg:col-span-2" : undefined}>
-        <PatientSearch />
-      </div>
-      {turnosHoy !== null && (
+    <Tabs defaultValue="turnos">
+      <TabsList>
+        <TabsTrigger value="turnos">Turnos de hoy</TabsTrigger>
+        <TabsTrigger value="buscar">Buscar paciente</TabsTrigger>
+      </TabsList>
+      <TabsContent value="turnos">
         <Card>
-          <CardHeader>
-            <CardTitle>Turnos de hoy</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="flex flex-col gap-3 pt-6">
             {turnosHoy.length === 0 ? (
               <p className="py-4 text-center text-sm text-muted-foreground">
                 No hay turnos agendados para hoy.
               </p>
             ) : (
-              <ul className="flex max-h-72 flex-col gap-2 overflow-y-auto">
+              <ul className="flex flex-col gap-2">
                 {turnosHoy.map((turno) =>
                   turno.patientId ? (
                     <li key={turno.id}>
@@ -137,12 +140,12 @@ export default async function DashboardPage() {
                 )}
               </ul>
             )}
-            <Button size="sm" nativeButton={false} render={<Link href="/turnos" />}>
-              Ver calendario de turnos
-            </Button>
           </CardContent>
         </Card>
-      )}
-    </div>
+      </TabsContent>
+      <TabsContent value="buscar">
+        <PatientSearch />
+      </TabsContent>
+    </Tabs>
   );
 }
