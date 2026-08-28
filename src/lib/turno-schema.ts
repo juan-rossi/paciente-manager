@@ -31,11 +31,7 @@ export const turnoInputSchema = z.object({
     .trim()
     .min(1, "El DNI es obligatorio.")
     .regex(/^\d+$/, "El DNI solo puede contener números."),
-  telefono: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
+  telefono: z.string().trim().min(1, "El teléfono es obligatorio."),
   obraSocial: z
     .string()
     .trim()

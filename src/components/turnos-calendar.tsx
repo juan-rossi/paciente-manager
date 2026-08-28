@@ -28,7 +28,7 @@ type TurnoInfo = {
   nombreYApellido: string;
   fechaNacimiento: string | null;
   dni: string;
-  telefono: string | null;
+  telefono: string;
   obraSocial: string | null;
   obraSocialNro: string | null;
   patientId?: string | null;
@@ -110,6 +110,9 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   async function loadSlots(date: Date) {
     setLoading(true);
     try {
@@ -124,6 +127,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
 
   async function handleSelectDate(date: Date | undefined) {
     if (!date) return;
+    if (date < todayStart) return;
     setSelectedDate(date);
     await loadSlots(date);
   }
@@ -140,9 +144,9 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
 
   async function handleReservar() {
     if (!bookingSlot) return;
-    if (!nombreYApellido.trim() || !dni.trim()) {
+    if (!nombreYApellido.trim() || !dni.trim() || !telefono.trim()) {
       setTriedSubmit(true);
-      setError("Completá nombre y apellido y DNI.");
+      setError("Completá nombre y apellido, DNI y teléfono.");
       return;
     }
     setError(null);
@@ -205,7 +209,8 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
           <button
             type="button"
             onClick={() => handleSelectDate(addDays(selectedDate, -1))}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            disabled={isToday}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             aria-label="Día anterior"
           >
             <ChevronLeft className="size-4" />
@@ -233,7 +238,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
 
       <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
         <Card className="lg:self-start">
-          <CardContent className="pt-6">
+          <CardContent className="pt-2">
             <Calendar
               mode="single"
               locale={es}
@@ -245,6 +250,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
               }}
               selected={selectedDate}
               onSelect={handleSelectDate}
+              disabled={{ before: todayStart }}
             />
           </CardContent>
         </Card>
@@ -267,17 +273,21 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
 
             {!loading && slots.length > 0 && (
               <div className="relative flex-1 min-h-0">
-                {Array.from({ length: totalHours }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute inset-x-0 border-t border-border/70"
-                    style={{ top: `${(i / totalHours) * 100}%` }}
-                  >
-                    <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
-                      {String(startHour + i).padStart(2, "0")}:00
-                    </span>
-                  </div>
-                ))}
+                {slots.map((slot) => {
+                  const top =
+                    ((minutesFromMidnight(slot.inicio) - startHour * 60) / 60 / totalHours) * 100;
+                  return (
+                    <div
+                      key={slot.inicio}
+                      className="absolute inset-x-0 border-t border-border/70"
+                      style={{ top: `${top}%` }}
+                    >
+                      <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
+                        {formatHora(slot.inicio)}
+                      </span>
+                    </div>
+                  );
+                })}
 
                 <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
                   {slots.map((slot) => {
@@ -302,29 +312,31 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                             : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}. Reservar.`
                         }
                         className={cn(
-                          "absolute left-1 w-[calc(100%-0.5rem)] flex flex-col overflow-hidden rounded-md border px-2 py-1 text-left transition-colors",
+                          "absolute left-1 w-[calc(100%-0.5rem)] flex overflow-hidden rounded-md border px-2 py-1 text-left transition-colors",
                           ocupado
-                            ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
-                            : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+                            ? "flex-col border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
+                            : "items-center border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
                         )}
                       >
-                        <span className="truncate text-xs font-semibold">
-                          {formatHora(slot.inicio)} - {formatHora(slot.fin)}
-                        </span>
                         {ocupado ? (
-                          <span className="flex items-center gap-1 truncate text-xs">
-                            <User className="size-3 shrink-0" />
-                            {slot.turno!.nombreYApellido}
-                            {role === "DOCTOR" && slot.turno!.patientId && (
-                              <Link
-                                href={`/patients/${slot.turno!.patientId}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="shrink-0 underline-offset-2 hover:underline"
-                              >
-                                Ver ficha
-                              </Link>
-                            )}
-                          </span>
+                          <>
+                            <span className="truncate text-xs font-semibold">
+                              {formatHora(slot.inicio)} - {formatHora(slot.fin)}
+                            </span>
+                            <span className="flex items-center gap-1 truncate text-xs">
+                              <User className="size-3 shrink-0" />
+                              {slot.turno!.nombreYApellido}
+                              {role === "DOCTOR" && slot.turno!.patientId && (
+                                <Link
+                                  href={`/patients/${slot.turno!.patientId}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="shrink-0 underline-offset-2 hover:underline"
+                                >
+                                  Ver ficha
+                                </Link>
+                              )}
+                            </span>
+                          </>
                         ) : (
                           <span className="truncate text-xs">Libre</span>
                         )}
@@ -391,8 +403,12 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Teléfono</Label>
-                <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+                <Label>Teléfono *</Label>
+                <Input
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  className={triedSubmit && !telefono.trim() ? "border-destructive" : undefined}
+                />
               </div>
             </div>
             <div className="flex flex-col gap-1.5">

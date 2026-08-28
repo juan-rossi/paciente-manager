@@ -9,7 +9,7 @@ export type SerializedTurno = {
   nombreYApellido: string;
   fechaNacimiento: string | null;
   dni: string;
-  telefono: string | null;
+  telefono: string;
   obraSocial: string | null;
   obraSocialNro: string | null;
   patientId?: string | null;
