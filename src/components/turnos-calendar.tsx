@@ -17,7 +17,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -98,7 +97,8 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
   const [loading, setLoading] = useState(false);
 
-  const [bookingSlot, setBookingSlot] = useState<Slot | null>(null);
+  const [formSlot, setFormSlot] = useState<Slot | null>(null);
+  const [editingTurnoId, setEditingTurnoId] = useState<string | null>(null);
   const [nombreYApellido, setNombreYApellido] = useState("");
   const [dni, setDni] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -132,7 +132,8 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
   }
 
   function openBooking(slot: Slot) {
-    setBookingSlot(slot);
+    setFormSlot(slot);
+    setEditingTurnoId(null);
     setNombreYApellido("");
     setDni("");
     setTelefono("");
@@ -141,8 +142,20 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
     setTriedSubmit(false);
   }
 
-  async function handleReservar() {
-    if (!bookingSlot) return;
+  function openEdit(slot: Slot) {
+    if (!slot.turno) return;
+    setFormSlot(slot);
+    setEditingTurnoId(slot.turno.id);
+    setNombreYApellido(slot.turno.nombreYApellido);
+    setDni(slot.turno.dni);
+    setTelefono(slot.turno.telefono);
+    setObraSocial(slot.turno.obraSocial ?? "");
+    setError(null);
+    setTriedSubmit(false);
+  }
+
+  async function handleSubmitForm() {
+    if (!formSlot) return;
     if (!nombreYApellido.trim() || !dni.trim() || !telefono.trim()) {
       setTriedSubmit(true);
       setError("Completá nombre y apellido, DNI y teléfono.");
@@ -151,23 +164,26 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
     setError(null);
     setSaving(true);
     try {
-      const response = await fetch("/api/turnos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inicio: bookingSlot.inicio,
-          nombreYApellido,
-          dni,
-          telefono,
-          obraSocial,
-        }),
-      });
+      const response = await fetch(
+        editingTurnoId ? `/api/turnos/${editingTurnoId}` : "/api/turnos",
+        {
+          method: editingTurnoId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inicio: formSlot.inicio,
+            nombreYApellido,
+            dni,
+            telefono,
+            obraSocial,
+          }),
+        }
+      );
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "No se pudo reservar el turno.");
+        setError(data.error ?? "No se pudo guardar el turno.");
         return;
       }
-      setBookingSlot(null);
+      setFormSlot(null);
       await loadSlots(selectedDate);
     } finally {
       setSaving(false);
@@ -305,11 +321,11 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                         key={slot.inicio}
                         type="button"
                         disabled={isPastDay}
-                        onClick={() => (slot.turno ? setCancelTarget(slot) : openBooking(slot))}
+                        onClick={() => (slot.turno ? openEdit(slot) : openBooking(slot))}
                         style={{ top: `${top}%`, height: `${height}%`, minHeight: 22 }}
                         aria-label={
                           ocupado
-                            ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Cancelar."}`
+                            ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
                             : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
                         }
                         className={cn(
@@ -354,15 +370,15 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
         </Card>
       </div>
 
-      <Dialog open={bookingSlot !== null} onOpenChange={(open) => !open && setBookingSlot(null)}>
+      <Dialog open={formSlot !== null} onOpenChange={(open) => !open && setFormSlot(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reservar turno</DialogTitle>
+            <DialogTitle>{editingTurnoId ? "Editar turno" : "Reservar turno"}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
-                <Label>Día</Label>                
+                <Label>Día</Label>
                 <strong className="text-sm">
                   {selectedDate.toLocaleDateString("es-AR")}
                 </strong>
@@ -370,8 +386,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
               <div className="flex flex-col gap-1">
                 <Label>Hora</Label>
                 <strong className="text-sm">
-                  {bookingSlot &&
-                    `${formatHora(bookingSlot.inicio)} a ${formatHora(bookingSlot.fin)}`}
+                  {formSlot && `${formatHora(formSlot.inicio)} a ${formatHora(formSlot.fin)}`}
                 </strong>
               </div>
             </div>
@@ -411,9 +426,27 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
-          <DialogFooter>
-            <Button type="button" onClick={handleReservar} disabled={saving}>
-              {saving ? "Reservando..." : "Reservar"}
+          <DialogFooter className={editingTurnoId ? "sm:justify-between" : undefined}>
+            {editingTurnoId && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setCancelTarget(formSlot);
+                  setFormSlot(null);
+                }}
+              >
+                Cancelar turno
+              </Button>
+            )}
+            <Button type="button" onClick={handleSubmitForm} disabled={saving}>
+              {saving
+                ? editingTurnoId
+                  ? "Guardando..."
+                  : "Reservando..."
+                : editingTurnoId
+                  ? "Guardar"
+                  : "Reservar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -423,15 +456,15 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancelar turno</DialogTitle>
-            <DialogDescription>
-              {cancelTarget?.turno && (
-                <>
-                  Se cancelará el turno de <strong>{cancelTarget.turno.nombreYApellido}</strong> del{" "}
-                  {selectedDate.toLocaleDateString("es-AR")} a las {formatHora(cancelTarget.inicio)}.
-                </>
-              )}
-            </DialogDescription>
           </DialogHeader>
+          <p className="text-sm">
+            {cancelTarget?.turno && (
+              <>
+                ¿Cancelar el turno de <strong>{cancelTarget.turno.nombreYApellido}</strong> del{" "}
+                {selectedDate.toLocaleDateString("es-AR")} a las {formatHora(cancelTarget.inicio)}?
+              </>
+            )}
+          </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setCancelTarget(null)}>
               Volver

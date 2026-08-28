@@ -44,6 +44,13 @@ export const turnoInputSchema = z.object({
     .transform((v) => (v && v.length > 0 ? v : null)),
 });
 
+export const turnoEditSchema = turnoInputSchema.pick({
+  nombreYApellido: true,
+  dni: true,
+  telefono: true,
+  obraSocial: true,
+});
+
 export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
