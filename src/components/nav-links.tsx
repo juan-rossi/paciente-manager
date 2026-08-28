@@ -31,7 +31,7 @@ export function NavLinks({ links }: { links: NavLink[] }) {
             href={link.href}
             className={cn(
               "flex items-center gap-1.5 border-b-2 border-transparent pb-1 transition-colors hover:text-foreground",
-              active && "border-primary font-semibold text-foreground"
+              active && "border-primary text-foreground"
             )}
           >
             <Icon className="size-4" />
