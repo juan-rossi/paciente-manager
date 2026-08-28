@@ -158,7 +158,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
     if (!formSlot) return;
     if (!nombreYApellido.trim() || !dni.trim() || !telefono.trim()) {
       setTriedSubmit(true);
-      setError("Completá nombre y apellido, DNI y teléfono.");
+      setError("Completá nombre, DNI y teléfono.");
       return;
     }
     setError(null);
@@ -392,7 +392,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
             </div>
             <hr className="mt-2 mb-2" />
             <div className="flex flex-col gap-1.5">
-              <Label>Nombre y Apellido *</Label>
+              <Label>Nombre completo *</Label>
               <Input
                 value={nombreYApellido}
                 onChange={(e) => setNombreYApellido(e.target.value)}

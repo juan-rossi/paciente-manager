@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
+import { ChevronRight, UserPlus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PatientSearch } from "@/components/patient-search";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TURNOS_ENABLED } from "@/lib/feature-flags";
@@ -10,17 +11,71 @@ import { TURNOS_ENABLED } from "@/lib/feature-flags";
 // lista de "últimos pacientes" en vez de consultarla en cada request.
 export const dynamic = "force-dynamic";
 
+type TurnoHoy = {
+  id: string;
+  inicio: Date;
+  nombreYApellido: string;
+  dni: string;
+  telefono: string;
+  obraSocial: string | null;
+  patientId: string | null;
+  matchType: "dni" | "nombre" | null;
+};
+
+function formatHora(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+async function getTurnosHoy(): Promise<TurnoHoy[]> {
+  const inicioHoy = new Date();
+  inicioHoy.setHours(0, 0, 0, 0);
+  const inicioManiana = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
+
+  const turnos = await prisma.turno.findMany({
+    where: { inicio: { gte: inicioHoy, lt: inicioManiana }, estado: "CONFIRMADO" },
+    orderBy: { inicio: "asc" },
+    select: {
+      id: true,
+      inicio: true,
+      nombreYApellido: true,
+      dni: true,
+      telefono: true,
+      obraSocial: true,
+    },
+  });
+
+  return Promise.all(
+    turnos.map(async (turno) => {
+      const dniMatch = await prisma.patient.findFirst({
+        where: { nroDocumento: turno.dni },
+        select: { id: true },
+      });
+      const nombreMatch = dniMatch
+        ? null
+        : await prisma.patient.findFirst({
+            where: { nombreYApellido: { equals: turno.nombreYApellido, mode: "insensitive" } },
+            select: { id: true },
+          });
+
+      const patient = dniMatch ?? nombreMatch;
+      const matchType = dniMatch ? "dni" : nombreMatch ? "nombre" : null;
+
+      return { ...turno, patientId: patient?.id ?? null, matchType };
+    })
+  );
+}
+
+function newPatientHref(turno: TurnoHoy) {
+  const params = new URLSearchParams({ nombreYApellido: turno.nombreYApellido, nroDocumento: turno.dni });
+  if (turno.telefono) params.set("telefono", turno.telefono);
+  if (turno.obraSocial) params.set("obraSocial", turno.obraSocial);
+  return `/patients/new?${params.toString()}`;
+}
+
 export default async function DashboardPage() {
-  const turnosHoy = TURNOS_ENABLED
-    ? await (async () => {
-        const inicioHoy = new Date();
-        inicioHoy.setHours(0, 0, 0, 0);
-        const inicioManiana = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
-        return prisma.turno.count({
-          where: { inicio: { gte: inicioHoy, lt: inicioManiana }, estado: "CONFIRMADO" },
-        });
-      })()
-    : null;
+  const turnosHoy = TURNOS_ENABLED ? await getTurnosHoy() : null;
 
   return (
     <div className={TURNOS_ENABLED ? "grid gap-6 lg:grid-cols-3" : undefined}>
@@ -32,15 +87,56 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>Turnos de hoy</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-3 py-4 text-center">
-            <span className="flex size-9 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <CalendarClock className="size-4.5" />
-            </span>
-            <p className="text-sm">
-              {turnosHoy === 0
-                ? "No hay turnos agendados para hoy."
-                : `${turnosHoy} turno${turnosHoy === 1 ? "" : "s"} agendado${turnosHoy === 1 ? "" : "s"} para hoy.`}
-            </p>
+          <CardContent className="flex flex-col gap-3">
+            {turnosHoy.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No hay turnos agendados para hoy.
+              </p>
+            ) : (
+              <ul className="flex max-h-72 flex-col gap-2 overflow-y-auto">
+                {turnosHoy.map((turno) =>
+                  turno.patientId ? (
+                    <li key={turno.id}>
+                      <Link
+                        href={`/patients/${turno.patientId}`}
+                        className="flex items-center gap-3 rounded-md border border-border p-2 transition-colors hover:bg-accent/40"
+                      >
+                        <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold tabular-nums">
+                          {formatHora(turno.inicio)}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{turno.nombreYApellido}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs text-muted-foreground">DNI {turno.dni}</p>
+                            <Badge variant="secondary">
+                              Match por {turno.matchType === "dni" ? "DNI" : "nombre"}
+                            </Badge>
+                          </div>
+                        </div>
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                      </Link>
+                    </li>
+                  ) : (
+                    <li
+                      key={turno.id}
+                      className="flex items-center gap-3 rounded-md border border-dashed border-border p-2"
+                    >
+                      <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold tabular-nums">
+                        {formatHora(turno.inicio)}
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{turno.nombreYApellido}</p>
+                        <p className="text-xs text-muted-foreground">DNI {turno.dni}</p>
+                      </div>
+                      <Button size="sm" variant="outline" nativeButton={false} render={<Link href={newPatientHref(turno)} />}>
+                        <UserPlus className="size-3.5" />
+                        Crear paciente
+                      </Button>
+                    </li>
+                  )
+                )}
+              </ul>
+            )}
             <Button size="sm" nativeButton={false} render={<Link href="/turnos" />}>
               Ver calendario de turnos
             </Button>
