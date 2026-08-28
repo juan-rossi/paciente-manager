@@ -16,6 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? [{ href: "/dashboard", label: "Pacientes", matchPrefixes: ["/dashboard", "/patients"] }]
       : []),
     ...(TURNOS_ENABLED ? [{ href: "/turnos", label: "Turnos" }] : []),
+    ...(TURNOS_ENABLED ? [{ href: "/recordatorios", label: "Recordatorios" }] : []),
     ...(TURNOS_ENABLED && isDoctor ? [{ href: "/configuracion", label: "Configuración" }] : []),
   ];
 

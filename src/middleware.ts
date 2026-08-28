@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySession } from "@/lib/auth";
 import { TURNOS_ENABLED } from "@/lib/feature-flags";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/configuracion"];
+const PROTECTED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios", "/configuracion"];
 const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
-const TURNOS_PREFIXES = ["/turnos", "/configuracion"];
+const TURNOS_PREFIXES = ["/turnos", "/recordatorios", "/configuracion"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -42,5 +42,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/patients/:path*", "/turnos/:path*", "/configuracion/:path*", "/login"],
+  matcher: [
+    "/dashboard/:path*",
+    "/patients/:path*",
+    "/turnos/:path*",
+    "/recordatorios/:path*",
+    "/configuracion/:path*",
+    "/login",
+  ],
 };

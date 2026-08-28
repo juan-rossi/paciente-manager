@@ -63,13 +63,15 @@ enum TipoAntecedente {
 }
 
 model User {
-  id                  String   @id @default(cuid())
-  email               String   @unique
-  passwordHash        String
-  nombre              String
-  role                UserRole @default(SECRETARY)
-  slotDurationMinutes Int      @default(20)
-  createdAt           DateTime @default(now())
+  id                       String   @id @default(cuid())
+  email                    String   @unique
+  passwordHash             String
+  nombre                   String
+  role                     UserRole @default(SECRETARY)
+  slotDurationMinutes      Int      @default(20)
+  mensajeTemplate          String   @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
+  recordatorioDiasAdelanto Int      @default(0)
+  createdAt                DateTime @default(now())
 
   workScheduleBlocks WorkScheduleBlock[]
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")

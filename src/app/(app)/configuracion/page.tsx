@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScheduleSettings } from "@/components/schedule-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
+import { MessagingSettings } from "@/components/messaging-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function ConfiguracionPage() {
         <TabsList>
           <TabsTrigger value="horario">Horario de trabajo</TabsTrigger>
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+          <TabsTrigger value="mensajeria">Mensajería</TabsTrigger>
         </TabsList>
 
         <TabsContent value="horario" className="mt-2">
@@ -44,6 +46,12 @@ export default async function ConfiguracionPage() {
         </TabsContent>
         <TabsContent value="usuarios" className="mt-2">
           <SecretaryUsers initialSecretarias={initialSecretarias} />
+        </TabsContent>
+        <TabsContent value="mensajeria" className="mt-2">
+          <MessagingSettings
+            initialMensajeTemplate={user.mensajeTemplate}
+            initialRecordatorioDiasAdelanto={user.recordatorioDiasAdelanto}
+          />
         </TabsContent>
       </Tabs>
     </div>

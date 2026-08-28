@@ -18,6 +18,11 @@ export const slotDurationSchema = z.object({
   slotDurationMinutes: z.coerce.number().int().min(5).max(240),
 });
 
+export const messagingSchema = z.object({
+  mensajeTemplate: z.string().trim().min(1, "El mensaje es obligatorio."),
+  recordatorioDiasAdelanto: z.coerce.number().int().min(0).max(90),
+});
+
 export const turnoInputSchema = z.object({
   inicio: z.string().min(1, "La fecha y hora son obligatorias."),
   nombreYApellido: z.string().trim().min(1, "El nombre y apellido es obligatorio."),
