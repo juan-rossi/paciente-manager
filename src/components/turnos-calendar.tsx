@@ -7,7 +7,7 @@ import {
   formatCaption as defaultFormatCaption,
   formatWeekdayName as defaultFormatWeekdayName,
 } from "react-day-picker";
-import { ChevronLeft, ChevronRight, User } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -313,33 +313,26 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
                             : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
                         }
                         className={cn(
-                          "absolute left-1 w-[calc(100%-0.5rem)] flex overflow-hidden rounded-md border px-2 py-1 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                          "absolute left-1 w-[calc(100%-0.5rem)] flex items-center gap-1 overflow-hidden rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
                           ocupado
-                            ? "flex-col border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
-                            : "items-center border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+                            ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
+                            : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
                         )}
                       >
-                        {ocupado ? (
-                          <>
-                            <span className="truncate text-xs font-semibold">
-                              {formatHora(slot.inicio)} - {formatHora(slot.fin)}
-                            </span>
-                            <span className="flex items-center gap-1 truncate text-xs">
-                              <User className="size-3 shrink-0" />
-                              {slot.turno!.nombreYApellido}
-                              {role === "DOCTOR" && slot.turno!.patientId && (
-                                <Link
-                                  href={`/patients/${slot.turno!.patientId}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="shrink-0 underline-offset-2 hover:underline"
-                                >
-                                  Ver ficha
-                                </Link>
-                              )}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="truncate text-xs">Libre</span>
+                        <strong className="truncate text-xs font-semibold">
+                          {ocupado ? slot.turno!.nombreYApellido : "Libre"}
+                        </strong>
+                        <span className="shrink-0 truncate text-xs">
+                          [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                        </span>
+                        {ocupado && role === "DOCTOR" && slot.turno!.patientId && (
+                          <Link
+                            href={`/patients/${slot.turno!.patientId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 truncate text-xs underline-offset-2 hover:underline"
+                          >
+                            Ver ficha
+                          </Link>
                         )}
                       </button>
                     );
