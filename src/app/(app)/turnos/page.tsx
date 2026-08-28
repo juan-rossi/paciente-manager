@@ -20,7 +20,6 @@ export default async function TurnosPage() {
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Turnos</h1>
       <TurnosCalendar
         role={user.role}
         initialDate={toDateParam(today)}

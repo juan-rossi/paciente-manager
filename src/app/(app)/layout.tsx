@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Stethoscope } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
 import { LogoutButton } from "@/components/logout-button";
+import { NavLinks } from "@/components/nav-links";
 import { TURNOS_ENABLED } from "@/lib/feature-flags";
 
 const DOCTOR_NAME = process.env.DOCTOR_NAME ?? "Dr. Juan Pablo Beligoy";
@@ -9,6 +10,14 @@ const DOCTOR_NAME = process.env.DOCTOR_NAME ?? "Dr. Juan Pablo Beligoy";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const isDoctor = user?.role === "DOCTOR";
+
+  const navLinks = [
+    ...(isDoctor
+      ? [{ href: "/dashboard", label: "Pacientes", matchPrefixes: ["/dashboard", "/patients"] }]
+      : []),
+    ...(TURNOS_ENABLED ? [{ href: "/turnos", label: "Turnos" }] : []),
+    ...(TURNOS_ENABLED && isDoctor ? [{ href: "/configuracion", label: "Configuración" }] : []),
+  ];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -24,19 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </span>
               <span className="text-lg font-semibold tracking-tight">{DOCTOR_NAME}</span>
             </Link>
-            <nav className="hidden items-center gap-4 text-sm font-medium text-muted-foreground sm:flex">
-              {isDoctor && <Link href="/dashboard" className="hover:text-foreground">Pacientes</Link>}
-              {TURNOS_ENABLED && (
-                <Link href="/turnos" className="hover:text-foreground">
-                  Turnos
-                </Link>
-              )}
-              {TURNOS_ENABLED && isDoctor && (
-                <Link href="/configuracion" className="hover:text-foreground">
-                  Configuración
-                </Link>
-              )}
-            </nav>
+            <NavLinks links={navLinks} />
           </div>
           <div className="flex items-center gap-3">
             <LogoutButton />
