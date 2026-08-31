@@ -8,6 +8,7 @@ import {
   formatWeekdayName as defaultFormatWeekdayName,
 } from "react-day-picker";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -89,9 +90,16 @@ type Props = {
   initialDate: string;
   initialSlots: Slot[];
   initialSinConfigurar: boolean;
+  diasConHorario: DiaSemana[];
 };
 
-export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConfigurar }: Props) {
+export function TurnosCalendar({
+  role,
+  initialDate,
+  initialSlots,
+  initialSinConfigurar,
+  diasConHorario,
+}: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date(`${initialDate}T00:00:00`));
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
@@ -265,6 +273,7 @@ export function TurnosCalendar({ role, initialDate, initialSlots, initialSinConf
               }}
               selected={selectedDate}
               onSelect={handleSelectDate}
+              disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
               modifiers={{ past: (date) => date < todayStart }}
               modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
             />

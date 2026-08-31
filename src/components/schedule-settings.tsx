@@ -60,6 +60,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
 
   const [deleteTarget, setDeleteTarget] = useState<Block | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleGuardarDuracion() {
     setSavingDuration(true);
@@ -128,8 +129,16 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
   async function handleEliminarBloque() {
     if (!deleteTarget) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
-      await fetch(`/api/schedule/blocks/${deleteTarget.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/schedule/blocks/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        setDeleteError(data.error ?? "No se pudo eliminar el bloque.");
+        return;
+      }
       setBlocks((prev) => prev.filter((b) => b.id !== deleteTarget.id));
       setDeleteTarget(null);
     } finally {
@@ -190,7 +199,10 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
               </button>
               <button
                 type="button"
-                onClick={() => setDeleteTarget(block)}
+                onClick={() => {
+                  setDeleteTarget(block);
+                  setDeleteError(null);
+                }}
                 className="text-muted-foreground hover:text-destructive"
                 aria-label="Eliminar bloque"
               >
@@ -273,8 +285,16 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
               {deleteTarget.horaInicio} a {deleteTarget.horaFin}.
             </p>
           )}
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDeleteTarget(null);
+                setDeleteError(null);
+              }}
+            >
               Cancelar
             </Button>
             <Button

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { generarSlots } from "@/lib/slots";
 import { serializeTurno } from "@/lib/turno-serialize";
 import type { UserRole } from "@/lib/auth";
+import type { DiaSemana } from "@/lib/slots";
 
 export type SerializedTurno = {
   id: string;
@@ -24,13 +25,14 @@ export type DaySlot = {
 export async function getDaySlots(
   date: Date,
   role: UserRole
-): Promise<{ slots: DaySlot[]; sinConfigurar: boolean }> {
+): Promise<{ slots: DaySlot[]; sinConfigurar: boolean; diasConHorario: DiaSemana[] }> {
   const doctor = await prisma.user.findFirst({ where: { role: "DOCTOR" } });
   if (!doctor) {
-    return { slots: [], sinConfigurar: true };
+    return { slots: [], sinConfigurar: true, diasConHorario: [] };
   }
 
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
+  const diasConHorario = [...new Set(blocks.map((b) => b.diaSemana as DiaSemana))];
   const slots = generarSlots(date, blocks, doctor.slotDurationMinutes);
 
   const dayStart = new Date(date);
@@ -56,5 +58,5 @@ export async function getDaySlots(
     };
   });
 
-  return { slots: result, sinConfigurar: blocks.length === 0 };
+  return { slots: result, sinConfigurar: blocks.length === 0, diasConHorario };
 }

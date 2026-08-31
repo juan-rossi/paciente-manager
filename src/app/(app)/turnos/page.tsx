@@ -16,7 +16,7 @@ export default async function TurnosPage() {
   if (!user) return null;
 
   const today = new Date();
-  const { slots, sinConfigurar } = await getDaySlots(today, user.role);
+  const { slots, sinConfigurar, diasConHorario } = await getDaySlots(today, user.role);
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
@@ -25,6 +25,7 @@ export default async function TurnosPage() {
         initialDate={toDateParam(today)}
         initialSlots={slots}
         initialSinConfigurar={sinConfigurar}
+        diasConHorario={diasConHorario}
       />
     </div>
   );

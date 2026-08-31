@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TURNOS_ENABLED } from "@/lib/feature-flags";
+import { cn } from "@/lib/utils";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
 // lista de "últimos pacientes" en vez de consultarla en cada request.
@@ -113,15 +114,22 @@ export default async function DashboardPage() {
                         <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
                           {formatHora(turno.inicio)}
                         </span>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{turno.nombreYApellido}</p>
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs text-muted-foreground">DNI {turno.dni}</p>
-                            <Badge variant="secondary">
-                              Match por {turno.matchType === "dni" ? "DNI" : "nombre"}
-                            </Badge>
-                          </div>
+                        <div className="w-48 min-w-0 shrink-0">
+                          <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
+                          <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
                         </div>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "w-28 shrink-0 justify-center",
+                            turno.matchType === "dni"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                          )}
+                        >
+                          Match por {turno.matchType === "dni" ? "DNI" : "nombre"}
+                        </Badge>
+                        <div className="flex-1" />
                         <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                       </Link>
                     </li>
@@ -133,10 +141,11 @@ export default async function DashboardPage() {
                       <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold tabular-nums">
                         {formatHora(turno.inicio)}
                       </span>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{turno.nombreYApellido}</p>
-                        <p className="text-xs text-muted-foreground">DNI {turno.dni}</p>
+                      <div className="w-48 min-w-0 shrink-0">
+                        <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
+                        <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
                       </div>
+                      <div className="flex-1" />
                       <Button size="sm" variant="outline" nativeButton={false} render={<Link href={newPatientHref(turno)} />}>
                         <UserPlus className="size-3.5" />
                         Crear paciente
