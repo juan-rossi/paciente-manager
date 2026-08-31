@@ -10,13 +10,32 @@ type FormSectionProps = {
   icon: ComponentType<LucideProps>;
   children: ReactNode;
   contentClassName?: string;
+  headerClassName?: string;
+  iconClassName?: string;
 };
 
-export function FormSection({ title, icon: Icon, children, contentClassName }: FormSectionProps) {
+export function FormSection({
+  title,
+  icon: Icon,
+  children,
+  contentClassName,
+  headerClassName,
+  iconClassName,
+}: FormSectionProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border/60">
-      <h3 className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5">
-        <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+      <h3
+        className={cn(
+          "flex items-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5",
+          headerClassName
+        )}
+      >
+        <span
+          className={cn(
+            "flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary",
+            iconClassName
+          )}
+        >
           <Icon className="size-3.5" />
         </span>
         {title}

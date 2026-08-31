@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/patient-form/fields";
 import { ANTECEDENTES_ORDEN } from "@/components/patient-form/constants";
 import { calcularEdad } from "@/components/patient-form/utils";
-import type { EvolucionValue } from "@/components/patient-form/types";
+import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
 import { DeletePatientButton } from "@/components/delete-patient-button";
+import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
+import type { TurnoDiff } from "@/lib/patient-turno-diff";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
   include: { antecedentes: true; evoluciones: true };
@@ -40,7 +42,15 @@ function InfoField({
   );
 }
 
-export function PatientSummary({ patient }: { patient: PatientWithRelations }) {
+export function PatientSummary({
+  patient,
+  diffs = [],
+  patientValues,
+}: {
+  patient: PatientWithRelations;
+  diffs?: TurnoDiff[];
+  patientValues?: PatientFormValues;
+}) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
   const tieneDiagnostico =
@@ -81,14 +91,24 @@ export function PatientSummary({ patient }: { patient: PatientWithRelations }) {
                 value={edad ? `${edad} años` : null}
                 className="sm:col-span-2"
               />
-              <InfoField label="Obra Social" value={patient.obraSocial} className="sm:col-span-3" />
+              <InfoField label="DNI" value={patient.nroDocumento} className="sm:col-span-3" />
+              <InfoField label="Teléfono" value={patient.telefono} className="sm:col-span-3" />
+              <InfoField label="Obra Social" value={patient.obraSocial} className="sm:col-span-6" />
               <InfoField
                 label="Nro Obra Social"
                 value={patient.obraSocialNro}
-                className="sm:col-span-3"
+                className="sm:col-span-6"
               />
             </div>
           </FormSection>
+
+          {diffs.length > 0 && patientValues && (
+            <PatientTurnoDiffSection
+              patientId={patient.id}
+              patientValues={patientValues}
+              diffs={diffs}
+            />
+          )}
 
           {Boolean(patient.motivoConsulta?.trim()) && (
             <FormSection

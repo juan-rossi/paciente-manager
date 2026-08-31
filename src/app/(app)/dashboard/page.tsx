@@ -108,7 +108,7 @@ export default async function DashboardPage() {
                   turno.patientId ? (
                     <li key={turno.id}>
                       <Link
-                        href={`/patients/${turno.patientId}`}
+                        href={`/patients/${turno.patientId}?turnoId=${turno.id}`}
                         className="flex items-center gap-3 rounded-md border border-border p-2 transition-colors hover:bg-accent/40"
                       >
                         <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
