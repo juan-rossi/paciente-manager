@@ -387,21 +387,21 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <TriangleAlert className="size-4 text-amber-600" />
               Reprogramar turnos
             </DialogTitle>
           </DialogHeader>
           {pendingDuration !== null && (
-            <p className="text-sm text-muted-foreground">
+            <p className="shrink-0 text-sm text-muted-foreground">
               {pendingDuration < savedDurationMinutes
                 ? `Al achicar la duración a ${pendingDuration} minutos, los turnos agendados de hoy en adelante que ya no encajen en la nueva grilla se van a mover hacia adelante, al próximo turno libre más cercano.`
                 : `Al agrandar la duración a ${pendingDuration} minutos, los turnos agendados de hoy en adelante se van a atrasar (incluso pudiendo pasar a otro día), reprogramados lo más cerca posible de su horario actual.`}
             </p>
           )}
-          <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
             {reschedulePreview?.map((item) => (
               <div key={item.turnoId} className="rounded-md border p-2 text-sm">
                 <p className="font-medium">{item.nombreYApellido}</p>
@@ -411,11 +411,11 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
               </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="shrink-0 text-sm text-muted-foreground">
             Se recomienda notificar a los pacientes afectados sobre el cambio de turno.
           </p>
-          {durationError && <p className="text-sm text-destructive">{durationError}</p>}
-          <DialogFooter>
+          {durationError && <p className="shrink-0 text-sm text-destructive">{durationError}</p>}
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"
