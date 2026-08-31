@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, Clock, Pencil, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,16 +40,36 @@ type Block = {
   horaFin: string;
 };
 
+type ReprogramacionPreview = {
+  turnoId: string;
+  nombreYApellido: string;
+  oldInicio: string;
+  newInicio: string;
+};
+
 type Props = {
   initialBlocks: Block[];
   initialSlotDurationMinutes: number;
 };
 
+function formatFechaHora(iso: string) {
+  const date = new Date(iso);
+  const fecha = date.toLocaleDateString("es-AR");
+  const hora = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  return `${fecha} ${hora}`;
+}
+
 export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: Props) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [slotDurationMinutes, setSlotDurationMinutes] = useState(initialSlotDurationMinutes);
+  const [savedDurationMinutes, setSavedDurationMinutes] = useState(initialSlotDurationMinutes);
   const [savingDuration, setSavingDuration] = useState(false);
   const [durationError, setDurationError] = useState<string | null>(null);
+
+  const [reschedulePreview, setReschedulePreview] = useState<ReprogramacionPreview[] | null>(null);
+  const [pendingDuration, setPendingDuration] = useState<number | null>(null);
+  const [applyingReschedule, setApplyingReschedule] = useState(false);
+  const [rescheduledCount, setRescheduledCount] = useState<number | null>(null);
 
   const [open, setOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<Block | null>(null);
@@ -65,18 +86,50 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
   async function handleGuardarDuracion() {
     setSavingDuration(true);
     setDurationError(null);
+    setRescheduledCount(null);
     try {
       const response = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slotDurationMinutes }),
       });
+      const data = await response.json();
       if (!response.ok) {
-        const data = await response.json();
+        if (response.status === 409 && data.preview) {
+          setPendingDuration(slotDurationMinutes);
+          setReschedulePreview(data.preview);
+          return;
+        }
         setDurationError(data.error ?? "No se pudo guardar la duración.");
+        return;
       }
+      setSavedDurationMinutes(data.slotDurationMinutes);
     } finally {
       setSavingDuration(false);
+    }
+  }
+
+  async function handleConfirmarReprogramacion() {
+    if (pendingDuration === null) return;
+    setApplyingReschedule(true);
+    setDurationError(null);
+    try {
+      const response = await fetch("/api/schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotDurationMinutes: pendingDuration, applyReschedule: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setDurationError(data.error ?? "No se pudo reprogramar los turnos.");
+        return;
+      }
+      setSavedDurationMinutes(data.slotDurationMinutes);
+      setRescheduledCount((data.rescheduled ?? []).length);
+      setReschedulePreview(null);
+      setPendingDuration(null);
+    } finally {
+      setApplyingReschedule(false);
     }
   }
 
@@ -168,6 +221,22 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
           </Button>
         </div>
         {durationError && <p className="text-sm text-destructive">{durationError}</p>}
+        {rescheduledCount !== null && (
+          <p className="text-sm text-muted-foreground">
+            {rescheduledCount === 0
+              ? "Duración actualizada."
+              : `Duración actualizada y ${rescheduledCount} turno${rescheduledCount === 1 ? "" : "s"} reprogramado${rescheduledCount === 1 ? "" : "s"}.`}{" "}
+            {rescheduledCount > 0 && (
+              <>
+                Se recomienda notificar a los pacientes afectados desde{" "}
+                <Link href="/recordatorios" className="font-medium text-primary hover:underline">
+                  Recordatorios
+                </Link>
+                .
+              </>
+            )}
+          </p>
+        )}
       </SettingsSection>
 
       <SettingsSection
@@ -304,6 +373,65 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
               disabled={deleting}
             >
               {deleting ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={reschedulePreview !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReschedulePreview(null);
+            setPendingDuration(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TriangleAlert className="size-4 text-amber-600" />
+              Reprogramar turnos
+            </DialogTitle>
+          </DialogHeader>
+          {pendingDuration !== null && (
+            <p className="text-sm text-muted-foreground">
+              {pendingDuration < savedDurationMinutes
+                ? `Al achicar la duración a ${pendingDuration} minutos, los turnos agendados de hoy en adelante que ya no encajen en la nueva grilla se van a mover hacia adelante, al próximo turno libre más cercano.`
+                : `Al agrandar la duración a ${pendingDuration} minutos, los turnos agendados de hoy en adelante se van a atrasar (incluso pudiendo pasar a otro día), reprogramados lo más cerca posible de su horario actual.`}
+            </p>
+          )}
+          <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+            {reschedulePreview?.map((item) => (
+              <div key={item.turnoId} className="rounded-md border p-2 text-sm">
+                <p className="font-medium">{item.nombreYApellido}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatFechaHora(item.oldInicio)} → {formatFechaHora(item.newInicio)}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Se recomienda notificar a los pacientes afectados sobre el cambio de turno.
+          </p>
+          {durationError && <p className="text-sm text-destructive">{durationError}</p>}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setReschedulePreview(null);
+                setPendingDuration(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmarReprogramacion}
+              disabled={applyingReschedule}
+            >
+              {applyingReschedule ? "Reprogramando..." : "Confirmar y reprogramar"}
             </Button>
           </DialogFooter>
         </DialogContent>
