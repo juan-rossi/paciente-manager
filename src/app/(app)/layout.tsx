@@ -3,7 +3,6 @@ import { Stethoscope } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks } from "@/components/nav-links";
-import { TURNOS_ENABLED } from "@/lib/feature-flags";
 
 const DOCTOR_NAME = process.env.DOCTOR_NAME ?? "Dr. Juan Pablo Beligoy";
 
@@ -22,16 +21,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
-    ...(TURNOS_ENABLED ? [{ href: "/turnos", label: "Turnos", icon: "CalendarDays" as const }] : []),
-    ...(TURNOS_ENABLED
-      ? [{ href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const }]
-      : []),
+    { href: "/turnos", label: "Turnos", icon: "CalendarDays" as const },
+    { href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const },
   ];
 
-  const configLink =
-    TURNOS_ENABLED && isDoctor
-      ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
-      : [];
+  const configLink = isDoctor
+    ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
+    : [];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -39,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">
             <Link
-              href={TURNOS_ENABLED && !isDoctor ? "/turnos" : "/dashboard"}
+              href={!isDoctor ? "/turnos" : "/dashboard"}
               className="flex items-center gap-2.5"
             >
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">

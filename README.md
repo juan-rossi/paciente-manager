@@ -57,4 +57,3 @@ a Next.js + Postgres.
 
 - Migración de los datos reales de pacientes desde SQL Server (fuera del alcance de esta
   primera versión).
-- Turnos del día en el dashboard (por ahora placeholder "Próximamente").

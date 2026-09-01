@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TURNOS_ENABLED } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
@@ -77,11 +76,7 @@ function newPatientHref(turno: TurnoHoy) {
 }
 
 export default async function DashboardPage() {
-  const turnosHoy = TURNOS_ENABLED ? await getTurnosHoy() : null;
-
-  if (turnosHoy === null) {
-    return <PatientSearch />;
-  }
+  const turnosHoy = await getTurnosHoy();
 
   return (
     <Tabs defaultValue="turnos">
