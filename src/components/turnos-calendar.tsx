@@ -225,40 +225,6 @@ export function TurnosCalendar({
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="sm" onClick={() => handleSelectDate(new Date())}>
-          Hoy
-        </Button>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => handleSelectDate(addDays(selectedDate, -1))}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Día anterior"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSelectDate(addDays(selectedDate, 1))}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Día siguiente"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-        <h2 className="text-lg font-semibold">
-          {capitalize(
-            selectedDate.toLocaleDateString("es-AR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })
-          )}
-        </h2>
-      </div>
-
       <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
         <Card className="lg:self-start">
           <CardContent className="pt-2">
@@ -280,103 +246,136 @@ export function TurnosCalendar({
           </CardContent>
         </Card>
 
-        <Card className="flex-1 min-h-0">
-          <CardContent className="flex flex-1 min-h-0 flex-col pt-6">
-            {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
+        <div className="flex flex-1 min-h-0 flex-col gap-3">
+          <div className="flex shrink-0 items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectDate(addDays(selectedDate, -1))}
+            >
+              <ChevronLeft className="size-4" />
+              Anterior
+            </Button>
+            <h2 className="flex-1 text-center text-lg font-semibold">
+              {capitalize(
+                selectedDate.toLocaleDateString("es-AR", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              )}
+            </h2>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleSelectDate(addDays(selectedDate, 1))}
+            >
+              Siguiente
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
 
-            {!loading && sinConfigurar && (
-              <p className="text-sm text-muted-foreground">
-                Todavía no se configuró el horario de trabajo.
-              </p>
-            )}
+          <Card className="flex-1 min-h-0">
+            <CardContent className="flex flex-1 min-h-0 flex-col pt-6">
+              {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
 
-            {!loading && !sinConfigurar && slots.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No hay horario configurado para este día.
-              </p>
-            )}
+              {!loading && sinConfigurar && (
+                <p className="text-sm text-muted-foreground">
+                  Todavía no se configuró el horario de trabajo.
+                </p>
+              )}
 
-            {!loading && slots.length > 0 && (
-              <div className="relative flex-1 min-h-0">
-                {slots.map((slot) => {
-                  const top =
-                    ((minutesFromMidnight(slot.inicio) - startHour * 60) / 60 / totalHours) * 100;
-                  return (
-                    <div
-                      key={slot.inicio}
-                      className="absolute inset-x-0 border-t border-border/70"
-                      style={{ top: `${top}%` }}
-                    >
-                      <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
-                        {formatHora(slot.inicio)}
-                      </span>
-                    </div>
-                  );
-                })}
+              {!loading && !sinConfigurar && slots.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No hay horario configurado para este día.
+                </p>
+              )}
 
-                <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
+              {!loading && slots.length > 0 && (
+                <div className="relative flex-1 min-h-0">
                   {slots.map((slot) => {
                     const top =
-                      (((minutesFromMidnight(slot.inicio) - startHour * 60) / 60) / totalHours) *
-                      100;
-                    const height =
-                      (((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / 60) /
-                        totalHours) *
-                      100;
-                    const ocupado = Boolean(slot.turno);
-
+                      ((minutesFromMidnight(slot.inicio) - startHour * 60) / 60 / totalHours) * 100;
                     return (
-                      <button
+                      <div
                         key={slot.inicio}
-                        type="button"
-                        disabled={isPastDay}
-                        onClick={() => (slot.turno ? openEdit(slot) : openBooking(slot))}
-                        style={{ top: `${top}%`, height: `${height}%`, minHeight: 22 }}
-                        aria-label={
-                          ocupado
-                            ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
-                            : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
-                        }
-                        className={cn(
-                          "absolute left-1 w-[calc(100%-0.5rem)] flex items-center gap-1 overflow-hidden rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
-                          ocupado
-                            ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
-                            : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
-                        )}
+                        className="absolute inset-x-0 border-t border-border/70"
+                        style={{ top: `${top}%` }}
                       >
-                        <strong className="truncate text-xs font-semibold">
-                          {ocupado ? slot.turno!.nombreYApellido : "Libre"}
-                        </strong>
-                        <span className="shrink-0 truncate text-xs">
-                          [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                        <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
+                          {formatHora(slot.inicio)}
                         </span>
-                        {ocupado && role === "DOCTOR" && slot.turno!.patientId && (
-                          <Link
-                            href={`/patients/${slot.turno!.patientId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 truncate text-xs underline-offset-2 hover:underline"
-                          >
-                            Ver ficha
-                          </Link>
-                        )}
-                      </button>
+                      </div>
                     );
                   })}
-                </div>
 
-                {showNowLine && (
-                  <div
-                    className="pointer-events-none absolute left-12 z-10 flex w-[calc(100%-3rem)] items-center"
-                    style={{ top: `${nowOffsetPct}%` }}
-                  >
-                    <span className="-ml-1 size-2 shrink-0 rounded-full bg-destructive" />
-                    <div className="h-px flex-1 bg-destructive" />
+                  <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
+                    {slots.map((slot) => {
+                      const top =
+                        (((minutesFromMidnight(slot.inicio) - startHour * 60) / 60) / totalHours) *
+                        100;
+                      const height =
+                        (((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / 60) /
+                          totalHours) *
+                        100;
+                      const ocupado = Boolean(slot.turno);
+
+                      return (
+                        <button
+                          key={slot.inicio}
+                          type="button"
+                          disabled={isPastDay}
+                          onClick={() => (slot.turno ? openEdit(slot) : openBooking(slot))}
+                          style={{ top: `${top}%`, height: `${height}%`, minHeight: 22 }}
+                          aria-label={
+                            ocupado
+                              ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
+                              : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
+                          }
+                          className={cn(
+                            "absolute left-1 w-[calc(100%-0.5rem)] flex items-center gap-1 overflow-hidden rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                            ocupado
+                              ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
+                              : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+                          )}
+                        >
+                          <strong className="truncate text-xs font-semibold">
+                            {ocupado ? slot.turno!.nombreYApellido : "Libre"}
+                          </strong>
+                          <span className="shrink-0 truncate text-xs">
+                            [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                          </span>
+                          {ocupado && role === "DOCTOR" && slot.turno!.patientId && (
+                            <Link
+                              href={`/patients/${slot.turno!.patientId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 truncate text-xs underline-offset-2 hover:underline"
+                            >
+                              Ver ficha
+                            </Link>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+                  {showNowLine && (
+                    <div
+                      className="pointer-events-none absolute left-12 z-10 flex w-[calc(100%-3rem)] items-center"
+                      style={{ top: `${nowOffsetPct}%` }}
+                    >
+                      <span className="-ml-1 size-2 shrink-0 rounded-full bg-destructive" />
+                      <div className="h-px flex-1 bg-destructive" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <Dialog open={formSlot !== null} onOpenChange={(open) => !open && setFormSlot(null)}>
