@@ -9,6 +9,14 @@ import {
 } from "react-day-picker";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
+import {
+  dateParamToDateBA,
+  formatDateParamBA,
+  formatHoraBA,
+  getMinutesSinceMidnightBA,
+  isSameDayBA,
+  startOfDayBA,
+} from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -43,17 +51,6 @@ type Slot = {
 const DEFAULT_START_HOUR = 8;
 const DEFAULT_END_HOUR = 18;
 
-function toDateParam(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
 function addDays(date: Date, amount: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
@@ -65,15 +62,11 @@ function capitalize(text: string) {
 }
 
 function formatHora(iso: string) {
-  const date = new Date(iso);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
+  return formatHoraBA(new Date(iso));
 }
 
 function minutesFromMidnight(iso: string) {
-  const date = new Date(iso);
-  return date.getHours() * 60 + date.getMinutes();
+  return getMinutesSinceMidnightBA(new Date(iso));
 }
 
 function getGridRange(slots: Slot[]) {
@@ -100,7 +93,9 @@ export function TurnosCalendar({
   initialSinConfigurar,
   diasConHorario,
 }: Props) {
-  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date(`${initialDate}T00:00:00`));
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    () => dateParamToDateBA(initialDate) ?? new Date()
+  );
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
   const [loading, setLoading] = useState(false);
@@ -118,13 +113,12 @@ export function TurnosCalendar({
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = startOfDayBA(new Date());
 
   async function loadSlots(date: Date) {
     setLoading(true);
     try {
-      const response = await fetch(`/api/turnos?date=${toDateParam(date)}`);
+      const response = await fetch(`/api/turnos?date=${formatDateParamBA(date)}`);
       const data = await response.json();
       setSlots(data.slots ?? []);
       setSinConfigurar(Boolean(data.sinConfigurar));
@@ -217,10 +211,9 @@ export function TurnosCalendar({
   const { startHour, endHour } = getGridRange(slots);
   const totalHours = endHour - startHour;
   const today = new Date();
-  const isToday = isSameDay(selectedDate, today);
+  const isToday = isSameDayBA(selectedDate, today);
   const isPastDay = selectedDate < todayStart;
-  const nowOffsetPct =
-    (((today.getHours() - startHour) * 60 + today.getMinutes()) / 60 / totalHours) * 100;
+  const nowOffsetPct = ((getMinutesSinceMidnightBA(today) - startHour * 60) / 60 / totalHours) * 100;
   const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
 
   return (

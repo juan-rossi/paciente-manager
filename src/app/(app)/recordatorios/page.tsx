@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,7 @@ function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function formatHora(date: Date) {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
+const formatHora = formatHoraBA;
 
 function buildMensaje(template: string, nombre: string, fecha: string, hora: string) {
   return template
@@ -40,9 +37,9 @@ export default async function RecordatoriosPage() {
   }
 
   const dias = doctor.recordatorioDiasAdelanto;
-  const targetStart = new Date();
-  targetStart.setHours(0, 0, 0, 0);
-  targetStart.setDate(targetStart.getDate() + dias);
+  const targetStart = new Date(
+    startOfDayBA(new Date()).getTime() + dias * 24 * 60 * 60 * 1000
+  );
   const targetEnd = new Date(targetStart.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({
@@ -51,9 +48,10 @@ export default async function RecordatoriosPage() {
     select: { id: true, nombreYApellido: true, telefono: true, inicio: true },
   });
 
-  const fecha = targetStart.toLocaleDateString("es-AR");
+  const fecha = targetStart.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
   const fechaLabel = capitalize(
     targetStart.toLocaleDateString("es-AR", {
+      timeZone: "America/Argentina/Buenos_Aires",
       weekday: "long",
       day: "numeric",
       month: "long",

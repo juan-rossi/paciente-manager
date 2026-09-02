@@ -1,4 +1,5 @@
 import { generarSlots, type WorkScheduleBlockLike } from "@/lib/slots";
+import { startOfDayBA } from "@/lib/timezone";
 
 export type TurnoParaReprogramar = {
   id: string;
@@ -40,8 +41,7 @@ export function planReschedule(
   const sinSolucion: TurnoParaReprogramar[] = [];
 
   for (const turno of ordenados) {
-    let day = new Date(turno.inicio);
-    day.setHours(0, 0, 0, 0);
+    let day = startOfDayBA(turno.inicio);
     let minInicio = turno.inicio.getTime();
     let asignado = false;
 

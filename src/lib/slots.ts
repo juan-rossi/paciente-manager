@@ -1,3 +1,5 @@
+import { getDayBA, setTimeBA } from "@/lib/timezone";
+
 export const DIA_SEMANA_VALUES = [
   "LUNES",
   "MARTES",
@@ -21,7 +23,7 @@ const DIAS_POR_INDICE: DiaSemana[] = [
 ];
 
 export function diaSemanaFromDate(date: Date): DiaSemana {
-  return DIAS_POR_INDICE[date.getDay()];
+  return DIAS_POR_INDICE[getDayBA(date)];
 }
 
 export type WorkScheduleBlockLike = {
@@ -55,11 +57,8 @@ export function generarSlots(
     const inicioHora = parseHora(block.horaInicio);
     const finHora = parseHora(block.horaFin);
 
-    const cursor = new Date(date);
-    cursor.setHours(inicioHora.h, inicioHora.m, 0, 0);
-
-    const finBlock = new Date(date);
-    finBlock.setHours(finHora.h, finHora.m, 0, 0);
+    const cursor = setTimeBA(date, inicioHora.h, inicioHora.m);
+    const finBlock = setTimeBA(date, finHora.h, finHora.m);
 
     while (cursor.getTime() + duracionMs <= finBlock.getTime()) {
       slots.push({

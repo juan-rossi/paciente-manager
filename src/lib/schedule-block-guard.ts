@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
+import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
 
 export type ScheduleBlockParams = {
   diaSemana: DiaSemana;
@@ -9,7 +10,7 @@ export type ScheduleBlockParams = {
 
 function estaCubierto(inicio: Date, blocks: ScheduleBlockParams[]): boolean {
   const dia = diaSemanaFromDate(inicio);
-  const hora = `${String(inicio.getHours()).padStart(2, "0")}:${String(inicio.getMinutes()).padStart(2, "0")}`;
+  const hora = formatHoraBA(inicio);
   return blocks.some((b) => b.diaSemana === dia && hora >= b.horaInicio && hora < b.horaFin);
 }
 
@@ -25,8 +26,7 @@ export async function countTurnosSinCoberturaTrasCambio(
   blockId: string,
   proposedBlock: ScheduleBlockParams | null
 ): Promise<number> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = startOfDayBA(new Date());
 
   const [turnos, blocks] = await Promise.all([
     prisma.turno.findMany({

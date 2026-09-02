@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { slotDurationSchema } from "@/lib/turno-schema";
 import { planReschedule, type ReprogramacionItem } from "@/lib/schedule-reschedule";
+import { startOfDayBA } from "@/lib/timezone";
 
 export async function GET() {
   const { user, response } = await requireDoctor();
@@ -45,8 +46,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ slotDurationMinutes: user.slotDurationMinutes });
   }
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = startOfDayBA(new Date());
 
   const [blocks, turnosAfectados] = await Promise.all([
     prisma.workScheduleBlock.findMany({ where: { userId: user.id } }),

@@ -24,7 +24,10 @@ a Next.js + Postgres.
 
 3. Copiar `.env` y ajustar `DATABASE_URL`, `JWT_SECRET`, las credenciales del usuario semilla
    (`SEED_USER_EMAIL` / `SEED_USER_PASSWORD` / `SEED_USER_NOMBRE`) y `DOCTOR_NAME` (nombre que se
-   muestra en el header de la app — configurar distinto por entorno/deploy).
+   muestra en el header de la app — configurar distinto por entorno/deploy). `TZ` en cambio
+   **sí tiene que estar en todos los entornos con el mismo valor** (`America/Argentina/Buenos_Aires`):
+   los horarios de turnos se generan con la hora local del proceso, y Vercel corre en UTC por
+   defecto — sin este env var los bloques de horario configurados se corren varias horas.
 
 4. Crear las tablas y el usuario médico inicial:
 

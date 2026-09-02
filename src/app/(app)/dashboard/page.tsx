@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
@@ -23,15 +24,10 @@ type TurnoHoy = {
   matchType: "dni" | "nombre" | null;
 };
 
-function formatHora(date: Date) {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
+const formatHora = formatHoraBA;
 
 async function getTurnosHoy(): Promise<TurnoHoy[]> {
-  const inicioHoy = new Date();
-  inicioHoy.setHours(0, 0, 0, 0);
+  const inicioHoy = startOfDayBA(new Date());
   const inicioManiana = new Date(inicioHoy.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({

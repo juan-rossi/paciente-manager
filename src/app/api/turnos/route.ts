@@ -4,18 +4,13 @@ import { requireUser } from "@/lib/api-auth";
 import { turnoInputSchema } from "@/lib/turno-schema";
 import { serializeTurno } from "@/lib/turno-serialize";
 import { getDaySlots } from "@/lib/get-day-slots";
-
-function parseDateParam(value: string | null) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+import { dateParamToDateBA } from "@/lib/timezone";
 
 export async function GET(request: NextRequest) {
   const { user, response } = await requireUser();
   if (response) return response;
 
-  const date = parseDateParam(request.nextUrl.searchParams.get("date"));
+  const date = dateParamToDateBA(request.nextUrl.searchParams.get("date") ?? "");
   if (!date) {
     return NextResponse.json({ error: "Parámetro 'date' inválido (YYYY-MM-DD)." }, { status: 400 });
   }

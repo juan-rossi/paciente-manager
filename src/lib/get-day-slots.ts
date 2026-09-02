@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { generarSlots } from "@/lib/slots";
 import { serializeTurno } from "@/lib/turno-serialize";
+import { startOfDayBA } from "@/lib/timezone";
 import type { UserRole } from "@/lib/auth";
 import type { DiaSemana } from "@/lib/slots";
 
@@ -35,8 +36,7 @@ export async function getDaySlots(
   const diasConHorario = [...new Set(blocks.map((b) => b.diaSemana as DiaSemana))];
   const slots = generarSlots(date, blocks, doctor.slotDurationMinutes);
 
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
+  const dayStart = startOfDayBA(date);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({
