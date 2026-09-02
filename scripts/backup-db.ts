@@ -23,8 +23,14 @@ function neonctl(args: string[]): string {
   return execFileSync(
     "npx",
     ["neonctl", ...args, "--project-id", projectId!, ...authArgs, "-o", "json"],
-    // shell: true -- en Windows "npx" es npx.cmd; sin esto execFileSync no lo resuelve (ENOENT).
-    { encoding: "utf8", shell: true }
+    {
+      encoding: "utf8",
+      // En Windows "npx" es npx.cmd, así que execFileSync no lo resuelve sin shell
+      // (ENOENT). En POSIX (CI) NO conviene: con shell:true, Node concatena los args
+      // en un solo string sin escaparlos (a diferencia de Windows, donde sí los cita) —
+      // rompe apenas algún valor (ej. el API key) tenga un caracter especial de shell.
+      shell: process.platform === "win32",
+    }
   );
 }
 
