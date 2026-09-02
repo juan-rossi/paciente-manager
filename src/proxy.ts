@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME, verifySession } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 const PROTECTED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios", "/configuracion"];
 const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
 
-export async function middleware(request: NextRequest) {
+export default auth((request) => {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await verifySession(token) : null;
+  const session = request.auth;
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
@@ -17,7 +16,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (session && session.role === "SECRETARY") {
+  if (session && session.user.role === "SECRETARY") {
     const isDoctorOnly = DOCTOR_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
     if (isDoctorOnly) {
       return NextResponse.redirect(new URL("/turnos", request.url));
@@ -25,12 +24,12 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname === "/login" && session) {
-    const fallback = session.role !== "DOCTOR" ? "/turnos" : "/dashboard";
+    const fallback = session.user.role !== "DOCTOR" ? "/turnos" : "/dashboard";
     return NextResponse.redirect(new URL(fallback, request.url));
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [

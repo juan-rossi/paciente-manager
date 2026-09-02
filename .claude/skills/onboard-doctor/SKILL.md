@@ -101,11 +101,20 @@ sin ningún dato de otros médicos.
 Cargar el resto de las env vars de producción (una por una, con
 `echo "valor" | npx vercel env add NOMBRE production`):
 
-- `JWT_SECRET` → generar una nueva, nunca reusar la de otro entorno:
+- `AUTH_SECRET` → generar uno nuevo, nunca reusar el de otro entorno:
   `openssl rand -base64 32`
 - `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NOMBRE` → los datos del
   paso 0.
 - `DOCTOR_NAME` → "Dr./Dra. Nombre Apellido".
+- `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` → **los mismos 2 valores que ya usan
+  todos los demás entornos** (mismo Client de Google — mirá `ENTORNOS.md` o
+  `vercel env pull` sobre el proyecto de otro médico si no los tenés a mano).
+  Además, sumá el dominio nuevo (`paciente-manager-$SLUG.vercel.app`) como
+  redirect URI en Google Cloud Console → el OAuth Client ya existente →
+  Authorized redirect URIs → agregar
+  `https://paciente-manager-$SLUG.vercel.app/api/auth/callback/google` — esto
+  es manual, no hay CLI. Sin este paso el login con contraseña funciona
+  igual — solo falla el botón de Google para ese médico puntual.
 
 (`DATABASE_URL` ya quedó cargada por la integración de Neon en el paso 2 —
 no hace falta tocarla. Tampoco hace falta `TZ`: es un nombre reservado en
