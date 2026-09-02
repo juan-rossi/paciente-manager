@@ -119,10 +119,19 @@ npx vercel --prod
 ```
 
 Anotá la URL "Aliased:" que imprime al final — normalmente
-`https://paciente-manager-$SLUG.vercel.app`. Puede tardar uno o dos minutos
-en propagar en el edge antes de responder (da 404 mientras tanto aunque
-`vercel inspect`/`vercel alias ls` ya lo muestren asignado) — no es un error,
-solo esperá y reintentá.
+`https://paciente-manager-$SLUG.vercel.app`. Probala apenas termine el
+deploy (`curl -o /dev/null -w "%{http_code}" .../login`): con `vercel.json`
+declarando `"framework": "nextjs"` (ya está en el repo) debería dar 200 de
+entrada. Si alguna vez vuelve a dar 404 en TODAS las rutas (raíz, /login,
+etc.) con el build limpio en los logs, no es propagación de dominio — es
+que el proyecto quedó con "Framework Preset: Other" en vez de "Next.js"
+(`vercel project inspect <proyecto>` lo muestra). Eso pasó la primera vez
+que corrió este proceso: un proyecto creado con `vercel project add` no
+autodetecta el framework, así que el build compila bien pero Vercel rutea
+como sitio estático (busca `public/`) y nunca encuentra las rutas de
+Next.js. El `vercel.json` del repo ya lo fuerza para todos los entornos —
+si igual pasara, confirmá que `vercel.json` viajó al deploy (tiene que estar
+en la raíz del worktree) y volvé a deployar.
 
 Limpiar el worktree cuando termines (no hace falta mantenerlo — el próximo
 deploy de este médico se hace repitiendo este mismo patrón: worktree +
