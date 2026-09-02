@@ -10,15 +10,19 @@ const projectId = process.env.NEON_PROJECT_ID;
 const apiKey = process.env.NEON_API_KEY;
 const keepLast = Number(process.env.BACKUP_KEEP_LAST ?? 15);
 
-if (!projectId || !apiKey) {
-  console.error("Definí NEON_PROJECT_ID y NEON_API_KEY antes de correr el backup.");
+if (!projectId) {
+  console.error("Definí NEON_PROJECT_ID antes de correr el backup.");
   process.exit(1);
 }
 
+// NEON_API_KEY es obligatorio en CI (GitHub Actions no tiene sesión interactiva).
+// Corriendo a mano, si ya estás autenticado con `neonctl` (sesión OAuth guardada),
+// se puede omitir y usa esa sesión.
 function neonctl(args: string[]): string {
+  const authArgs = apiKey ? ["--api-key", apiKey] : [];
   return execFileSync(
     "npx",
-    ["neonctl", ...args, "--project-id", projectId!, "--api-key", apiKey!, "-o", "json"],
+    ["neonctl", ...args, "--project-id", projectId!, ...authArgs, "-o", "json"],
     { encoding: "utf8" }
   );
 }
