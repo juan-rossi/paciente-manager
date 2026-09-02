@@ -13,7 +13,15 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run backup:db
+      - name: Backup de cada entorno listado en .github/environments.json
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: |
+          count=$(jq 'length' .github/environments.json)
+          for i in $(seq 0 $((count - 1))); do
+            entry=$(jq ".[$i]" .github/environments.json)
+            doctor=$(echo "$entry" | jq -r '.doctorName')
+            projectId=$(echo "$entry" | jq -r '.neonProjectId')
+            echo "== Backup: $doctor ($projectId) =="
+            NEON_PROJECT_ID="$projectId" npm run backup:db
+          done

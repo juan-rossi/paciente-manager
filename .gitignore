@@ -44,3 +44,6 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# doc con credenciales reales de cada entorno (URL, usuario, password) — nunca a git
+/ENTORNOS.md
