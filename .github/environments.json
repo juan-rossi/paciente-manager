@@ -3,5 +3,10 @@
     "doctorName": "Dr. Juan Pablo Beligoy",
     "vercelProject": "paciente-manager",
     "neonProjectId": "lucky-wave-67609853"
+  },
+  {
+    "doctorName": "Dr. Fernando Tito",
+    "vercelProject": "paciente-manager-fernando-tito",
+    "neonProjectId": "hidden-sound-48815298"
   }
 ]

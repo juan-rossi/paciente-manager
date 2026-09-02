@@ -41,60 +41,76 @@ Convenciones de nombres que se usan en el resto del proceso:
   sola si el nombre no está tomado; si está tomado, usar la que Vercel
   devuelva y anotarla igual en `ENTORNOS.md`).
 
-## 1. Crear el proyecto de Neon (DB propia)
-
-```bash
-npx neonctl projects create --name "paciente-manager-$SLUG" -o json
-```
-
-Guardá del output: `id` (es el `neonProjectId`) y, dentro de
-`connection_uris[0].connection_uri`, la connection string — esa es la que se
-usa como `DATABASE_URL` en los pasos siguientes. Si el comando pide
-autenticarse (primera vez en esta máquina), seguí el flujo OAuth que imprime.
-
-## 2. Migraciones + seed contra la DB nueva
-
-Desde la raíz del repo (el checkout normal, no hace falta un worktree para
-esto — `prisma migrate deploy`/`db seed` no tocan Vercel):
-
-```bash
-export DATABASE_URL="<connection_uri del paso 1>"
-npx prisma migrate deploy
-SEED_USER_EMAIL="<email>" SEED_USER_PASSWORD="<password>" SEED_USER_NOMBRE="<Nombre Apellido>" npx prisma db seed
-unset DATABASE_URL
-```
-
-Esto crea únicamente las tablas + el usuario médico semilla — la base queda
-sin ningún dato de otros médicos.
-
-## 3. Proyecto de Vercel (aislado, sin tocar el link del repo actual)
+## 1. Proyecto de Vercel (aislado, sin tocar el link del repo actual)
 
 El repo principal ya está linkeado al proyecto de Dr. Beligoy
 (`.vercel/project.json`). Para no pisarlo, todo el trabajo de Vercel para el
 médico nuevo se hace en un **worktree aparte** (mismo código, otro
-`.vercel/project.json`):
+`.vercel/project.json`, y su propio `node_modules` — no lo symlinkees desde
+el repo principal, `npm install` real y listo; un symlink de directorio en
+Windows tarda muchísimo y Node no siempre lo resuelve bien):
 
 ```bash
 WORKDIR="$(mktemp -d)/paciente-manager-$SLUG"
 git worktree add --detach "$WORKDIR" main
 cd "$WORKDIR"
+npm install
 
 npx vercel project add "paciente-manager-$SLUG"
 npx vercel link --yes --project "paciente-manager-$SLUG"
 ```
 
-Cargar las env vars de producción (una por una, con `echo "valor" | npx vercel env add NOMBRE production`):
+## 2. Crear la DB (proyecto de Neon, vía la integración de Vercel)
 
-- `DATABASE_URL` → la connection string del paso 1.
+Esta cuenta de Neon está gestionada por Vercel (`neonctl projects create`
+falla con "organization is managed by Vercel") — la única forma soportada de
+crear una base nueva es a través del marketplace de Vercel, y de paso te
+conecta el proyecto automáticamente:
+
+```bash
+npx vercel integration add neon --name "paciente-manager-$SLUG" --plan free_v3 -e production -e preview -e development
+```
+
+Esto provisiona la base, la conecta al proyecto (inyecta `DATABASE_URL` y
+otras env vars automáticamente en Vercel) y descarga un `.env.local` acá
+mismo con esas mismas variables — incluido `NEON_PROJECT_ID`, que es el que
+va al manifest de backups (paso 4).
+
+## 3. Migraciones + seed contra la DB nueva
+
+Usando el `DATABASE_URL` que bajó `.env.local` en el paso anterior. `prisma.config.ts`
+carga `.env` automáticamente (no `.env.local`), así que armá un `.env` con
+solo esa variable:
+
+```bash
+node -e "
+const fs = require('fs');
+const m = fs.readFileSync('.env.local', 'utf8').match(/^DATABASE_URL=\"?([^\"\n]+)\"?/m);
+fs.writeFileSync('.env', 'DATABASE_URL=' + JSON.stringify(m[1]) + '\n');
+"
+npx prisma migrate deploy
+SEED_USER_EMAIL="<email>" SEED_USER_PASSWORD="<password>" SEED_USER_NOMBRE="<Nombre Apellido>" npx prisma db seed
+rm .env .env.local
+```
+
+Esto crea únicamente las tablas + el usuario médico semilla — la base queda
+sin ningún dato de otros médicos.
+
+## 3.b Resto de las env vars + deploy
+
+Cargar el resto de las env vars de producción (una por una, con
+`echo "valor" | npx vercel env add NOMBRE production`):
+
 - `JWT_SECRET` → generar una nueva, nunca reusar la de otro entorno:
   `openssl rand -base64 32`
 - `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NOMBRE` → los datos del
   paso 0.
 - `DOCTOR_NAME` → "Dr./Dra. Nombre Apellido".
 
-No hace falta setear `TZ` — es un nombre reservado en Vercel y además la app
-ya maneja el horario de Argentina en código (`src/lib/timezone.ts`), no por
-variable de entorno.
+(`DATABASE_URL` ya quedó cargada por la integración de Neon en el paso 2 —
+no hace falta tocarla. Tampoco hace falta `TZ`: es un nombre reservado en
+Vercel y además la app ya maneja el horario de Argentina en código,
+`src/lib/timezone.ts`.)
 
 Deployar:
 
@@ -102,12 +118,16 @@ Deployar:
 npx vercel --prod
 ```
 
-Anotá la URL de "Production:" que imprime (y el alias corto
-`paciente-manager-$SLUG.vercel.app` si aparece uno).
+Anotá la URL "Aliased:" que imprime al final — normalmente
+`https://paciente-manager-$SLUG.vercel.app`. Puede tardar uno o dos minutos
+en propagar en el edge antes de responder (da 404 mientras tanto aunque
+`vercel inspect`/`vercel alias ls` ya lo muestren asignado) — no es un error,
+solo esperá y reintentá.
 
 Limpiar el worktree cuando termines (no hace falta mantenerlo — el próximo
 deploy de este médico se hace repitiendo este mismo patrón: worktree +
-`vercel link --yes --project paciente-manager-$SLUG` + `vercel --prod`):
+`npm install` + `vercel link --yes --project paciente-manager-$SLUG` +
+`vercel --prod`):
 
 ```bash
 cd "d:/Dev projects/paciente-manager"
@@ -123,7 +143,7 @@ credenciales — solo IDs):
 {
   "doctorName": "<Nombre Apellido>",
   "vercelProject": "paciente-manager-<slug>",
-  "neonProjectId": "<id del paso 1>"
+  "neonProjectId": "<id del paso 2 (NEON_PROJECT_ID en .env.local)>"
 }
 ```
 
