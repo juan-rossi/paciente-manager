@@ -109,12 +109,25 @@ Cargar el resto de las env vars de producción (una por una, con
 - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` → **los mismos 2 valores que ya usan
   todos los demás entornos** (mismo Client de Google — mirá `ENTORNOS.md` o
   `vercel env pull` sobre el proyecto de otro médico si no los tenés a mano).
-  Además, sumá el dominio nuevo (`paciente-manager-$SLUG.vercel.app`) como
-  redirect URI en Google Cloud Console → el OAuth Client ya existente →
-  Authorized redirect URIs → agregar
-  `https://paciente-manager-$SLUG.vercel.app/api/auth/callback/google` — esto
-  es manual, no hay CLI. Sin este paso el login con contraseña funciona
-  igual — solo falla el botón de Google para ese médico puntual.
+
+  Además, sumá el dominio nuevo como redirect URI en Google Cloud Console —
+  esto es **manual, no hay API/CLI/Terraform** para esto (confirmado: Google
+  no expone ningún endpoint para gestionar redirect URIs de un OAuth Client
+  "Web application" — a diferencia de Azure). Lo único que se puede
+  automatizar es abrirle directo la pantalla correcta para que solo tenga
+  que pegar la URL. Usá la herramienta **PowerShell** para esto (no Bash —
+  pasar la URL por Bash → cmd.exe la rompe, corta caracteres):
+
+  ```powershell
+  # El numero antes del primer guion en AUTH_GOOGLE_ID es el project number de Google Cloud.
+  Start-Process "https://console.cloud.google.com/apis/credentials/oauthclient/908344236559-9uauqjvfbn7220co1b5acg9o6f9fr98n.apps.googleusercontent.com?project=908344236559"
+  ```
+
+  Ahí, en "Authorized redirect URIs", que agregue:
+  `https://paciente-manager-$SLUG.vercel.app/api/auth/callback/google`
+
+  Sin este paso el login con contraseña funciona igual — solo falla el botón
+  de Google para ese médico puntual.
 
 (`DATABASE_URL` ya quedó cargada por la integración de Neon en el paso 2 —
 no hace falta tocarla. Tampoco hace falta `TZ`: es un nombre reservado en
