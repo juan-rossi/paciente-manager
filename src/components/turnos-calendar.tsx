@@ -70,12 +70,14 @@ function minutesFromMidnight(iso: string) {
 }
 
 function getGridRange(slots: Slot[]) {
-  if (slots.length === 0) return { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR };
+  if (slots.length === 0) {
+    return { startMinutes: DEFAULT_START_HOUR * 60, endMinutes: DEFAULT_END_HOUR * 60 };
+  }
   const starts = slots.map((s) => minutesFromMidnight(s.inicio));
   const ends = slots.map((s) => minutesFromMidnight(s.fin));
-  const startHour = Math.floor(Math.min(...starts) / 60);
-  const endHour = Math.ceil(Math.max(...ends) / 60);
-  return { startHour, endHour: Math.max(endHour, startHour + 1) };
+  const startMinutes = Math.min(...starts);
+  const endMinutes = Math.max(...ends);
+  return { startMinutes, endMinutes: Math.max(endMinutes, startMinutes + 60) };
 }
 
 type Props = {
@@ -208,12 +210,12 @@ export function TurnosCalendar({
     }
   }
 
-  const { startHour, endHour } = getGridRange(slots);
-  const totalHours = endHour - startHour;
+  const { startMinutes, endMinutes } = getGridRange(slots);
+  const totalMinutes = endMinutes - startMinutes;
   const today = new Date();
   const isToday = isSameDayBA(selectedDate, today);
   const isPastDay = selectedDate < todayStart;
-  const nowOffsetPct = ((getMinutesSinceMidnightBA(today) - startHour * 60) / 60 / totalHours) * 100;
+  const nowOffsetPct = ((getMinutesSinceMidnightBA(today) - startMinutes) / totalMinutes) * 100;
   const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
 
   return (
@@ -291,7 +293,7 @@ export function TurnosCalendar({
                 <div className="relative flex-1 min-h-0">
                   {slots.map((slot) => {
                     const top =
-                      ((minutesFromMidnight(slot.inicio) - startHour * 60) / 60 / totalHours) * 100;
+                      ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
                     return (
                       <div
                         key={slot.inicio}
@@ -308,11 +310,10 @@ export function TurnosCalendar({
                   <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
                     {slots.map((slot) => {
                       const top =
-                        (((minutesFromMidnight(slot.inicio) - startHour * 60) / 60) / totalHours) *
-                        100;
+                        ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
                       const height =
-                        (((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / 60) /
-                          totalHours) *
+                        ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) /
+                          totalMinutes) *
                         100;
                       const ocupado = Boolean(slot.turno);
 
