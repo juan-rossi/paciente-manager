@@ -23,7 +23,8 @@ function neonctl(args: string[]): string {
   return execFileSync(
     "npx",
     ["neonctl", ...args, "--project-id", projectId!, ...authArgs, "-o", "json"],
-    { encoding: "utf8" }
+    // shell: true -- en Windows "npx" es npx.cmd; sin esto execFileSync no lo resuelve (ENOENT).
+    { encoding: "utf8", shell: true }
   );
 }
 
