@@ -8,7 +8,9 @@ type Branch = {
 
 const projectId = process.env.NEON_PROJECT_ID;
 const apiKey = process.env.NEON_API_KEY;
-const keepLast = Number(process.env.BACKUP_KEEP_LAST ?? 15);
+// El plan free de Neon permite 10 branches por proyecto (incluida "main"). Default
+// bajo a propósito, dejando margen para alguna branch manual sin chocar el límite.
+const keepLast = Number(process.env.BACKUP_KEEP_LAST ?? 5);
 
 if (!projectId) {
   console.error("Definí NEON_PROJECT_ID antes de correr el backup.");
@@ -49,19 +51,19 @@ function createBackup(): Branch {
   return branch;
 }
 
-function pruneOldBackups() {
+// `limit` = cuántas backups viejas dejar ANTES de crear la nueva (así nunca se pisa
+// el límite de branches del proyecto: podar primero, crear después — nunca al revés).
+function pruneOldBackups(limit: number) {
   const output = neonctl(["branches", "list"]);
   const branches = JSON.parse(output) as Branch[];
   const backups = branches
     .filter((b) => b.name.startsWith("backup-"))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  const toDelete = backups.slice(keepLast);
+  const toDelete = backups.slice(limit);
   if (toDelete.length === 0) return;
 
-  console.log(
-    `Borrando ${toDelete.length} backup(s) viejo(s) (se conservan los últimos ${keepLast})...`
-  );
+  console.log(`Borrando ${toDelete.length} backup(s) viejo(s) (se conservan ${limit})...`);
   for (const branch of toDelete) {
     neonctl(["branches", "delete", branch.id]);
     console.log(`  - borrado ${branch.name}`);
@@ -69,8 +71,8 @@ function pruneOldBackups() {
 }
 
 try {
+  pruneOldBackups(keepLast - 1);
   createBackup();
-  pruneOldBackups();
 } catch (error) {
   const stderr = (error as { stderr?: Buffer | string }).stderr;
   console.error(stderr ? stderr.toString() : error);
