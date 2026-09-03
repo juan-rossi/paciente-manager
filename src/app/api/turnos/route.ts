@@ -56,10 +56,12 @@ export async function POST(request: NextRequest) {
 
   const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);
 
-  const patient = await prisma.patient.findFirst({
-    where: { nroDocumento: parsed.data.dni },
-    select: { id: true },
-  });
+  const patient = parsed.data.dni
+    ? await prisma.patient.findFirst({
+        where: { nroDocumento: parsed.data.dni },
+        select: { id: true },
+      })
+    : null;
 
   const turno = await prisma.turno.create({
     data: {

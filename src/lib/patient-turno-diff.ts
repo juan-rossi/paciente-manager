@@ -16,7 +16,7 @@ type PatientLike = {
 
 type TurnoLike = {
   nombreYApellido: string;
-  dni: string;
+  dni: string | null;
   telefono: string;
   obraSocial: string | null;
 };

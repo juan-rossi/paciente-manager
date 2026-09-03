@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Turno" ALTER COLUMN "dni" DROP NOT NULL;

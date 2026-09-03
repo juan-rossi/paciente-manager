@@ -32,10 +32,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ turno: serializeTurno(turno, user.role) });
   }
 
-  const patient = await prisma.patient.findFirst({
-    where: { nroDocumento: parsed.data.dni },
-    select: { id: true },
-  });
+  const patient = parsed.data.dni
+    ? await prisma.patient.findFirst({
+        where: { nroDocumento: parsed.data.dni },
+        select: { id: true },
+      })
+    : null;
 
   const turno = await prisma.turno.update({
     where: { id },

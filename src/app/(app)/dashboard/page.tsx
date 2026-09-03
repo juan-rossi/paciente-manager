@@ -17,7 +17,7 @@ type TurnoHoy = {
   id: string;
   inicio: Date;
   nombreYApellido: string;
-  dni: string;
+  dni: string | null;
   telefono: string;
   obraSocial: string | null;
   patientId: string | null;
@@ -45,10 +45,12 @@ async function getTurnosHoy(): Promise<TurnoHoy[]> {
 
   return Promise.all(
     turnos.map(async (turno) => {
-      const dniMatch = await prisma.patient.findFirst({
-        where: { nroDocumento: turno.dni },
-        select: { id: true },
-      });
+      const dniMatch = turno.dni
+        ? await prisma.patient.findFirst({
+            where: { nroDocumento: turno.dni },
+            select: { id: true },
+          })
+        : null;
       const nombreMatch = dniMatch
         ? null
         : await prisma.patient.findFirst({
@@ -65,7 +67,8 @@ async function getTurnosHoy(): Promise<TurnoHoy[]> {
 }
 
 function newPatientHref(turno: TurnoHoy) {
-  const params = new URLSearchParams({ nombreYApellido: turno.nombreYApellido, nroDocumento: turno.dni });
+  const params = new URLSearchParams({ nombreYApellido: turno.nombreYApellido });
+  if (turno.dni) params.set("nroDocumento", turno.dni);
   if (turno.telefono) params.set("telefono", turno.telefono);
   if (turno.obraSocial) params.set("obraSocial", turno.obraSocial);
   return `/patients/new?${params.toString()}`;
@@ -107,7 +110,9 @@ export default async function DashboardPage() {
                         </span>
                         <div className="w-48 min-w-0 shrink-0">
                           <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
-                          <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
+                          {turno.dni && (
+                            <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
+                          )}
                         </div>
                         <Badge
                           variant="secondary"
@@ -134,7 +139,9 @@ export default async function DashboardPage() {
                       </span>
                       <div className="w-48 min-w-0 shrink-0">
                         <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
-                        <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
+                        {turno.dni && (
+                          <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
+                        )}
                       </div>
                       <div className="flex-1" />
                       <Button size="sm" variant="outline" nativeButton={false} render={<Link href={newPatientHref(turno)} />}>

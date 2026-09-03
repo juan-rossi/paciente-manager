@@ -35,7 +35,7 @@ type TurnoInfo = {
   id: string;
   nombreYApellido: string;
   fechaNacimiento: string | null;
-  dni: string;
+  dni: string | null;
   telefono: string;
   obraSocial: string | null;
   obraSocialNro: string | null;
@@ -151,7 +151,7 @@ export function TurnosCalendar({
     setFormSlot(slot);
     setEditingTurnoId(slot.turno.id);
     setNombreYApellido(slot.turno.nombreYApellido);
-    setDni(slot.turno.dni);
+    setDni(slot.turno.dni ?? "");
     setTelefono(slot.turno.telefono);
     setObraSocial(slot.turno.obraSocial ?? "");
     setError(null);
@@ -160,9 +160,9 @@ export function TurnosCalendar({
 
   async function handleSubmitForm() {
     if (!formSlot) return;
-    if (!nombreYApellido.trim() || !dni.trim() || !telefono.trim()) {
+    if (!nombreYApellido.trim() || !telefono.trim()) {
       setTriedSubmit(true);
-      setError("Completá nombre, DNI y teléfono.");
+      setError("Completá nombre y teléfono.");
       return;
     }
     setError(null);
@@ -405,12 +405,11 @@ export function TurnosCalendar({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label>DNI *</Label>
+                <Label>DNI</Label>
                 <Input
                   inputMode="numeric"
                   value={dni}
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
-                  className={triedSubmit && !dni.trim() ? "border-destructive" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
