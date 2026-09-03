@@ -33,7 +33,24 @@ pide login, es la primera vez acá — seguí el flujo OAuth que imprime).
 Si este paso falla, **no sigas** al deploy — avisá al usuario y resolvé el
 backup primero.
 
-## 2. Deploy al proyecto de Vercel de ese médico
+## 2. Migraciones pendientes contra esa misma DB
+
+**No te lo saltees.** Ya pasó una vez: un cambio de schema se deployó sin
+correr la migración en producción, y el login quedó roto (columna
+inexistente) hasta que alguien lo notó. Esto corre siempre, haya o no
+migraciones nuevas — es barato y `prisma migrate deploy` no hace nada si ya
+está todo aplicado.
+
+```bash
+CONN=$(npx neonctl connection-string --project-id "<neonProjectId del entorno elegido>" --pooled)
+DATABASE_URL="$CONN" npx prisma migrate deploy
+```
+
+Si aplica migraciones, revisá que el resumen tenga sentido (no debería
+haber ninguna sorpresa — son las mismas que ya corriste en local antes de
+pushear). Si falla, **no sigas** al deploy.
+
+## 3. Deploy al proyecto de Vercel de ese médico
 
 El repo principal está linkeado al proyecto de Dr. Beligoy
 (`.vercel/project.json`). Para no pisarlo (deployando a cualquier entorno,
@@ -62,9 +79,10 @@ cd "d:/Dev projects/paciente-manager"
 git worktree remove "$WORKDIR" --force
 ```
 
-## 3. Confirmar
+## 4. Confirmar
 
-Contale al usuario: qué backup se creó (nombre de la branch), la URL
-deployada, y el resultado del chequeo de `/login`. Si el médico elegido usa
-login con Google, no hace falta volver a probarlo — el deploy no cambia las
-credenciales ni la DB, solo el código.
+Contale al usuario: qué backup se creó (nombre de la branch), qué
+migraciones se aplicaron (si alguna), la URL deployada, y el resultado del
+chequeo de `/login`. Si el médico elegido usa login con Google, no hace
+falta volver a probarlo — el deploy no cambia las credenciales ni la DB,
+solo el código.
