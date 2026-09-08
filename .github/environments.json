@@ -8,5 +8,10 @@
     "doctorName": "Dr. Fernando Tito",
     "vercelProject": "paciente-manager-fernando-tito",
     "neonProjectId": "hidden-sound-48815298"
+  },
+  {
+    "doctorName": "Dra. Melani Vignolles",
+    "vercelProject": "paciente-manager-melani-vignolles",
+    "neonProjectId": "fancy-term-77508565"
   }
 ]
