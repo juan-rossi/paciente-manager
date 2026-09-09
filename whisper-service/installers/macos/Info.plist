@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>Transcriber</string>
+	<key>CFBundleDisplayName</key>
+	<string>Transcriber</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.pacientemanager.transcriber</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleExecutable</key>
+	<string>transcriber</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>11.0</string>
+	<!-- Sin ícono en el Dock ni en el Cmd+Tab — solo vive en la bandeja del menú. -->
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Transcriber no accede al micrófono directamente: recibe audio ya capturado por el navegador a través de un WebSocket local.</string>
+</dict>
+</plist>

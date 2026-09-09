@@ -1,0 +1,29 @@
+{
+  "name": "whisper-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Servicio local de transcripción (whisper.cpp) para Paciente Manager. Corre solo en 127.0.0.1, nunca se despliega — es un proceso auxiliar en la máquina del médico.",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "build-sea": "node scripts/build-sea.mjs"
+  },
+  "dependencies": {
+    "@fugood/whisper.node": "^1.1.3",
+    "auto-launch": "^5.0.6",
+    "systray2": "^2.1.4",
+    "ws": "^8.21.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/auto-launch": "^5.0.5",
+    "@types/node": "^22",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6",
+    "tsx": "^4.23.13",
+    "typescript": "^5"
+  }
+}

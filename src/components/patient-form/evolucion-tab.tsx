@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Mic, MicOff, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
 import { formatFechaCorta } from "./utils";
+import { useTranscription } from "./use-transcription";
 
 function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -50,6 +52,8 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const transcription = useTranscription();
+
   const isEditing = editingIndex !== null;
 
   function resetForm() {
@@ -59,8 +63,13 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
     setEditingIndex(null);
   }
 
+  function handleTextoFinal(texto: string) {
+    setContenido((prev) => (prev.trim() ? `${prev.trim()}\n${texto}` : texto));
+  }
+
   function openAddDialog() {
     resetForm();
+    void transcription.reintentarConexion();
     setOpen(true);
   }
 
@@ -206,12 +215,27 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
         ))}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        {transcription.connectionStatus === "disponible" && (
+          <Badge variant="secondary">
+            <Mic className="size-3" />
+            Transcriptor conectado
+          </Badge>
+        )}
+        {transcription.connectionStatus === "no_disponible" && (
+          <Badge variant="outline">
+            <MicOff className="size-3" />
+            Transcriptor no detectado
+          </Badge>
+        )}
         <Dialog
           open={open}
           onOpenChange={(next) => {
+            if (!next) {
+              transcription.detener();
+              resetForm();
+            }
             setOpen(next);
-            if (!next) resetForm();
           }}
         >
           <Button type="button" onClick={openAddDialog}>
@@ -228,16 +252,80 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
                 <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Observación</Label>
+                <div className="flex items-center justify-between gap-3">
+                  <Label>Observación</Label>
+                  {!isEditing && transcription.connectionStatus === "disponible" && (
+                    <div className="flex items-center gap-2">
+                      {transcription.recordingStatus === "grabando" && (
+                        <Badge variant="destructive">
+                          <span className="size-1.5 animate-pulse rounded-full bg-current" />
+                          Grabando…
+                        </Badge>
+                      )}
+                      {transcription.recordingStatus === "grabando" ||
+                      transcription.recordingStatus === "conectando" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => transcription.detener()}
+                        >
+                          <MicOff className="size-3.5" />
+                          Detener transcripción
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void transcription.iniciar(handleTextoFinal)}
+                        >
+                          <Mic className="size-3.5" />
+                          Iniciar transcripción
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Textarea
                   ref={textareaRef}
                   rows={10}
                   className="min-h-[15rem]"
                   value={contenido}
                   onChange={(e) => setContenido(e.target.value)}
-                  placeholder="Escribí la evolución del paciente..."
+                  placeholder="Escribí la evolución del paciente o presioná «Iniciar transcripción»..."
                 />
+                {transcription.partialText && (
+                  <p className="text-sm text-muted-foreground italic">
+                    {transcription.partialText}
+                  </p>
+                )}
               </div>
+              {!isEditing && transcription.connectionStatus === "no_disponible" && (
+                <p className="text-sm text-muted-foreground">
+                  El transcriptor local no está disponible. Si ya lo instalaste y está corriendo,
+                  puede que el navegador te haya pedido permiso para acceder a la red local (un aviso
+                  como el del micrófono) — si lo rechazaste o nunca lo viste, revisá los permisos del
+                  sitio en la configuración del navegador.{" "}
+                  {/* TODO: enlazar a la descarga del instalador cuando esté publicado */}
+                </p>
+              )}
+              {transcription.error === "mic_denegado" && (
+                <p className="text-sm text-destructive">
+                  No se pudo acceder al micrófono. Revisá los permisos del navegador para este sitio.
+                </p>
+              )}
+              {transcription.error === "servicio_no_disponible" && (
+                <p className="text-sm text-destructive">
+                  No se pudo conectar con el transcriptor local. Confirmá que esté corriendo, o que el
+                  navegador no haya bloqueado el acceso a la red local para este sitio.
+                </p>
+              )}
+              {transcription.error === "conexion_perdida" && (
+                <p className="text-sm text-destructive">
+                  Se perdió la conexión con el transcriptor. Podés reintentar.
+                </p>
+              )}
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>
