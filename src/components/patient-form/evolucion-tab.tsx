@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -259,10 +258,10 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Eliminar evolución</DialogTitle>
-            <DialogDescription>
-              Esta acción no se puede deshacer. ¿Confirmás que querés eliminar esta evolución?
-            </DialogDescription>
           </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Esta acción no se puede deshacer. ¿Confirmás que querés eliminar esta evolución?
+          </p>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteIndex(null)}>

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -49,11 +48,11 @@ export function DeletePatientButton({ patientId, patientName }: Props) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Eliminar paciente</DialogTitle>
-          <DialogDescription>
-            Esta acción no se puede deshacer. Se eliminará a <strong>{patientName}</strong> junto
-            con todos sus antecedentes y evoluciones clínicas.
-          </DialogDescription>
         </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Esta acción no se puede deshacer. Se eliminará a <strong>{patientName}</strong> junto con
+          todos sus antecedentes y evoluciones clínicas.
+        </p>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
