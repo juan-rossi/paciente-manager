@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Mic, MicOff, Pencil, Plus } from "lucide-react";
+import { Loader2, Mic, MicOff, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,12 @@ import { useTranscription } from "./use-transcription";
 
 function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+function formatElapsed(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 // `new Date().toISOString()` da la fecha en UTC: cerca de medianoche, en un huso
@@ -215,19 +221,21 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
         ))}
       </div>
 
-      <div className="flex items-center justify-end gap-3">
-        {transcription.connectionStatus === "disponible" && (
-          <Badge variant="secondary">
-            <Mic className="size-3" />
-            Transcriptor conectado
-          </Badge>
-        )}
-        {transcription.connectionStatus === "no_disponible" && (
-          <Badge variant="outline">
-            <MicOff className="size-3" />
-            Transcriptor no detectado
-          </Badge>
-        )}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {transcription.connectionStatus === "disponible" && (
+            <Badge variant="secondary">
+              <Mic className="size-3" />
+              Transcriptor conectado
+            </Badge>
+          )}
+          {transcription.connectionStatus === "no_disponible" && (
+            <Badge variant="outline">
+              <MicOff className="size-3" />
+              Transcriptor no detectado
+            </Badge>
+          )}
+        </div>
         <Dialog
           open={open}
           onOpenChange={(next) => {
@@ -256,12 +264,6 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
                   <Label>Observación</Label>
                   {!isEditing && transcription.connectionStatus === "disponible" && (
                     <div className="flex items-center gap-2">
-                      {transcription.recordingStatus === "grabando" && (
-                        <Badge variant="destructive">
-                          <span className="size-1.5 animate-pulse rounded-full bg-current" />
-                          Grabando…
-                        </Badge>
-                      )}
                       {transcription.recordingStatus === "grabando" ||
                       transcription.recordingStatus === "conectando" ? (
                         <Button
@@ -278,6 +280,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
                           type="button"
                           variant="outline"
                           size="sm"
+                          disabled={transcription.recordingStatus === "finalizando"}
                           onClick={() => void transcription.iniciar(handleTextoFinal)}
                         >
                           <Mic className="size-3.5" />
@@ -287,18 +290,47 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
                     </div>
                   )}
                 </div>
-                <Textarea
-                  ref={textareaRef}
-                  rows={10}
-                  className="min-h-[15rem]"
-                  value={contenido}
-                  onChange={(e) => setContenido(e.target.value)}
-                  placeholder="Escribí la evolución del paciente o presioná «Iniciar transcripción»..."
-                />
-                {transcription.partialText && (
-                  <p className="text-sm text-muted-foreground italic">
-                    {transcription.partialText}
-                  </p>
+                {!isEditing && transcription.recordingStatus === "conectando" && (
+                  <div className="flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-md border p-6 text-center">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Conectando con el micrófono…</p>
+                  </div>
+                )}
+                {!isEditing && transcription.recordingStatus === "grabando" && (
+                  <div className="flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-md border p-6 text-center">
+                    <Badge variant="destructive">
+                      <span className="size-1.5 animate-pulse rounded-full bg-current" />
+                      Grabando…
+                    </Badge>
+                    <span className="font-mono text-3xl tabular-nums">
+                      {formatElapsed(transcription.elapsedSeconds)}
+                    </span>
+                    {transcription.partialText && (
+                      <p className="text-sm text-muted-foreground italic">{transcription.partialText}</p>
+                    )}
+                  </div>
+                )}
+                {!isEditing && transcription.recordingStatus === "finalizando" && (
+                  <div className="flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-md border p-6 text-center">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Terminando de transcribir</strong> 
+                      <br></br>
+                      El resultado va a aparecer acá en unos segundos.
+                    </p>
+                  </div>
+                )}
+                {(isEditing ||
+                  transcription.recordingStatus === "idle" ||
+                  transcription.recordingStatus === "error") && (
+                  <Textarea
+                    ref={textareaRef}
+                    rows={10}
+                    className="min-h-[15rem]"
+                    value={contenido}
+                    onChange={(e) => setContenido(e.target.value)}
+                    placeholder="Escribí la evolución del paciente o presioná «Iniciar transcripción»..."
+                  />
                 )}
               </div>
               {!isEditing && transcription.connectionStatus === "no_disponible" && (

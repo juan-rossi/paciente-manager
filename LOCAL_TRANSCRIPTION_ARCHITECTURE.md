@@ -123,6 +123,81 @@ En el frontend, `NEXT_PUBLIC_TRANSCRIBER_URL` (opcional, default
 `http://127.0.0.1:7891`) es el único punto de configuración — si no está
 seteada, todo funciona igual apuntando al puerto por defecto.
 
+## Precisión de la transcripción
+
+Ajustes específicos para español (todos en `whisper-service/src/asr/engine.ts`),
+partiendo de la base de que `language` siempre va a ser `"es"`:
+
+- **`initial_prompt`**: whisper.cpp no lo trata como una instrucción, sino
+  como si fuera transcripción previa — condiciona el estilo y el vocabulario
+  de lo que sigue. Se usa un fragmento de evolución clínica real con
+  medicación habitual (`enalapril, losartán, atorvastatina, metformina,
+  paracetamol, ibuprofeno, amoxicilina, omeprazol, levotiroxina`, etc. —
+  ver `INITIAL_PROMPT_BY_LANGUAGE` en `engine.ts`). No agrega latencia (no
+  dispara reintentos), así que se usa en la pasada parcial y en la final.
+  **Medido el impacto** con una frase de prueba con nombres de fármacos,
+  ritmo rápido y ruido de fondo sintético: sin el prompt, "metformina" y
+  "dislipemia" salían como "me formina" y "dislitenio"; con el prompt de
+  medicación agregado, salieron perfectos, y "enalapril" pasó de "en ala
+  priv" a "enalapri" (una letra de diferencia). Si una especialidad
+  puntual usa vocabulario muy distinto (ej. oncología, psiquiatría), vale
+  la pena extender esta lista con sus términos/fármacos más frecuentes.
+- **`temperatureInc: 0.2`** (solo en la pasada final): si la primera pasada
+  da baja confianza, reintenta con algo más de temperatura — más robusto
+  ante acentos marcados o audio ruidoso. Se omite en la pasada parcial para
+  no sumarle más latencia a lo que ya es lento sin GPU.
+- **Resampling nativo del navegador**: el `AudioContext` se crea
+  directamente a 16kHz (`new AudioContext({ sampleRate: 16000 })`) en vez
+  de capturar a la tasa nativa del micrófono y resamplear a mano en el
+  AudioWorklet — el resampler del navegador (basado en un filtro
+  polifásico) da mejor calidad que una interpolación lineal casera,
+  especialmente para consonantes y sibilantes.
+
+Lo que **no** ayuda: más threads en CPU. Se probó explícitamente (ver
+"Limitaciones conocidas" abajo) y con más threads la inferencia salió más
+lenta, no más rápida — no hay ganancia de precisión ahí tampoco.
+
+Si después de esto la precisión sigue sin ser suficiente para un caso de
+uso puntual, la palanca más directa es subir `model` a `medium` en
+`config.json` (más preciso, pero más lento en CPU — ver benchmarks reales
+abajo).
+
+## Rendimiento (latencia sin GPU)
+
+Los modelos que se descargan son la variante **cuantizada a 8 bits (q8_0)**
+de cada tamaño (`ggml-*-q8_0.bin`), no la original en fp16. Medido en una
+notebook sin GPU (12 cores, Windows), con el mismo audio de prueba
+(vocabulario médico + ruido de fondo sintético) y los mismos parámetros
+(`beamSize: 5`, `temperatureInc: 0.2`, mismo `initial_prompt`):
+
+| Modelo (final) | Tiempo | Resultado |
+|---|---|---|
+| `small` fp16 (sin cuantizar) | ~40s | correcto |
+| `small` q5_1 | ~31s | correcto (idéntico a fp16) |
+| **`small` q8_0 (el que se usa)** | **~16s** | **correcto (idéntico a fp16)** |
+| `base` (cualquier variante) | ~11s | vocabulario médico mal — no confiable |
+
+La cuantización q8_0 dio el mismo resultado exacto que la variante sin
+cuantizar, en **menos de la mitad del tiempo** — por eso es la que se
+descarga por defecto para los cuatro tamaños (`tiny`, `base`, `small`,
+`medium`), no solo para `small`.
+
+También se probó bajar `beamSize` de 5 a 2: **no cambió el tiempo**
+(41s vs 40s) — el costo del encoder de whisper.cpp domina sobre el ancho
+del beam search, así que no vale la pena tocar ese parámetro para ganar
+velocidad.
+
+Con esto, el resultado final en esta máquina baja de ~34-45s a ~15-20s.
+Sigue siendo mucho más lento que "tiempo real" — es la naturaleza de correr
+un modelo mediano sin GPU. Si la latencia sigue siendo un problema:
+- Bajar `model` a `base` en `config.json` — mucho más rápido (~11s) pero
+  ya no confiable con vocabulario médico específico (ver tabla arriba).
+- Correr en una Mac con Apple Silicon (Metal) o una PC con GPU
+  Vulkan/CUDA — la variante `default` que se usa hoy no las aprovecha
+  (deliberadamente, para no requerirle drivers al usuario final), pero es
+  la razón principal por la que el modelo `small` es viable en Apple
+  Silicon y lento en un CPU de Windows sin GPU.
+
 ## Privacidad
 
 - Todo el audio se procesa **en memoria**, dentro del proceso
@@ -139,6 +214,21 @@ seteada, todo funciona igual apuntando al puerto por defecto.
 
 ## Limitaciones conocidas
 
+- **Párrafos de más de 30s pueden mostrar texto repetido en el corte
+  automático**: `MAX_SEGMENT_MS` (30s) fuerza un "final" automático para no
+  dejar crecer el buffer indefinidamente. Sin GPU, esa transcripción tarda
+  ~20-25s — si el médico sigue hablando y toca "Detener" mientras tanto,
+  antes ese audio nuevo se **descartaba en silencio** (bug real, encontrado
+  y arreglado — ver commit correspondiente en `chunking.ts`: la condición
+  `hasPendingSpeech &&` en `stop()` quedaba en `false` por el reset
+  síncrono de `finalize()`, aunque hubiera audio real pendiente). Ya
+  arreglado: ahora siempre se transcribe lo que quedó en el buffer al
+  detener, sin importar ese flag. Lo que **sigue** siendo una aspereza
+  cosmética (no pérdida de datos): como el segmento cortado a los 30s se
+  solapa 1s con el que sigue, puede aparecer una frase corta repetida o
+  ligeramente distinta justo en el punto de corte. Si esto molesta,
+  subir `MAX_SEGMENT_MS` en `chunking.ts` reduce cuántos párrafos lo
+  disparan, a costa de esperar más por el primer resultado.
 - **Local Network Access (LNA) del navegador — la más importante**: desde
   Chrome 142 (octubre 2025) y Firefox (marzo 2026), los navegadores
   requieren un permiso explícito del usuario (similar al de

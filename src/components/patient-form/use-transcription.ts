@@ -4,7 +4,7 @@ const TRANSCRIBER_URL = process.env.NEXT_PUBLIC_TRANSCRIBER_URL ?? "http://127.0
 const TRANSCRIBER_WS_URL = `${TRANSCRIBER_URL.replace(/^http/, "ws")}/transcribe`;
 
 export type ConnectionStatus = "verificando" | "disponible" | "no_disponible";
-export type RecordingStatus = "idle" | "conectando" | "grabando" | "error";
+export type RecordingStatus = "idle" | "conectando" | "grabando" | "finalizando" | "error";
 export type TranscriptionErrorKind = "mic_denegado" | "servicio_no_disponible" | "conexion_perdida";
 
 type PartialMessage = { type: "partial"; text: string };
@@ -35,12 +35,25 @@ export function useTranscription() {
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [partialText, setPartialText] = useState("");
   const [error, setError] = useState<TranscriptionErrorKind | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const onFinalRef = useRef<(text: string) => void>(() => {});
+  const recordingStartRef = useRef<number>(0);
+
+  // Cuenta los segundos desde que arrancó a grabar (no desde que se pidió
+  // permiso de mic) — se recalcula desde `Date.now()` en vez de incrementar
+  // un contador para no acumular desvío si el intervalo se retrasa.
+  useEffect(() => {
+    if (recordingStatus !== "grabando") return;
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - recordingStartRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [recordingStatus]);
 
   const fetchConnectionStatus = useCallback(async (): Promise<ConnectionStatus> => {
     try {
@@ -70,7 +83,10 @@ export function useTranscription() {
     };
   }, [fetchConnectionStatus]);
 
-  const cleanup = useCallback(() => {
+  // Libera el micrófono/AudioContext/worklet, pero NO toca el WebSocket — se
+  // usa desde `detener()`, que necesita mantenerlo abierto un rato más (ver
+  // más abajo) para no perder la transcripción final.
+  const stopCapture = useCallback(() => {
     workletNodeRef.current?.port.close();
     workletNodeRef.current?.disconnect();
     workletNodeRef.current = null;
@@ -80,17 +96,70 @@ export function useTranscription() {
       void audioContextRef.current.close();
     }
     audioContextRef.current = null;
+  }, []);
+
+  // Cierre "duro": además de liberar mic/audio, fuerza el cierre del
+  // WebSocket ya mismo. Se usa al desmontar el componente o cuando falló
+  // algo antes de llegar a grabar — no cuando el usuario detiene una
+  // grabación en curso (ver `detener`).
+  const cleanup = useCallback(() => {
+    stopCapture();
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) {
       wsRef.current.close();
     }
     wsRef.current = null;
-  }, []);
+  }, [stopCapture]);
 
   const detener = useCallback(() => {
-    cleanup();
-    setRecordingStatus("idle");
-    setPartialText("");
-  }, [cleanup]);
+    const worklet = workletNodeRef.current;
+    const ws = wsRef.current;
+
+    const finishStop = () => {
+      stopCapture();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        // Sin GPU, la transcripción final puede tardar varios segundos (a veces
+        // bastante más) — mandamos una señal de "stop" y dejamos que el propio
+        // servicio cierre la conexión después de mandar el resultado, en vez de
+        // cerrarla nosotros ya mismo y perderlo (ver LOCAL_TRANSCRIPTION_ARCHITECTURE.md).
+        setRecordingStatus("finalizando");
+        ws.send(JSON.stringify({ type: "stop" }));
+      } else {
+        // Todavía conectando (o ya cerrado): abortamos en vez de dejarlo colgado.
+        ws?.close();
+        wsRef.current = null;
+        setRecordingStatus("idle");
+        setPartialText("");
+      }
+    };
+
+    if (!worklet) {
+      finishStop();
+      return;
+    }
+
+    // El worklet solo manda audio al servidor cada ~100ms (ver
+    // pcm-worklet.js). Si desconectáramos ya mismo, lo que haya grabado
+    // desde el último envío — el final de la frase que el médico acaba de
+    // decir — se perdería en silencio. Le pedimos que lo mande ahora y
+    // esperamos su confirmación (con un timeout de resguardo) antes de
+    // desconectar el mic y avisarle al servicio que pare.
+    let done = false;
+    const finishOnce = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(safetyTimer);
+      finishStop();
+    };
+    worklet.port.onmessage = (event) => {
+      if (event.data?.type === "flushed") {
+        finishOnce();
+        return;
+      }
+      if (ws?.readyState === WebSocket.OPEN) ws.send(event.data);
+    };
+    const safetyTimer = setTimeout(finishOnce, 500);
+    worklet.port.postMessage({ type: "flush" });
+  }, [stopCapture]);
 
   const iniciar = useCallback(
     async (onFinal: (text: string) => void) => {
@@ -137,7 +206,12 @@ export function useTranscription() {
       };
 
       ws.onclose = () => {
+        wsRef.current = null;
         setRecordingStatus((current) => {
+          // "finalizando": el cierre es el final esperado del flujo de
+          // `detener()` (el servidor cierra después de mandar el resultado
+          // pendiente) — no es un error.
+          if (current === "finalizando") return "idle";
           if (current !== "grabando") return current;
           setError("conexion_perdida");
           return "error";
@@ -145,7 +219,12 @@ export function useTranscription() {
       };
 
       try {
-        const audioContext = new AudioContext();
+        // Pedimos el AudioContext directamente a 16kHz (la tasa que espera
+        // whisper.cpp) en vez de resamplear a mano en el worklet: el
+        // resampler nativo del navegador da mejor calidad que una
+        // interpolación lineal casera, sobre todo para consonantes/sibilantes
+        // — importante para la precisión de la transcripción final.
+        const audioContext = new AudioContext({ sampleRate: 16000 });
         audioContextRef.current = audioContext;
         await audioContext.audioWorklet.addModule("/audio/pcm-worklet.js");
 
@@ -171,6 +250,8 @@ export function useTranscription() {
         return;
       }
 
+      recordingStartRef.current = Date.now();
+      setElapsedSeconds(0);
       setRecordingStatus("grabando");
     },
     [cleanup]
@@ -182,6 +263,7 @@ export function useTranscription() {
     connectionStatus,
     recordingStatus,
     partialText,
+    elapsedSeconds,
     error,
     iniciar,
     detener,

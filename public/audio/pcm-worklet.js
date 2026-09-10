@@ -1,18 +1,26 @@
-// AudioWorklet que resamplea el micrófono (a la tasa nativa del dispositivo,
-// típicamente 44.1/48kHz) a PCM16 mono 16kHz — el formato que espera whisper.cpp.
-// Se resamplea acá, en el navegador, para no depender de ffmpeg/decoders en el
-// servicio local (ver LOCAL_TRANSCRIPTION_ARCHITECTURE.md).
+// AudioWorklet que convierte el audio del micrófono (ya capturado a 16kHz
+// mono por el propio AudioContext, ver use-transcription.ts) a PCM16 — el
+// formato que espera whisper.cpp. No resamplea acá: dejar que el navegador
+// resamplee de la tasa nativa del dispositivo a 16kHz da mejor calidad que
+// una interpolación casera, algo que importa para la precisión de la
+// transcripción (especialmente en consonantes/sibilantes).
 class PcmWorkletProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.targetSampleRate = 16000;
-    this.ratio = sampleRate / this.targetSampleRate;
-    this.fracPos = 0;
-    this.carry = new Float32Array(0);
     this.pending = [];
     // ~100ms por mensaje: suficiente para no saturar postMessage, poco para no
     // agregar latencia perceptible.
     this.chunkSamples = 1600;
+    // Al detener la grabación, el lado JS pide un "flush" antes de desconectar
+    // — si no, lo que haya en `pending` (hasta ~100ms, el final de lo que
+    // dijo el médico) se pierde en silencio porque nunca llega a los 1600
+    // samples del flush automático.
+    this.port.onmessage = (event) => {
+      if (event.data?.type === "flush") {
+        this.flush();
+        this.port.postMessage({ type: "flushed" });
+      }
+    };
   }
 
   flush() {
@@ -30,23 +38,7 @@ class PcmWorkletProcessor extends AudioWorkletProcessor {
     const channelData = inputs[0]?.[0];
     if (!channelData || channelData.length === 0) return true;
 
-    const combined = new Float32Array(this.carry.length + channelData.length);
-    combined.set(this.carry, 0);
-    combined.set(channelData, this.carry.length);
-
-    let pos = this.fracPos;
-    while (true) {
-      const idx = Math.floor(pos);
-      if (idx + 1 >= combined.length) {
-        this.carry = combined.slice(idx);
-        this.fracPos = pos - idx;
-        break;
-      }
-      const frac = pos - idx;
-      this.pending.push(combined[idx] * (1 - frac) + combined[idx + 1] * frac);
-      pos += this.ratio;
-    }
-
+    for (let i = 0; i < channelData.length; i++) this.pending.push(channelData[i]);
     if (this.pending.length >= this.chunkSamples) this.flush();
     return true;
   }

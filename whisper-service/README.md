@@ -21,10 +21,10 @@ npm run dev
 ```
 
 La primera vez que arranca, descarga el modelo configurado (por defecto
-`small`, ~466MB) a un directorio de datos de usuario — no al repo — y puede
-tardar varios minutos según la conexión. `GET http://127.0.0.1:7891/health`
-responde `{"status":"downloading_model"}` mientras tanto, y
-`{"status":"ok"}` cuando ya puede transcribir.
+`small`, variante cuantizada q8_0, ~264MB) a un directorio de datos de
+usuario — no al repo — y puede tardar varios minutos según la conexión.
+`GET http://127.0.0.1:7891/health` responde `{"status":"downloading_model"}`
+mientras tanto, y `{"status":"ok"}` cuando ya puede transcribir.
 
 ## Configuración
 
