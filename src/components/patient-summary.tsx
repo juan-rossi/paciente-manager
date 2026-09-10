@@ -36,7 +36,7 @@ function InfoField({
 }) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="text-xs font-bold text-muted-foreground">{label}</span>
       <span className="text-sm">{value && value.trim() ? value : "—"}</span>
     </div>
   );
@@ -53,6 +53,8 @@ export function PatientSummary({
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
+  const tieneConsultaInicial =
+    Boolean(patient.motivoConsulta?.trim()) || Boolean(patient.antecedentesEnfermedad?.trim());
   const tieneDiagnostico =
     Boolean(patient.diagnosticoPresuntivo?.trim()) ||
     Boolean(patient.metodosComplementarios?.trim()) ||
@@ -110,15 +112,24 @@ export function PatientSummary({
             />
           )}
 
-          {Boolean(patient.motivoConsulta?.trim()) && (
-            <FormSection
-              title="Motivo de Consulta"
-              icon={MessageSquareText}
-              contentClassName="bg-card"
-            >
-              <p className="col-span-full whitespace-pre-wrap text-sm">
-                {patient.motivoConsulta}
-              </p>
+          {tieneConsultaInicial && (
+            <FormSection title="Consulta Inicial" icon={MessageSquareText} contentClassName="bg-card">
+              {Boolean(patient.motivoConsulta?.trim()) && (
+                <div className="col-span-full flex flex-col gap-1">
+                  <span className="text-xs font-bold text-muted-foreground">
+                    Motivo de Consulta
+                  </span>
+                  <p className="whitespace-pre-wrap text-sm">{patient.motivoConsulta}</p>
+                </div>
+              )}
+              {Boolean(patient.antecedentesEnfermedad?.trim()) && (
+                <div className="col-span-full flex flex-col gap-1">
+                  <span className="text-xs font-bold text-muted-foreground">
+                    Antecedentes de la enfermedad actual
+                  </span>
+                  <p className="whitespace-pre-wrap text-sm">{patient.antecedentesEnfermedad}</p>
+                </div>
+              )}
             </FormSection>
           )}
 
@@ -147,7 +158,7 @@ export function PatientSummary({
             <FormSection title="Diagnóstico" icon={ClipboardCheck} contentClassName="bg-card">
               {Boolean(patient.diagnosticoPresuntivo?.trim()) && (
                 <div className="col-span-full flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-xs font-bold text-muted-foreground">
                     Diagnóstico Presuntivo
                   </span>
                   <p className="whitespace-pre-wrap text-sm">{patient.diagnosticoPresuntivo}</p>
@@ -155,7 +166,7 @@ export function PatientSummary({
               )}
               {Boolean(patient.metodosComplementarios?.trim()) && (
                 <div className="col-span-full flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">
+                  <span className="text-xs font-bold text-muted-foreground">
                     Métodos Complementarios
                   </span>
                   <p className="whitespace-pre-wrap text-sm">{patient.metodosComplementarios}</p>
@@ -163,7 +174,7 @@ export function PatientSummary({
               )}
               {Boolean(patient.tratamiento?.trim()) && (
                 <div className="col-span-full flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">Tratamiento</span>
+                  <span className="text-xs font-bold text-muted-foreground">Tratamiento</span>
                   <p className="whitespace-pre-wrap text-sm">{patient.tratamiento}</p>
                 </div>
               )}
