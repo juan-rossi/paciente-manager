@@ -221,21 +221,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
         ))}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {transcription.connectionStatus === "disponible" && (
-            <Badge variant="secondary">
-              <Mic className="size-3" />
-              Transcriptor conectado
-            </Badge>
-          )}
-          {transcription.connectionStatus === "no_disponible" && (
-            <Badge variant="outline">
-              <MicOff className="size-3" />
-              Transcriptor no detectado
-            </Badge>
-          )}
-        </div>
+      <div className="flex items-center justify-end gap-3">
         <Dialog
           open={open}
           onOpenChange={(next) => {
@@ -338,8 +324,8 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
                   El transcriptor local no está disponible. Si ya lo instalaste y está corriendo,
                   puede que el navegador te haya pedido permiso para acceder a la red local (un aviso
                   como el del micrófono) — si lo rechazaste o nunca lo viste, revisá los permisos del
-                  sitio en la configuración del navegador.{" "}
-                  {/* TODO: enlazar a la descarga del instalador cuando esté publicado */}
+                  sitio en la configuración del navegador. Para instalarlo o ver su estado, entrá a{" "}
+                  <strong>Configuración → Transcriptor</strong>.
                 </p>
               )}
               {transcription.error === "mic_denegado" && (

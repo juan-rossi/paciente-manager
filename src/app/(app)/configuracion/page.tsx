@@ -1,10 +1,11 @@
-import { CalendarDays, MessageSquare, Users } from "lucide-react";
+import { CalendarDays, Mic, MessageSquare, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScheduleSettings } from "@/components/schedule-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
+import { TranscriberSettings } from "@/components/transcriber-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,10 @@ export default async function ConfiguracionPage() {
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
+          <TabsTrigger value="transcriptor">
+            <Mic className="size-4" />
+            Transcriptor
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="horario" className="mt-2">
@@ -62,6 +67,9 @@ export default async function ConfiguracionPage() {
             initialMensajeTemplate={user.mensajeTemplate}
             initialRecordatorioDiasAdelanto={user.recordatorioDiasAdelanto}
           />
+        </TabsContent>
+        <TabsContent value="transcriptor" className="mt-2">
+          <TranscriberSettings />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TRANSCRIBER_URL, useTranscriberConnection, type ConnectionStatus } from "@/lib/transcriber";
 
-const TRANSCRIBER_URL = process.env.NEXT_PUBLIC_TRANSCRIBER_URL ?? "http://127.0.0.1:7891";
 const TRANSCRIBER_WS_URL = `${TRANSCRIBER_URL.replace(/^http/, "ws")}/transcribe`;
 
-export type ConnectionStatus = "verificando" | "disponible" | "no_disponible";
+export type { ConnectionStatus };
 export type RecordingStatus = "idle" | "conectando" | "grabando" | "finalizando" | "error";
 export type TranscriptionErrorKind = "mic_denegado" | "servicio_no_disponible" | "conexion_perdida";
 
@@ -31,7 +31,7 @@ function parseMessage(raw: string): IncomingMessage | null {
  * solo del ciclo de vida de la grabación y del texto parcial en vivo.
  */
 export function useTranscription() {
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("verificando");
+  const { status: connectionStatus, reintentar: checkConnection } = useTranscriberConnection();
   const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle");
   const [partialText, setPartialText] = useState("");
   const [error, setError] = useState<TranscriptionErrorKind | null>(null);
@@ -54,34 +54,6 @@ export function useTranscription() {
     }, 1000);
     return () => clearInterval(interval);
   }, [recordingStatus]);
-
-  const fetchConnectionStatus = useCallback(async (): Promise<ConnectionStatus> => {
-    try {
-      const response = await fetch(`${TRANSCRIBER_URL}/health`, { cache: "no-store" });
-      if (!response.ok) throw new Error("health no-ok");
-      const data = (await response.json()) as { status?: string };
-      return data.status === "error" ? "no_disponible" : "disponible";
-    } catch {
-      return "no_disponible";
-    }
-  }, []);
-
-  const checkConnection = useCallback(() => {
-    void fetchConnectionStatus().then(setConnectionStatus);
-  }, [fetchConnectionStatus]);
-
-  // Patrón "ignore flag" recomendado por React para data fetching en efectos: si
-  // el componente se desmonta (o el efecto se re-ejecuta) antes de que resuelva
-  // el fetch, no actualizamos un estado que ya nadie va a leer.
-  useEffect(() => {
-    let ignore = false;
-    fetchConnectionStatus().then((status) => {
-      if (!ignore) setConnectionStatus(status);
-    });
-    return () => {
-      ignore = true;
-    };
-  }, [fetchConnectionStatus]);
 
   // Libera el micrófono/AudioContext/worklet, pero NO toca el WebSocket — se
   // usa desde `detener()`, que necesita mantenerlo abierto un rato más (ver
