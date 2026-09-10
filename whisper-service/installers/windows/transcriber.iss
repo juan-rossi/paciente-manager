@@ -1,13 +1,17 @@
-; Scaffold de Inno Setup para TranscriberSetup.exe — no verificado end-to-end
-; todavía. Requiere Inno Setup (https://jrsoftware.org/isinfo.php).
+; Instalador de Windows para el servicio de transcripción local.
+; Requiere Inno Setup (https://jrsoftware.org/isinfo.php).
 ;
-; Antes de compilar: correr `npm run build-sea`, que genera
-; dist-sea/transcriber.exe, y copiar junto a él (ver scripts/build-sea.mjs) el
-; addon nativo @fugood/node-whisper-win32-<arch> y los paquetes de bandeja.
+; Antes de compilar: correr `npm run build-package` en whisper-service/, que
+; arma la carpeta autocontenida en dist-package/win32-<arch>/ (Node.js
+; portátil + la app + node_modules con los binarios nativos correctos para
+; esta máquina — ver scripts/build-package.mjs).
 
 #define MyAppName "Transcriber"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Paciente Manager"
+#ifndef SourceDir
+  #define SourceDir "..\..\dist-package\win32-x64"
+#endif
 
 [Setup]
 AppId={{B6A7B7D2-6C3E-4C9D-9B1E-TRANSCRIBER01}}
@@ -20,17 +24,22 @@ OutputBaseFilename=TranscriberSetup
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
-ArchitecturesInstallIn64BitMode=x64 arm64
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
-; La carpeta "payload" la arma build-sea.mjs: transcriber.exe + node_modules
-; nativos necesarios (addon whisper.node, systray2, auto-launch).
-Source: "..\..\dist-sea\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\config\config.example.json"; DestDir: "{app}\config"; DestName: "config.json"; Flags: onlyifdoesntexist
+; Toda la carpeta que arma build-package.mjs: node.exe portátil, la app
+; bundleada (app\server.cjs + app\node_modules), config\config.example.json
+; y Transcriber.vbs (el que de verdad arranca todo, sin mostrar una consola).
+Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\transcriber.exe"
-Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\transcriber.exe"; Flags: runminimized
+; Solo el acceso directo del menú de inicio — el auto-arranque real lo
+; registra la propia app (`src/tray/index.ts` -> `auto-launch`, Registry Run
+; key) la primera vez que corre. Si acá TAMBIÉN dejáramos un acceso directo
+; en la carpeta de Inicio de Windows, el servicio arrancaría dos veces en
+; cada inicio de sesión (y la segunda instancia fallaría con el puerto ya
+; ocupado).
+Name: "{group}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\Transcriber.vbs"""
 
 [Run]
-Filename: "{app}\transcriber.exe"; Description: "Iniciar {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "wscript.exe"; Parameters: """{app}\Transcriber.vbs"""; Description: "Iniciar {#MyAppName}"; Flags: nowait postinstall skipifsilent

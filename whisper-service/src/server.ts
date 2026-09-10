@@ -6,7 +6,12 @@ import { handleHealth } from "./http/health.js";
 import { serviceState } from "./state.js";
 import { logger } from "./logger.js";
 
-async function main(): Promise<void> {
+/**
+ * Arranca el servidor HTTP+WebSocket. La usan tanto `npm run dev` (más abajo,
+ * auto-invocado) como el binario empaquetado (`packaged-main.ts`, que además
+ * levanta el ícono de bandeja y el auto-arranque antes de llamar acá).
+ */
+export async function startServer(): Promise<void> {
   const config = loadConfig();
   logger.info(`Configuración: modelo=${config.model} idioma=${config.language} puerto=${config.port}`);
 
@@ -16,6 +21,22 @@ async function main(): Promise<void> {
       return;
     }
     res.writeHead(404).end();
+  });
+
+  // Sin este handler, un puerto ocupado (EADDRINUSE) tira una excepción no
+  // capturada y el proceso muere con un stack trace — pasa fácil si el
+  // médico abre el acceso directo a mano mientras el auto-arranque ya lo
+  // dejó corriendo. Es una situación esperable, no un error fatal: lo más
+  // probable es que YA haya una instancia sana escuchando ahí.
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE") {
+      logger.info(
+        `El puerto ${config.port} ya está en uso — probablemente el transcriptor ya está corriendo. Cerrando esta instancia.`
+      );
+      process.exit(0);
+    }
+    logger.error(`Error del servidor HTTP: ${error.message}`);
+    process.exitCode = 1;
   });
 
   // Empezamos a escuchar antes de que el modelo termine de cargar/descargar, para
@@ -54,7 +75,10 @@ async function main(): Promise<void> {
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
 }
 
-main().catch((error) => {
+// Se auto-invoca al importar este módulo — tanto `npm run dev`/`npm start`
+// (que corren este archivo directo) como `packaged-main.ts` (que lo importa
+// por su efecto secundario y además levanta bandeja + auto-arranque encima).
+startServer().catch((error) => {
   logger.error(`Error fatal: ${(error as Error).message}`);
   process.exitCode = 1;
 });

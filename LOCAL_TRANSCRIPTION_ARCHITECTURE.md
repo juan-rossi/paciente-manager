@@ -110,9 +110,16 @@ de `config.json` (modelo, idioma, puerto, `allowedOrigins`). Resumen:
   "model": "small",
   "language": "es",
   "port": 7891,
-  "allowedOrigins": ["http://localhost:3000", "https://tu-dominio.vercel.app"]
+  "allowedOrigins": ["http://localhost:3000"]
 }
 ```
+
+`allowedOrigins` no necesita el dominio de cada médico: cualquier origen
+que matchee `https://paciente-manager*.vercel.app` (todos los entornos
+dados de alta, ver `ENTORNOS.md`) se permite automáticamente
+(`src/cors.ts`) — un mismo instalador/config sirve para cualquier médico
+nuevo sin reconfigurar nada. `allowedOrigins` queda solo para agregar un
+dominio propio no estándar.
 
 El modelo (`tiny|base|small|medium`) determina qué archivo `ggml-*.bin`
 (variante multilingüe) se descarga on-demand a un directorio de datos de
@@ -266,15 +273,19 @@ un modelo mediano sin GPU. Si la latencia sigue siendo un problema:
   parte de npm) — no se usan en runtime (nunca se pide esa variante) y no
   requieren ningún driver/toolchain instalado, pero sí ocupan espacio extra
   en `node_modules` durante desarrollo. El script de empaquetado
-  (`scripts/build-sea.mjs`) solo copia la variante `default` al ejecutable
+  (`scripts/build-package.mjs`) solo copia la variante `default` al paquete
   final.
 - **Sin diarización**: el campo `speaker` va siempre en `null` en esta
   versión — ver "Mejoras futuras".
-- **Empaquetado no verificado de punta a punta**: `scripts/build-sea.mjs`,
-  `scripts/package-windows.ps1` y `scripts/package-macos.sh` implementan el
-  flujo completo (Node SEA + Inno Setup / `.app`+`.dmg`) pero no se
-  generó/probó un instalador real todavía — falta, como mínimo, una cuenta
-  de Apple Developer para notarizar en macOS. Ver "Empaquetado" abajo.
+- **Empaquetado de Windows verificado; macOS no**: el flujo de
+  `scripts/build-package.mjs` se corrió y probó de punta a punta en Windows
+  real (arranque sin consola, motor de transcripción, ícono de bandeja con
+  fallback correcto si falla, auto-arranque registrado en el Registro). El
+  mismo script debería funcionar igual en macOS (usa las mismas APIs de
+  Node multiplataforma) pero **no se corrió nunca en una Mac real** — falta
+  probarlo ahí, y falta, como mínimo, una cuenta de Apple Developer para
+  firmar/notarizar antes de distribuir (sin eso, Gatekeeper bloquea la
+  apertura). Ver "Empaquetado" abajo para el detalle.
 - **Precisión del modelo `tiny`/`base`**: son rápidos pero transcriben peor
   que `small`/`medium`, especialmente con acentos marcados o ambiente
   ruidoso — `small` es el default recomendado como piso de calidad
@@ -282,27 +293,107 @@ un modelo mediano sin GPU. Si la latencia sigue siendo un problema:
 
 ## Empaquetado
 
-### Windows
+### Por qué una carpeta autocontenida y no un único .exe (Node SEA)
 
-1. `cd whisper-service && npm run build-sea` — bundlea con esbuild, genera
-   el blob de Node SEA e inyecta un `transcriber.exe` con `postject`
-   (`scripts/build-sea.mjs`).
-2. Copiar junto al `.exe` el addon nativo (`node_modules/@fugood/node-whisper-win32-<arch>`,
-   solo la variante `default`) y los paquetes `systray2`/`auto-launch`.
-3. `scripts/package-windows.ps1` invoca Inno Setup
-   (`installers/windows/transcriber.iss`) para producir
-   `TranscriberSetup.exe`, que instala el ejecutable, deja
-   `config/config.json` inicial (copiado de `config.example.json` si no
-   existe) y registra el arranque automático vía el acceso directo en la
-   carpeta de inicio de Windows.
+La primera versión de este documento proponía Node "Single Executable
+Application" (SEA): un solo binario con todo adentro. Se probó de verdad y
+se descartó — `@fugood/whisper.node` es un addon nativo, y la resolución de
+`require()`/`import()` de dependencias reales *dentro* de un blob SEA no
+está bien soportada (confirmado con un error real:
+`Dynamic require of "..." is not supported` en cuanto el bundle intentaba
+cargar `ws`). En la práctica hacía falta un `node_modules` real en disco de
+todos modos.
 
-### macOS
+El enfoque actual (`scripts/build-package.mjs`) logra el mismo resultado
+para el médico — nada que instalar a mano, un solo instalador — con muchas
+menos sorpresas: arma una **carpeta autocontenida** con
+- una copia portátil de `node.exe`/`node` (la del equipo donde se corre el
+  script — no hace falta que el médico tenga Node instalado),
+- la app bundleada en un solo archivo CJS (`app/server.cjs`, via esbuild;
+  se usa CJS y no ESM porque `ws` rompe en el formato ESM, ver arriba),
+- un `node_modules` mínimo instalado en limpio solo con lo que no se puede
+  bundlear (`@fugood/whisper.node` — podando las variantes `-vulkan`/`-cuda`
+  que no se usan —, `systray2`, `auto-launch`),
+- `config/config.example.json`, y
+- un script wrapper (`Transcriber.vbs` en Windows, `Transcriber.sh` en
+  macOS) que arranca todo sin mostrar una consola.
 
-1. `npm run build-sea` (mismo paso, genera el binario `transcriber` para
-   macOS).
-2. `scripts/package-macos.sh` arma `Transcriber.app` (con
-   `installers/macos/Info.plist`, `LSUIElement: true` para que no aparezca
-   en el Dock — solo vive en la bandeja del menú).
+**Importante**: corré `build-package.mjs` **en la plataforma de destino** —
+los binarios nativos (whisper.cpp, el propio `node.exe` copiado) son
+específicos por SO/arquitectura. Un build hecho en Windows sirve para
+Windows nomás.
+
+`src/config/loadConfig.ts` normalmente calcula la raíz del servicio en
+base a su propia ubicación en el código fuente — eso deja de tener sentido
+una vez bundleado en un solo archivo. Por eso los wrappers exportan
+`WHISPER_SERVICE_ROOT` (la carpeta del paquete instalado) antes de arrancar
+`node`, y `loadConfig.ts` la usa si está presente.
+
+`auto-launch` (el paquete que registra el arranque automático) tiene una
+limitación real: solo puede apuntar a un ejecutable, sin argumentos propios
+— por eso apunta al wrapper (`Transcriber.vbs`/`.sh`), no a `node.exe`
+directo, y el wrapper arma él mismo el comando completo
+(`node app/server.cjs`) con `WHISPER_SERVICE_ROOT` seteado. Ese mismo
+paquete además **ignora el nombre que se le pasa** y deriva el nombre que
+se ve en el Registro/LaunchAgent del nombre de archivo del wrapper
+(recortando ciegamente 4 caracteres asumiendo `.exe`) — por eso el wrapper
+se llama justo `Transcriber.vbs`/`Transcriber.sh`: así también el nombre
+derivado queda "Transcriber" en vez de un fragmento raro.
+
+### Windows — verificado de punta a punta
+
+1. `cd whisper-service && npm run build-package` — arma
+   `dist-package/win32-x64/` (node.exe portátil + `app/server.cjs` +
+   `app/node_modules` + `config/config.example.json` + `Transcriber.vbs`).
+2. **Probado en la práctica, de punta a punta**: arranca sin ventana de
+   consola, carga el motor de transcripción (whisper.cpp + VAD)
+   correctamente desde el `node_modules` empaquetado, `GET /health`
+   responde `ok`, `auto-launch` registra `HKCU\...\Run\Transcriber`
+   apuntando al `.vbs`, y el ícono de bandeja (`systray2`) arranca su
+   proceso nativo (`tray_windows_release.exe`) correctamente. (En el camino
+   se encontró y corrigió un bug real: el `import()` dinámico de un módulo
+   CJS que además exporta su propio campo `default` queda doblemente
+   anidado por el interop de Node — `m.default` no es la clase, es
+   `{ default: SysTray }` — ver el comentario en `src/tray/index.ts`.)
+3. `scripts/package-windows.ps1` (requiere
+   [Inno Setup](https://jrsoftware.org/isinfo.php) — se instala con
+   `winget install --id JRSoftware.InnoSetup`, deja `ISCC.exe` en el PATH)
+   compila `installers/windows/transcriber.iss` → `TranscriberSetup.exe`,
+   que instala la carpeta completa (por usuario, sin pedir admin —
+   `PrivilegesRequired=lowest`, típicamente en
+   `%LOCALAPPDATA%\Programs\Transcriber`), agrega un acceso directo de menú
+   de inicio apuntando al `.vbs` vía `wscript.exe`, y al terminar la
+   instalación corre el `.vbs` una vez (el auto-arranque real lo registra
+   la propia app la primera vez que corre, no el instalador — ver más
+   abajo). **Probado de punta a punta con el instalador real**: se generó
+   `TranscriberSetup.exe`, se corrió, y quedó instalado y funcionando como
+   transcriptor real de la máquina (no una prueba descartable). En el
+   camino se encontraron y corrigieron dos bugs más:
+   - El `.iss` inicialmente también dejaba un acceso directo en la carpeta
+     de Inicio de Windows (`{userstartup}`) además del auto-arranque que ya
+     registra la app sola (Registry `Run` key vía `auto-launch`) — con las
+     dos cosas activas el servicio arrancaba dos veces en cada inicio de
+     sesión, y la segunda instancia fallaba. Se sacó el ícono de
+     `{userstartup}` del `[Icons]`; el único auto-arranque que queda es el
+     que registra la app misma.
+   - Ese escenario (dos instancias arrancando, la segunda encontrando el
+     puerto 7891 ya ocupado) además hacía crashear el proceso: un
+     `EADDRINUSE` no manejado tira una excepción no capturada. Se agregó un
+     handler `server.on("error", ...)` en `src/server.ts` que, ante
+     `EADDRINUSE`, loguea un mensaje amigable ("probablemente el
+     transcriptor ya está corriendo") y cierra limpio con `process.exit(0)`
+     en vez de crashear — verificado arrancando una segunda instancia a
+     propósito mientras la primera tenía el puerto.
+
+### macOS — no verificado, requiere una Mac real
+
+1. `npm run build-package` (mismo script, corrido EN una Mac) arma
+   `dist-package/darwin-<arch>/`.
+2. `scripts/package-macos.sh` arma `Transcriber.app`, con todo (node
+   portátil, `app/`, `config/`, `Transcriber.sh`) junto en
+   `Contents/MacOS/` — `Info.plist` declara `Transcriber.sh` como
+   `CFBundleExecutable` y `LSUIElement: true` (sin ícono en Dock/Cmd+Tab,
+   solo vive en la bandeja de menú).
 3. **Pendiente antes de distribuir**: firmar con `codesign` y notarizar con
    `xcrun notarytool` — requiere una cuenta de Apple Developer ($99/año).
    Sin notarizar, Gatekeeper bloquea la apertura en Macs modernas.

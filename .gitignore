@@ -51,7 +51,7 @@ next-env.d.ts
 # whisper-service: proyecto npm independiente, config local y artefactos de build/empaquetado
 /whisper-service/node_modules
 /whisper-service/dist
-/whisper-service/dist-sea
+/whisper-service/dist-package
 /whisper-service/config/config.json
 /whisper-service/installers/windows/Output
 *.gguf

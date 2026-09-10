@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // whisper-service es un proyecto npm independiente (su propio
+    // package.json/tsconfig.json), nunca importado desde src/ — el ESLint de
+    // acá no debería entrar ahí, y menos a sus artefactos de build
+    // (dist-package/ tiene código de terceros bundleado con esbuild).
+    "whisper-service/**",
   ]),
 ]);
 

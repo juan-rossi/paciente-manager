@@ -15,7 +15,14 @@ const configSchema = z.object({
 export type WhisperModel = (typeof SUPPORTED_MODELS)[number];
 export type ServiceConfig = z.infer<typeof configSchema>;
 
-const SERVICE_ROOT = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
+// En desarrollo, la raíz es "dos niveles arriba" de este archivo
+// (src/config/loadConfig.ts -> src/ -> raíz). Una vez empaquetado, todo el
+// código queda bundleado en un solo archivo (ver scripts/build-package.mjs),
+// así que esa cuenta ya no da la carpeta correcta — el launcher empaquetado
+// exporta WHISPER_SERVICE_ROOT antes de arrancar, apuntando a la carpeta real
+// donde viven `config/` y los demás archivos del paquete instalado.
+const SERVICE_ROOT =
+  process.env.WHISPER_SERVICE_ROOT ?? path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const CONFIG_PATH = path.join(SERVICE_ROOT, "config", "config.json");
 const CONFIG_EXAMPLE_PATH = path.join(SERVICE_ROOT, "config", "config.example.json");
 
