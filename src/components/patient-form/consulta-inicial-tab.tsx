@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { TextAreaField, TextField } from "./fields";
+import { TextField } from "./fields";
+import { TranscribableTextAreaField } from "./transcribable-textarea-field";
 import type { PatientFormValues } from "./types";
 
 type Props = {
@@ -30,7 +31,7 @@ export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
         />
       </div>
 
-      <TextAreaField
+      <TranscribableTextAreaField
         label="Motivo de Consulta"
         value={values.motivoConsulta}
         onChange={(v) => onChange("motivoConsulta", v)}
@@ -39,7 +40,7 @@ export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
         invalid={invalidFields.has("motivoConsulta")}
       />
 
-      <TextAreaField
+      <TranscribableTextAreaField
         label="Antecedentes de la enfermedad actual"
         helpText="Fecha, hora y forma de comienzo. Descripción de los síntomas. Medicación por médico o automedicación. Episodios anteriores. Síntomas actuales"
         value={values.antecedentesEnfermedad}
