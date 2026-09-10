@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { DateInput } from "./date-input";
 
 type FormSectionProps = {
   title: string;
@@ -83,13 +84,17 @@ export function TextField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label>{required ? `${label} *` : label}</Label>
-      <Input
-        type={type}
-        inputMode={numeric === "phone" ? "tel" : numeric === "digits" ? "numeric" : undefined}
-        value={value}
-        onChange={(e) => onChange(numeric ? filterNumeric(e.target.value, numeric) : e.target.value)}
-        className={invalid ? "border-destructive" : undefined}
-      />
+      {type === "date" ? (
+        <DateInput value={value} onChange={onChange} invalid={invalid} />
+      ) : (
+        <Input
+          type={type}
+          inputMode={numeric === "phone" ? "tel" : numeric === "digits" ? "numeric" : undefined}
+          value={value}
+          onChange={(e) => onChange(numeric ? filterNumeric(e.target.value, numeric) : e.target.value)}
+          className={invalid ? "border-destructive" : undefined}
+        />
+      )}
       {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
     </div>
   );

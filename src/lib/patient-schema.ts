@@ -7,6 +7,14 @@ const optionalString = z
   .nullable()
   .optional();
 
+const optionalPhoneString = z
+  .string()
+  .trim()
+  .regex(/^\+?\d*$/, "Solo puede contener números y, opcionalmente, un + inicial.")
+  .transform((value) => (value.length === 0 ? null : value))
+  .nullable()
+  .optional();
+
 export const TIPO_ANTECEDENTE_VALUES = [
   "DISLIPEMIA",
   "HIPOTIROIDISMO",
@@ -55,9 +63,13 @@ export const patientSchema = z.object({
   sexo: z.enum(["MASCULINO", "FEMENINO"], {
     message: "El sexo es obligatorio.",
   }),
-  estadoCivil: z.enum(["SOLTERO", "CASADO", "VIUDO", "CONCUBINO"], {
-    message: "El estado civil es obligatorio.",
-  }),
+  estadoCivil: z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? null : value))
+    .nullable()
+    .optional()
+    .pipe(z.enum(["SOLTERO", "CASADO", "VIUDO", "CONCUBINO"]).nullable().optional()),
   profesion: optionalString,
   nroDocumento: z
     .string()
@@ -73,15 +85,8 @@ export const patientSchema = z.object({
     .trim()
     .min(1, "El teléfono es obligatorio.")
     .regex(/^\+?\d+$/, "El teléfono solo puede contener números y, opcionalmente, un + inicial."),
-  contactoEmergencia: z.string().trim().min(1, "El contacto de emergencia es obligatorio."),
-  telefonoEmergencia: z
-    .string()
-    .trim()
-    .min(1, "El teléfono de emergencia es obligatorio.")
-    .regex(
-      /^\+?\d+$/,
-      "El teléfono de emergencia solo puede contener números y, opcionalmente, un + inicial."
-    ),
+  contactoEmergencia: optionalString,
+  telefonoEmergencia: optionalPhoneString,
 
   // Consulta inicial
   autoValidoTotal: optionalString,

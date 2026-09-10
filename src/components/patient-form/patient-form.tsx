@@ -43,12 +43,9 @@ const REQUIRED_FIELDS = [
   "nombreYApellido",
   "fechaNacimiento",
   "sexo",
-  "estadoCivil",
   "nroDocumento",
   "domicilio",
   "telefono",
-  "contactoEmergencia",
-  "telefonoEmergencia",
   "motivoConsulta",
 ] as const satisfies readonly (keyof PatientFormValues)[];
 
@@ -56,12 +53,9 @@ const FIELD_TAB: Record<(typeof REQUIRED_FIELDS)[number], string> = {
   nombreYApellido: "datos-personales",
   fechaNacimiento: "datos-personales",
   sexo: "datos-personales",
-  estadoCivil: "datos-personales",
   nroDocumento: "datos-personales",
   domicilio: "datos-personales",
   telefono: "datos-personales",
-  contactoEmergencia: "datos-personales",
-  telefonoEmergencia: "datos-personales",
   motivoConsulta: "consulta-inicial",
 };
 

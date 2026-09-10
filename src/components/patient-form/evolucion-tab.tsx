@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { Loader2, Mic, MicOff, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +17,7 @@ import {
 import type { EvolucionValue } from "./types";
 import { formatFechaCorta } from "./utils";
 import { useTranscription } from "./use-transcription";
+import { DateInput } from "./date-input";
 
 function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -257,7 +257,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Fecha</Label>
-                <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+                <DateInput value={fecha} onChange={setFecha} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-3">

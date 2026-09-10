@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ANTECEDENTES_COLUMNA_1, ANTECEDENTES_COLUMNA_2 } from "./constants";
+import { DateInput } from "./date-input";
 import type { AntecedenteValue, PatientFormValues } from "./types";
 
 type Props = {
@@ -46,10 +47,9 @@ function AntecedenteRow({
 
       {antecedente.respuesta && (
         <div className="mt-3 grid gap-2 sm:grid-cols-[3fr_7fr]">
-          <Input
-            type="date"
+          <DateInput
             value={antecedente.fechaInicio}
-            onChange={(e) => onChange({ fechaInicio: e.target.value })}
+            onChange={(fechaInicio) => onChange({ fechaInicio })}
           />
           <Input
             placeholder="Medicación"
