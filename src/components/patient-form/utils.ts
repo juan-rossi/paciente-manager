@@ -176,6 +176,43 @@ export function formatFechaCorta(fecha: string): string {
   return parts ? `${parts.day}/${parts.month}/${parts.year}` : fecha;
 }
 
+// Días transcurridos entre "hoy" (fecha local) y `fecha` (también local, sin
+// horas) -- ambos como medianoche local, para que la diferencia sea siempre
+// un número entero de días sin importar la hora en que se calcule.
+export function formatFechaRelativa(fecha: string): string {
+  const parts = parseFechaISO(fecha);
+  if (!parts) return "";
+
+  const entryDate = new Date(parts.year, parts.month - 1, parts.day);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDias = Math.round((today.getTime() - entryDate.getTime()) / 86_400_000);
+
+  if (diffDias <= 0) return "Hoy";
+  if (diffDias === 1) return "Ayer";
+  if (diffDias < 7) return `Hace ${diffDias} días`;
+
+  if (diffDias <= 56) {
+    // 8 semanas
+    const semanas = Math.floor(diffDias / 7);
+    return `Hace ${semanas} ${semanas === 1 ? "semana" : "semanas"}`;
+  }
+
+  if (diffDias <= 365) {
+    const meses = Math.floor(diffDias / 30);
+    const semanas = Math.floor((diffDias - meses * 30) / 7);
+    const mesesTexto = `${meses} ${meses === 1 ? "mes" : "meses"}`;
+    if (semanas === 0) return `Hace ${mesesTexto}`;
+    return `Hace ${mesesTexto} y ${semanas} ${semanas === 1 ? "semana" : "semanas"}`;
+  }
+
+  const anios = Math.floor(diffDias / 365);
+  const meses = Math.floor((diffDias - anios * 365) / 30);
+  const aniosTexto = `${anios} ${anios === 1 ? "año" : "años"}`;
+  if (meses === 0) return `Hace ${aniosTexto}`;
+  return `Hace ${aniosTexto} y ${meses} ${meses === 1 ? "mes" : "meses"}`;
+}
+
 export function calcularEdad(fechaNacimiento: string): string {
   const nacimiento = parseFechaISO(fechaNacimiento);
   if (!nacimiento) return "";

@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
-import { formatFechaCorta } from "./utils";
+import { formatFechaCorta, formatFechaRelativa } from "./utils";
 import { useTranscription } from "./use-transcription";
 import { DateInput } from "./date-input";
 
@@ -194,7 +194,10 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
             <CardContent className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-bold">
-                  {formatFechaCorta(entry.fecha)}
+                  {formatFechaCorta(entry.fecha)}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    ({formatFechaRelativa(entry.fecha)})
+                  </span>
                 </span>
                 <div className="flex items-center gap-3">
                   <button
