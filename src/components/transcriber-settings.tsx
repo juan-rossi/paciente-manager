@@ -21,13 +21,13 @@ export function TranscriberSettings() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
           {status === "disponible" && (
-            <Badge variant="secondary">
+            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
               <Mic className="size-3" />
               Transcriptor conectado
             </Badge>
           )}
           {status === "no_disponible" && (
-            <Badge variant="outline">
+            <Badge className="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
               <MicOff className="size-3" />
               Transcriptor no detectado
             </Badge>
