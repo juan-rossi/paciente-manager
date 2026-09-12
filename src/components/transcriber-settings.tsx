@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
 import { useTranscriberConnection } from "@/lib/transcriber";
 
-// TODO: reemplazar por el link real cuando esté publicado el instalador.
-const TRANSCRIBER_DOWNLOAD_URL: string | null = null;
+const TRANSCRIBER_DOWNLOAD_URL =
+  "https://github.com/juan-rossi/malvina-software-releases/releases/download/transcriptor-v1.0.0/TranscriberSetup.exe";
 
 export function TranscriberSettings() {
   const { status, reintentar } = useTranscriberConnection();
@@ -56,20 +56,14 @@ export function TranscriberSettings() {
           </p>
         </div>
 
-        {TRANSCRIBER_DOWNLOAD_URL ? (
-          <Button
-            className="self-start"
-            nativeButton={false}
-            render={<a href={TRANSCRIBER_DOWNLOAD_URL} target="_blank" rel="noreferrer" />}
-          >
-            <Download className="size-4" />
-            Descargar Transcriptor
-          </Button>
-        ) : (
-          <p className="text-sm text-muted-foreground italic">
-            El link de descarga todavía no está publicado.
-          </p>
-        )}
+        <Button
+          className="self-start"
+          nativeButton={false}
+          render={<a href={TRANSCRIBER_DOWNLOAD_URL} target="_blank" rel="noreferrer" />}
+        >
+          <Download className="size-4" />
+          Descargar Transcriptor
+        </Button>
       </div>
     </SettingsSection>
   );

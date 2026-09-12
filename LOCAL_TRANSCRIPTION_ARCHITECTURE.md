@@ -116,10 +116,13 @@ de `config.json` (modelo, idioma, puerto, `allowedOrigins`). Resumen:
 
 `allowedOrigins` no necesita el dominio de cada médico: cualquier origen
 que matchee `https://paciente-manager*.vercel.app` (todos los entornos
-dados de alta, ver `ENTORNOS.md`) se permite automáticamente
-(`src/cors.ts`) — un mismo instalador/config sirve para cualquier médico
-nuevo sin reconfigurar nada. `allowedOrigins` queda solo para agregar un
-dominio propio no estándar.
+dados de alta, ver `ENTORNOS.md`) **o** un subdominio de
+`malvinasoftware.com` (dominio propio de la organización, usado por los
+médicos que tienen su propia URL en vez de la de Vercel) se permite
+automáticamente (`src/cors.ts`) — un mismo instalador/config sirve para
+cualquier médico nuevo, tenga URL de Vercel o dominio propio, sin
+reconfigurar nada. `allowedOrigins` queda solo para un dominio fuera de
+esos dos patrones (o para desarrollo local).
 
 El modelo (`tiny|base|small|medium`) determina qué archivo `ggml-*.bin`
 (variante multilingüe) se descarga on-demand a un directorio de datos de
