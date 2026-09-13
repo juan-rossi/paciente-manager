@@ -116,6 +116,7 @@ export function emptyPatientFormValues(): PatientFormValues {
 export function patientFromApi(patient: any): {
   values: PatientFormValues;
   evoluciones: EvolucionValue[];
+  evolucionesEliminadas: EvolucionValue[];
 } {
   const base = emptyPatientFormValues();
 
@@ -150,16 +151,20 @@ export function patientFromApi(patient: any): {
     };
   });
 
-  const evoluciones: EvolucionValue[] = (patient.evoluciones ?? []).map(
+  const todasLasEvoluciones: EvolucionValue[] = (patient.evoluciones ?? []).map(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e: any) => ({
       id: e.id,
       fecha: toDateInputValue(e.fecha),
       contenido: e.contenido ?? "",
+      deletedAt: e.deletedAt ?? null,
     })
   );
 
-  return { values: base, evoluciones };
+  const evoluciones = todasLasEvoluciones.filter((e) => !e.deletedAt);
+  const evolucionesEliminadas = todasLasEvoluciones.filter((e) => e.deletedAt);
+
+  return { values: base, evoluciones, evolucionesEliminadas };
 }
 
 // Parsea "YYYY-MM-DD" a sus partes sin construir un `Date` — `new Date("YYYY-MM-DD")`

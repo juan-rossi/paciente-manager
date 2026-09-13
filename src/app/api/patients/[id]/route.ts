@@ -15,10 +15,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
   const patient = await prisma.patient.findFirst({
-    where: { id, doctorId: tenantId },
+    where: { id, doctorId: tenantId, deletedAt: null },
     include: {
       antecedentes: true,
-      evoluciones: { orderBy: { fecha: "asc" } },
+      evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
     },
   });
 
@@ -35,7 +35,12 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  await prisma.patient.deleteMany({ where: { id, doctorId: tenantId } });
+  // Ley 26.529 art. 12/18: nunca se borra la historia clínica físicamente,
+  // solo se oculta -- ver nota en prisma/schema.prisma sobre Patient.deletedAt.
+  await prisma.patient.updateMany({
+    where: { id, doctorId: tenantId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
 
   return NextResponse.json({ ok: true });
 }
@@ -46,7 +51,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const owned = await prisma.patient.findFirst({ where: { id, doctorId: tenantId }, select: { id: true } });
+  const owned = await prisma.patient.findFirst({
+    where: { id, doctorId: tenantId, deletedAt: null },
+    select: { id: true },
+  });
   if (!owned) {
     return NextResponse.json({ error: "Paciente no encontrado." }, { status: 404 });
   }
@@ -85,26 +93,37 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       await tx.patient.update({ where: { id: conflict.id }, data: { nroDocumento: null } });
     }
 
-    await tx.patientAntecedente.deleteMany({ where: { patientId: id } });
+    // Ley 26.529 art. 12: nunca se borran los antecedentes al editar un
+    // paciente -- se actualiza cada tipo in place (upsert) en vez del
+    // borrado-y-recreado de antes, que perdía silenciosamente el registro
+    // (fechaInicio/medicacion/resolucion) de cualquier antecedente
+    // desmarcado en una edición posterior.
+    for (const a of antecedentes) {
+      await tx.patientAntecedente.upsert({
+        where: { patientId_tipo: { patientId: id, tipo: a.tipo } },
+        create: {
+          patientId: id,
+          tipo: a.tipo,
+          respuesta: a.respuesta,
+          descripcion: a.descripcion,
+          fechaInicio: a.fechaInicio,
+          medicacion: a.medicacion,
+          resolucion: a.resolucion,
+        },
+        update: {
+          respuesta: a.respuesta,
+          descripcion: a.descripcion,
+          fechaInicio: a.fechaInicio,
+          medicacion: a.medicacion,
+          resolucion: a.resolucion,
+        },
+      });
+    }
 
     return tx.patient.update({
       where: { id },
-      data: {
-        ...patientFields,
-        antecedentes: {
-          create: antecedentes
-            .filter((a) => a.respuesta)
-            .map((a) => ({
-              tipo: a.tipo,
-              respuesta: a.respuesta,
-              descripcion: a.descripcion,
-              fechaInicio: a.fechaInicio,
-              medicacion: a.medicacion,
-              resolucion: a.resolucion,
-            })),
-        },
-      },
-      include: { antecedentes: true, evoluciones: { orderBy: { fecha: "desc" } } },
+      data: patientFields,
+      include: { antecedentes: true, evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "desc" } } },
     });
   });
 

@@ -112,4 +112,5 @@ export type EvolucionValue = {
   id?: string;
   fecha: string;
   contenido: string;
+  deletedAt?: string | null;
 };

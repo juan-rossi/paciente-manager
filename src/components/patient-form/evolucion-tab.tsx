@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2, Mic, MicOff, Pencil, Plus } from "lucide-react";
+import { Loader2, Mic, MicOff, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,9 +44,17 @@ type Props = {
   patientId?: string;
   evoluciones: EvolucionValue[];
   onChangeEvoluciones: (next: EvolucionValue[]) => void;
+  evolucionesEliminadas?: EvolucionValue[];
+  onChangeEvolucionesEliminadas?: (next: EvolucionValue[]) => void;
 };
 
-export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Props) {
+export function EvolucionTab({
+  patientId,
+  evoluciones,
+  onChangeEvoluciones,
+  evolucionesEliminadas = [],
+  onChangeEvolucionesEliminadas,
+}: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -57,6 +65,7 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
 
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const transcription = useTranscription();
 
@@ -171,16 +180,58 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
         const response = await fetch(`/api/patients/${patientId}/evoluciones/${entry.id}`, {
           method: "DELETE",
         });
+        const data = await response.json().catch(() => null);
         if (!response.ok) {
           setError("No se pudo eliminar la evolución.");
           return;
         }
+        // La evolución no se destruye (Ley 26.529) -- pasa a la lista de
+        // eliminadas para poder restaurarla, no desaparece sin dejar rastro.
+        onChangeEvolucionesEliminadas?.([
+          ...evolucionesEliminadas,
+          {
+            id: data.evolucion.id,
+            fecha: data.evolucion.fecha.slice(0, 10),
+            contenido: data.evolucion.contenido,
+            deletedAt: data.evolucion.deletedAt,
+          },
+        ]);
       } finally {
         setDeleting(false);
       }
     }
     onChangeEvoluciones(evoluciones.filter((_, i) => i !== deleteIndex));
     setDeleteIndex(null);
+  }
+
+  async function handleRestaurar(entry: EvolucionValue) {
+    if (!patientId || !entry.id) return;
+    setRestoringId(entry.id);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/patients/${patientId}/evoluciones/${entry.id}/restore`,
+        { method: "POST" }
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError("No se pudo restaurar la evolución.");
+        return;
+      }
+      onChangeEvolucionesEliminadas?.(evolucionesEliminadas.filter((e) => e.id !== entry.id));
+      onChangeEvoluciones(
+        sortByFechaAsc([
+          ...evoluciones,
+          {
+            id: data.evolucion.id,
+            fecha: data.evolucion.fecha.slice(0, 10),
+            contenido: data.evolucion.contenido,
+          },
+        ])
+      );
+    } finally {
+      setRestoringId(null);
+    }
   }
 
   return (
@@ -223,6 +274,42 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
           </Card>
         ))}
       </div>
+
+      {evolucionesEliminadas.length > 0 && (
+        <details className="overflow-hidden rounded-xl border border-border/60">
+          <summary className="flex cursor-pointer select-none items-center gap-2 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5">
+            <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Trash2 className="size-3.5" />
+            </span>
+            Evoluciones eliminadas ({evolucionesEliminadas.length})
+          </summary>
+          <div className="flex flex-col gap-3 border-t border-border/60 p-3">
+            {evolucionesEliminadas.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-muted-foreground line-through">
+                      {formatFechaCorta(entry.fecha)}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={restoringId === entry.id}
+                      onClick={() => handleRestaurar(entry)}
+                    >
+                      {restoringId === entry.id ? "Restaurando..." : "Restaurar"}
+                    </Button>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground line-through">
+                    {entry.contenido}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </details>
+      )}
 
       <div className="flex items-center justify-end gap-3">
         <Dialog
@@ -369,7 +456,8 @@ export function EvolucionTab({ patientId, evoluciones, onChangeEvoluciones }: Pr
             <DialogTitle>Eliminar evolución</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Esta acción no se puede deshacer. ¿Confirmás que querés eliminar esta evolución?
+            Esta evolución dejará de aparecer en la historia clínica. Por la Ley 26.529, el
+            registro no se destruye: se conserva de forma segura.
           </p>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>

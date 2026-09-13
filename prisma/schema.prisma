@@ -235,6 +235,10 @@ model Patient {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Ley 26.529 art. 12/18: la historia clínica es inviolable y debe
+  // guardarse un mínimo de 10 años -- "borrar" un paciente nunca hace un
+  // delete físico, solo marca esta fecha y se excluye de las consultas.
+  deletedAt DateTime?
 
   // De qué cuenta/tenant es este paciente -- todo query se filtra por esto.
   doctorId String
@@ -269,4 +273,7 @@ model PatientEvolucion {
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   fecha     DateTime
   contenido String
+  // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
+  // se borra físicamente, se oculta.
+  deletedAt DateTime?
 }

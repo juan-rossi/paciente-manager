@@ -20,10 +20,10 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const { turnoId } = await searchParams;
 
   const patient = await prisma.patient.findFirst({
-    where: { id, doctorId: tenantId },
+    where: { id, doctorId: tenantId, deletedAt: null },
     include: {
       antecedentes: true,
-      evoluciones: { orderBy: { fecha: "asc" } },
+      evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
     },
   });
 

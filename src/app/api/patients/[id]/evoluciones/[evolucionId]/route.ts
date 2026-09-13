@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const result = await prisma.patientEvolucion.updateMany({
-    where: { id: evolucionId, patientId: id, patient: { doctorId: tenantId } },
+    where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId } },
     data: {
       fecha: new Date(parsed.data.fecha),
       contenido: parsed.data.contenido,
@@ -50,9 +50,20 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
   const { id, evolucionId } = await params;
 
-  await prisma.patientEvolucion.deleteMany({
-    where: { id: evolucionId, patientId: id, patient: { doctorId: tenantId } },
+  // Ley 26.529 art. 12/18: idem Patient.deletedAt -- una evolución nunca se
+  // borra físicamente, solo se oculta.
+  const result = await prisma.patientEvolucion.updateMany({
+    where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId } },
+    data: { deletedAt: new Date() },
   });
 
-  return NextResponse.json({ ok: true });
+  if (result.count === 0) {
+    return NextResponse.json({ error: "Evolución no encontrada." }, { status: 404 });
+  }
+
+  const evolucion = await prisma.patientEvolucion.findUniqueOrThrow({
+    where: { id: evolucionId },
+  });
+
+  return NextResponse.json({ evolucion });
 }

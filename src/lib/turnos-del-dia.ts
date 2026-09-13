@@ -52,7 +52,7 @@ export async function getTurnosDelDia(
     turnos.map(async (turno) => {
       const dniMatch = turno.dni
         ? await prisma.patient.findFirst({
-            where: { doctorId: tenantId, nroDocumento: turno.dni },
+            where: { doctorId: tenantId, nroDocumento: turno.dni, deletedAt: null },
             select: { id: true },
           })
         : null;
@@ -62,6 +62,7 @@ export async function getTurnosDelDia(
             where: {
               doctorId: tenantId,
               nombreYApellido: { equals: turno.nombreYApellido, mode: "insensitive" },
+              deletedAt: null,
             },
             select: { id: true },
           });

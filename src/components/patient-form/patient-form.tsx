@@ -37,6 +37,7 @@ type Props = {
   patientId?: string;
   initialValues?: PatientFormValues;
   initialEvoluciones?: EvolucionValue[];
+  initialEvolucionesEliminadas?: EvolucionValue[];
 };
 
 const REQUIRED_FIELDS = [
@@ -74,12 +75,21 @@ const TAB_ORDER_CREATE = [
 
 const TAB_ORDER_EDIT = [...TAB_ORDER_CREATE, "evolucion"] as const;
 
-export function PatientForm({ mode, patientId, initialValues, initialEvoluciones }: Props) {
+export function PatientForm({
+  mode,
+  patientId,
+  initialValues,
+  initialEvoluciones,
+  initialEvolucionesEliminadas,
+}: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
     initialValues ?? emptyPatientFormValues()
   );
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones ?? []);
+  const [evolucionesEliminadas, setEvolucionesEliminadas] = useState<EvolucionValue[]>(
+    initialEvolucionesEliminadas ?? []
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dniConflict, setDniConflict] = useState<{ id: string; nombreYApellido: string } | null>(
@@ -252,6 +262,8 @@ export function PatientForm({ mode, patientId, initialValues, initialEvoluciones
                   patientId={patientId}
                   evoluciones={evoluciones}
                   onChangeEvoluciones={setEvoluciones}
+                  evolucionesEliminadas={evolucionesEliminadas}
+                  onChangeEvolucionesEliminadas={setEvolucionesEliminadas}
                 />
               </TabsContent>
             )}

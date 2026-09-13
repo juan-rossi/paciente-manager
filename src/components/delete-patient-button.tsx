@@ -50,8 +50,8 @@ export function DeletePatientButton({ patientId, patientName }: Props) {
           <DialogTitle>Eliminar paciente</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Esta acción no se puede deshacer. Se eliminará a <strong>{patientName}</strong> junto con
-          todos sus antecedentes y evoluciones clínicas.
+          <strong>{patientName}</strong> dejará de aparecer en tu listado de pacientes. Por la Ley
+          26.529, la historia clínica no se destruye: el registro se conserva de forma segura.
         </p>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>

@@ -17,9 +17,11 @@ export default async function EditPatientPage({ params }: Props) {
   const { id } = await params;
 
   const patient = await prisma.patient.findFirst({
-    where: { id, doctorId: getTenantId(user) },
+    where: { id, doctorId: getTenantId(user), deletedAt: null },
     include: {
       antecedentes: true,
+      // Sin filtro de deletedAt acá a propósito: la pestaña de evolución
+      // muestra también las eliminadas (atenuadas) para poder restaurarlas.
       evoluciones: { orderBy: { fecha: "asc" } },
     },
   });
@@ -28,7 +30,7 @@ export default async function EditPatientPage({ params }: Props) {
     notFound();
   }
 
-  const { values, evoluciones } = patientFromApi(patient);
+  const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient);
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,6 +51,7 @@ export default async function EditPatientPage({ params }: Props) {
         patientId={patient.id}
         initialValues={values}
         initialEvoluciones={evoluciones}
+        initialEvolucionesEliminadas={evolucionesEliminadas}
       />
     </div>
   );

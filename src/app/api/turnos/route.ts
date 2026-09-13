@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   const patient = parsed.data.dni
     ? await prisma.patient.findFirst({
-        where: { doctorId: tenantId, nroDocumento: parsed.data.dni },
+        where: { doctorId: tenantId, nroDocumento: parsed.data.dni, deletedAt: null },
         select: { id: true },
       })
     : null;

@@ -16,6 +16,7 @@ export async function findDniConflict(
     where: {
       doctorId: tenantId,
       nroDocumento,
+      deletedAt: null,
       ...(excludePatientId ? { id: { not: excludePatientId } } : {}),
     },
     select: { id: true, nombreYApellido: true },

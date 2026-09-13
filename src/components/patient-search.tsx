@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,11 +72,22 @@ export function PatientSearch() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Buscar pacientes</CardTitle>
-        <Button
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/patients/new">+ Nuevo paciente</Link>}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/patients/eliminados" />}
+          >
+            <Trash2 className="size-4" />
+            Papelera
+          </Button>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/patients/new">+ Nuevo paciente</Link>}
+          />
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Input

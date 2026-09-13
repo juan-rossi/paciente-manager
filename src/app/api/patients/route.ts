@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   const patients = await prisma.patient.findMany({
     where: {
       doctorId: tenantId,
+      deletedAt: null,
       ...(q
         ? {
             OR: [
