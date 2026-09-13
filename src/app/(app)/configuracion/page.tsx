@@ -1,4 +1,4 @@
-import { CalendarDays, Mic, MessageSquare, Users } from "lucide-react";
+import { CalendarDays, Mic, MessageSquare, Sparkles, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,6 +6,8 @@ import { ScheduleSettings } from "@/components/schedule-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { TranscriberSettings } from "@/components/transcriber-settings";
+import { PlanSettings } from "@/components/plan-settings";
+import { diasRestantesDeTrial } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ export default async function ConfiguracionPage() {
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
     }),
     prisma.user.findMany({
-      where: { role: "SECRETARY" },
+      where: { role: "SECRETARY", doctorId: user.id },
       select: { id: true, email: true, nombre: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
@@ -51,6 +53,10 @@ export default async function ConfiguracionPage() {
             <Mic className="size-4" />
             Transcriptor
           </TabsTrigger>
+          <TabsTrigger value="plan">
+            <Sparkles className="size-4" />
+            Mi plan
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="horario" className="mt-2">
@@ -70,6 +76,13 @@ export default async function ConfiguracionPage() {
         </TabsContent>
         <TabsContent value="transcriptor" className="mt-2">
           <TranscriberSettings />
+        </TabsContent>
+        <TabsContent value="plan" className="mt-2">
+          <PlanSettings
+            plan={user.plan}
+            trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
+            diasRestantesDeTrial={diasRestantesDeTrial(user)}
+          />
         </TabsContent>
       </Tabs>
     </div>

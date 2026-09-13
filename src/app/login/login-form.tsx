@@ -1,40 +1,19 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Semio360Mark } from "@/components/brand/logo";
+import { GoogleIcon } from "@/components/google-icon";
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
-  AccessDenied: "Esa cuenta no está asociada a ningún usuario de Paciente Manager.",
+  AccessDenied: "Esa cuenta no está asociada a ningún usuario de Semio360.",
 };
-
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.46c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.89c2.28-2.1 3.57-5.2 3.57-8.83z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.89-3.02c-1.08.72-2.46 1.15-4.06 1.15-3.12 0-5.77-2.11-6.72-4.94H1.27v3.11C3.25 21.3 7.31 24 12 24z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.28 14.29c-.24-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.6H1.27A11.96 11.96 0 000 12c0 1.93.47 3.76 1.27 5.4z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.45-3.45C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.6l4.01 3.11C6.23 6.88 8.88 4.77 12 4.77z"
-      />
-    </svg>
-  );
-}
 
 export function LoginForm() {
   const router = useRouter();
@@ -88,9 +67,9 @@ export function LoginForm() {
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center justify-items-center text-center">
         <span className="mb-1 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Stethoscope className="size-5.5" />
+          <Semio360Mark className="size-5.5" />
         </span>
-        <CardTitle className="text-xl">Paciente Manager</CardTitle>
+        <CardTitle className="text-xl">Semio360</CardTitle>
         <p className="text-sm text-muted-foreground">
           Ingresá con tu usuario para acceder a las historias clínicas.
         </p>
@@ -137,6 +116,12 @@ export function LoginForm() {
             {loading ? "Ingresando..." : "Ingresar"}
           </Button>
         </form>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          ¿No tenés cuenta?{" "}
+          <Link href="/signup" className="font-medium text-primary hover:underline">
+            Registrate gratis
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

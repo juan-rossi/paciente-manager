@@ -9,13 +9,13 @@ const patientUpdateSchema = patientSchema.omit({ evoluciones: true });
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
 
-  const patient = await prisma.patient.findUnique({
-    where: { id },
+  const patient = await prisma.patient.findFirst({
+    where: { id, doctorId: tenantId },
     include: {
       antecedentes: true,
       evoluciones: { orderBy: { fecha: "asc" } },
@@ -30,21 +30,26 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
 
-  await prisma.patient.deleteMany({ where: { id } });
+  await prisma.patient.deleteMany({ where: { id, doctorId: tenantId } });
 
   return NextResponse.json({ ok: true });
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
+
+  const owned = await prisma.patient.findFirst({ where: { id, doctorId: tenantId }, select: { id: true } });
+  if (!owned) {
+    return NextResponse.json({ error: "Paciente no encontrado." }, { status: 404 });
+  }
 
   const body = await request.json().catch(() => null);
   const resolveDniConflict = Boolean(
@@ -63,7 +68,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   let conflict = null;
   if (patientFields.nroDocumento) {
-    conflict = await findDniConflict(patientFields.nroDocumento, id);
+    conflict = await findDniConflict(tenantId, patientFields.nroDocumento, id);
     if (conflict && !resolveDniConflict) {
       return NextResponse.json(
         {

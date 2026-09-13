@@ -13,25 +13,15 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#034da8",
+          background: "#4F46E5",
           borderRadius: 7,
         }}
       >
-        <svg
-          width="21"
-          height="21"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#fafcfe"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M11 2v2" />
-          <path d="M5 2v2" />
-          <path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" />
-          <path d="M8 15a6 6 0 0 0 12 0v-3" />
-          <circle cx="20" cy="10" r="2" />
+        <svg width="21" height="21" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="30" stroke="#FFFFFF" strokeWidth="5" opacity="0.5" />
+          <circle cx="50" cy="20" r="10" fill="#FFFFFF" />
+          <circle cx="24" cy="65" r="8" fill="#0EA5E9" />
+          <circle cx="76" cy="65" r="8" fill="#10B981" />
         </svg>
       </div>
     ),

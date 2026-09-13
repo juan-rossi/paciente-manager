@@ -25,9 +25,10 @@ export type DaySlot = {
 
 export async function getDaySlots(
   date: Date,
-  role: UserRole
+  role: UserRole,
+  tenantId: string
 ): Promise<{ slots: DaySlot[]; sinConfigurar: boolean; diasConHorario: DiaSemana[] }> {
-  const doctor = await prisma.user.findFirst({ where: { role: "DOCTOR" } });
+  const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
   if (!doctor) {
     return { slots: [], sinConfigurar: true, diasConHorario: [] };
   }
@@ -40,7 +41,7 @@ export async function getDaySlots(
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({
-    where: { inicio: { gte: dayStart, lt: dayEnd }, estado: "CONFIRMADO" },
+    where: { doctorId: tenantId, inicio: { gte: dayStart, lt: dayEnd }, estado: "CONFIRMADO" },
   });
   const turnosPorInicio = new Map(turnos.map((t) => [t.inicio.getTime(), t]));
 

@@ -1,6 +1,6 @@
 # whisper-service
 
-Servicio local de transcripción de audio para Paciente Manager. Corre como
+Servicio local de transcripción de audio para Semio360. Corre como
 proceso auxiliar en la computadora del médico, escucha únicamente en
 `127.0.0.1` y usa [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
 (vía [`@fugood/whisper.node`](https://www.npmjs.com/package/@fugood/whisper.node))

@@ -1,7 +1,8 @@
-# Paciente Manager
+# Semio360
 
-Historias clínicas del consultorio. Migrado desde una app de escritorio (.NET WPF + SQL Server)
-a Next.js + Postgres.
+SaaS de gestión de consultorio: turnos, historia clínica y evolución del paciente en un solo
+lugar. Antes "Paciente Manager" (instalación standalone por médico); migrado a un modelo
+multi-tenant. Next.js + Postgres.
 
 ## Requisitos
 

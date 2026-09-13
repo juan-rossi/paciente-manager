@@ -1,0 +1,158 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Semio360Mark } from "@/components/brand/logo";
+import { GoogleIcon } from "@/components/google-icon";
+
+export function SignupForm() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [nroMatricula, setNroMatricula] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  function handleGoogleSignUp() {
+    setError(null);
+    void signIn("google", { redirectTo: "/dashboard" });
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, nombre, apellido, nroMatricula, password }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error ?? "No se pudo crear la cuenta.");
+        return;
+      }
+
+      const loginResponse = await signIn("credentials", { email, password, redirect: false });
+      if (!loginResponse || loginResponse.error) {
+        // La cuenta se creó bien; si el auto-login falla por algún motivo,
+        // que entre a mano en vez de mostrar un error confuso.
+        router.replace("/login");
+        return;
+      }
+
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-sm">
+      <CardHeader className="items-center justify-items-center text-center">
+        <span className="mb-1 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <Semio360Mark className="size-5.5" />
+        </span>
+        <CardTitle className="text-xl">Creá tu cuenta en Semio360</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Probá el plan Básico gratis durante 3 meses, sin tarjeta.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-2">
+          <Button type="button" variant="outline" onClick={handleGoogleSignUp}>
+            <GoogleIcon />
+            Continuar con Google
+          </Button>
+        </div>
+
+        <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
+          o con tu email
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="nombre">Nombre</Label>
+              <Input
+                id="nombre"
+                autoComplete="given-name"
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="apellido">Apellido</Label>
+              <Input
+                id="apellido"
+                autoComplete="family-name"
+                value={apellido}
+                onChange={(event) => setApellido(event.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="nroMatricula">Nro Matrícula</Label>
+            <Input
+              id="nroMatricula"
+              value={nroMatricula}
+              onChange={(event) => setNroMatricula(event.target.value)}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="password">Contraseña</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={6}
+              required
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={loading} className="mt-2">
+            {loading ? "Creando cuenta..." : "Crear cuenta gratis"}
+          </Button>
+        </form>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          ¿Ya tenés cuenta?{" "}
+          <Link href="/login" className="font-medium text-primary hover:underline">
+            Iniciar sesión
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}

@@ -15,20 +15,23 @@ const listSelect = {
 } satisfies Prisma.PatientSelect;
 
 export async function GET(request: NextRequest) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   const patients = await prisma.patient.findMany({
-    where: q
-      ? {
-          OR: [
-            { nroDocumento: { contains: q, mode: "insensitive" } },
-            { nombreYApellido: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
+    where: {
+      doctorId: tenantId,
+      ...(q
+        ? {
+            OR: [
+              { nroDocumento: { contains: q, mode: "insensitive" } },
+              { nombreYApellido: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     select: listSelect,
     orderBy: q ? { nombreYApellido: "asc" } : { updatedAt: "desc" },
     take: q ? 50 : 10,
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
 
   let conflict = null;
   if (patientFields.nroDocumento) {
-    conflict = await findDniConflict(patientFields.nroDocumento);
+    conflict = await findDniConflict(tenantId, patientFields.nroDocumento);
     if (conflict && !resolveDniConflict) {
       return NextResponse.json(
         {
@@ -78,6 +81,7 @@ export async function POST(request: NextRequest) {
     return tx.patient.create({
       data: {
         ...patientFields,
+        doctorId: tenantId,
         antecedentes: {
           create: antecedentes
             .filter((a) => a.respuesta)

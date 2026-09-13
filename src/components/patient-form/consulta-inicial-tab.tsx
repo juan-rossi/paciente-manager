@@ -46,6 +46,7 @@ export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
         value={values.antecedentesEnfermedad}
         onChange={(v) => onChange("antecedentesEnfermedad", v)}
         rows={5}
+        aiAutocomplete
       />
 
       <div className="flex flex-col gap-2">

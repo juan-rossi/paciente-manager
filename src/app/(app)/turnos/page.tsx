@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { getDaySlots } from "@/lib/get-day-slots";
+import { getTenantId } from "@/lib/tenant";
 import { formatDateParamBA } from "@/lib/timezone";
 import { TurnosCalendar } from "@/components/turnos-calendar";
 
@@ -10,7 +11,11 @@ export default async function TurnosPage() {
   if (!user) return null;
 
   const today = new Date();
-  const { slots, sinConfigurar, diasConHorario } = await getDaySlots(today, user.role);
+  const { slots, sinConfigurar, diasConHorario } = await getDaySlots(
+    today,
+    user.role,
+    getTenantId(user)
+  );
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">

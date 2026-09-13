@@ -11,7 +11,7 @@ const evolucionInput = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id, evolucionId } = await params;
@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const result = await prisma.patientEvolucion.updateMany({
-    where: { id: evolucionId, patientId: id },
+    where: { id: evolucionId, patientId: id, patient: { doctorId: tenantId } },
     data: {
       fecha: new Date(parsed.data.fecha),
       contenido: parsed.data.contenido,
@@ -45,13 +45,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id, evolucionId } = await params;
 
   await prisma.patientEvolucion.deleteMany({
-    where: { id: evolucionId, patientId: id },
+    where: { id: evolucionId, patientId: id, patient: { doctorId: tenantId } },
   });
 
   return NextResponse.json({ ok: true });

@@ -10,10 +10,16 @@ type RouteParams = { params: Promise<{ id: string }> };
 const turnoUpdateSchema = z.union([z.object({ estado: z.literal("CANCELADO") }), turnoEditSchema]);
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, response } = await requireUser();
+  const { user, tenantId, response } = await requireUser();
   if (response) return response;
 
   const { id } = await params;
+
+  const owned = await prisma.turno.findFirst({ where: { id, doctorId: tenantId }, select: { id: true } });
+  if (!owned) {
+    return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = turnoUpdateSchema.safeParse(body);
 
@@ -34,7 +40,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const patient = parsed.data.dni
     ? await prisma.patient.findFirst({
-        where: { nroDocumento: parsed.data.dni },
+        where: { doctorId: tenantId, nroDocumento: parsed.data.dni },
         select: { id: true },
       })
     : null;

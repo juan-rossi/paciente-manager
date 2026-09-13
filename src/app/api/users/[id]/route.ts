@@ -7,12 +7,12 @@ import { secretaryUpdateSchema } from "@/lib/turno-schema";
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
 
-  const existing = await prisma.user.findFirst({ where: { id, role: "SECRETARY" } });
+  const existing = await prisma.user.findFirst({ where: { id, role: "SECRETARY", doctorId: tenantId } });
   if (!existing) {
     return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
   }
@@ -48,13 +48,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
 
-  // Nunca se borra por esta vía a un usuario que no sea secretaria (p. ej. el médico).
-  await prisma.user.deleteMany({ where: { id, role: "SECRETARY" } });
+  // Nunca se borra por esta vía a un usuario que no sea secretaria (p. ej. el
+  // médico), ni una secretaria de otra cuenta.
+  await prisma.user.deleteMany({ where: { id, role: "SECRETARY", doctorId: tenantId } });
 
   return NextResponse.json({ ok: true });
 }

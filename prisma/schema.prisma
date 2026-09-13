@@ -24,6 +24,11 @@ enum UserRole {
   SECRETARY
 }
 
+enum PlanTipo {
+  BASICA
+  PREMIUM
+}
+
 enum DiaSemana {
   LUNES
   MARTES
@@ -63,18 +68,31 @@ enum TipoAntecedente {
 }
 
 model User {
-  id                       String   @id @default(cuid())
-  email                    String   @unique
+  id                       String    @id @default(cuid())
+  email                    String    @unique
   passwordHash             String
   nombre                   String
-  role                     UserRole @default(SECRETARY)
-  slotDurationMinutes      Int      @default(20)
-  mensajeTemplate          String   @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
-  recordatorioDiasAdelanto Int      @default(0)
-  createdAt                DateTime @default(now())
+  apellido                 String    @default("")
+  nroMatricula             String    @default("")
+  role                     UserRole  @default(SECRETARY)
+  slotDurationMinutes      Int       @default(20)
+  mensajeTemplate          String    @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
+  recordatorioDiasAdelanto Int       @default(0)
+  createdAt                DateTime  @default(now())
+
+  // Multi-tenancy: null para un DOCTOR (es su propio tenant), seteado al
+  // médico dueño para una SECRETARY. `plan`/`trialEndsAt` solo tienen
+  // sentido en la fila del DOCTOR (la cuenta/tenant), no en sus secretarias.
+  doctorId    String?
+  doctor      User?     @relation("DoctorSecretarias", fields: [doctorId], references: [id])
+  secretarias User[]    @relation("DoctorSecretarias")
+  plan        PlanTipo  @default(BASICA)
+  trialEndsAt DateTime?
 
   workScheduleBlocks WorkScheduleBlock[]
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")
+  pacientes          Patient[]           @relation("PatientDoctor")
+  turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
 }
 
 model WorkScheduleBlock {
@@ -107,10 +125,16 @@ model Turno {
   creadoPorId String
   creadoPor   User   @relation("TurnoCreadoPor", fields: [creadoPorId], references: [id])
 
+  // De qué cuenta/tenant es este turno -- distinto de `creadoPorId`, que
+  // puede ser una secretaria. Todo query de turnos se filtra por esto.
+  doctorId String
+  doctor   User   @relation("TurnoDoctor", fields: [doctorId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([inicio])
+  @@index([doctorId])
 }
 
 model Patient {
@@ -212,12 +236,17 @@ model Patient {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // De qué cuenta/tenant es este paciente -- todo query se filtra por esto.
+  doctorId String
+  doctor   User   @relation("PatientDoctor", fields: [doctorId], references: [id])
+
   antecedentes PatientAntecedente[]
   evoluciones  PatientEvolucion[]
   turnos       Turno[]
 
-  @@index([nroDocumento])
-  @@index([nombreYApellido])
+  @@index([doctorId])
+  @@index([doctorId, nroDocumento])
+  @@index([doctorId, nombreYApellido])
 }
 
 model PatientAntecedente {

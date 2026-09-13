@@ -8,7 +8,7 @@
 
 #define MyAppName "Transcriber"
 #define MyAppVersion "0.1.0"
-#define MyAppPublisher "Paciente Manager"
+#define MyAppPublisher "Semio360"
 #ifndef SourceDir
   #define SourceDir "..\..\dist-package\win32-x64"
 #endif

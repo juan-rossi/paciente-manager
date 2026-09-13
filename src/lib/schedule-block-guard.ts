@@ -30,7 +30,7 @@ export async function countTurnosSinCoberturaTrasCambio(
 
   const [turnos, blocks] = await Promise.all([
     prisma.turno.findMany({
-      where: { estado: "CONFIRMADO", inicio: { gte: todayStart } },
+      where: { doctorId: userId, estado: "CONFIRMADO", inicio: { gte: todayStart } },
       select: { inicio: true },
     }),
     prisma.workScheduleBlock.findMany({ where: { userId } }),

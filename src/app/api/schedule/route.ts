@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest) {
   const [blocks, turnosAfectados] = await Promise.all([
     prisma.workScheduleBlock.findMany({ where: { userId: user.id } }),
     prisma.turno.findMany({
-      where: { estado: "CONFIRMADO", inicio: { gte: todayStart } },
+      where: { doctorId: user.id, estado: "CONFIRMADO", inicio: { gte: todayStart } },
       select: { id: true, nombreYApellido: true, inicio: true },
       orderBy: { inicio: "asc" },
     }),

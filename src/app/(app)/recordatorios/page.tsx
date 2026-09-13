@@ -1,6 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { getTenantId } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
@@ -29,7 +30,7 @@ export default async function RecordatoriosPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const doctor = await prisma.user.findFirst({ where: { role: "DOCTOR" } });
+  const doctor = await prisma.user.findUnique({ where: { id: getTenantId(user) } });
   if (!doctor) {
     return (
       <p className="text-sm text-muted-foreground">Todavía no se configuró el médico.</p>
@@ -43,7 +44,7 @@ export default async function RecordatoriosPage() {
   const targetEnd = new Date(targetStart.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({
-    where: { inicio: { gte: targetStart, lt: targetEnd }, estado: "CONFIRMADO" },
+    where: { doctorId: doctor.id, inicio: { gte: targetStart, lt: targetEnd }, estado: "CONFIRMADO" },
     orderBy: { inicio: "asc" },
     select: { id: true, nombreYApellido: true, telefono: true, inicio: true },
   });

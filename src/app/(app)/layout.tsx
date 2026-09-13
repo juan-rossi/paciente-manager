@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { Stethoscope } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks } from "@/components/nav-links";
-
-const DOCTOR_NAME = process.env.DOCTOR_NAME ?? "Dr. Juan Pablo Beligoy";
+import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -39,13 +37,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               className="flex items-center gap-2.5"
             >
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Stethoscope className="size-4.5" />
+                <Semio360Mark className="size-4.5" />
               </span>
-              <span className="text-lg font-semibold tracking-tight">{DOCTOR_NAME}</span>
+              <Semio360Wordmark className="text-lg tracking-tight" />
             </Link>
             <NavLinks links={navLinks} />
           </div>
           <div className="flex items-center gap-6">
+            {user && (
+              <span className="hidden text-sm text-muted-foreground sm:inline">
+                {user.nombre}
+              </span>
+            )}
             <NavLinks links={configLink} />
             <LogoutButton />
           </div>

@@ -7,7 +7,7 @@ import { getDaySlots } from "@/lib/get-day-slots";
 import { dateParamToDateBA } from "@/lib/timezone";
 
 export async function GET(request: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, tenantId, response } = await requireUser();
   if (response) return response;
 
   const date = dateParamToDateBA(request.nextUrl.searchParams.get("date") ?? "");
@@ -15,13 +15,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Parámetro 'date' inválido (YYYY-MM-DD)." }, { status: 400 });
   }
 
-  const result = await getDaySlots(date, user.role);
+  const result = await getDaySlots(date, user.role, tenantId);
 
   return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, tenantId, response } = await requireUser();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const doctor = await prisma.user.findFirst({ where: { role: "DOCTOR" } });
+  const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
   if (!doctor) {
     return NextResponse.json(
       { error: "Todavía no se configuró el horario de trabajo." },
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const existente = await prisma.turno.findFirst({
-    where: { inicio, estado: "CONFIRMADO" },
+    where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
   });
   if (existente) {
     return NextResponse.json({ error: "Ese turno ya fue reservado." }, { status: 409 });
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
   const patient = parsed.data.dni
     ? await prisma.patient.findFirst({
-        where: { nroDocumento: parsed.data.dni },
+        where: { doctorId: tenantId, nroDocumento: parsed.data.dni },
         select: { id: true },
       })
     : null;
@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       obraSocialNro: parsed.data.obraSocialNro,
       patientId: patient?.id ?? null,
       creadoPorId: user.id,
+      doctorId: tenantId,
     },
   });
 

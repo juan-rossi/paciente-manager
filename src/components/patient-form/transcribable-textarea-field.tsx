@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { Loader2, Mic, Square } from "lucide-react";
+import { Loader2, Mic, Sparkles, Square } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ type Props = {
   rows?: number;
   required?: boolean;
   invalid?: boolean;
+  aiAutocomplete?: boolean;
 };
 
 // Como en `EvolucionTab`, pero para un campo de texto suelto del formulario en
@@ -38,6 +39,7 @@ export function TranscribableTextAreaField({
   rows = 4,
   required,
   invalid,
+  aiAutocomplete,
 }: Props) {
   const transcription = useTranscription();
 
@@ -71,6 +73,19 @@ export function TranscribableTextAreaField({
       {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
 
       <div className="relative">
+        {aiAutocomplete && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled
+            aria-label="Autocompletar con IA (Premium, próximamente)"
+            title="Autocompletar con IA -- función Premium, próximamente"
+            className="absolute top-2 right-11 z-10 bg-background"
+          >
+            <Sparkles className="size-3.5" />
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -140,7 +155,10 @@ export function TranscribableTextAreaField({
             rows={rows}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={cn("pr-10", invalid ? "border-destructive" : undefined)}
+            className={cn(
+              aiAutocomplete ? "pr-[4.5rem]" : "pr-10",
+              invalid ? "border-destructive" : undefined
+            )}
           />
         )}
       </div>

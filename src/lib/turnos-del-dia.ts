@@ -22,19 +22,21 @@ export type TurnoDelDia = {
  * se haya cargado sin esa relación.
  */
 export async function getTurnosDelDia(
-  date: Date
+  date: Date,
+  tenantId: string
 ): Promise<{ turnos: TurnoDelDia[]; diasConHorario: DiaSemana[] }> {
   const inicioDia = startOfDayBA(date);
   const inicioSiguiente = new Date(inicioDia.getTime() + 24 * 60 * 60 * 1000);
 
-  const doctor = await prisma.user.findFirst({ where: { role: "DOCTOR" } });
-  const blocks = doctor
-    ? await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } })
-    : [];
+  const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: tenantId } });
   const diasConHorario = [...new Set(blocks.map((b) => b.diaSemana as DiaSemana))];
 
   const turnos = await prisma.turno.findMany({
-    where: { inicio: { gte: inicioDia, lt: inicioSiguiente }, estado: "CONFIRMADO" },
+    where: {
+      doctorId: tenantId,
+      inicio: { gte: inicioDia, lt: inicioSiguiente },
+      estado: "CONFIRMADO",
+    },
     orderBy: { inicio: "asc" },
     select: {
       id: true,
@@ -50,14 +52,17 @@ export async function getTurnosDelDia(
     turnos.map(async (turno) => {
       const dniMatch = turno.dni
         ? await prisma.patient.findFirst({
-            where: { nroDocumento: turno.dni },
+            where: { doctorId: tenantId, nroDocumento: turno.dni },
             select: { id: true },
           })
         : null;
       const nombreMatch = dniMatch
         ? null
         : await prisma.patient.findFirst({
-            where: { nombreYApellido: { equals: turno.nombreYApellido, mode: "insensitive" } },
+            where: {
+              doctorId: tenantId,
+              nombreYApellido: { equals: turno.nombreYApellido, mode: "insensitive" },
+            },
             select: { id: true },
           });
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, MessageSquare } from "lucide-react";
+import { CalendarClock, MessageSquare, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -122,6 +124,20 @@ export function MessagingSettings({
             )}
           </div>
         </RadioGroup>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Envío automático de recordatorios"
+        description="Mandá los recordatorios de turno por WhatsApp solo, sin que la secretaria tenga que apretar enviar."
+        icon={Sparkles}
+      >
+        <div className="flex items-center gap-3 opacity-60">
+          <Checkbox id="envio-automatico" checked={false} disabled />
+          <Label htmlFor="envio-automatico" className="font-normal">
+            Enviar automáticamente
+          </Label>
+          <Badge variant="secondary">Premium · Próximamente</Badge>
+        </div>
       </SettingsSection>
 
       <div className="flex items-center gap-3">

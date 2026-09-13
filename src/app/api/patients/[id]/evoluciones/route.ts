@@ -11,10 +11,16 @@ const evolucionInput = z.object({
 });
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
+
+  const owned = await prisma.patient.findFirst({ where: { id, doctorId: tenantId }, select: { id: true } });
+  if (!owned) {
+    return NextResponse.json({ error: "Paciente no encontrado." }, { status: 404 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = evolucionInput.safeParse(body);
 

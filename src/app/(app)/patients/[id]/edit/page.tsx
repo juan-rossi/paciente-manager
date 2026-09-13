@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
+import { getTenantId } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { patientFromApi } from "@/components/patient-form/utils";
@@ -9,10 +11,13 @@ import { patientFromApi } from "@/components/patient-form/utils";
 type Props = { params: Promise<{ id: string }> };
 
 export default async function EditPatientPage({ params }: Props) {
+  const user = await getCurrentUser();
+  if (!user) notFound();
+
   const { id } = await params;
 
-  const patient = await prisma.patient.findUnique({
-    where: { id },
+  const patient = await prisma.patient.findFirst({
+    where: { id, doctorId: getTenantId(user) },
     include: {
       antecedentes: true,
       evoluciones: { orderBy: { fecha: "asc" } },

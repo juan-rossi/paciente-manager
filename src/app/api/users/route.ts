@@ -5,11 +5,11 @@ import { hashPassword } from "@/lib/auth";
 import { secretaryInputSchema } from "@/lib/turno-schema";
 
 export async function GET() {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const secretarias = await prisma.user.findMany({
-    where: { role: "SECRETARY" },
+    where: { role: "SECRETARY", doctorId: tenantId },
     select: { id: true, email: true, nombre: true, createdAt: true },
     orderBy: { createdAt: "desc" },
   });
@@ -18,7 +18,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const { response } = await requireDoctor();
+  const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       nombre: parsed.data.nombre,
       passwordHash,
       role: "SECRETARY",
+      doctorId: tenantId,
     },
     select: { id: true, email: true, nombre: true, createdAt: true },
   });
