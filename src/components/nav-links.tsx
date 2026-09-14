@@ -30,7 +30,7 @@ export function NavLinks({ links }: { links: NavLink[] }) {
             key={link.href}
             href={link.href}
             className={cn(
-              "flex items-center gap-1.5 border-b-2 border-transparent pb-1 transition-colors hover:text-foreground",
+              "flex items-center gap-1.5 border-b-2 border-transparent py-1 transition-colors hover:text-foreground",
               active && "border-primary text-foreground"
             )}
           >
