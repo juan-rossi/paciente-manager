@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
-import { registrarAuditoria } from "@/lib/audit-log";
+import { calcularDiffAnterior, registrarAuditoria } from "@/lib/audit-log";
 
 type RouteParams = { params: Promise<{ id: string; evolucionId: string }> };
 
@@ -26,25 +26,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const result = await prisma.patientEvolucion.updateMany({
+  const antes = await prisma.patientEvolucion.findFirst({
     where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId } },
-    data: {
-      fecha: new Date(parsed.data.fecha),
-      contenido: parsed.data.contenido,
-    },
   });
-
-  if (result.count === 0) {
+  if (!antes) {
     return NextResponse.json({ error: "Evolución no encontrada." }, { status: 404 });
   }
 
-  await registrarAuditoria(prisma, {
-    doctorId: tenantId,
-    actorId: user.id,
-    accion: "MODIFICAR",
-    entidad: "EVOLUCION",
-    entidadId: evolucionId,
+  const nuevaFecha = new Date(parsed.data.fecha);
+  await prisma.patientEvolucion.update({
+    where: { id: evolucionId },
+    data: { fecha: nuevaFecha, contenido: parsed.data.contenido },
   });
+
+  const detalleAnterior = calcularDiffAnterior(antes, {
+    fecha: nuevaFecha,
+    contenido: parsed.data.contenido,
+  });
+  if (detalleAnterior) {
+    await registrarAuditoria(prisma, {
+      doctorId: tenantId,
+      actorId: user.id,
+      accion: "MODIFICAR",
+      entidad: "EVOLUCION",
+      entidadId: evolucionId,
+      detalleAnterior,
+    });
+  }
 
   const evolucion = await prisma.patientEvolucion.findUniqueOrThrow({
     where: { id: evolucionId },

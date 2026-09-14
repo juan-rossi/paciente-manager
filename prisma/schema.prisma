@@ -129,6 +129,12 @@ model AuditLog {
   entidad   AuditEntidad
   entidadId String
 
+  // Ley 26.529 art. 13 (inalterabilidad/recuperabilidad): en un MODIFICAR,
+  // acá queda el valor ANTERIOR de cada campo que cambió (solo los que
+  // cambiaron, no todo el registro) -- sin esto, editar un campo clínico
+  // borraba su contenido previo para siempre, sin dejar rastro de qué decía.
+  detalleAnterior Json?
+
   createdAt DateTime @default(now())
 
   @@index([doctorId, entidad, entidadId])

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 import { findDniConflict } from "@/lib/dni-conflict";
-import { registrarAuditoria } from "@/lib/audit-log";
+import { calcularDiffAnterior, registrarAuditoria } from "@/lib/audit-log";
 
 const patientUpdateSchema = patientSchema.omit({ evoluciones: true });
 
@@ -64,7 +64,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const owned = await prisma.patient.findFirst({
     where: { id, doctorId: tenantId, deletedAt: null },
-    select: { id: true },
   });
   if (!owned) {
     return NextResponse.json({ error: "Paciente no encontrado." }, { status: 404 });
@@ -137,13 +136,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       include: { antecedentes: true, evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "desc" } } },
     });
 
-    await registrarAuditoria(tx, {
-      doctorId: tenantId,
-      actorId: user.id,
-      accion: "MODIFICAR",
-      entidad: "PACIENTE",
-      entidadId: id,
-    });
+    const detalleAnterior = calcularDiffAnterior(owned, patientFields);
+    if (detalleAnterior) {
+      await registrarAuditoria(tx, {
+        doctorId: tenantId,
+        actorId: user.id,
+        accion: "MODIFICAR",
+        entidad: "PACIENTE",
+        entidadId: id,
+        detalleAnterior,
+      });
+    }
 
     return updated;
   });

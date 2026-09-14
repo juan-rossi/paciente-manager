@@ -46,13 +46,52 @@ const AUDIT_LABELS: Record<string, string> = {
 };
 
 function formatAuditFecha(fecha: Date): string {
-  return fecha.toLocaleString("es-AR", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
+  const dia = fecha.toLocaleDateString("es-AR");
+  const hora = fecha.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
+  return `${dia}, ${hora} hs`;
+}
+
+// Etiquetas para los campos que más comúnmente aparecen en `detalleAnterior`
+// (ver src/lib/audit-log.ts). Para cualquier otro campo, se humaniza el
+// nombre camelCase como fallback razonable en vez de mantener acá un mapa
+// de los ~70 campos posibles del paciente.
+const CAMPO_LABELS: Record<string, string> = {
+  nombreYApellido: "Nombre y Apellido",
+  fechaNacimiento: "Fecha de nacimiento",
+  nroDocumento: "DNI",
+  domicilio: "Domicilio",
+  telefono: "Teléfono",
+  obraSocial: "Obra Social",
+  obraSocialNro: "Nro Obra Social",
+  motivoConsulta: "Motivo de Consulta",
+  antecedentesEnfermedad: "Antecedentes de la enfermedad actual",
+  diagnosticoPresuntivo: "Diagnóstico Presuntivo",
+  metodosComplementarios: "Métodos Complementarios",
+  tratamiento: "Tratamiento",
+  fecha: "Fecha",
+  contenido: "Contenido",
+};
+
+function humanizarCampo(campo: string): string {
+  if (CAMPO_LABELS[campo]) return CAMPO_LABELS[campo];
+  const espaciado = campo.replace(/([A-Z])/g, " $1");
+  return espaciado.charAt(0).toUpperCase() + espaciado.slice(1);
+}
+
+function formatDetalleValor(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const fecha = new Date(value);
+    if (!Number.isNaN(fecha.getTime())) {
+      return fecha.toLocaleDateString("es-AR", { timeZone: "UTC" });
+    }
+  }
+  return String(value);
 }
 
 function InfoField({
@@ -202,18 +241,40 @@ export function PatientSummary({
 
           {auditEntries.length > 0 && (
             <FormSection title="Historial de auditoría" icon={ScrollText} contentClassName="bg-card">
-              <div className="col-span-full flex flex-col gap-2">
+              <div className="col-span-full flex flex-col divide-y divide-border">
                 {auditEntries.map((entry) => {
                   const clave = `${entry.accion}_${entry.entidad}`;
                   const actorNombre = `${entry.actor.nombre} ${entry.actor.apellido}`.trim();
+                  const detalle = entry.detalleAnterior as Record<string, unknown> | null;
                   return (
-                    <div key={entry.id} className="flex flex-wrap items-baseline gap-x-1.5 text-sm">
-                      <span className="text-xs text-muted-foreground">
-                        {formatAuditFecha(entry.createdAt)}
-                      </span>
-                      <span>
-                        <strong>{actorNombre}</strong> {AUDIT_LABELS[clave] ?? clave.toLowerCase()}.
-                      </span>
+                    <div key={entry.id} className="flex flex-col gap-1 py-2 text-sm first:pt-0 last:pb-0">
+                      <div className="flex flex-wrap items-baseline gap-x-1.5">
+                        <span className="text-xs text-muted-foreground">
+                          {formatAuditFecha(entry.createdAt)}
+                        </span>
+                        <span>
+                          <strong>{actorNombre}</strong> {AUDIT_LABELS[clave] ?? clave.toLowerCase()}.
+                        </span>
+                      </div>
+                      {detalle && Object.keys(detalle).length > 0 && (
+                        <details className="ml-1">
+                          <summary className="cursor-pointer text-xs text-primary select-none">
+                            Ver versión anterior
+                          </summary>
+                          <dl className="mt-1 flex flex-col gap-1.5 rounded-md bg-muted/40 p-2">
+                            {Object.entries(detalle).map(([campo, valor]) => (
+                              <div key={campo} className="flex flex-col gap-0.5">
+                                <dt className="text-xs font-semibold text-muted-foreground">
+                                  {humanizarCampo(campo)}
+                                </dt>
+                                <dd className="whitespace-pre-wrap text-xs">
+                                  {formatDetalleValor(valor)}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </details>
+                      )}
                     </div>
                   );
                 })}
