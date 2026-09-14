@@ -7,7 +7,7 @@ import {
   formatCaption as defaultFormatCaption,
   formatWeekdayName as defaultFormatWeekdayName,
 } from "react-day-picker";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
 import {
   dateParamToDateBA,
@@ -101,6 +101,10 @@ export function TurnosCalendar({
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
   const [loading, setLoading] = useState(false);
+  // En mobile arranca colapsado para no ocupar toda la pantalla con el
+  // calendario -- en desktop (lg+) siempre se muestra, sin importar este
+  // estado (ver el className del contenedor más abajo).
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const [formSlot, setFormSlot] = useState<Slot | null>(null);
   const [editingTurnoId, setEditingTurnoId] = useState<string | null>(null);
@@ -222,22 +226,44 @@ export function TurnosCalendar({
     <div className="flex flex-1 min-h-0 flex-col gap-4">
       <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
         <Card className="lg:self-start">
-          <CardContent className="pt-2">
-            <Calendar
-              mode="single"
-              locale={es}
-              formatters={{
-                formatCaption: (month, options) =>
-                  capitalize(defaultFormatCaption(month, options)),
-                formatWeekdayName: (weekday, options) =>
-                  capitalize(defaultFormatWeekdayName(weekday, options)),
-              }}
-              selected={selectedDate}
-              onSelect={handleSelectDate}
-              disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
-              modifiers={{ past: (date) => date < todayStart }}
-              modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
-            />
+          <CardContent className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setCalendarOpen((open) => !open)}
+              className="flex items-center justify-between gap-2 text-sm font-medium lg:hidden"
+            >
+              <span className="flex items-center gap-2">
+                <CalendarDays className="size-4" />
+                {capitalize(
+                  selectedDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+                )}
+              </span>
+              <ChevronDown
+                className={cn("size-4 transition-transform", calendarOpen && "rotate-180")}
+              />
+            </button>
+            <div
+              className={cn(
+                "justify-center lg:flex",
+                calendarOpen ? "flex" : "hidden"
+              )}
+            >
+              <Calendar
+                mode="single"
+                locale={es}
+                formatters={{
+                  formatCaption: (month, options) =>
+                    capitalize(defaultFormatCaption(month, options)),
+                  formatWeekdayName: (weekday, options) =>
+                    capitalize(defaultFormatWeekdayName(weekday, options)),
+                }}
+                selected={selectedDate}
+                onSelect={handleSelectDate}
+                disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
+                modifiers={{ past: (date) => date < todayStart }}
+                modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -250,9 +276,9 @@ export function TurnosCalendar({
               onClick={() => handleSelectDate(addDays(selectedDate, -1))}
             >
               <ChevronLeft className="size-4" />
-              Anterior
+              <span className="hidden sm:inline">Anterior</span>
             </Button>
-            <h2 className="flex-1 text-center text-lg font-semibold">
+            <h2 className="min-w-0 flex-1 truncate text-center text-xs font-semibold sm:text-lg">
               {capitalize(
                 selectedDate.toLocaleDateString("es-AR", {
                   weekday: "long",
@@ -268,7 +294,7 @@ export function TurnosCalendar({
               size="sm"
               onClick={() => handleSelectDate(addDays(selectedDate, 1))}
             >
-              Siguiente
+              <span className="hidden sm:inline">Siguiente</span>
               <ChevronRight className="size-4" />
             </Button>
           </div>
@@ -290,7 +316,10 @@ export function TurnosCalendar({
               )}
 
               {!loading && slots.length > 0 && (
-                <div className="relative flex-1 min-h-0">
+                <div
+                  className="relative flex-1 min-h-0"
+                  style={{ minHeight: Math.max(slots.length * 44, 320) }}
+                >
                   {slots.map((slot) => {
                     const top =
                       ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
@@ -323,33 +352,50 @@ export function TurnosCalendar({
                           type="button"
                           disabled={isPastDay}
                           onClick={() => (slot.turno ? openEdit(slot) : openBooking(slot))}
-                          style={{ top: `${top}%`, height: `${height}%`, minHeight: 22 }}
+                          style={{
+                            top: `${top}%`,
+                            height: `${height}%`,
+                            minHeight: ocupado ? 44 : 22,
+                          }}
                           aria-label={
                             ocupado
                               ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
                               : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
                           }
                           className={cn(
-                            "absolute left-1 w-[calc(100%-0.5rem)] flex items-center gap-1 overflow-hidden rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                            "absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
                             ocupado
                               ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
                               : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
                           )}
                         >
-                          <strong className="truncate text-xs font-semibold">
-                            {ocupado ? slot.turno!.nombreYApellido : "Libre"}
-                          </strong>
-                          <span className="shrink-0 truncate text-xs">
-                            [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
-                          </span>
-                          {ocupado && role === "DOCTOR" && slot.turno!.patientId && (
-                            <Link
-                              href={`/patients/${slot.turno!.patientId}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0 truncate text-xs underline-offset-2 hover:underline"
-                            >
-                              Ver ficha
-                            </Link>
+                          {ocupado ? (
+                            <>
+                              <strong className="text-xs leading-tight font-semibold break-words">
+                                {slot.turno!.nombreYApellido}
+                              </strong>
+                              <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
+                                <span className="shrink-0">
+                                  [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                                </span>
+                                {role === "DOCTOR" && slot.turno!.patientId && (
+                                  <Link
+                                    href={`/patients/${slot.turno!.patientId}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="shrink-0 underline-offset-2 hover:underline"
+                                  >
+                                    Ver ficha
+                                  </Link>
+                                )}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="flex items-center gap-1 overflow-hidden text-xs">
+                              <strong className="shrink-0 font-semibold">Libre</strong>
+                              <span className="truncate">
+                                [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                              </span>
+                            </span>
                           )}
                         </button>
                       );

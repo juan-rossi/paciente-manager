@@ -109,9 +109,9 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
               onClick={() => goTo(prevValidDay)}
             >
               <ChevronLeft className="size-4" />
-              Anterior
+              <span className="hidden sm:inline">Anterior</span>
             </Button>
-            <h2 className="flex-1 text-center text-lg font-semibold">
+            <h2 className="min-w-0 flex-1 truncate text-center text-xs font-semibold sm:text-lg">
               {capitalize(
                 selectedDate.toLocaleDateString("es-AR", {
                   weekday: "long",
@@ -128,7 +128,7 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
               disabled={!nextValidDay}
               onClick={() => goTo(nextValidDay)}
             >
-              Siguiente
+              <span className="hidden sm:inline">Siguiente</span>
               <ChevronRight className="size-4" />
             </Button>
           </div>

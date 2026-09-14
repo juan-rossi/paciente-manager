@@ -12,6 +12,14 @@ import { diasRestantesDeTrial } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
 
+// Sidebar (no la pill horizontal default de TabsTrigger): plano, alineado a
+// la izquierda, con un acento de color a la izquierda cuando está activo.
+const navItemClass =
+  "w-full justify-start gap-2.5 rounded-lg border-0 border-l-2 border-transparent bg-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground data-active:border-l-primary data-active:bg-primary/10 data-active:text-primary data-active:hover:bg-primary/10 data-active:hover:text-primary";
+
+const groupLabelClass =
+  "px-3 pt-3 pb-1.5 text-[10px] font-bold tracking-wide text-muted-foreground/75 uppercase first:pt-1";
+
 export default async function ConfiguracionPage() {
   const user = await getCurrentUser();
   if (!user) return null;
@@ -35,61 +43,69 @@ export default async function ConfiguracionPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-semibold">Configuración</h1>
 
-      <Tabs defaultValue="horario">
-        <TabsList>
-          <TabsTrigger value="horario">
+      <Tabs
+        defaultValue="horario"
+        orientation="vertical"
+        className="flex-col items-stretch gap-6 md:flex-row md:items-start"
+      >
+        <TabsList className="w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
+          <div className={groupLabelClass}>Consultorio</div>
+          <TabsTrigger value="horario" className={navItemClass}>
             <CalendarDays className="size-4" />
             Horario de trabajo
           </TabsTrigger>
-          <TabsTrigger value="usuarios">
+          <TabsTrigger value="usuarios" className={navItemClass}>
             <Users className="size-4" />
             Usuarios
           </TabsTrigger>
-          <TabsTrigger value="mensajeria">
+          <TabsTrigger value="mensajeria" className={navItemClass}>
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
-          <TabsTrigger value="transcriptor">
+          <TabsTrigger value="transcriptor" className={navItemClass}>
             <Mic className="size-4" />
             Transcriptor
           </TabsTrigger>
-          <TabsTrigger value="plan">
+
+          <div className={groupLabelClass}>Cuenta</div>
+          <TabsTrigger value="plan" className={navItemClass}>
             <Sparkles className="size-4" />
             Mi plan
           </TabsTrigger>
-          <TabsTrigger value="datos">
+          <TabsTrigger value="datos" className={navItemClass}>
             <Database className="size-4" />
             Mis datos
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="horario" className="mt-2">
+        <TabsContent value="horario" className="w-full">
           <ScheduleSettings
             initialBlocks={blocks}
             initialSlotDurationMinutes={user.slotDurationMinutes}
           />
         </TabsContent>
-        <TabsContent value="usuarios" className="mt-2">
+        <TabsContent value="usuarios" className="w-full">
           <SecretaryUsers initialSecretarias={initialSecretarias} />
         </TabsContent>
-        <TabsContent value="mensajeria" className="mt-2">
+        <TabsContent value="mensajeria" className="w-full">
           <MessagingSettings
             initialMensajeTemplate={user.mensajeTemplate}
             initialRecordatorioDiasAdelanto={user.recordatorioDiasAdelanto}
           />
         </TabsContent>
-        <TabsContent value="transcriptor" className="mt-2">
+        <TabsContent value="transcriptor" className="w-full">
           <TranscriberSettings />
         </TabsContent>
-        <TabsContent value="plan" className="mt-2">
+        <TabsContent value="plan" className="w-full">
           <PlanSettings
             plan={user.plan}
             trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
             diasRestantesDeTrial={diasRestantesDeTrial(user)}
           />
         </TabsContent>
-        <TabsContent value="datos" className="mt-2">
+        <TabsContent value="datos" className="w-full">
           <ExportSettings />
         </TabsContent>
       </Tabs>
