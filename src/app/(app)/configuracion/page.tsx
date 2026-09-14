@@ -1,4 +1,4 @@
-import { CalendarDays, Mic, MessageSquare, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Database, Mic, MessageSquare, Sparkles, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { TranscriberSettings } from "@/components/transcriber-settings";
 import { PlanSettings } from "@/components/plan-settings";
+import { ExportSettings } from "@/components/export-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,10 @@ export default async function ConfiguracionPage() {
             <Sparkles className="size-4" />
             Mi plan
           </TabsTrigger>
+          <TabsTrigger value="datos">
+            <Database className="size-4" />
+            Mis datos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="horario" className="mt-2">
@@ -83,6 +88,9 @@ export default async function ConfiguracionPage() {
             trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
             diasRestantesDeTrial={diasRestantesDeTrial(user)}
           />
+        </TabsContent>
+        <TabsContent value="datos" className="mt-2">
+          <ExportSettings />
         </TabsContent>
       </Tabs>
     </div>
