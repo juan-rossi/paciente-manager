@@ -7,7 +7,7 @@ import { SettingsSection } from "@/components/settings-section";
 import { useTranscriberConnection } from "@/lib/transcriber";
 
 const TRANSCRIBER_DOWNLOAD_URL =
-  "https://github.com/juan-rossi/malvina-software-releases/releases/download/transcriptor-v1.0.0/TranscriberSetup.exe";
+  "https://github.com/juan-rossi/malvina-software-releases/releases/download/transcriptor-v1.1.0/TranscriberSetup.exe";
 
 export function TranscriberSettings() {
   const { status, reintentar } = useTranscriberConnection();

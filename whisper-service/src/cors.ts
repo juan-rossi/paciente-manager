@@ -1,15 +1,18 @@
-// Cualquier entorno de médico deployado sigue el patrón "paciente-manager" o
-// "paciente-manager-<slug-del-médico>" en Vercel (ver ENTORNOS.md/onboard-doctor),
-// o vive en un subdominio de "malvinasoftware.com" (dominio propio de la
-// organización, usado para los médicos que tienen su propia URL en vez de
-// la de Vercel — ver ENTORNOS.md). Confiamos en estos patrones completos en
-// vez de exigir que cada instalación tenga el dominio exacto de SU médico en
-// `allowedOrigins` — así un mismo instalador sirve para cualquier médico
-// nuevo, tenga URL de Vercel o dominio propio, sin que haga falta
-// reconfigurar nada a mano.
+// Entornos standalone del modelo anterior (uno por médico): siguen el patrón
+// "paciente-manager" / "paciente-manager-<slug-del-médico>" en Vercel (ver
+// ENTORNOS.md/onboard-doctor), o viven en un subdominio de
+// "malvinasoftware.com" (dominio propio, usado por algunos médicos en vez de
+// la URL de Vercel). Tras el pivot a SaaS multi-tenant, todos los médicos
+// comparten en cambio el dominio único "semio360.com" (o el alias de Vercel
+// "semio360*.vercel.app" cuando el nombre exacto ya está tomado). Confiamos
+// en estos patrones completos en vez de exigir que cada instalación tenga el
+// dominio exacto en `allowedOrigins` — así un mismo instalador sirve para
+// cualquier médico, sin reconfigurar nada a mano.
 const KNOWN_DEPLOYMENT_PATTERNS = [
   /^https:\/\/paciente-manager(-[a-z0-9]+)*\.vercel\.app$/i,
   /^https:\/\/([a-z0-9-]+\.)*malvinasoftware\.com$/i,
+  /^https:\/\/semio360(-[a-z0-9]+)*\.vercel\.app$/i,
+  /^https:\/\/([a-z0-9-]+\.)*semio360\.com$/i,
 ];
 
 /**
