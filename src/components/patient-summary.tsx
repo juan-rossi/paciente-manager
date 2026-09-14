@@ -161,9 +161,9 @@ export function PatientSummary({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <DeletePatientButton patientId={patient.id} patientName={patient.nombreYApellido} />
           <Button
             variant="outline"
@@ -171,7 +171,8 @@ export function PatientSummary({
             render={<Link href={`/patients/${patient.id}/historia-clinica`} target="_blank" />}
           >
             <FileText className="size-4" />
-            Copia para el paciente
+            <span className="sm:hidden">Imprimir</span>
+            <span className="hidden sm:inline">Copia para el paciente</span>
           </Button>
           <Button nativeButton={false} render={<Link href={`/patients/${patient.id}/edit`} />}>
             <Pencil className="size-4" />
@@ -181,7 +182,7 @@ export function PatientSummary({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-6">
+        <div className="contents lg:flex lg:flex-col lg:gap-6">
           <FormSection title="Información del Paciente" icon={IdCard} contentClassName="bg-card">
             <div className="col-span-full grid grid-cols-1 gap-4 sm:grid-cols-12">
               <InfoField
@@ -262,7 +263,8 @@ export function PatientSummary({
           )}
 
           {auditEntries.length > 0 && (
-            <FormSection title="Historial de auditoría" icon={ScrollText} contentClassName="bg-card">
+            <div className="order-last lg:order-none">
+              <FormSection title="Historial de auditoría" icon={ScrollText} contentClassName="bg-card">
               <div className="col-span-full flex flex-col divide-y divide-border">
                 {auditEntries.map((entry) => {
                   const clave = `${entry.accion}_${entry.entidad}`;
@@ -301,11 +303,12 @@ export function PatientSummary({
                   );
                 })}
               </div>
-            </FormSection>
+              </FormSection>
+            </div>
           )}
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="contents lg:flex lg:flex-col lg:gap-6">
           {tieneConsultaInicial && (
             <FormSection
               title="Consulta Inicial"

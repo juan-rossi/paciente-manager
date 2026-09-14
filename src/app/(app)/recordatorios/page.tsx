@@ -87,7 +87,7 @@ export default async function RecordatoriosPage() {
                 return (
                   <li
                     key={turno.id}
-                    className="flex items-center gap-3 rounded-md border border-border p-2"
+                    className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2"
                   >
                     <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
                       {hora}

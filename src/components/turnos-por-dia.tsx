@@ -155,7 +155,7 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
                       <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
                         {formatHora(new Date(turno.inicio))}
                       </span>
-                      <div className="w-48 min-w-0 shrink-0">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
                         {turno.dni && (
                           <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
@@ -164,16 +164,16 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
                       <Badge
                         variant="secondary"
                         className={cn(
-                          "w-28 shrink-0 justify-center",
+                          "shrink-0 justify-center whitespace-nowrap",
                           turno.matchType === "dni"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                             : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                         )}
                       >
-                        Match por {turno.matchType === "dni" ? "DNI" : "nombre"}
+                        <span className="hidden sm:inline">Match por </span>
+                        {turno.matchType === "dni" ? "DNI" : "nombre"}
                       </Badge>
-                      <div className="flex-1" />
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                      <ChevronRight className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
                     </Link>
                   </li>
                 ) : (
@@ -184,21 +184,22 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
                     <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold tabular-nums">
                       {formatHora(new Date(turno.inicio))}
                     </span>
-                    <div className="w-48 min-w-0 shrink-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
                       {turno.dni && (
                         <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
                       )}
                     </div>
-                    <div className="flex-1" />
                     <Button
                       size="sm"
                       variant="outline"
                       nativeButton={false}
+                      className="shrink-0"
+                      title="Crear paciente"
                       render={<Link href={newPatientHref(turno)} />}
                     >
                       <UserPlus className="size-3.5" />
-                      Crear paciente
+                      <span className="hidden sm:inline">Crear paciente</span>
                     </Button>
                   </li>
                 )
