@@ -108,6 +108,7 @@ enum AuditAccion {
 enum AuditEntidad {
   PACIENTE
   EVOLUCION
+  CONSENTIMIENTO
 }
 
 // Ley 26.529 art. 13: la historia clínica digital requiere controles de
@@ -290,9 +291,10 @@ model Patient {
   doctorId String
   doctor   User   @relation("PatientDoctor", fields: [doctorId], references: [id])
 
-  antecedentes PatientAntecedente[]
-  evoluciones  PatientEvolucion[]
-  turnos       Turno[]
+  antecedentes    PatientAntecedente[]
+  evoluciones     PatientEvolucion[]
+  turnos          Turno[]
+  consentimientos ConsentimientoInformado[]
 
   @@index([doctorId])
   @@index([doctorId, nroDocumento])
@@ -322,4 +324,46 @@ model PatientEvolucion {
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
   // se borra físicamente, se oculta.
   deletedAt DateTime?
+}
+
+enum ConsentimientoTipo {
+  VERBAL
+  ESCRITO
+}
+
+enum ConsentimientoEstado {
+  OTORGADO
+  RECHAZADO
+}
+
+// Ley 26.529 arts. 5-10: consentimiento informado para un procedimiento o
+// tratamiento. Una vez creado nunca se edita su contenido (procedimiento/
+// riesgos informados) -- si está mal, se corrige dando de baja (soft-delete,
+// igual que el resto de la HC) y creando uno nuevo. La única acción
+// permitida sobre un consentimiento ya existente es "revocarlo" (art. 10:
+// el paciente puede revocar su consentimiento en cualquier momento, y esa
+// revocación debe quedar con constancia expresa), que solo agrega
+// `revocadoEn`/`revocadoMotivo` sin tocar el resto.
+model ConsentimientoInformado {
+  id String @id @default(cuid())
+
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  procedimiento     String
+  riesgosBeneficios String
+  alternativas      String?
+
+  tipo   ConsentimientoTipo
+  estado ConsentimientoEstado
+
+  fecha DateTime
+
+  revocadoEn     DateTime?
+  revocadoMotivo String?
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([patientId])
 }

@@ -42,7 +42,7 @@ export default async function EditPatientPage({ params }: Props) {
           render={<Link href={`/patients/${patient.id}`} />}
         >
           <ArrowLeft className="size-4" />
-          Volver
+          Volver a detalle
         </Button>
       </div>
       <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>

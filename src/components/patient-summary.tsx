@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ClipboardCheck,
+  ClipboardSignature,
   FileText,
   History,
   IdCard,
@@ -17,12 +18,13 @@ import { ANTECEDENTES_ORDEN } from "@/components/patient-form/constants";
 import { calcularEdad } from "@/components/patient-form/utils";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
+import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
 import type { TurnoDiff } from "@/lib/patient-turno-diff";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
-  include: { antecedentes: true; evoluciones: true };
+  include: { antecedentes: true; evoluciones: true; consentimientos: true };
 }>;
 
 type AuditEntry = Prisma.AuditLogGetPayload<{
@@ -43,6 +45,11 @@ const AUDIT_LABELS: Record<string, string> = {
   ELIMINAR_EVOLUCION: "eliminó una evolución clínica",
   RESTAURAR_EVOLUCION: "restauró una evolución clínica",
   EXPORTAR_PACIENTE: "generó una copia de la historia clínica",
+  CREAR_CONSENTIMIENTO: "registró un consentimiento informado",
+  MODIFICAR_CONSENTIMIENTO: "revocó un consentimiento informado",
+  ELIMINAR_CONSENTIMIENTO: "eliminó un consentimiento informado",
+  RESTAURAR_CONSENTIMIENTO: "restauró un consentimiento informado",
+  EXPORTAR_CONSENTIMIENTO: "imprimió el consentimiento informado para su firma",
 };
 
 function formatAuditFecha(fecha: Date): string {
@@ -74,6 +81,8 @@ const CAMPO_LABELS: Record<string, string> = {
   tratamiento: "Tratamiento",
   fecha: "Fecha",
   contenido: "Contenido",
+  revocadoEn: "Fecha de revocación",
+  revocadoMotivo: "Motivo de revocación",
 };
 
 function humanizarCampo(campo: string): string {
@@ -135,6 +144,19 @@ export function PatientSummary({
     id: e.id,
     fecha: e.fecha.toISOString().slice(0, 10),
     contenido: e.contenido,
+  }));
+
+  const consentimientoValues: ConsentimientoValue[] = patient.consentimientos.map((c) => ({
+    id: c.id,
+    procedimiento: c.procedimiento,
+    riesgosBeneficios: c.riesgosBeneficios,
+    alternativas: c.alternativas,
+    tipo: c.tipo,
+    estado: c.estado,
+    fecha: c.fecha.toISOString().slice(0, 10),
+    revocadoEn: c.revocadoEn ? c.revocadoEn.toISOString() : null,
+    revocadoMotivo: c.revocadoMotivo,
+    deletedAt: c.deletedAt ? c.deletedAt.toISOString() : null,
   }));
 
   return (
@@ -317,6 +339,19 @@ export function PatientSummary({
           <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
             <div className="col-span-full">
               <EvolucionManager patientId={patient.id} initialEvoluciones={evolucionValues} />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Consentimientos Informados"
+            icon={ClipboardSignature}
+            contentClassName="bg-card"
+          >
+            <div className="col-span-full">
+              <ConsentimientoManager
+                patientId={patient.id}
+                initialConsentimientos={consentimientoValues}
+              />
             </div>
           </FormSection>
         </div>

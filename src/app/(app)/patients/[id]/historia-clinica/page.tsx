@@ -72,6 +72,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
     include: {
       antecedentes: { where: { respuesta: true } },
       evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
+      consentimientos: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
     },
   });
 
@@ -261,6 +262,24 @@ export default async function HistoriaClinicaPage({ params }: Props) {
               <div key={e.id} className="break-inside-avoid">
                 <p className="text-xs font-semibold text-muted-foreground">{formatFecha(e.fecha)}</p>
                 <p className="whitespace-pre-wrap">{e.contenido}</p>
+              </div>
+            ))}
+          </div>
+        </Seccion>
+      )}
+
+      {patient.consentimientos.length > 0 && (
+        <Seccion titulo="Consentimientos informados">
+          <div className="flex flex-col gap-3 text-sm">
+            {patient.consentimientos.map((c) => (
+              <div key={c.id} className="break-inside-avoid">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {formatFecha(c.fecha)} — {c.tipo === "ESCRITO" ? "Escrito" : "Verbal"} —{" "}
+                  {c.estado === "OTORGADO" ? "Otorgado" : "Rechazado"}
+                  {c.revocadoEn && ` — Revocado el ${formatFecha(c.revocadoEn)}`}
+                </p>
+                <p className="font-semibold">{c.procedimiento}</p>
+                <p className="whitespace-pre-wrap">{c.riesgosBeneficios}</p>
               </div>
             ))}
           </div>

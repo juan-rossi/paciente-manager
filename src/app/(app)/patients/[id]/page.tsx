@@ -24,6 +24,10 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     include: {
       antecedentes: true,
       evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
+      // Sin filtro de deletedAt a propósito: el manager de consentimientos
+      // muestra también los eliminados (en una sección aparte) para poder
+      // restaurarlos, igual que la pestaña de evolución en el formulario.
+      consentimientos: { orderBy: { fecha: "desc" } },
     },
   });
 
@@ -31,13 +35,16 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     notFound();
   }
 
-  // Para el historial de auditoría hace falta buscar TODAS las evoluciones
-  // que alguna vez tuvo este paciente (incluidas las eliminadas), no solo
-  // las activas -- si no, una evolución borrada desaparecería también de su
-  // propio historial de auditoría.
+  // Para el historial de auditoría hace falta buscar TODAS las evoluciones y
+  // consentimientos que alguna vez tuvo este paciente (incluidos los
+  // eliminados), no solo los activos -- si no, un registro borrado
+  // desaparecería también de su propio historial de auditoría.
   const evolucionIds = (
     await prisma.patientEvolucion.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((e) => e.id);
+  const consentimientoIds = (
+    await prisma.consentimientoInformado.findMany({ where: { patientId: id }, select: { id: true } })
+  ).map((c) => c.id);
 
   const auditEntries = await prisma.auditLog.findMany({
     where: {
@@ -46,6 +53,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         { entidad: "PACIENTE", entidadId: id },
         ...(evolucionIds.length > 0
           ? [{ entidad: "EVOLUCION" as const, entidadId: { in: evolucionIds } }]
+          : []),
+        ...(consentimientoIds.length > 0
+          ? [{ entidad: "CONSENTIMIENTO" as const, entidadId: { in: consentimientoIds } }]
           : []),
       ],
     },
