@@ -102,6 +102,7 @@ enum AuditAccion {
   MODIFICAR
   ELIMINAR
   RESTAURAR
+  EXPORTAR
 }
 
 enum AuditEntidad {

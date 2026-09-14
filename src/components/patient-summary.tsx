@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ClipboardCheck,
+  FileText,
   History,
   IdCard,
   MessageSquareText,
@@ -41,6 +42,7 @@ const AUDIT_LABELS: Record<string, string> = {
   MODIFICAR_EVOLUCION: "modificó una evolución clínica",
   ELIMINAR_EVOLUCION: "eliminó una evolución clínica",
   RESTAURAR_EVOLUCION: "restauró una evolución clínica",
+  EXPORTAR_PACIENTE: "generó una copia de la historia clínica",
 };
 
 function formatAuditFecha(fecha: Date): string {
@@ -102,6 +104,14 @@ export function PatientSummary({
         <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
         <div className="flex items-center gap-2">
           <DeletePatientButton patientId={patient.id} patientName={patient.nombreYApellido} />
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/patients/${patient.id}/historia-clinica`} target="_blank" />}
+          >
+            <FileText className="size-4" />
+            Copia para el paciente
+          </Button>
           <Button nativeButton={false} render={<Link href={`/patients/${patient.id}/edit`} />}>
             <Pencil className="size-4" />
             Editar

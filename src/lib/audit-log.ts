@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
-type AuditAccion = "CREAR" | "MODIFICAR" | "ELIMINAR" | "RESTAURAR";
+type AuditAccion = "CREAR" | "MODIFICAR" | "ELIMINAR" | "RESTAURAR" | "EXPORTAR";
 type AuditEntidad = "PACIENTE" | "EVOLUCION";
 
 type RegistrarAuditoriaParams = {
