@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks } from "@/components/nav-links";
+import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -50,7 +51,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </span>
             )}
             <NavLinks links={configLink} />
-            <LogoutButton />
+            <div className="hidden sm:block">
+              <LogoutButton />
+            </div>
+            <MobileNavMenu navLinks={navLinks} configLink={configLink} userName={user?.nombre} />
           </div>
         </div>
       </header>
