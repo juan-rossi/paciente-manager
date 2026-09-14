@@ -93,6 +93,45 @@ model User {
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")
   pacientes          Patient[]           @relation("PatientDoctor")
   turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
+  auditLogsDelTenant AuditLog[]          @relation("AuditDoctor")
+  auditLogsComoActor AuditLog[]          @relation("AuditActor")
+}
+
+enum AuditAccion {
+  CREAR
+  MODIFICAR
+  ELIMINAR
+  RESTAURAR
+}
+
+enum AuditEntidad {
+  PACIENTE
+  EVOLUCION
+}
+
+// Ley 26.529 art. 13: la historia clínica digital requiere controles de
+// integridad -- quién hizo qué y cuándo sobre un registro clínico. No
+// reemplaza una firma digital calificada (Ley 25.506), pero es la traza
+// mínima auditable para poder responder "quién tocó esto" ante un reclamo.
+model AuditLog {
+  id     String @id @default(cuid())
+
+  // De qué cuenta/tenant es este registro (para escopar toda consulta).
+  doctorId String
+  doctor   User   @relation("AuditDoctor", fields: [doctorId], references: [id])
+
+  // Quién hizo la acción -- puede ser el médico o una secretaria suya.
+  actorId String
+  actor   User   @relation("AuditActor", fields: [actorId], references: [id])
+
+  accion    AuditAccion
+  entidad   AuditEntidad
+  entidadId String
+
+  createdAt DateTime @default(now())
+
+  @@index([doctorId, entidad, entidadId])
+  @@index([doctorId, createdAt])
 }
 
 model WorkScheduleBlock {

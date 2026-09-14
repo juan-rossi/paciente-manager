@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { TextField } from "./fields";
+import { TextAreaField, TextField } from "./fields";
 import { TranscribableTextAreaField } from "./transcribable-textarea-field";
 import type { PatientFormValues } from "./types";
 
@@ -31,7 +31,7 @@ export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
         />
       </div>
 
-      <TranscribableTextAreaField
+      <TextAreaField
         label="Motivo de Consulta"
         value={values.motivoConsulta}
         onChange={(v) => onChange("motivoConsulta", v)}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 import { findDniConflict } from "@/lib/dni-conflict";
+import { registrarAuditoria } from "@/lib/audit-log";
 
 const patientUpdateSchema = patientSchema.omit({ evoluciones: true });
 
@@ -30,23 +31,33 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
 
   // Ley 26.529 art. 12/18: nunca se borra la historia clínica físicamente,
   // solo se oculta -- ver nota en prisma/schema.prisma sobre Patient.deletedAt.
-  await prisma.patient.updateMany({
+  const result = await prisma.patient.updateMany({
     where: { id, doctorId: tenantId, deletedAt: null },
     data: { deletedAt: new Date() },
   });
+
+  if (result.count > 0) {
+    await registrarAuditoria(prisma, {
+      doctorId: tenantId,
+      actorId: user.id,
+      accion: "ELIMINAR",
+      entidad: "PACIENTE",
+      entidadId: id,
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
@@ -120,11 +131,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       });
     }
 
-    return tx.patient.update({
+    const updated = await tx.patient.update({
       where: { id },
       data: patientFields,
       include: { antecedentes: true, evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "desc" } } },
     });
+
+    await registrarAuditoria(tx, {
+      doctorId: tenantId,
+      actorId: user.id,
+      accion: "MODIFICAR",
+      entidad: "PACIENTE",
+      entidadId: id,
+    });
+
+    return updated;
   });
 
   return NextResponse.json({ patient });

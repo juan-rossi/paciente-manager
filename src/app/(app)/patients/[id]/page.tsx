@@ -31,6 +31,29 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     notFound();
   }
 
+  // Para el historial de auditoría hace falta buscar TODAS las evoluciones
+  // que alguna vez tuvo este paciente (incluidas las eliminadas), no solo
+  // las activas -- si no, una evolución borrada desaparecería también de su
+  // propio historial de auditoría.
+  const evolucionIds = (
+    await prisma.patientEvolucion.findMany({ where: { patientId: id }, select: { id: true } })
+  ).map((e) => e.id);
+
+  const auditEntries = await prisma.auditLog.findMany({
+    where: {
+      doctorId: tenantId,
+      OR: [
+        { entidad: "PACIENTE", entidadId: id },
+        ...(evolucionIds.length > 0
+          ? [{ entidad: "EVOLUCION" as const, entidadId: { in: evolucionIds } }]
+          : []),
+      ],
+    },
+    include: { actor: { select: { nombre: true, apellido: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+
   let diffs: TurnoDiff[] = [];
   if (turnoId) {
     const turno = await prisma.turno.findFirst({
@@ -44,5 +67,12 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
 
   const { values: patientValues } = patientFromApi(patient);
 
-  return <PatientSummary patient={patient} diffs={diffs} patientValues={patientValues} />;
+  return (
+    <PatientSummary
+      patient={patient}
+      diffs={diffs}
+      patientValues={patientValues}
+      auditEntries={auditEntries}
+    />
+  );
 }

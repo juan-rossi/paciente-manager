@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   NotebookPen,
   Pencil,
+  ScrollText,
 } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,34 @@ type PatientWithRelations = Prisma.PatientGetPayload<{
   include: { antecedentes: true; evoluciones: true };
 }>;
 
+type AuditEntry = Prisma.AuditLogGetPayload<{
+  include: { actor: { select: { nombre: true; apellido: true } } };
+}>;
+
 const ANTECEDENTE_LABELS = new Map(ANTECEDENTES_ORDEN.map((a) => [a.tipo, a.label]));
+
+// Ley 26.529 art. 13: texto legible para cada entrada del historial de
+// auditoría (quién hizo qué). Ver prisma/schema.prisma (modelo AuditLog).
+const AUDIT_LABELS: Record<string, string> = {
+  CREAR_PACIENTE: "creó la ficha del paciente",
+  MODIFICAR_PACIENTE: "modificó los datos del paciente",
+  ELIMINAR_PACIENTE: "eliminó al paciente",
+  RESTAURAR_PACIENTE: "restauró al paciente",
+  CREAR_EVOLUCION: "agregó una evolución clínica",
+  MODIFICAR_EVOLUCION: "modificó una evolución clínica",
+  ELIMINAR_EVOLUCION: "eliminó una evolución clínica",
+  RESTAURAR_EVOLUCION: "restauró una evolución clínica",
+};
+
+function formatAuditFecha(fecha: Date): string {
+  return fecha.toLocaleString("es-AR", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function InfoField({
   label,
@@ -46,10 +74,12 @@ export function PatientSummary({
   patient,
   diffs = [],
   patientValues,
+  auditEntries = [],
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
   patientValues?: PatientFormValues;
+  auditEntries?: AuditEntry[];
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
@@ -112,27 +142,6 @@ export function PatientSummary({
             />
           )}
 
-          {tieneConsultaInicial && (
-            <FormSection title="Consulta Inicial" icon={MessageSquareText} contentClassName="bg-card">
-              {Boolean(patient.motivoConsulta?.trim()) && (
-                <div className="col-span-full flex flex-col gap-1">
-                  <span className="text-xs font-bold text-foreground">
-                    Motivo de Consulta
-                  </span>
-                  <p className="whitespace-pre-wrap text-sm">{patient.motivoConsulta}</p>
-                </div>
-              )}
-              {Boolean(patient.antecedentesEnfermedad?.trim()) && (
-                <div className="col-span-full flex flex-col gap-1">
-                  <span className="text-xs font-bold text-foreground">
-                    Antecedentes de la enfermedad actual
-                  </span>
-                  <p className="whitespace-pre-wrap text-sm">{patient.antecedentesEnfermedad}</p>
-                </div>
-              )}
-            </FormSection>
-          )}
-
           {antecedentesPositivos.length > 0 && (
             <FormSection title="Antecedentes Personales" icon={History} contentClassName="bg-card">
               <div className="col-span-full flex flex-wrap gap-2">
@@ -180,9 +189,60 @@ export function PatientSummary({
               )}
             </FormSection>
           )}
+
+          {auditEntries.length > 0 && (
+            <FormSection title="Historial de auditoría" icon={ScrollText} contentClassName="bg-card">
+              <div className="col-span-full flex flex-col gap-2">
+                {auditEntries.map((entry) => {
+                  const clave = `${entry.accion}_${entry.entidad}`;
+                  const actorNombre = `${entry.actor.nombre} ${entry.actor.apellido}`.trim();
+                  return (
+                    <div key={entry.id} className="flex flex-wrap items-baseline gap-x-1.5 text-sm">
+                      <span className="text-xs text-muted-foreground">
+                        {formatAuditFecha(entry.createdAt)}
+                      </span>
+                      <span>
+                        <strong>{actorNombre}</strong> {AUDIT_LABELS[clave] ?? clave.toLowerCase()}.
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </FormSection>
+          )}
         </div>
 
-        <div>
+        <div className="flex flex-col gap-6">
+          {tieneConsultaInicial && (
+            <FormSection
+              title="Consulta Inicial"
+              icon={MessageSquareText}
+              contentClassName="bg-card"
+              headerExtra={
+                <span className="text-xs font-normal text-muted-foreground">
+                  Creado el {patient.createdAt.toLocaleDateString("es-AR")}
+                </span>
+              }
+            >
+              {Boolean(patient.motivoConsulta?.trim()) && (
+                <div className="col-span-full flex flex-col gap-1">
+                  <span className="text-xs font-bold text-foreground">
+                    Motivo de Consulta
+                  </span>
+                  <p className="whitespace-pre-wrap text-sm">{patient.motivoConsulta}</p>
+                </div>
+              )}
+              {Boolean(patient.antecedentesEnfermedad?.trim()) && (
+                <div className="col-span-full flex flex-col gap-1">
+                  <span className="text-xs font-bold text-foreground">
+                    Antecedentes de la enfermedad actual
+                  </span>
+                  <p className="whitespace-pre-wrap text-sm">{patient.antecedentesEnfermedad}</p>
+                </div>
+              )}
+            </FormSection>
+          )}
+
           <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
             <div className="col-span-full">
               <EvolucionManager patientId={patient.id} initialEvoluciones={evolucionValues} />

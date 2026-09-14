@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2, Mic, MicOff, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Mic, MicOff, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -276,12 +276,15 @@ export function EvolucionTab({
       </div>
 
       {evolucionesEliminadas.length > 0 && (
-        <details className="overflow-hidden rounded-xl border border-border/60">
-          <summary className="flex cursor-pointer select-none items-center gap-2 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5">
-            <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Trash2 className="size-3.5" />
+        <details className="group overflow-hidden rounded-xl border border-border/60">
+          <summary className="flex cursor-pointer select-none items-center justify-between gap-2 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5 [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Trash2 className="size-3.5" />
+              </span>
+              Evoluciones eliminadas ({evolucionesEliminadas.length})
             </span>
-            Evoluciones eliminadas ({evolucionesEliminadas.length})
+            <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
           </summary>
           <div className="flex flex-col gap-3 border-t border-border/60 p-3">
             {evolucionesEliminadas.map((entry) => (

@@ -13,6 +13,7 @@ type FormSectionProps = {
   contentClassName?: string;
   headerClassName?: string;
   iconClassName?: string;
+  headerExtra?: ReactNode;
 };
 
 export function FormSection({
@@ -22,24 +23,28 @@ export function FormSection({
   contentClassName,
   headerClassName,
   iconClassName,
+  headerExtra,
 }: FormSectionProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-border/60">
       <h3
         className={cn(
-          "flex items-center gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5",
+          "flex items-center justify-between gap-2 border-b border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-semibold text-foreground sm:px-5",
           headerClassName
         )}
       >
-        <span
-          className={cn(
-            "flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary",
-            iconClassName
-          )}
-        >
-          <Icon className="size-3.5" />
+        <span className="flex items-center gap-2">
+          <span
+            className={cn(
+              "flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary",
+              iconClassName
+            )}
+          >
+            <Icon className="size-3.5" />
+          </span>
+          {title}
         </span>
-        {title}
+        {headerExtra}
       </h3>
       <div
         className={cn(

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 import { findDniConflict } from "@/lib/dni-conflict";
+import { registrarAuditoria } from "@/lib/audit-log";
 
 const listSelect = {
   id: true,
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       await tx.patient.update({ where: { id: conflict.id }, data: { nroDocumento: null } });
     }
 
-    return tx.patient.create({
+    const created = await tx.patient.create({
       data: {
         ...patientFields,
         doctorId: tenantId,
@@ -103,6 +104,16 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    await registrarAuditoria(tx, {
+      doctorId: tenantId,
+      actorId: user.id,
+      accion: "CREAR",
+      entidad: "PACIENTE",
+      entidadId: created.id,
+    });
+
+    return created;
   });
 
   return NextResponse.json({ patient }, { status: 201 });

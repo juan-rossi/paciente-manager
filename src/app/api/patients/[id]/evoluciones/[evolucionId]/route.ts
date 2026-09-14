@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
+import { registrarAuditoria } from "@/lib/audit-log";
 
 type RouteParams = { params: Promise<{ id: string; evolucionId: string }> };
 
@@ -11,7 +12,7 @@ const evolucionInput = z.object({
 });
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id, evolucionId } = await params;
@@ -37,6 +38,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Evolución no encontrada." }, { status: 404 });
   }
 
+  await registrarAuditoria(prisma, {
+    doctorId: tenantId,
+    actorId: user.id,
+    accion: "MODIFICAR",
+    entidad: "EVOLUCION",
+    entidadId: evolucionId,
+  });
+
   const evolucion = await prisma.patientEvolucion.findUniqueOrThrow({
     where: { id: evolucionId },
   });
@@ -45,7 +54,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id, evolucionId } = await params;
@@ -60,6 +69,14 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (result.count === 0) {
     return NextResponse.json({ error: "Evolución no encontrada." }, { status: 404 });
   }
+
+  await registrarAuditoria(prisma, {
+    doctorId: tenantId,
+    actorId: user.id,
+    accion: "ELIMINAR",
+    entidad: "EVOLUCION",
+    entidadId: evolucionId,
+  });
 
   const evolucion = await prisma.patientEvolucion.findUniqueOrThrow({
     where: { id: evolucionId },
