@@ -12,11 +12,11 @@ export function MedicalTimeline() {
   const height = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
-    <div ref={ref} className="relative flex flex-col gap-5 p-4 pl-8">
-      <div className="absolute top-1 bottom-1 left-[27px] w-px bg-border/70" />
+    <div ref={ref} className="relative flex flex-col gap-5 p-4 pl-10">
+      <div className="absolute top-1 bottom-1 left-6 w-px bg-border/70" />
       <motion.div
         style={{ height }}
-        className="absolute top-1 left-[27px] w-px bg-primary"
+        className="absolute top-1 left-6 w-px bg-primary"
       />
       {DEMO_TIMELINE.map((entry, i) => (
         <motion.div
@@ -27,7 +27,7 @@ export function MedicalTimeline() {
           transition={{ duration: 0.4, delay: i * 0.1 }}
           className="relative"
         >
-          <span className="absolute top-1 -left-[23px] size-2.5 rounded-full border-2 border-primary bg-card" />
+          <span className="absolute top-1 -left-[21px] size-2.5 rounded-full border-2 border-primary bg-card" />
           <p className="text-[11px] font-semibold text-primary">{entry.fecha}</p>
           <p className="text-[13px] font-medium">{entry.titulo}</p>
           <p className="text-xs text-muted-foreground">{entry.texto}</p>

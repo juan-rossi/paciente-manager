@@ -199,16 +199,16 @@ function StoryWindow({
           {sceneIndex === 1 && <PatientProfileCard />}
           {sceneIndex === 2 && (
             <div className="relative h-full overflow-hidden">
-              <div className="absolute top-5 bottom-5 left-[35px] w-px bg-border/70" />
+              <div className="absolute top-5 bottom-5 left-8 w-px bg-border/70" />
               <div
                 ref={lineRef}
                 style={{ height: lineHeight }}
-                className="absolute top-5 left-[35px] w-px bg-primary"
+                className="absolute top-5 left-8 w-px bg-primary"
               />
-              <div className="flex h-full flex-col justify-center gap-4 p-4 pl-9">
+              <div className="flex h-full flex-col justify-center gap-4 p-4 pl-12">
                 {DEMO_TIMELINE.map((entry) => (
                   <div key={entry.fecha} className="relative">
-                    <span className="absolute top-1 -left-[19px] size-2.5 rounded-full border-2 border-primary bg-card" />
+                    <span className="absolute top-1 -left-[21px] size-2.5 rounded-full border-2 border-primary bg-card" />
                     <p className="text-[11px] font-semibold text-primary">{entry.fecha}</p>
                     <p className="text-[13px] font-medium">{entry.titulo}</p>
                     <p className="text-xs text-muted-foreground">{entry.texto}</p>

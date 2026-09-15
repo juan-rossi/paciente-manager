@@ -28,7 +28,7 @@ export function OrbitDiagram() {
     <div className="relative mx-auto size-[280px] [--orbit-radius:88px] sm:size-[420px] sm:[--orbit-radius:168px]">
       <div className="absolute inset-0 rounded-full border border-dashed border-border/70" />
 
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 z-10 flex items-center justify-center">
         <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/60 bg-card px-5 py-4 shadow-lg">
           <Semio360Mark className="size-8" />
           <span className="font-heading text-sm font-extrabold">
