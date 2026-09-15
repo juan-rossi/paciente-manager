@@ -37,10 +37,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               href={!isDoctor ? "/turnos" : "/dashboard"}
               className="flex items-center gap-2.5"
             >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Semio360Mark className="size-4.5" />
-              </span>
-              <Semio360Wordmark className="text-lg tracking-tight" />
+              <Semio360Mark className="size-8" />
+              <Semio360Wordmark className="h-5" />
             </Link>
             <NavLinks links={navLinks} />
           </div>

@@ -21,7 +21,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Semio360",
+  metadataBase: new URL("https://semio360.com"),
+  title: {
+    default: "Semio360",
+    template: "%s · Semio360",
+  },
   description: "Tu consultorio, en órbita. Turnos, historia clínica y evolución en un solo lugar.",
 };
 

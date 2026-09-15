@@ -56,9 +56,7 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center justify-items-center text-center">
-        <span className="mb-1 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Semio360Mark className="size-5.5" />
-        </span>
+        <Semio360Mark className="mb-1 size-11" />
         <CardTitle className="text-xl">Un último paso</CardTitle>
         <p className="text-sm text-muted-foreground">
           Google no nos da tu número de matrícula — completalo para empezar a usar Semio360.
