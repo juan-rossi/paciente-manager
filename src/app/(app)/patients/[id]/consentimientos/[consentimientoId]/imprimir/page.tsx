@@ -5,6 +5,7 @@ import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardContent } from "@/components/ui/card";
+import { TIME_ZONE } from "@/lib/timezone";
 
 type Props = { params: Promise<{ id: string; consentimientoId: string }> };
 
@@ -66,7 +67,7 @@ export default async function ImprimirConsentimientoPage({ params }: Props) {
             </p>
             <p className="text-xs text-muted-foreground">
               Fecha del consentimiento: {formatFecha(consentimiento.fecha)} — documento generado
-              el {new Date().toLocaleDateString("es-AR")}
+              el {new Date().toLocaleDateString("es-AR", { timeZone: TIME_ZONE })}
             </p>
           </header>
 

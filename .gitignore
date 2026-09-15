@@ -56,3 +56,5 @@ next-env.d.ts
 /whisper-service/installers/windows/Output
 *.gguf
 ggml-*.bin
+
+.vercel

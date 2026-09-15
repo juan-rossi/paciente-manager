@@ -18,6 +18,7 @@ import type { EvolucionValue } from "./types";
 import { formatFechaCorta, formatFechaRelativa } from "./utils";
 import { useTranscription } from "./use-transcription";
 import { DateInput } from "./date-input";
+import { formatDateParamBA } from "@/lib/timezone";
 
 function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -29,15 +30,13 @@ function formatElapsed(totalSeconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-// `new Date().toISOString()` da la fecha en UTC: cerca de medianoche, en un huso
-// horario negativo (ej. Argentina), ya cayó en el día siguiente en UTC. Hay que
-// armar la fecha "de hoy" con los componentes LOCALES, no los de UTC.
+// `new Date().toISOString()` da la fecha en UTC, y los componentes LOCALES
+// del proceso tampoco sirven: en producción (Vercel) el proceso corre en UTC,
+// no en horario de Argentina, así que cerca de medianoche en Argentina ya
+// habría caído en el día siguiente. `formatDateParamBA` no depende del TZ
+// del proceso.
 function todayLocal() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return formatDateParamBA(new Date());
 }
 
 type Props = {

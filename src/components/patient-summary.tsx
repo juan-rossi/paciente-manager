@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
+import { TIME_ZONE } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/patient-form/fields";
 import { ANTECEDENTES_ORDEN } from "@/components/patient-form/constants";
@@ -52,9 +53,13 @@ const AUDIT_LABELS: Record<string, string> = {
   EXPORTAR_CONSENTIMIENTO: "imprimió el consentimiento informado para su firma",
 };
 
+// Los timestamps de auditoría son instantes reales (no fechas de calendario
+// puras) -- hay que fijar el huso horario explícitamente, porque en
+// producción (Vercel) el proceso corre en UTC, no en horario de Argentina.
 function formatAuditFecha(fecha: Date): string {
-  const dia = fecha.toLocaleDateString("es-AR");
+  const dia = fecha.toLocaleDateString("es-AR", { timeZone: TIME_ZONE });
   const hora = fecha.toLocaleTimeString("es-AR", {
+    timeZone: TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -316,7 +321,7 @@ export function PatientSummary({
               contentClassName="bg-card"
               headerExtra={
                 <span className="text-xs font-normal text-muted-foreground">
-                  Creado el {patient.createdAt.toLocaleDateString("es-AR")}
+                  Creado el {patient.createdAt.toLocaleDateString("es-AR", { timeZone: TIME_ZONE })}
                 </span>
               }
             >

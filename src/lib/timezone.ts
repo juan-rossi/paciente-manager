@@ -6,7 +6,7 @@
  * `timeZone` explícito; usar estas funciones en su lugar, que no dependen del TZ del proceso.
  */
 
-const TIME_ZONE = "America/Argentina/Buenos_Aires";
+export const TIME_ZONE = "America/Argentina/Buenos_Aires";
 const BA_UTC_OFFSET_HOURS = 3;
 
 const formatter = new Intl.DateTimeFormat("en-US", {
@@ -80,4 +80,9 @@ export function dateParamToDateBA(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
   return fromPartsBA(Number(match[1]), Number(match[2]), Number(match[3]));
+}
+
+/** Año/mes/día de "hoy" en Buenos Aires (no depende del TZ del proceso). */
+export function todayPartsBA(): { year: number; month: number; day: number } {
+  return partsBA(new Date());
 }

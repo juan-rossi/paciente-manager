@@ -1,5 +1,6 @@
 import { ANTECEDENTES_ORDEN } from "./constants";
 import type { AntecedenteValue, EvolucionValue, PatientFormValues } from "./types";
+import { todayPartsBA } from "@/lib/timezone";
 
 const TEXT_FIELDS = [
   "nombreYApellido",
@@ -181,16 +182,17 @@ export function formatFechaCorta(fecha: string): string {
   return parts ? `${parts.day}/${parts.month}/${parts.year}` : fecha;
 }
 
-// Días transcurridos entre "hoy" (fecha local) y `fecha` (también local, sin
-// horas) -- ambos como medianoche local, para que la diferencia sea siempre
-// un número entero de días sin importar la hora en que se calcule.
+// Días transcurridos entre "hoy" (en Buenos Aires, no en el TZ del proceso --
+// en producción el proceso corre en UTC) y `fecha` -- ambos como medianoche
+// del mismo huso, para que la diferencia sea siempre un número entero de
+// días sin importar la hora en que se calcule.
 export function formatFechaRelativa(fecha: string): string {
   const parts = parseFechaISO(fecha);
   if (!parts) return "";
 
   const entryDate = new Date(parts.year, parts.month - 1, parts.day);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const hoy = todayPartsBA();
+  const today = new Date(hoy.year, hoy.month - 1, hoy.day);
   const diffDias = Math.round((today.getTime() - entryDate.getTime()) / 86_400_000);
 
   if (diffDias <= 0) return "Hoy";
@@ -222,10 +224,10 @@ export function calcularEdad(fechaNacimiento: string): string {
   const nacimiento = parseFechaISO(fechaNacimiento);
   if (!nacimiento) return "";
 
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - nacimiento.year;
-  const mes = hoy.getMonth() + 1 - nacimiento.month;
-  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.day)) {
+  const hoy = todayPartsBA();
+  let edad = hoy.year - nacimiento.year;
+  const mes = hoy.month - nacimiento.month;
+  if (mes < 0 || (mes === 0 && hoy.day < nacimiento.day)) {
     edad -= 1;
   }
   return edad >= 0 ? String(edad) : "";

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
 import { PLAN_FEATURES } from "@/lib/plan";
+import { TIME_ZONE } from "@/lib/timezone";
 
 type Props = {
   plan: "BASICA" | "PREMIUM";
@@ -29,7 +30,7 @@ export function PlanSettings({ plan, trialEndsAt, diasRestantesDeTrial }: Props)
               Período de prueba: quedan {diasRestantesDeTrial}{" "}
               {diasRestantesDeTrial === 1 ? "día" : "días"}
               {trialEndsAt &&
-                ` (hasta el ${new Date(trialEndsAt).toLocaleDateString("es-AR")})`}
+                ` (hasta el ${new Date(trialEndsAt).toLocaleDateString("es-AR", { timeZone: TIME_ZONE })})`}
               .
             </span>
           )}

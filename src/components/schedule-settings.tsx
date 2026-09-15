@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { SettingsSection } from "@/components/settings-section";
 import { DIA_SEMANA_VALUES, type DiaSemana } from "@/lib/slots";
 
@@ -54,9 +55,8 @@ type Props = {
 
 function formatFechaHora(iso: string) {
   const date = new Date(iso);
-  const fecha = date.toLocaleDateString("es-AR");
-  const hora = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-  return `${fecha} ${hora}`;
+  const fecha = date.toLocaleDateString("es-AR", { timeZone: TIME_ZONE });
+  return `${fecha} ${formatHoraBA(date)}`;
 }
 
 export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: Props) {

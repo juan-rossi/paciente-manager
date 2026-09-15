@@ -5,6 +5,7 @@ import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { calcularEdad } from "@/components/patient-form/utils";
 import { ANTECEDENTES_ORDEN, ESTADO_CIVIL_OPTIONS } from "@/components/patient-form/constants";
+import { TIME_ZONE } from "@/lib/timezone";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -114,7 +115,8 @@ export default async function HistoriaClinicaPage({ params }: Props) {
               {doctor?.nroMatricula ? ` — Matrícula ${doctor.nroMatricula}` : ""}
             </p>
             <p className="text-xs text-muted-foreground">
-              Copia generada el {new Date().toLocaleDateString("es-AR")}
+              Copia generada el{" "}
+              {new Date().toLocaleDateString("es-AR", { timeZone: TIME_ZONE })}
             </p>
           </header>
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { TIME_ZONE } from "@/lib/timezone";
 import {
   Table,
   TableBody,
@@ -60,7 +61,9 @@ export function EliminadosTable({ pacientes }: { pacientes: PacienteEliminadoRow
             <TableRow key={paciente.id}>
               <TableCell className="font-medium">{paciente.nombreYApellido}</TableCell>
               <TableCell>{paciente.nroDocumento ?? "—"}</TableCell>
-              <TableCell>{new Date(paciente.deletedAt).toLocaleDateString("es-AR")}</TableCell>
+              <TableCell>
+                {new Date(paciente.deletedAt).toLocaleDateString("es-AR", { timeZone: TIME_ZONE })}
+              </TableCell>
               <TableCell className="text-right">
                 <Button
                   type="button"

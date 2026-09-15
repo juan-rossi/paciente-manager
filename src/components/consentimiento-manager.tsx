@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { DateInput } from "@/components/patient-form/date-input";
 import { formatFechaCorta } from "@/components/patient-form/utils";
+import { formatDateParamBA } from "@/lib/timezone";
 
 export type ConsentimientoValue = {
   id: string;
@@ -46,15 +47,13 @@ type Props = {
   initialConsentimientos: ConsentimientoValue[];
 };
 
-// `new Date().toISOString()` da la fecha en UTC: cerca de medianoche, en un huso
-// horario negativo (ej. Argentina), ya cayó en el día siguiente en UTC. Hay que
-// armar la fecha "de hoy" con los componentes LOCALES, no los de UTC.
+// `new Date().toISOString()` da la fecha en UTC, y los componentes LOCALES
+// del proceso tampoco sirven: en producción (Vercel) el proceso corre en UTC,
+// no en horario de Argentina, así que cerca de medianoche en Argentina ya
+// habría caído en el día siguiente. `formatDateParamBA` no depende del TZ
+// del proceso.
 function todayLocal() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return formatDateParamBA(new Date());
 }
 
 export function ConsentimientoManager({ patientId, initialConsentimientos }: Props) {
