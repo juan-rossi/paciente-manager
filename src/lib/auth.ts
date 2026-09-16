@@ -8,4 +8,4 @@ export function verifyPassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export type UserRole = "DOCTOR" | "SECRETARY";
+export type UserRole = "DOCTOR" | "SECRETARY" | "ADMIN";

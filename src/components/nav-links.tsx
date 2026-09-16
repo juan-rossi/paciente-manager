@@ -2,10 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, MessageCircle, Settings, Users, type LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  LayoutDashboard,
+  MessageCircle,
+  Settings,
+  Stethoscope,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ICONS = { Users, CalendarDays, MessageCircle, Settings } satisfies Record<string, LucideIcon>;
+const ICONS = {
+  Users,
+  CalendarDays,
+  MessageCircle,
+  Settings,
+  LayoutDashboard,
+  Stethoscope,
+} satisfies Record<string, LucideIcon>;
 
 type NavLink = {
   href: string;

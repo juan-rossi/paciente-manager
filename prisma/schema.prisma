@@ -22,11 +22,28 @@ enum EstadoCivil {
 enum UserRole {
   DOCTOR
   SECRETARY
+  // Owner/staff de Semio 360 (no de un consultorio) -- ve todas las cuentas
+  // de médicos de la plataforma para tomar decisiones de negocio (altas,
+  // vencimientos, conversión, uso). No es un tenant: nunca tiene
+  // `activeDoctorId` ni pacientes/turnos propios. Se crea a mano
+  // (`scripts/create-admin.ts`), nunca por signup ni por OAuth de Google.
+  ADMIN
 }
 
 enum PlanTipo {
   BASICA
   PREMIUM
+}
+
+// Duración de la suscripción paga (no aplica al trial). Cuanto más larga,
+// más barato el precio mensual equivalente -- ver PLAN_PRICING en
+// `src/lib/plan.ts`. Se completa a mano hasta integrar el cobro recurrente
+// con MercadoPago (fase futura).
+enum PlanDuracion {
+  MENSUAL
+  SEMESTRAL
+  ANUAL
+  BIANUAL
 }
 
 enum DiaSemana {
@@ -75,6 +92,13 @@ model User {
   apellido                 String    @default("")
   nroMatricula             String    @default("")
   role                     UserRole  @default(SECRETARY)
+  // Un DOCTOR (o SECRETARY) puntual puede tener también acceso al panel
+  // /admin sin dejar de ser un tenant normal -- p.ej. un médico que
+  // además es owner/staff de Semio 360. No reemplaza `role: ADMIN` (esa
+  // cuenta de plataforma pura sigue sin tenant, ver getTenantId()); es un
+  // permiso adicional que se otorga con `scripts/grant-admin-access.ts`.
+  // Ver `isPlatformAdmin()` en `src/lib/admin-access.ts`.
+  isAdmin                  Boolean   @default(false)
   slotDurationMinutes      Int       @default(20)
   mensajeTemplate          String    @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
   recordatorioDiasAdelanto Int       @default(0)
@@ -91,6 +115,15 @@ model User {
   activeDoctorId String?
   plan           PlanTipo  @default(BASICA)
   trialEndsAt    DateTime?
+
+  // Una vez que el médico contrata un plan pago (todavía a mano, sin
+  // MercadoPago integrado) se completan estos dos campos. "Activo" en el
+  // panel de owner/admin = trial vigente (`trialEndsAt` a futuro) O
+  // suscripción paga vigente (`planEndsAt` a futuro) -- ver `esActivo()` en
+  // `src/lib/plan.ts`. `planDuracion` es solo informativo (para mostrar
+  // "Premium · 12 meses" y estimar el MRR); no dispara renovación sola.
+  planDuracion PlanDuracion?
+  planEndsAt   DateTime?
 
   doctorAsignaciones     DoctorSecretaria[] @relation("AsignacionesComoDoctor")
   secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")

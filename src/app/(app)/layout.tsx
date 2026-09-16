@@ -6,6 +6,7 @@ import { NavLinks } from "@/components/nav-links";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { DoctorSwitcher } from "@/components/doctor-switcher";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
+import { isPlatformAdmin } from "@/lib/admin-access";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -35,6 +36,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : []),
     { href: "/turnos", label: "Turnos", icon: "CalendarDays" as const },
     { href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const },
+    // Médico o secretaria con acceso admin otorgado a mano (ver
+    // scripts/grant-admin-access.ts) -- puede entrar a /admin sin dejar de
+    // usar su cuenta normal.
+    ...(user && isPlatformAdmin(user)
+      ? [{ href: "/admin", label: "Panel Admin", icon: "LayoutDashboard" as const }]
+      : []),
   ];
 
   const configLink = isDoctor

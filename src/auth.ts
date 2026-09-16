@@ -82,6 +82,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.userId = dbUser.id;
           token.role = dbUser.role as UserRole;
           token.perfilCompleto = dbUser.role !== "DOCTOR" || dbUser.nroMatricula.trim() !== "";
+          token.isAdmin = dbUser.isAdmin;
         }
       } else if (trigger === "update" && typeof token.userId === "string") {
         // La sesión JWT no se refresca sola en cada request -- sin esto,
@@ -93,6 +94,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (dbUser) {
           token.role = dbUser.role as UserRole;
           token.perfilCompleto = dbUser.role !== "DOCTOR" || dbUser.nroMatricula.trim() !== "";
+          token.isAdmin = dbUser.isAdmin;
         }
       }
       return token;
@@ -102,6 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.userId;
         session.user.role = token.role as UserRole;
         session.user.perfilCompleto = (token.perfilCompleto as boolean | undefined) ?? true;
+        session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
     },

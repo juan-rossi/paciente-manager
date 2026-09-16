@@ -13,6 +13,10 @@ declare module "next-auth" {
       // Falso solo para un DOCTOR creado por Google sin matrícula todavía --
       // `proxy.ts` lo usa para forzar `/onboarding` sin pegarle a la base.
       perfilCompleto: boolean;
+      // Acceso al panel /admin otorgado a mano a un DOCTOR/SECRETARY (ver
+      // `isPlatformAdmin()` en `src/lib/admin-access.ts`). Para role === "ADMIN"
+      // no hace falta -- ya tiene acceso por su rol.
+      isAdmin: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -22,5 +26,6 @@ declare module "next-auth/jwt" {
     userId?: string;
     role?: UserRole;
     perfilCompleto?: boolean;
+    isAdmin?: boolean;
   }
 }

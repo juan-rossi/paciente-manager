@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 type NavLink = {
   href: string;
   label: string;
-  icon: "Users" | "CalendarDays" | "MessageCircle" | "Settings";
+  icon: "Users" | "CalendarDays" | "MessageCircle" | "Settings" | "LayoutDashboard";
   matchPrefixes?: string[];
 };
 
