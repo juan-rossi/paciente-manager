@@ -8,6 +8,7 @@ import { isPlatformAdmin } from "@/lib/admin-access";
 const ADMIN_NAV_LINKS = [
   { href: "/admin", label: "Dashboard", icon: "LayoutDashboard" as const },
   { href: "/admin/medicos", label: "Médicos", icon: "Stethoscope" as const, matchPrefixes: ["/admin/medicos"] },
+  { href: "/admin/gastos", label: "Gastos", icon: "Wallet" as const },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -421,3 +421,16 @@ model ConsentimientoInformado {
 
   @@index([patientId])
 }
+
+// Gastos operativos de Semio 360 (la plataforma, no de un médico puntual) --
+// lo carga a mano el owner/admin desde /admin/gastos para tener una idea de
+// costos junto al MRR estimado del dashboard.
+model Gasto {
+  id          String   @id @default(cuid())
+  fecha       DateTime
+  descripcion String
+  monto       Int // en pesos (ARS), sin centavos -- misma convención que PLAN_PRICING en src/lib/plan.ts
+  createdAt   DateTime @default(now())
+
+  @@index([fecha])
+}

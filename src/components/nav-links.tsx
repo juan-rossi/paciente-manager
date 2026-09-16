@@ -9,6 +9,7 @@ import {
   Settings,
   Stethoscope,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const ICONS = {
   Settings,
   LayoutDashboard,
   Stethoscope,
+  Wallet,
 } satisfies Record<string, LucideIcon>;
 
 type NavLink = {
@@ -41,6 +43,20 @@ type Props = {
 export function NavLinks({ links, className, activeVariant = "underline" }: Props) {
   const pathname = usePathname();
 
+  // Con rutas anidadas (ej. "/admin" y "/admin/gastos"), el link padre
+  // también matchea por prefijo cualquier hijo -- sin desempate, "Dashboard"
+  // quedaba marcado activo en todas las subpáginas del panel admin. Gana
+  // el match más específico (el prefijo más largo), no el primero.
+  function matchLength(link: NavLink): number {
+    const prefixes = link.matchPrefixes ?? [link.href];
+    const matching = prefixes.filter(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    );
+    return matching.length > 0 ? Math.max(...matching.map((p) => p.length)) : -1;
+  }
+
+  const bestMatch = Math.max(...links.map(matchLength));
+
   return (
     <nav
       className={cn(
@@ -49,10 +65,7 @@ export function NavLinks({ links, className, activeVariant = "underline" }: Prop
       )}
     >
       {links.map((link) => {
-        const prefixes = link.matchPrefixes ?? [link.href];
-        const active = prefixes.some(
-          (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-        );
+        const active = bestMatch >= 0 && matchLength(link) === bestMatch;
         const Icon = ICONS[link.icon];
         return (
           <Link
