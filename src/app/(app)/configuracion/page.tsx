@@ -30,7 +30,7 @@ export default async function ConfiguracionPage() {
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
     }),
     prisma.user.findMany({
-      where: { role: "SECRETARY", doctorId: user.id },
+      where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: user.id } } },
       select: { id: true, email: true, nombre: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),

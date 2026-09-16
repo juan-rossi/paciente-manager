@@ -58,10 +58,23 @@ export const turnoEditSchema = turnoInputSchema.pick({
   obraSocial: true,
 });
 
+// `password`/`nombre` son opcionales acá porque el mismo formulario también
+// sirve para "sumar" a tu cuenta una secretaria que ya existe (asiste a otro
+// médico) -- en ese caso se ignoran y no hace falta completarlos. La ruta
+// exige ambos solo cuando el email no corresponde a nadie todavía.
 export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
-  nombre: z.string().trim().min(1, "El nombre es obligatorio."),
+  password: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null))
+    .refine((v) => v === null || v.length >= 6, "La contraseña debe tener al menos 6 caracteres."),
+  nombre: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
 });
 
 export const secretaryUpdateSchema = z.object({

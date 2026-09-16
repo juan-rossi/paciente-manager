@@ -1,13 +1,26 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks } from "@/components/nav-links";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
+import { DoctorSwitcher } from "@/components/doctor-switcher";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const isDoctor = user?.role === "DOCTOR";
+
+  // Una secretaria puede asistir a más de un médico -- si es el caso, se
+  // muestra el selector para elegir a cuál está atendiendo ahora.
+  const doctoresAsignados =
+    user && user.role === "SECRETARY"
+      ? await prisma.user.findMany({
+          where: { role: "DOCTOR", doctorAsignaciones: { some: { secretariaId: user.id } } },
+          select: { id: true, nombre: true, apellido: true },
+          orderBy: { nombre: "asc" },
+        })
+      : [];
 
   const navLinks = [
     ...(isDoctor
@@ -43,7 +56,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <NavLinks links={navLinks} />
           </div>
           <div className="flex items-center gap-6">
-            {user && (
+            {user && doctoresAsignados.length >= 2 && (
+              <div className="hidden sm:block">
+                <DoctorSwitcher doctores={doctoresAsignados} activeDoctorId={user.activeDoctorId ?? ""} />
+              </div>
+            )}
+            {user && doctoresAsignados.length < 2 && (
               <span className="hidden text-sm text-muted-foreground sm:inline">
                 {user.nombre}
               </span>
@@ -55,6 +73,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <MobileNavMenu navLinks={navLinks} configLink={configLink} userName={user?.nombre} />
           </div>
         </div>
+        {user && doctoresAsignados.length >= 2 && (
+          <div className="border-t border-border bg-muted/30 px-4 py-2 sm:hidden">
+            <DoctorSwitcher
+              doctores={doctoresAsignados}
+              activeDoctorId={user.activeDoctorId ?? ""}
+              className="w-full"
+            />
+          </div>
+        )}
       </header>
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 print:max-w-none print:p-0">
         {children}

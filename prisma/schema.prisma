@@ -80,14 +80,20 @@ model User {
   recordatorioDiasAdelanto Int       @default(0)
   createdAt                DateTime  @default(now())
 
-  // Multi-tenancy: null para un DOCTOR (es su propio tenant), seteado al
-  // médico dueño para una SECRETARY. `plan`/`trialEndsAt` solo tienen
-  // sentido en la fila del DOCTOR (la cuenta/tenant), no en sus secretarias.
-  doctorId    String?
-  doctor      User?     @relation("DoctorSecretarias", fields: [doctorId], references: [id])
-  secretarias User[]    @relation("DoctorSecretarias")
-  plan        PlanTipo  @default(BASICA)
-  trialEndsAt DateTime?
+  // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Una SECRETARY puede
+  // asistir a más de un médico (ver `DoctorSecretaria`, la relación real
+  // muchos-a-muchos) y opera, en cada request, dentro de la cuenta indicada
+  // por `activeDoctorId` -- el médico que eligió en el selector del header
+  // (ver `src/components/doctor-switcher.tsx`). Se valida contra
+  // `DoctorSecretaria` en el momento de setearlo, nunca en cada lectura.
+  // `plan`/`trialEndsAt` solo tienen sentido en la fila del DOCTOR (la
+  // cuenta/tenant), no en sus secretarias.
+  activeDoctorId String?
+  plan           PlanTipo  @default(BASICA)
+  trialEndsAt    DateTime?
+
+  doctorAsignaciones     DoctorSecretaria[] @relation("AsignacionesComoDoctor")
+  secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")
 
   workScheduleBlocks WorkScheduleBlock[]
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")
@@ -95,6 +101,21 @@ model User {
   turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
   auditLogsDelTenant AuditLog[]          @relation("AuditDoctor")
   auditLogsComoActor AuditLog[]          @relation("AuditActor")
+}
+
+// Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,
+// y un médico puede compartir secretaria con otro médico. Reemplaza el
+// antiguo `User.doctorId` (1 a 1).
+model DoctorSecretaria {
+  id           String   @id @default(cuid())
+  doctorId     String
+  doctor       User     @relation("AsignacionesComoDoctor", fields: [doctorId], references: [id], onDelete: Cascade)
+  secretariaId String
+  secretaria   User     @relation("AsignacionesComoSecretaria", fields: [secretariaId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([doctorId, secretariaId])
+  @@index([secretariaId])
 }
 
 enum AuditAccion {

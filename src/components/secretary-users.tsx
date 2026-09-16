@@ -38,6 +38,7 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
 
   const [deleteTarget, setDeleteTarget] = useState<Secretaria | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   function openCreate() {
     setEditingSecretaria(null);
@@ -45,6 +46,7 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
     setPassword("");
     setNombre("");
     setError(null);
+    setNotice(null);
     setOpen(true);
   }
 
@@ -54,12 +56,16 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
     setPassword("");
     setNombre(secretaria.nombre);
     setError(null);
+    setNotice(null);
     setOpen(true);
   }
 
   async function handleGuardar() {
-    if (!email.trim() || !nombre.trim() || (!editingSecretaria && !password.trim())) {
-      setError("Completá todos los campos.");
+    // Nombre/contraseña solo son obligatorios acá al editar -- al crear, si
+    // el email ya pertenece a una secretaria de otro médico, se ignoran (la
+    // ruta la suma a esta cuenta tal cual está) y no hace falta llenarlos.
+    if (!email.trim() || (editingSecretaria && !nombre.trim())) {
+      setError("Completá el email.");
       return;
     }
     setError(null);
@@ -85,6 +91,11 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
           ? prev.map((s) => (s.id === data.secretaria.id ? data.secretaria : s))
           : [data.secretaria, ...prev]
       );
+      setNotice(
+        !editingSecretaria && data.linked
+          ? `${data.secretaria.nombre} ya tenía una cuenta (asiste a otro médico) -- se sumó a la tuya.`
+          : null
+      );
       setOpen(false);
     } finally {
       setSaving(false);
@@ -106,12 +117,17 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
   return (
     <SettingsSection
       title="Usuarios"
-      description="Administrá las cuentas de secretaria: pueden gestionar turnos, pero no acceden a la información clínica de los pacientes."
+      description="Administrá las cuentas de secretario: pueden gestionar turnos, pero no acceden a la información clínica de los pacientes."
       icon={Users}
     >
       <div className="flex flex-col gap-3">
+        {notice && (
+          <p className="rounded-md border border-brand-accent/30 bg-brand-accent/10 p-3 text-sm text-brand-accent">
+            {notice}
+          </p>
+        )}
         {secretarias.length === 0 && (
-          <p className="text-sm text-muted-foreground">Todavía no hay secretarias creadas.</p>
+          <p className="text-sm text-muted-foreground">Todavía no hay secretarios creados.</p>
         )}
         {secretarias.map((secretaria) => (
           <div
@@ -135,7 +151,7 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
                 type="button"
                 onClick={() => setDeleteTarget(secretaria)}
                 className="text-muted-foreground hover:text-destructive"
-                aria-label="Eliminar secretaria"
+                aria-label="Eliminar secretario"
               >
                 <Trash2 className="size-4" />
               </button>
@@ -147,16 +163,22 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
       <div>
         <Button type="button" onClick={openCreate}>
           <Plus className="size-4" />
-          Nueva secretaria
+          Nuevo secretario
         </Button>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingSecretaria ? "Editar secretaria" : "Nueva secretaria"}</DialogTitle>
+            <DialogTitle>{editingSecretaria ? "Editar secretario" : "Nuevo secretario"}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
+            {!editingSecretaria && (
+              <p className="text-xs text-muted-foreground">
+                Si el email ya pertenece a un secretario que asiste a otro médico, se suma a tu
+                cuenta tal cual está. (Nombre y contraseña no hacen falta en ese caso)
+              </p>
+            )}
             <div className="flex flex-col gap-1.5">
               <Label>Nombre</Label>
               <Input

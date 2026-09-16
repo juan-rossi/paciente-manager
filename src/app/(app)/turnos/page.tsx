@@ -10,16 +10,19 @@ export default async function TurnosPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const tenantId = getTenantId(user);
   const today = new Date();
-  const { slots, sinConfigurar, diasConHorario } = await getDaySlots(
-    today,
-    user.role,
-    getTenantId(user)
-  );
+  const { slots, sinConfigurar, diasConHorario } = await getDaySlots(today, user.role, tenantId);
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
+      {/* `key` fuerza a remontar el calendario (y resetear todo su estado
+          interno) cuando una secretaria cambia de médico activo -- si no,
+          `router.refresh()` recalcula los props en el server pero el cliente
+          conserva el `useState` viejo y sigue mostrando los turnos del
+          médico anterior. */}
       <TurnosCalendar
+        key={tenantId}
         role={user.role}
         initialDate={formatDateParamBA(today)}
         initialSlots={slots}

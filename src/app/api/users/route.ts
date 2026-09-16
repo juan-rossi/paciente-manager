@@ -9,7 +9,7 @@ export async function GET() {
   if (response) return response;
 
   const secretarias = await prisma.user.findMany({
-    where: { role: "SECRETARY", doctorId: tenantId },
+    where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: tenantId } } },
     select: { id: true, email: true, nombre: true, createdAt: true },
     orderBy: { createdAt: "desc" },
   });
@@ -32,8 +32,52 @@ export async function POST(request: NextRequest) {
   }
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+
   if (existing) {
-    return NextResponse.json({ error: "Ya existe un usuario con ese email." }, { status: 409 });
+    if (existing.role !== "SECRETARY") {
+      return NextResponse.json(
+        { error: "Ese email ya está en uso por otra cuenta." },
+        { status: 409 }
+      );
+    }
+
+    // Ya existe como secretaria (posiblemente de otro médico): la sumamos a
+    // esta cuenta en vez de crear un usuario nuevo -- puede asistir a más de
+    // un médico. No se tocan su nombre/contraseña, son de su propia cuenta.
+    const yaAsignada = await prisma.doctorSecretaria.findUnique({
+      where: { doctorId_secretariaId: { doctorId: tenantId, secretariaId: existing.id } },
+    });
+    if (yaAsignada) {
+      return NextResponse.json(
+        { error: "Esa secretaria ya está asignada a tu cuenta." },
+        { status: 409 }
+      );
+    }
+
+    await prisma.doctorSecretaria.create({ data: { doctorId: tenantId, secretariaId: existing.id } });
+    if (!existing.activeDoctorId) {
+      await prisma.user.update({ where: { id: existing.id }, data: { activeDoctorId: tenantId } });
+    }
+
+    return NextResponse.json(
+      {
+        secretaria: {
+          id: existing.id,
+          email: existing.email,
+          nombre: existing.nombre,
+          createdAt: existing.createdAt,
+        },
+        linked: true,
+      },
+      { status: 201 }
+    );
+  }
+
+  if (!parsed.data.nombre || !parsed.data.password) {
+    return NextResponse.json(
+      { error: "Nombre y contraseña son obligatorios para una secretaria nueva." },
+      { status: 400 }
+    );
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
@@ -44,10 +88,11 @@ export async function POST(request: NextRequest) {
       nombre: parsed.data.nombre,
       passwordHash,
       role: "SECRETARY",
-      doctorId: tenantId,
+      activeDoctorId: tenantId,
+      secretariaAsignaciones: { create: { doctorId: tenantId } },
     },
     select: { id: true, email: true, nombre: true, createdAt: true },
   });
 
-  return NextResponse.json({ secretaria }, { status: 201 });
+  return NextResponse.json({ secretaria, linked: false }, { status: 201 });
 }

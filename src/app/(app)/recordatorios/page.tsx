@@ -72,7 +72,7 @@ export default async function RecordatoriosPage() {
       </div>
 
       <Card>
-        <CardContent className="flex flex-col gap-3 pt-6">
+        <CardContent className="flex flex-col gap-3">
           {turnos.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
               No hay turnos agendados para ese día.
@@ -102,7 +102,8 @@ export default async function RecordatoriosPage() {
                       render={<a href={href} target="_blank" rel="noopener noreferrer" />}
                     >
                       <MessageCircle className="size-3.5" />
-                      Enviar WhatsApp
+                      <span className="sm:hidden">Enviar</span>
+                      <span className="hidden sm:inline">Enviar WhatsApp</span>
                     </Button>
                   </li>
                 );

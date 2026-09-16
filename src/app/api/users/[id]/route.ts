@@ -12,7 +12,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const existing = await prisma.user.findFirst({ where: { id, role: "SECRETARY", doctorId: tenantId } });
+  const existing = await prisma.user.findFirst({
+    where: { id, role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: tenantId } } },
+  });
   if (!existing) {
     return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
   }
@@ -53,9 +55,25 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  // Nunca se borra por esta vía a un usuario que no sea secretaria (p. ej. el
-  // médico), ni una secretaria de otra cuenta.
-  await prisma.user.deleteMany({ where: { id, role: "SECRETARY", doctorId: tenantId } });
+  // Esta secretaria puede asistir a más de un médico -- acá solo se quita la
+  // asignación a la cuenta de este médico, nunca se borra la cuenta.
+  const { count } = await prisma.doctorSecretaria.deleteMany({
+    where: { doctorId: tenantId, secretariaId: id },
+  });
+  if (count === 0) {
+    return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
+  }
+
+  // Si tenía a este médico como el activo, hay que reasignarla a otro de los
+  // que le queden (o dejarla sin médico activo si no le queda ninguno).
+  const secretaria = await prisma.user.findUnique({ where: { id } });
+  if (secretaria?.activeDoctorId === tenantId) {
+    const otraAsignacion = await prisma.doctorSecretaria.findFirst({ where: { secretariaId: id } });
+    await prisma.user.update({
+      where: { id },
+      data: { activeDoctorId: otraAsignacion?.doctorId ?? null },
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }
