@@ -18,6 +18,7 @@ import {
   startOfDayBA,
 } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@/lib/auth";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +82,7 @@ function getGridRange(slots: Slot[]) {
 }
 
 type Props = {
-  role: "DOCTOR" | "SECRETARY";
+  role: UserRole;
   initialDate: string;
   initialSlots: Slot[];
   initialSinConfigurar: boolean;
