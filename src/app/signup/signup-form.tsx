@@ -6,10 +6,23 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Semio360Mark } from "@/components/brand/logo";
 import { GoogleIcon } from "@/components/google-icon";
+import {
+  TITULO_CORTESIA_LABELS,
+  TITULO_CORTESIA_OPTIONS,
+  type TituloCortesia,
+} from "@/lib/titulo-cortesia";
 
 export function SignupForm() {
   const router = useRouter();
@@ -17,6 +30,7 @@ export function SignupForm() {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [nroMatricula, setNroMatricula] = useState("");
+  const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,13 +43,19 @@ export function SignupForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!tituloCortesia) {
+      setError("Elegí un título.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, nombre, apellido, nroMatricula, password }),
+        body: JSON.stringify({ email, nombre, apellido, nroMatricula, tituloCortesia, password }),
       });
       const data = await response.json();
 
@@ -96,7 +116,27 @@ export function SignupForm() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[7.5rem_1fr] gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="tituloCortesia">Título</Label>
+              <Select
+                value={tituloCortesia}
+                onValueChange={(v) => setTituloCortesia(v as TituloCortesia)}
+              >
+                <SelectTrigger id="tituloCortesia" className="w-full">
+                  <SelectValue>
+                    {(v: TituloCortesia | "") => (v ? TITULO_CORTESIA_LABELS[v] : "Elegir...")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TITULO_CORTESIA_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="nombre">Nombre</Label>
               <Input
@@ -107,16 +147,16 @@ export function SignupForm() {
                 required
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="apellido">Apellido</Label>
-              <Input
-                id="apellido"
-                autoComplete="family-name"
-                value={apellido}
-                onChange={(event) => setApellido(event.target.value)}
-                required
-              />
-            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="apellido">Apellido</Label>
+            <Input
+              id="apellido"
+              autoComplete="family-name"
+              value={apellido}
+              onChange={(event) => setApellido(event.target.value)}
+              required
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="nroMatricula">Nro Matrícula</Label>
@@ -129,9 +169,8 @@ export function SignupForm() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">Contraseña</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}

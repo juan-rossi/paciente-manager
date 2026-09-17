@@ -20,7 +20,11 @@ export async function POST(request: NextRequest) {
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { apellido: parsed.data.apellido, nroMatricula: parsed.data.nroMatricula },
+    data: {
+      apellido: parsed.data.apellido,
+      nroMatricula: parsed.data.nroMatricula,
+      tituloCortesia: parsed.data.tituloCortesia,
+    },
   });
 
   return NextResponse.json({ ok: true });

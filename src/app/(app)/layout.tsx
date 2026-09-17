@@ -7,6 +7,7 @@ import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { DoctorSwitcher } from "@/components/doctor-switcher";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
+import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -18,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     user && user.role === "SECRETARY"
       ? await prisma.user.findMany({
           where: { role: "DOCTOR", doctorAsignaciones: { some: { secretariaId: user.id } } },
-          select: { id: true, nombre: true, apellido: true },
+          select: { id: true, nombre: true, apellido: true, tituloCortesia: true },
           orderBy: { nombre: "asc" },
         })
       : [];
@@ -48,6 +49,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
     : [];
 
+  const nombreConTitulo = user
+    ? isDoctor
+      ? formatNombreConTitulo(user.tituloCortesia, `${user.nombre} ${user.apellido}`.trim())
+      : user.nombre
+    : undefined;
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border bg-card shadow-sm print:hidden">
@@ -70,14 +77,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             )}
             {user && doctoresAsignados.length < 2 && (
               <span className="hidden text-sm text-muted-foreground sm:inline">
-                {user.nombre}
+                {nombreConTitulo}
               </span>
             )}
             <NavLinks links={configLink} />
             <div className="hidden sm:block">
               <LogoutButton />
             </div>
-            <MobileNavMenu navLinks={navLinks} configLink={configLink} userName={user?.nombre} />
+            <MobileNavMenu navLinks={navLinks} configLink={configLink} userName={nombreConTitulo} />
           </div>
         </div>
         {user && doctoresAsignados.length >= 2 && (

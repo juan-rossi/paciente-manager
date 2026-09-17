@@ -6,25 +6,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Semio360Mark } from "@/components/brand/logo";
+import {
+  TITULO_CORTESIA_LABELS,
+  TITULO_CORTESIA_OPTIONS,
+  type TituloCortesia,
+} from "@/lib/titulo-cortesia";
 
 export function OnboardingForm({ initialApellido }: { initialApellido: string }) {
   const { update } = useSession();
   const [apellido, setApellido] = useState(initialApellido);
   const [nroMatricula, setNroMatricula] = useState("");
+  const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!tituloCortesia) {
+      setError("Elegí un título.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch("/api/auth/complete-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apellido, nroMatricula }),
+        body: JSON.stringify({ apellido, nroMatricula, tituloCortesia }),
       });
       const data = await response.json();
 
@@ -64,15 +83,37 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="apellido">Apellido</Label>
-            <Input
-              id="apellido"
-              autoComplete="family-name"
-              value={apellido}
-              onChange={(event) => setApellido(event.target.value)}
-              required
-            />
+          <div className="grid grid-cols-[7.5rem_1fr] gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="tituloCortesia">Título</Label>
+              <Select
+                value={tituloCortesia}
+                onValueChange={(v) => setTituloCortesia(v as TituloCortesia)}
+              >
+                <SelectTrigger id="tituloCortesia" className="w-full">
+                  <SelectValue>
+                    {(v: TituloCortesia | "") => (v ? TITULO_CORTESIA_LABELS[v] : "Elegir...")}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TITULO_CORTESIA_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="apellido">Apellido</Label>
+              <Input
+                id="apellido"
+                autoComplete="family-name"
+                value={apellido}
+                onChange={(event) => setApellido(event.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="nroMatricula">Nro Matrícula</Label>

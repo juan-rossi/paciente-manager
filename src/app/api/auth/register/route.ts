@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       nombre: parsed.data.nombre,
       apellido: parsed.data.apellido,
       nroMatricula: parsed.data.nroMatricula,
+      tituloCortesia: parsed.data.tituloCortesia,
       passwordHash,
       role: "DOCTOR",
       plan: "BASICA",

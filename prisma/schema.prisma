@@ -35,6 +35,12 @@ enum PlanTipo {
   PREMIUM
 }
 
+enum TituloCortesia {
+  DR
+  DRA
+  LIC
+}
+
 // Duración de la suscripción paga (no aplica al trial). Cuanto más larga,
 // más barato el precio mensual equivalente -- ver PLAN_PRICING en
 // `src/lib/plan.ts`. Se completa a mano hasta integrar el cobro recurrente
@@ -91,6 +97,9 @@ model User {
   nombre                   String
   apellido                 String    @default("")
   nroMatricula             String    @default("")
+  // Solo aplica a role DOCTOR -- se completa en el registro (`/signup` o
+  // `/onboarding` post-Google) y se muestra antes del nombre en el header.
+  tituloCortesia           TituloCortesia?
   role                     UserRole  @default(SECRETARY)
   // Un DOCTOR (o SECRETARY) puntual puede tener también acceso al panel
   // /admin sin dejar de ser un tenant normal -- p.ej. un médico que

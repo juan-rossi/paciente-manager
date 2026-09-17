@@ -5,8 +5,14 @@ import { useRouter } from "next/navigation";
 import { Stethoscope } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 
-export type DoctorOption = { id: string; nombre: string; apellido: string };
+export type DoctorOption = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  tituloCortesia: TituloCortesia | null;
+};
 
 type Props = {
   doctores: DoctorOption[];
@@ -41,7 +47,9 @@ export function DoctorSwitcher({ doctores, activeDoctorId, className }: Props) {
     }
   }
 
-  const labelPorId = new Map(doctores.map((d) => [d.id, `${d.nombre} ${d.apellido}`.trim()]));
+  const labelPorId = new Map(
+    doctores.map((d) => [d.id, formatNombreConTitulo(d.tituloCortesia, `${d.nombre} ${d.apellido}`.trim())])
+  );
 
   return (
     <Select value={value} onValueChange={handleChange} disabled={isPending}>
@@ -52,7 +60,7 @@ export function DoctorSwitcher({ doctores, activeDoctorId, className }: Props) {
       <SelectContent>
         {doctores.map((d) => (
           <SelectItem key={d.id} value={d.id}>
-            {`${d.nombre} ${d.apellido}`.trim()}
+            {formatNombreConTitulo(d.tituloCortesia, `${d.nombre} ${d.apellido}`.trim())}
           </SelectItem>
         ))}
       </SelectContent>
