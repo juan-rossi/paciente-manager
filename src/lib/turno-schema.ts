@@ -17,6 +17,7 @@ export const scheduleBlockSchema = z
 export const slotDurationSchema = z.object({
   slotDurationMinutes: z.coerce.number().int().min(5).max(240),
   applyReschedule: z.boolean().optional(),
+  sobreturnosHabilitados: z.boolean().optional(),
 });
 
 export const messagingSchema = z.object({

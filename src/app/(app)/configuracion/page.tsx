@@ -84,6 +84,7 @@ export default async function ConfiguracionPage() {
           <ScheduleSettings
             initialBlocks={blocks}
             initialSlotDurationMinutes={user.slotDurationMinutes}
+            initialSobreturnosHabilitados={user.sobreturnosHabilitados}
           />
         </TabsContent>
         <TabsContent value="usuarios" className="w-full">

@@ -14,7 +14,11 @@ export async function GET() {
     orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
   });
 
-  return NextResponse.json({ slotDurationMinutes: user.slotDurationMinutes, blocks });
+  return NextResponse.json({
+    slotDurationMinutes: user.slotDurationMinutes,
+    sobreturnosHabilitados: user.sobreturnosHabilitados,
+    blocks,
+  });
 }
 
 function serializeItem(item: ReprogramacionItem) {
@@ -40,10 +44,23 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const { slotDurationMinutes, applyReschedule } = parsed.data;
+  const { slotDurationMinutes, applyReschedule, sobreturnosHabilitados } = parsed.data;
+  // Sin valor explícito en el body (p.ej. al confirmar una reprogramación
+  // pendiente), se mantiene el que ya tenía la cuenta.
+  const nuevoSobreturnosHabilitados = sobreturnosHabilitados ?? user.sobreturnosHabilitados;
 
   if (slotDurationMinutes === user.slotDurationMinutes) {
-    return NextResponse.json({ slotDurationMinutes: user.slotDurationMinutes });
+    // El toggle de sobreturnos no depende de la duración -- se guarda igual
+    // aunque la duración no haya cambiado, sin entrar a la lógica de
+    // reprogramación de turnos de abajo.
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { sobreturnosHabilitados: nuevoSobreturnosHabilitados },
+    });
+    return NextResponse.json({
+      slotDurationMinutes: updated.slotDurationMinutes,
+      sobreturnosHabilitados: updated.sobreturnosHabilitados,
+    });
   }
 
   const todayStart = startOfDayBA(new Date());
@@ -60,9 +77,12 @@ export async function PATCH(request: NextRequest) {
   if (turnosAfectados.length === 0) {
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { slotDurationMinutes },
+      data: { slotDurationMinutes, sobreturnosHabilitados: nuevoSobreturnosHabilitados },
     });
-    return NextResponse.json({ slotDurationMinutes: updated.slotDurationMinutes });
+    return NextResponse.json({
+      slotDurationMinutes: updated.slotDurationMinutes,
+      sobreturnosHabilitados: updated.sobreturnosHabilitados,
+    });
   }
 
   const { plan, sinSolucion } = planReschedule(turnosAfectados, blocks, slotDurationMinutes);
@@ -70,7 +90,7 @@ export async function PATCH(request: NextRequest) {
   if (sinSolucion.length > 0) {
     return NextResponse.json(
       {
-        error: `No se encontró horario disponible para ${sinSolucion.length} turno${sinSolucion.length === 1 ? "" : "s"}. Configurá más bloques de horario antes de cambiar la duración.`,
+        error: `No se encontró horario disponible para ${sinSolucion.length} turno${sinSolucion.length === 1 ? "" : "s"}. Configurá tu agenda antes de cambiar la duración.`,
       },
       { status: 422 }
     );
@@ -79,9 +99,12 @@ export async function PATCH(request: NextRequest) {
   if (plan.length === 0) {
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { slotDurationMinutes },
+      data: { slotDurationMinutes, sobreturnosHabilitados: nuevoSobreturnosHabilitados },
     });
-    return NextResponse.json({ slotDurationMinutes: updated.slotDurationMinutes });
+    return NextResponse.json({
+      slotDurationMinutes: updated.slotDurationMinutes,
+      sobreturnosHabilitados: updated.sobreturnosHabilitados,
+    });
   }
 
   if (!applyReschedule) {
@@ -101,11 +124,15 @@ export async function PATCH(request: NextRequest) {
         data: { inicio: item.newInicio, fin: item.newFin },
       });
     }
-    return tx.user.update({ where: { id: user.id }, data: { slotDurationMinutes } });
+    return tx.user.update({
+      where: { id: user.id },
+      data: { slotDurationMinutes, sobreturnosHabilitados: nuevoSobreturnosHabilitados },
+    });
   });
 
   return NextResponse.json({
     slotDurationMinutes: updated.slotDurationMinutes,
+    sobreturnosHabilitados: updated.sobreturnosHabilitados,
     rescheduled: plan.map(serializeItem),
   });
 }

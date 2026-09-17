@@ -6,6 +6,7 @@ import { CalendarDays, Clock, Pencil, Plus, Trash2, TriangleAlert } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,7 @@ type ReprogramacionPreview = {
 type Props = {
   initialBlocks: Block[];
   initialSlotDurationMinutes: number;
+  initialSobreturnosHabilitados: boolean;
 };
 
 function formatFechaHora(iso: string) {
@@ -59,10 +61,17 @@ function formatFechaHora(iso: string) {
   return `${fecha} ${formatHoraBA(date)}`;
 }
 
-export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: Props) {
+export function ScheduleSettings({
+  initialBlocks,
+  initialSlotDurationMinutes,
+  initialSobreturnosHabilitados,
+}: Props) {
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [slotDurationMinutes, setSlotDurationMinutes] = useState(initialSlotDurationMinutes);
   const [savedDurationMinutes, setSavedDurationMinutes] = useState(initialSlotDurationMinutes);
+  const [sobreturnosHabilitados, setSobreturnosHabilitados] = useState(
+    initialSobreturnosHabilitados
+  );
   const [savingDuration, setSavingDuration] = useState(false);
   const [durationError, setDurationError] = useState<string | null>(null);
 
@@ -91,7 +100,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
       const response = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slotDurationMinutes }),
+        body: JSON.stringify({ slotDurationMinutes, sobreturnosHabilitados }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -104,6 +113,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
         return;
       }
       setSavedDurationMinutes(data.slotDurationMinutes);
+      setSobreturnosHabilitados(data.sobreturnosHabilitados);
     } finally {
       setSavingDuration(false);
     }
@@ -117,7 +127,11 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
       const response = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slotDurationMinutes: pendingDuration, applyReschedule: true }),
+        body: JSON.stringify({
+          slotDurationMinutes: pendingDuration,
+          applyReschedule: true,
+          sobreturnosHabilitados,
+        }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -125,6 +139,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
         return;
       }
       setSavedDurationMinutes(data.slotDurationMinutes);
+      setSobreturnosHabilitados(data.sobreturnosHabilitados);
       setRescheduledCount((data.rescheduled ?? []).length);
       setReschedulePreview(null);
       setPendingDuration(null);
@@ -220,6 +235,24 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
             {savingDuration ? "Guardando..." : "Guardar"}
           </Button>
         </div>
+
+        <div className="flex flex-col gap-2 border-t border-dashed border-border pt-3">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="sobreturnos-habilitados"
+              checked={sobreturnosHabilitados}
+              onCheckedChange={setSobreturnosHabilitados}
+            />
+            <Label htmlFor="sobreturnos-habilitados" className="font-normal">
+              Permitir sobreturnos
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Con esto habilitado, vas a poder agregar turnos extra en el medio de un bloque o al
+            final, además de los turnos normales de la grilla.
+          </p>
+        </div>
+
         {durationError && <p className="text-sm text-destructive">{durationError}</p>}
         {rescheduledCount !== null && (
           <p className="text-sm text-muted-foreground">
@@ -240,7 +273,7 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
       </SettingsSection>
 
       <SettingsSection
-        title="Bloques de horario"
+        title="Agenda"
         description="Configurá los días y horarios en los que atendés; a partir de esto se generan los turnos disponibles."
         icon={CalendarDays}
       >
@@ -285,11 +318,11 @@ export function ScheduleSettings({ initialBlocks, initialSlotDurationMinutes }: 
           <Dialog open={open} onOpenChange={setOpen}>
             <Button type="button" onClick={openAddBlock}>
               <Plus className="size-4" />
-              Nuevo bloque
+              Nuevo horario
             </Button>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingBlock ? "Editar bloque de horario" : "Nuevo bloque de horario"}</DialogTitle>
+                <DialogTitle>{editingBlock ? "Editar horario" : "Nuevo horario"}</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
