@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { CalendarClock, Search } from "lucide-react";
 import { PatientSearch } from "@/components/patient-search";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TurnosPorDia } from "@/components/turnos-por-dia";
 import { getTurnosDelDia } from "@/lib/turnos-del-dia";
@@ -20,16 +22,19 @@ export default async function DashboardPage() {
 
   return (
     <Tabs defaultValue="turnos">
-      <TabsList>
-        <TabsTrigger value="turnos">
-          <CalendarClock className="size-4" />
-          Por turnos
-        </TabsTrigger>
-        <TabsTrigger value="buscar">
-          <Search className="size-4" />
-          Buscar paciente
-        </TabsTrigger>
-      </TabsList>
+      <div className="flex items-center justify-between">
+        <TabsList>
+          <TabsTrigger value="turnos">
+            <CalendarClock className="size-4" />
+            Por turnos
+          </TabsTrigger>
+          <TabsTrigger value="buscar">
+            <Search className="size-4" />
+            Buscar paciente
+          </TabsTrigger>
+        </TabsList>
+        <Button size="sm" nativeButton={false} render={<Link href="/patients/new">+ Nuevo paciente</Link>} />
+      </div>
       <TabsContent value="turnos">
         <TurnosPorDia
           initialDate={formatDateParamBA(hoy)}

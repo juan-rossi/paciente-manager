@@ -72,22 +72,15 @@ export function PatientSearch() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Buscar pacientes</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/patients/eliminados" />}
-          >
-            <Trash2 className="size-4" />
-            Papelera
-          </Button>
-          <Button
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/patients/new">+ Nuevo paciente</Link>}
-          />
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/patients/eliminados" />}
+        >
+          <Trash2 className="size-4" />
+          Papelera
+        </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Input
