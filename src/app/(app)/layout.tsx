@@ -19,10 +19,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     user && user.role === "SECRETARY"
       ? await prisma.user.findMany({
           where: { role: "DOCTOR", doctorAsignaciones: { some: { secretariaId: user.id } } },
-          select: { id: true, nombre: true, apellido: true, tituloCortesia: true },
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            tituloCortesia: true,
+            mensajeriaHabilitada: true,
+          },
           orderBy: { nombre: "asc" },
         })
       : [];
+
+  // La mensajería es una configuración del médico (tenant) -- una
+  // secretaria hereda la del médico que tiene activo en el selector.
+  const mensajeriaHabilitada = isDoctor
+    ? (user?.mensajeriaHabilitada ?? true)
+    : (doctoresAsignados.find((d) => d.id === user?.activeDoctorId)?.mensajeriaHabilitada ?? true);
 
   const navLinks = [
     ...(isDoctor
@@ -36,7 +48,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         ]
       : []),
     { href: "/turnos", label: "Turnos", icon: "CalendarDays" as const },
-    { href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const },
+    ...(mensajeriaHabilitada
+      ? [{ href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const }]
+      : []),
     // Médico o secretaria con acceso admin otorgado a mano (ver
     // scripts/grant-admin-access.ts) -- puede entrar a /admin sin dejar de
     // usar su cuenta normal.

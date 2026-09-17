@@ -22,6 +22,7 @@ export const slotDurationSchema = z.object({
 export const messagingSchema = z.object({
   mensajeTemplate: z.string().trim().min(1, "El mensaje es obligatorio."),
   recordatorioDiasAdelanto: z.coerce.number().int().min(0).max(90),
+  mensajeriaHabilitada: z.boolean(),
 });
 
 export const turnoInputSchema = z.object({

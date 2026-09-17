@@ -93,6 +93,7 @@ export default async function ConfiguracionPage() {
           <MessagingSettings
             initialMensajeTemplate={user.mensajeTemplate}
             initialRecordatorioDiasAdelanto={user.recordatorioDiasAdelanto}
+            initialMensajeriaHabilitada={user.mensajeriaHabilitada}
           />
         </TabsContent>
         <TabsContent value="transcriptor" className="w-full">

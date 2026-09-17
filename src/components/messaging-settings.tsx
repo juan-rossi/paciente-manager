@@ -1,19 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, MessageSquare, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarClock, MessageSquare, Power, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SettingsSection } from "@/components/settings-section";
+import { cn } from "@/lib/utils";
 
 type Props = {
   initialMensajeTemplate: string;
   initialRecordatorioDiasAdelanto: number;
+  initialMensajeriaHabilitada: boolean;
 };
 
 type DiasMode = "hoy" | "manana" | "otro";
@@ -27,7 +31,10 @@ function modeFromDias(dias: number): DiasMode {
 export function MessagingSettings({
   initialMensajeTemplate,
   initialRecordatorioDiasAdelanto,
+  initialMensajeriaHabilitada,
 }: Props) {
+  const router = useRouter();
+  const [mensajeriaHabilitada, setMensajeriaHabilitada] = useState(initialMensajeriaHabilitada);
   const [mensajeTemplate, setMensajeTemplate] = useState(initialMensajeTemplate);
   const [diasMode, setDiasMode] = useState<DiasMode>(() =>
     modeFromDias(initialRecordatorioDiasAdelanto)
@@ -50,7 +57,7 @@ export function MessagingSettings({
       const response = await fetch("/api/messaging", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensajeTemplate, recordatorioDiasAdelanto }),
+        body: JSON.stringify({ mensajeTemplate, recordatorioDiasAdelanto, mensajeriaHabilitada }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -58,6 +65,10 @@ export function MessagingSettings({
         return;
       }
       setSaved(true);
+      // El item "Recordatorios" del menú superior lo renderiza el layout
+      // (server component) según `mensajeriaHabilitada` -- sin esto, el
+      // toggle recién se reflejaría ahí después de navegar.
+      router.refresh();
     } finally {
       setSaving(false);
     }
@@ -66,20 +77,40 @@ export function MessagingSettings({
   return (
     <div className="flex flex-col gap-6">
       <SettingsSection
+        title="Mensajería"
+        description="Con la mensajería apagada, el item Recordatorios se oculta del menú superior."
+        icon={Power}
+      >
+        <div className="flex items-center gap-3">
+          <Switch
+            id="mensajeria-habilitada"
+            checked={mensajeriaHabilitada}
+            onCheckedChange={setMensajeriaHabilitada}
+          />
+          <Label htmlFor="mensajeria-habilitada" className="font-normal">
+            {mensajeriaHabilitada ? "Mensajería habilitada" : "Mensajería deshabilitada"}
+          </Label>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
         title="Mensaje de recordatorio"
         description="Definí el mensaje que se precarga al enviar un WhatsApp de confirmación de turno."
         icon={MessageSquare}
       >
-        <Label>Mensaje</Label>
-        <Textarea
-          rows={4}
-          value={mensajeTemplate}
-          onChange={(e) => setMensajeTemplate(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Podés usar <code>{"{nombre}"}</code>, <code>{"{fecha}"}</code> y{" "}
-          <code>{"{hora}"}</code>; se reemplazan por los datos de cada turno.
-        </p>
+        <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
+          <Label>Mensaje</Label>
+          <Textarea
+            rows={4}
+            value={mensajeTemplate}
+            onChange={(e) => setMensajeTemplate(e.target.value)}
+            disabled={!mensajeriaHabilitada}
+          />
+          <p className="text-xs text-muted-foreground">
+            Podés usar <code>{"{nombre}"}</code>, <code>{"{fecha}"}</code> y{" "}
+            <code>{"{hora}"}</code>; se reemplazan por los datos de cada turno.
+          </p>
+        </div>
       </SettingsSection>
 
       <SettingsSection
@@ -88,9 +119,10 @@ export function MessagingSettings({
         icon={CalendarClock}
       >
         <RadioGroup
-          className="flex flex-wrap items-center gap-[55px]"
+          className={cn("flex flex-wrap items-center gap-[55px]", !mensajeriaHabilitada && "opacity-60")}
           value={diasMode}
           onValueChange={(v) => setDiasMode(v as DiasMode)}
+          disabled={!mensajeriaHabilitada}
         >
           <div className="flex h-8 items-center gap-2">
             <RadioGroupItem value="hoy" id="dias-hoy" />
@@ -118,6 +150,7 @@ export function MessagingSettings({
                   className="ml-2 max-w-24"
                   value={otroDias}
                   onChange={(e) => setOtroDias(Number(e.target.value))}
+                  disabled={!mensajeriaHabilitada}
                 />
                 <span className="text-sm text-muted-foreground">días</span>
               </div>

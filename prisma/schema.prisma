@@ -111,6 +111,9 @@ model User {
   slotDurationMinutes      Int       @default(20)
   mensajeTemplate          String    @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
   recordatorioDiasAdelanto Int       @default(0)
+  // Apaga la mensajería de la cuenta -- con esto en false, el item
+  // "Recordatorios" del menú superior se oculta (ver `(app)/layout.tsx`).
+  mensajeriaHabilitada     Boolean   @default(true)
   createdAt                DateTime  @default(now())
 
   // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Una SECRETARY puede
