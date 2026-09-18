@@ -13,18 +13,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxInputGroup,
+  ComboboxInput,
+  ComboboxTrigger,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxItem,
+} from "@/components/ui/combobox";
 import { Semio360Mark } from "@/components/brand/logo";
 import {
   TITULO_CORTESIA_LABELS,
   TITULO_CORTESIA_OPTIONS,
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
+import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+
+type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
 export function OnboardingForm({ initialApellido }: { initialApellido: string }) {
   const { update } = useSession();
   const [apellido, setApellido] = useState(initialApellido);
   const [nroMatricula, setNroMatricula] = useState("");
   const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">("");
+  const [especialidad, setEspecialidad] = useState<Especialidad | "">("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,13 +50,18 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
       return;
     }
 
+    if (!especialidad) {
+      setError("Elegí una especialidad.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch("/api/auth/complete-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apellido, nroMatricula, tituloCortesia }),
+        body: JSON.stringify({ apellido, nroMatricula, tituloCortesia, especialidad }),
       });
       const data = await response.json();
 
@@ -123,6 +141,29 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
               onChange={(event) => setNroMatricula(event.target.value)}
               required
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="especialidad">Especialidad</Label>
+            <Combobox
+              items={ESPECIALIDAD_OPTIONS}
+              value={ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ?? null}
+              onValueChange={(item) =>
+                setEspecialidad((item as EspecialidadOption | null)?.value ?? "")
+              }
+            >
+              <ComboboxInputGroup>
+                <ComboboxInput id="especialidad" placeholder="Buscar especialidad..." />
+                <ComboboxClear aria-label="Limpiar especialidad" />
+                <ComboboxTrigger aria-label="Abrir especialidades" />
+              </ComboboxInputGroup>
+              <ComboboxContent>
+                {(option: EspecialidadOption) => (
+                  <ComboboxItem key={option.value} value={option}>
+                    {option.label}
+                  </ComboboxItem>
+                )}
+              </ComboboxContent>
+            </Combobox>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={loading} className="mt-2">

@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       apellido: parsed.data.apellido,
       nroMatricula: parsed.data.nroMatricula,
       tituloCortesia: parsed.data.tituloCortesia,
+      especialidad: parsed.data.especialidad,
     },
   });
 

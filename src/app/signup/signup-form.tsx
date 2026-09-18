@@ -16,6 +16,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Combobox,
+  ComboboxInputGroup,
+  ComboboxInput,
+  ComboboxTrigger,
+  ComboboxClear,
+  ComboboxContent,
+  ComboboxItem,
+} from "@/components/ui/combobox";
 import { Semio360Mark } from "@/components/brand/logo";
 import { GoogleIcon } from "@/components/google-icon";
 import {
@@ -23,6 +32,9 @@ import {
   TITULO_CORTESIA_OPTIONS,
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
+import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+
+type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
 export function SignupForm() {
   const router = useRouter();
@@ -31,6 +43,7 @@ export function SignupForm() {
   const [apellido, setApellido] = useState("");
   const [nroMatricula, setNroMatricula] = useState("");
   const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">("");
+  const [especialidad, setEspecialidad] = useState<Especialidad | "">("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,13 +62,26 @@ export function SignupForm() {
       return;
     }
 
+    if (!especialidad) {
+      setError("Elegí una especialidad.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, nombre, apellido, nroMatricula, tituloCortesia, password }),
+        body: JSON.stringify({
+          email,
+          nombre,
+          apellido,
+          nroMatricula,
+          tituloCortesia,
+          especialidad,
+          password,
+        }),
       });
       const data = await response.json();
 
@@ -166,6 +192,29 @@ export function SignupForm() {
               onChange={(event) => setNroMatricula(event.target.value)}
               required
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="especialidad">Especialidad</Label>
+            <Combobox
+              items={ESPECIALIDAD_OPTIONS}
+              value={ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ?? null}
+              onValueChange={(item) =>
+                setEspecialidad((item as EspecialidadOption | null)?.value ?? "")
+              }
+            >
+              <ComboboxInputGroup>
+                <ComboboxInput id="especialidad" placeholder="Buscar especialidad..." />
+                <ComboboxClear aria-label="Limpiar especialidad" />
+                <ComboboxTrigger aria-label="Abrir especialidades" />
+              </ComboboxInputGroup>
+              <ComboboxContent>
+                {(option: EspecialidadOption) => (
+                  <ComboboxItem key={option.value} value={option}>
+                    {option.label}
+                  </ComboboxItem>
+                )}
+              </ComboboxContent>
+            </Combobox>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">Contraseña</Label>

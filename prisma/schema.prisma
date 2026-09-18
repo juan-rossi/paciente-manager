@@ -41,6 +41,54 @@ enum TituloCortesia {
   LIC
 }
 
+enum Especialidad {
+  CLINICA_MEDICA
+  MEDICINA_FAMILIAR_GENERAL
+  PEDIATRIA
+  GINECOLOGIA
+  OBSTETRICIA
+  CARDIOLOGIA
+  DERMATOLOGIA
+  ENDOCRINOLOGIA
+  GASTROENTEROLOGIA
+  TRAUMATOLOGIA_Y_ORTOPEDIA
+  OFTALMOLOGIA
+  OTORRINOLARINGOLOGIA
+  NEUROLOGIA
+  PSIQUIATRIA
+  UROLOGIA
+  REUMATOLOGIA
+  NEUMONOLOGIA
+  ALERGIA_E_INMUNOLOGIA
+  INFECTOLOGIA
+  NEFROLOGIA
+  HEMATOLOGIA
+  ONCOLOGIA
+  GERIATRIA
+  NUTRICION
+  FLEBOLOGIA
+  DIABETOLOGIA
+  MEDICINA_DEL_DEPORTE
+  MEDICINA_FISICA_Y_REHABILITACION_FISIATRIA
+  MEDICINA_REPRODUCTIVA_FERTILIDAD
+  MEDICINA_DEL_DOLOR
+  MEDICINA_PALIATIVA
+  HEPATOLOGIA
+  COLOPROCTOLOGIA
+  MASTOLOGIA
+  ANDROLOGIA
+  CARDIOLOGIA_INFANTIL
+  NEUROLOGIA_INFANTIL
+  ENDOCRINOLOGIA_INFANTIL
+  GASTROENTEROLOGIA_INFANTIL
+  NEUMONOLOGIA_INFANTIL
+  NEFROLOGIA_INFANTIL
+  REUMATOLOGIA_INFANTIL
+  ALERGIA_E_INMUNOLOGIA_INFANTIL
+  INFECTOLOGIA_INFANTIL
+  PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE
+}
+
 // Duración de la suscripción paga (no aplica al trial). Cuanto más larga,
 // más barato el precio mensual equivalente -- ver PLAN_PRICING en
 // `src/lib/plan.ts`. Se completa a mano hasta integrar el cobro recurrente
@@ -100,6 +148,10 @@ model User {
   // Solo aplica a role DOCTOR -- se completa en el registro (`/signup` o
   // `/onboarding` post-Google) y se muestra antes del nombre en el header.
   tituloCortesia           TituloCortesia?
+  // Solo aplica a role DOCTOR -- requerida en el registro (`/signup` o
+  // `/onboarding` post-Google). Los médicos que ya existían al agregar este
+  // campo quedaron con "Clínica Médica" (ver la migración que lo agrega).
+  especialidad             Especialidad?
   role                     UserRole  @default(SECRETARY)
   // Un DOCTOR (o SECRETARY) puntual puede tener también acceso al panel
   // /admin sin dejar de ser un tenant normal -- p.ej. un médico que
