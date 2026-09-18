@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, UserPlus } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Search, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,9 +35,17 @@ type Props = {
   initialDate: string;
   initialTurnos: TurnoDelDia[];
   diasConHorario: DiaSemana[];
+  // Cambia a la pestaña "Buscar paciente" -- la maneja el padre porque las
+  // pestañas viven en `DashboardTabs`, un nivel arriba de este componente.
+  onBuscarPaciente?: () => void;
 };
 
-export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Props) {
+export function TurnosPorDia({
+  initialDate,
+  initialTurnos,
+  diasConHorario,
+  onBuscarPaciente,
+}: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
   );
@@ -135,12 +143,65 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
 
           {loading && <p className="py-4 text-center text-sm text-muted-foreground">Cargando...</p>}
 
-          {!loading && turnos.length === 0 && (
+          {!loading && turnos.length === 0 && !isSameDayBA(selectedDate, today) && (
             <p className="py-4 text-center text-sm text-muted-foreground">
-              {isSameDayBA(selectedDate, today)
-                ? "No hay turnos agendados para hoy."
-                : "No hay turnos agendados para este día."}
+              No hay turnos agendados para este día.
             </p>
+          )}
+
+          {!loading && turnos.length === 0 && isSameDayBA(selectedDate, today) && (
+            <div className="flex flex-col gap-4 py-1">
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                  <CalendarClock className="size-6 text-primary" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-base font-semibold">Hoy no tenés turnos</p>
+                  <p className="max-w-xs text-sm text-muted-foreground">
+                    Podés agregar un turno o revisar la agenda de los próximos días.
+                  </p>
+                </div>
+                <Button size="sm" className="mt-1" nativeButton={false} render={<Link href="/turnos" />}>
+                  Ver próxima disponibilidad
+                </Button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="px-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Accesos rápidos
+                </span>
+                <Link
+                  href="/patients/new"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent/40"
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                    <UserPlus className="size-4 text-primary" />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-sm font-semibold">Nuevo paciente</span>
+                    <span className="text-xs text-muted-foreground">Crear una historia clínica</span>
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={onBuscarPaciente}
+                  disabled={!onBuscarPaciente}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 text-left transition-colors hover:bg-accent/40 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                    <Search className="size-4 text-primary" />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-sm font-semibold">Buscar paciente</span>
+                    <span className="text-xs text-muted-foreground">
+                      Consultar antecedentes y evoluciones
+                    </span>
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
           )}
 
           {!loading && turnos.length > 0 && (
