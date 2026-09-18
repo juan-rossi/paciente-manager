@@ -51,6 +51,10 @@ export const turnoInputSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
+  // Un sobreturno puede caer justo en el mismo instante que un turno ya
+  // reservado (es la idea: agregarlo de más, no reemplazar la grilla) --
+  // salta el chequeo de duplicado que sí aplica a una reserva normal.
+  esSobreturno: z.boolean().optional(),
 });
 
 export const turnoEditSchema = turnoInputSchema.pick({

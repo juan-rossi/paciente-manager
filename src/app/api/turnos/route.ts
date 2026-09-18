@@ -47,11 +47,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Fecha y hora inválidas." }, { status: 400 });
   }
 
-  const existente = await prisma.turno.findFirst({
-    where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
-  });
-  if (existente) {
-    return NextResponse.json({ error: "Ese turno ya fue reservado." }, { status: 409 });
+  if (!parsed.data.esSobreturno) {
+    const existente = await prisma.turno.findFirst({
+      where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
+    });
+    if (existente) {
+      return NextResponse.json({ error: "Ese turno ya fue reservado." }, { status: 409 });
+    }
+  } else {
+    // Solo se permite un sobreturno por horario -- un turno normal más su
+    // sobreturno son como mucho 2 filas con el mismo `inicio`.
+    const cantidadEnElHorario = await prisma.turno.count({
+      where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
+    });
+    if (cantidadEnElHorario >= 2) {
+      return NextResponse.json(
+        { error: "Ya hay un sobreturno agendado en ese horario." },
+        { status: 409 }
+      );
+    }
   }
 
   const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);

@@ -23,6 +23,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -70,6 +78,51 @@ function minutesFromMidnight(iso: string) {
   return getMinutesSinceMidnightBA(new Date(iso));
 }
 
+function rangesOverlap(aInicio: string, aFin: string, bInicio: string, bFin: string) {
+  return new Date(aInicio) < new Date(bFin) && new Date(aFin) > new Date(bInicio);
+}
+
+type MergedRow = {
+  key: string;
+  leftPieces: Slot[];
+  sobreturnosAqui: Slot[];
+};
+
+// Un sobreturno tiene siempre la misma duración que un turno normal, así que
+// si arranca fuera de la grilla necesariamente invade la cola de un slot y la
+// cabeza del siguiente (nunca entra limpio en uno solo) -- por eso se agrupan
+// los slots que toca en una sola fila "fusionada" que se divide en dos
+// mitades: lo que había antes (libre u ocupado) a la izquierda, el/los
+// sobreturno(s) a la derecha. En mobile esas dos mitades se apilan en vez de
+// ir lado a lado (ver el `flex-col sm:flex-row` en el render).
+function mergeSobreturnos(slots: Slot[], sobreturnos: Slot[]) {
+  const mergedRows: MergedRow[] = [];
+  const standalone: Slot[] = [];
+  const consumedInicios = new Set<string>();
+
+  for (const sob of sobreturnos) {
+    const overlapping = slots.filter((s) => rangesOverlap(sob.inicio, sob.fin, s.inicio, s.fin));
+    if (overlapping.length === 0) {
+      standalone.push(sob);
+      continue;
+    }
+    const row = mergedRows.find((r) =>
+      r.leftPieces.some((piece) => overlapping.some((s) => s.inicio === piece.inicio))
+    );
+    if (row) {
+      for (const s of overlapping) {
+        if (!row.leftPieces.some((piece) => piece.inicio === s.inicio)) row.leftPieces.push(s);
+      }
+      row.sobreturnosAqui.push(sob);
+    } else {
+      mergedRows.push({ key: `merge-${sob.inicio}`, leftPieces: [...overlapping], sobreturnosAqui: [sob] });
+    }
+    overlapping.forEach((s) => consumedInicios.add(s.inicio));
+  }
+
+  return { mergedRows, standalone, consumedInicios };
+}
+
 function getGridRange(slots: Slot[]) {
   if (slots.length === 0) {
     return { startMinutes: DEFAULT_START_HOUR * 60, endMinutes: DEFAULT_END_HOUR * 60 };
@@ -85,21 +138,26 @@ type Props = {
   role: UserRole;
   initialDate: string;
   initialSlots: Slot[];
+  initialSobreturnos: Slot[];
   initialSinConfigurar: boolean;
   diasConHorario: DiaSemana[];
+  sobreturnosHabilitados: boolean;
 };
 
 export function TurnosCalendar({
   role,
   initialDate,
   initialSlots,
+  initialSobreturnos,
   initialSinConfigurar,
   diasConHorario,
+  sobreturnosHabilitados,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
   );
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
+  const [sobreturnos, setSobreturnos] = useState<Slot[]>(initialSobreturnos);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
   const [loading, setLoading] = useState(false);
   // En mobile arranca colapsado para no ocupar toda la pantalla con el
@@ -120,6 +178,17 @@ export function TurnosCalendar({
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
+  const [sobreturnoOpen, setSobreturnoOpen] = useState(false);
+  const [sobreturnoModo, setSobreturnoModo] = useState<"hora" | "final">("hora");
+  const [sobreturnoTurnoId, setSobreturnoTurnoId] = useState("");
+  const [sobreturnoNombre, setSobreturnoNombre] = useState("");
+  const [sobreturnoDni, setSobreturnoDni] = useState("");
+  const [sobreturnoTelefono, setSobreturnoTelefono] = useState("");
+  const [sobreturnoObraSocial, setSobreturnoObraSocial] = useState("");
+  const [sobreturnoSaving, setSobreturnoSaving] = useState(false);
+  const [sobreturnoError, setSobreturnoError] = useState<string | null>(null);
+  const [sobreturnoTriedSubmit, setSobreturnoTriedSubmit] = useState(false);
+
   const todayStart = startOfDayBA(new Date());
 
   async function loadSlots(date: Date) {
@@ -128,6 +197,7 @@ export function TurnosCalendar({
       const response = await fetch(`/api/turnos?date=${formatDateParamBA(date)}`);
       const data = await response.json();
       setSlots(data.slots ?? []);
+      setSobreturnos(data.sobreturnos ?? []);
       setSinConfigurar(Boolean(data.sinConfigurar));
     } finally {
       setLoading(false);
@@ -215,7 +285,95 @@ export function TurnosCalendar({
     }
   }
 
-  const { startMinutes, endMinutes } = getGridRange(slots);
+  // El final del último turno (normal o sobreturno) del día -- `null` si
+  // todavía no hay ningún turno agendado, en cuyo caso "al final de la
+  // lista" no tiene sentido (la lista está vacía) y esa opción se deshabilita.
+  function ultimoFinDelDia(): Date | null {
+    const fines = [
+      ...slots.filter((s) => s.turno).map((s) => new Date(s.fin)),
+      ...sobreturnos.map((s) => new Date(s.fin)),
+    ];
+    if (fines.length === 0) return null;
+    return new Date(Math.max(...fines.map((d) => d.getTime())));
+  }
+
+  // Los turnos normales (no sobreturnos) ya ocupados ese día que todavía no
+  // tienen un sobreturno propio -- de acá sale la lista del select "Junto a
+  // un turno" (solo se permite un sobreturno por horario).
+  function ocupadosDelDia(): Slot[] {
+    const sobreturnoInicios = new Set(sobreturnos.map((s) => s.inicio));
+    return slots.filter((s) => s.turno && !sobreturnoInicios.has(s.inicio));
+  }
+
+  function openSobreturnoDialog() {
+    const finDelDia = ultimoFinDelDia();
+    const ocupados = ocupadosDelDia();
+    setSobreturnoModo(finDelDia ? "final" : "hora");
+    setSobreturnoTurnoId(ocupados[0]?.turno?.id ?? "");
+    setSobreturnoNombre("");
+    setSobreturnoDni("");
+    setSobreturnoTelefono("");
+    setSobreturnoObraSocial("");
+    setSobreturnoError(null);
+    setSobreturnoTriedSubmit(false);
+    setSobreturnoOpen(true);
+  }
+
+  async function handleSubmitSobreturno() {
+    if (!sobreturnoNombre.trim() || !sobreturnoTelefono.trim()) {
+      setSobreturnoTriedSubmit(true);
+      setSobreturnoError("Completá nombre y teléfono.");
+      return;
+    }
+
+    let inicio: Date | null;
+    if (sobreturnoModo === "final") {
+      inicio = ultimoFinDelDia();
+    } else {
+      const turnoSlot = ocupadosDelDia().find((s) => s.turno!.id === sobreturnoTurnoId);
+      inicio = turnoSlot ? new Date(turnoSlot.inicio) : null;
+    }
+    if (!inicio) {
+      setSobreturnoError(
+        sobreturnoModo === "final"
+          ? "No hay turnos agendados para calcular el final del día."
+          : "Elegí un turno."
+      );
+      return;
+    }
+
+    setSobreturnoError(null);
+    setSobreturnoSaving(true);
+    try {
+      const response = await fetch("/api/turnos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inicio: inicio.toISOString(),
+          nombreYApellido: sobreturnoNombre,
+          dni: sobreturnoDni,
+          telefono: sobreturnoTelefono,
+          obraSocial: sobreturnoObraSocial,
+          esSobreturno: true,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setSobreturnoError(data.error ?? "No se pudo agregar el sobreturno.");
+        return;
+      }
+      setSobreturnoOpen(false);
+      await loadSlots(selectedDate);
+    } finally {
+      setSobreturnoSaving(false);
+    }
+  }
+
+  const { mergedRows, standalone: standaloneSobreturnos, consumedInicios } = mergeSobreturnos(
+    slots,
+    sobreturnos
+  );
+  const { startMinutes, endMinutes } = getGridRange([...slots, ...sobreturnos]);
   const totalMinutes = endMinutes - startMinutes;
   const today = new Date();
   const isToday = isSameDayBA(selectedDate, today);
@@ -226,47 +384,59 @@ export function TurnosCalendar({
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
       <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
-        <Card className="lg:self-start">
-          <CardContent className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setCalendarOpen((open) => !open)}
-              className="flex items-center justify-between gap-2 text-sm font-medium lg:hidden"
-            >
-              <span className="flex items-center gap-2">
-                <CalendarDays className="size-4" />
-                {capitalize(
-                  selectedDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+        <div className="flex flex-col gap-3 lg:self-start">
+          <Card>
+            <CardContent className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setCalendarOpen((open) => !open)}
+                className="flex items-center justify-between gap-2 text-sm font-medium lg:hidden"
+              >
+                <span className="flex items-center gap-2">
+                  <CalendarDays className="size-4" />
+                  {capitalize(
+                    selectedDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+                  )}
+                </span>
+                <ChevronDown
+                  className={cn("size-4 transition-transform", calendarOpen && "rotate-180")}
+                />
+              </button>
+              <div
+                className={cn(
+                  "justify-center lg:flex",
+                  calendarOpen ? "flex" : "hidden"
                 )}
-              </span>
-              <ChevronDown
-                className={cn("size-4 transition-transform", calendarOpen && "rotate-180")}
-              />
-            </button>
-            <div
-              className={cn(
-                "justify-center lg:flex",
-                calendarOpen ? "flex" : "hidden"
-              )}
+              >
+                <Calendar
+                  mode="single"
+                  locale={es}
+                  formatters={{
+                    formatCaption: (month, options) =>
+                      capitalize(defaultFormatCaption(month, options)),
+                    formatWeekdayName: (weekday, options) =>
+                      capitalize(defaultFormatWeekdayName(weekday, options)),
+                  }}
+                  selected={selectedDate}
+                  onSelect={handleSelectDate}
+                  disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
+                  modifiers={{ past: (date) => date < todayStart }}
+                  modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          {sobreturnosHabilitados && (
+            <Button
+              type="button"
+              className="w-full"
+              disabled={isPastDay}
+              onClick={openSobreturnoDialog}
             >
-              <Calendar
-                mode="single"
-                locale={es}
-                formatters={{
-                  formatCaption: (month, options) =>
-                    capitalize(defaultFormatCaption(month, options)),
-                  formatWeekdayName: (weekday, options) =>
-                    capitalize(defaultFormatWeekdayName(weekday, options)),
-                }}
-                selected={selectedDate}
-                onSelect={handleSelectDate}
-                disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
-                modifiers={{ past: (date) => date < todayStart }}
-                modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+              + Sobreturno
+            </Button>
+          )}
+        </div>
 
         <div className="flex flex-1 min-h-0 flex-col gap-3">
           <div className="flex shrink-0 items-center gap-3">
@@ -339,6 +509,7 @@ export function TurnosCalendar({
 
                   <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
                     {slots.map((slot) => {
+                      if (consumedInicios.has(slot.inicio)) return null;
                       const top =
                         ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
                       const height =
@@ -398,6 +569,141 @@ export function TurnosCalendar({
                               </span>
                             </span>
                           )}
+                        </button>
+                      );
+                    })}
+
+                    {mergedRows.map((row) => {
+                      const pieces = [...row.leftPieces].sort((a, b) =>
+                        a.inicio.localeCompare(b.inicio)
+                      );
+                      const allTimes = [...pieces, ...row.sobreturnosAqui];
+                      const rangeStart = Math.min(...allTimes.map((p) => minutesFromMidnight(p.inicio)));
+                      const rangeEnd = Math.max(...allTimes.map((p) => minutesFromMidnight(p.fin)));
+                      const top = ((rangeStart - startMinutes) / totalMinutes) * 100;
+                      const height = ((rangeEnd - rangeStart) / totalMinutes) * 100;
+
+                      return (
+                        <div
+                          key={row.key}
+                          style={{ top: `${top}%`, height: `${height}%` }}
+                          className="absolute left-1 min-h-28 w-[calc(100%-0.5rem)] overflow-hidden rounded-md border border-border bg-card shadow-sm sm:min-h-16"
+                        >
+                          <div className="flex h-full flex-col sm:flex-row">
+                            <div className="flex flex-1 flex-col">
+                              {pieces.map((piece, index) => {
+                                const ocupado = Boolean(piece.turno);
+                                return (
+                                  <button
+                                    key={piece.inicio}
+                                    type="button"
+                                    disabled={isPastDay}
+                                    onClick={() => (piece.turno ? openEdit(piece) : openBooking(piece))}
+                                    aria-label={
+                                      ocupado
+                                        ? `Turno de ${piece.turno!.nombreYApellido}, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Editar."}`
+                                        : `Libre, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Reservar."}`
+                                    }
+                                    className={cn(
+                                      "flex w-full flex-1 flex-col items-start justify-center px-2 py-1 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                                      index > 0 && "border-t border-dashed border-border/70",
+                                      ocupado
+                                        ? "bg-primary/15 text-primary hover:bg-primary/25"
+                                        : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                                    )}
+                                  >
+                                    {ocupado ? (
+                                      <>
+                                        <strong className="text-[11px] leading-tight font-semibold break-words">
+                                          {piece.turno!.nombreYApellido}
+                                        </strong>
+                                        <span className="flex items-center gap-2 text-[10px] leading-tight opacity-80">
+                                          <span className="shrink-0">
+                                            [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
+                                          </span>
+                                          {role === "DOCTOR" && piece.turno!.patientId && (
+                                            <Link
+                                              href={`/patients/${piece.turno!.patientId}`}
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="shrink-0 underline-offset-2 hover:underline"
+                                            >
+                                              Ver ficha
+                                            </Link>
+                                          )}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="text-[11px]">
+                                        <strong className="font-semibold">Libre</strong>{" "}
+                                        [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="flex flex-1 flex-col border-t border-dashed border-amber-500/70 sm:border-t-0 sm:border-l">
+                              {row.sobreturnosAqui.map((sob, index) => (
+                                <button
+                                  key={sob.inicio}
+                                  type="button"
+                                  disabled={isPastDay}
+                                  onClick={() => openEdit(sob)}
+                                  aria-label={`Sobreturno de ${sob.turno!.nombreYApellido}, ${formatHora(sob.inicio)} a ${formatHora(sob.fin)}${isPastDay ? "." : ". Editar."}`}
+                                  className={cn(
+                                    "flex w-full flex-1 flex-col items-start justify-center bg-amber-500/15 px-2 py-1 text-left text-amber-800 transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400",
+                                    index > 0 && "border-t border-dashed border-amber-500/40"
+                                  )}
+                                >
+                                  <strong className="text-[11px] leading-tight font-semibold break-words">
+                                    {sob.turno!.nombreYApellido}
+                                  </strong>
+                                  <span className="text-[10px] leading-tight opacity-80">
+                                    [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {standaloneSobreturnos.map((slot) => {
+                      const top =
+                        ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
+                      const height =
+                        ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) /
+                          totalMinutes) *
+                        100;
+
+                      return (
+                        <button
+                          key={`sobreturno-${slot.inicio}`}
+                          type="button"
+                          disabled={isPastDay}
+                          onClick={() => openEdit(slot)}
+                          style={{ top: `${top}%`, height: `${height}%`, minHeight: 44 }}
+                          aria-label={`Sobreturno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`}
+                          className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border border-dashed border-amber-500/70 bg-amber-500/15 py-1 pr-2 pl-6 text-left text-amber-800 shadow-sm transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400"
+                        >
+                          <strong className="text-xs leading-tight font-semibold break-words">
+                            {slot.turno!.nombreYApellido}
+                          </strong>
+                          <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
+                            <span className="shrink-0">
+                              [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ] · Sobreturno
+                            </span>
+                            {role === "DOCTOR" && slot.turno!.patientId && (
+                              <Link
+                                href={`/patients/${slot.turno!.patientId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 underline-offset-2 hover:underline"
+                              >
+                                Ver ficha
+                              </Link>
+                            )}
+                          </span>
                         </button>
                       );
                     })}
@@ -524,6 +830,123 @@ export function TurnosCalendar({
               disabled={cancelling}
             >
               {cancelling ? "Cancelando..." : "Cancelar turno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sobreturnoOpen} onOpenChange={(open) => !open && setSobreturnoOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agregar sobreturno</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Label>Día</Label>
+              <strong className="text-sm">{selectedDate.toLocaleDateString("es-AR")}</strong>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>¿Cuándo?</Label>
+              <RadioGroup
+                value={sobreturnoModo}
+                onValueChange={(v) => setSobreturnoModo(v as "hora" | "final")}
+                className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="hora"
+                    id="sobreturno-modo-hora"
+                    disabled={ocupadosDelDia().length === 0}
+                  />
+                  <Label htmlFor="sobreturno-modo-hora" className="font-normal">
+                    Junto a un turno
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="final"
+                    id="sobreturno-modo-final"
+                    disabled={!ultimoFinDelDia()}
+                  />
+                  <Label htmlFor="sobreturno-modo-final" className="font-normal">
+                    Al final de la lista
+                  </Label>
+                </div>
+              </RadioGroup>
+              {sobreturnoModo === "hora" && (
+                <Select
+                  value={sobreturnoTurnoId}
+                  onValueChange={(v) => setSobreturnoTurnoId(v ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {(id: string) => {
+                        const slot = ocupadosDelDia().find((s) => s.turno!.id === id);
+                        return slot
+                          ? `${formatHora(slot.inicio)} - ${slot.turno!.nombreYApellido}`
+                          : "Elegir turno...";
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ocupadosDelDia().map((slot) => (
+                      <SelectItem key={slot.turno!.id} value={slot.turno!.id}>
+                        {formatHora(slot.inicio)} - {slot.turno!.nombreYApellido}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <hr className="mt-2 mb-2" />
+            <div className="flex flex-col gap-1.5">
+              <Label>Nombre completo *</Label>
+              <Input
+                value={sobreturnoNombre}
+                onChange={(e) => setSobreturnoNombre(e.target.value)}
+                className={
+                  sobreturnoTriedSubmit && !sobreturnoNombre.trim()
+                    ? "border-destructive"
+                    : undefined
+                }
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>DNI</Label>
+                <Input
+                  inputMode="numeric"
+                  value={sobreturnoDni}
+                  onChange={(e) => setSobreturnoDni(e.target.value.replace(/\D/g, ""))}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Teléfono *</Label>
+                <Input
+                  value={sobreturnoTelefono}
+                  onChange={(e) => setSobreturnoTelefono(e.target.value)}
+                  className={
+                    sobreturnoTriedSubmit && !sobreturnoTelefono.trim()
+                      ? "border-destructive"
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Obra Social</Label>
+              <Input
+                value={sobreturnoObraSocial}
+                onChange={(e) => setSobreturnoObraSocial(e.target.value)}
+              />
+            </div>
+            {sobreturnoError && <p className="text-sm text-destructive">{sobreturnoError}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={handleSubmitSobreturno} disabled={sobreturnoSaving}>
+              {sobreturnoSaving ? "Agregando..." : "Agregar sobreturno"}
             </Button>
           </DialogFooter>
         </DialogContent>

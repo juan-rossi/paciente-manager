@@ -72,6 +72,8 @@ export function ScheduleSettings({
   const [sobreturnosHabilitados, setSobreturnosHabilitados] = useState(
     initialSobreturnosHabilitados
   );
+  const [savingSobreturnos, setSavingSobreturnos] = useState(false);
+  const [sobreturnosError, setSobreturnosError] = useState<string | null>(null);
   const [savingDuration, setSavingDuration] = useState(false);
   const [durationError, setDurationError] = useState<string | null>(null);
 
@@ -100,7 +102,7 @@ export function ScheduleSettings({
       const response = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slotDurationMinutes, sobreturnosHabilitados }),
+        body: JSON.stringify({ slotDurationMinutes }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -113,7 +115,6 @@ export function ScheduleSettings({
         return;
       }
       setSavedDurationMinutes(data.slotDurationMinutes);
-      setSobreturnosHabilitados(data.sobreturnosHabilitados);
     } finally {
       setSavingDuration(false);
     }
@@ -127,11 +128,7 @@ export function ScheduleSettings({
       const response = await fetch("/api/schedule", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slotDurationMinutes: pendingDuration,
-          applyReschedule: true,
-          sobreturnosHabilitados,
-        }),
+        body: JSON.stringify({ slotDurationMinutes: pendingDuration, applyReschedule: true }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -139,12 +136,45 @@ export function ScheduleSettings({
         return;
       }
       setSavedDurationMinutes(data.slotDurationMinutes);
-      setSobreturnosHabilitados(data.sobreturnosHabilitados);
       setRescheduledCount((data.rescheduled ?? []).length);
       setReschedulePreview(null);
       setPendingDuration(null);
     } finally {
       setApplyingReschedule(false);
+    }
+  }
+
+  // El toggle impacta la base de datos al toque, sin esperar al botón
+  // "Guardar" -- por eso manda `savedDurationMinutes` (el último valor
+  // confirmado en la cuenta) y no `slotDurationMinutes` (que puede tener una
+  // edición sin guardar en el input), así nunca guarda de arrastre un cambio
+  // de duración que el usuario todavía no confirmó.
+  async function handleToggleSobreturnos(checked: boolean) {
+    const previous = sobreturnosHabilitados;
+    setSobreturnosHabilitados(checked);
+    setSavingSobreturnos(true);
+    setSobreturnosError(null);
+    try {
+      const response = await fetch("/api/schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slotDurationMinutes: savedDurationMinutes,
+          sobreturnosHabilitados: checked,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setSobreturnosHabilitados(previous);
+        setSobreturnosError(data.error ?? "No se pudo guardar el cambio.");
+        return;
+      }
+      setSobreturnosHabilitados(data.sobreturnosHabilitados);
+    } catch {
+      setSobreturnosHabilitados(previous);
+      setSobreturnosError("No se pudo conectar con el servidor.");
+    } finally {
+      setSavingSobreturnos(false);
     }
   }
 
@@ -216,24 +246,26 @@ export function ScheduleSettings({
 
   return (
     <div className="flex flex-col gap-6">
-      <SettingsSection
-        title="Duración de turnos"
-        description="Define cuántos minutos dura cada turno disponible para reservar."
-        icon={Clock}
-      >
-        <Label>Minutos por turno</Label>
-        <div className="flex gap-2">
-          <Input
-            type="number"
-            min={5}
-            max={240}
-            className="max-w-32"
-            value={slotDurationMinutes}
-            onChange={(e) => setSlotDurationMinutes(Number(e.target.value))}
-          />
-          <Button type="button" onClick={handleGuardarDuracion} disabled={savingDuration}>
-            {savingDuration ? "Guardando..." : "Guardar"}
-          </Button>
+      <SettingsSection title="Duración de turnos" icon={Clock}>
+        <p className="text-xs text-muted-foreground">
+          Cuántos minutos dura cada turno disponible para reservar.
+        </p>
+
+        <div className="flex flex-col gap-2">
+          <Label>Minutos por turno</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={5}
+              max={240}
+              className="max-w-32"
+              value={slotDurationMinutes}
+              onChange={(e) => setSlotDurationMinutes(Number(e.target.value))}
+            />
+            <Button type="button" onClick={handleGuardarDuracion} disabled={savingDuration}>
+              {savingDuration ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-dashed border-border pt-3">
@@ -241,7 +273,8 @@ export function ScheduleSettings({
             <Switch
               id="sobreturnos-habilitados"
               checked={sobreturnosHabilitados}
-              onCheckedChange={setSobreturnosHabilitados}
+              onCheckedChange={handleToggleSobreturnos}
+              disabled={savingSobreturnos}
             />
             <Label htmlFor="sobreturnos-habilitados" className="font-normal">
               Permitir sobreturnos
@@ -251,6 +284,7 @@ export function ScheduleSettings({
             Con esto habilitado, vas a poder agregar turnos extra en el medio de un bloque o al
             final, además de los turnos normales de la grilla.
           </p>
+          {sobreturnosError && <p className="text-sm text-destructive">{sobreturnosError}</p>}
         </div>
 
         {durationError && <p className="text-sm text-destructive">{durationError}</p>}

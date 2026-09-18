@@ -27,10 +27,22 @@ export async function getDaySlots(
   date: Date,
   role: UserRole,
   tenantId: string
-): Promise<{ slots: DaySlot[]; sinConfigurar: boolean; diasConHorario: DiaSemana[] }> {
+): Promise<{
+  slots: DaySlot[];
+  sobreturnos: DaySlot[];
+  sinConfigurar: boolean;
+  diasConHorario: DiaSemana[];
+  sobreturnosHabilitados: boolean;
+}> {
   const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
   if (!doctor) {
-    return { slots: [], sinConfigurar: true, diasConHorario: [] };
+    return {
+      slots: [],
+      sobreturnos: [],
+      sinConfigurar: true,
+      diasConHorario: [],
+      sobreturnosHabilitados: false,
+    };
   }
 
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
@@ -42,22 +54,50 @@ export async function getDaySlots(
 
   const turnos = await prisma.turno.findMany({
     where: { doctorId: tenantId, inicio: { gte: dayStart, lt: dayEnd }, estado: "CONFIRMADO" },
+    orderBy: { createdAt: "asc" },
   });
-  const turnosPorInicio = new Map(turnos.map((t) => [t.inicio.getTime(), t]));
+
+  function serialize(turno: (typeof turnos)[number]) {
+    return serializeTurno(
+      { ...turno, fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null },
+      role
+    ) as SerializedTurno;
+  }
+
+  // Un sobreturno puede caer justo en el mismo instante que un turno ya
+  // reservado (se permite a propósito, ver `esSobreturno` en
+  // `turno-schema.ts`) -- por eso puede haber más de un turno con el mismo
+  // `inicio`. El primero creado (orden `createdAt`) es el que ocupa la fila
+  // de la grilla; cualquier otro que comparta ese instante pasa a
+  // `sobreturnos`, igual que uno con horario fuera de la grilla.
+  const turnoDeGrillaPorInicio = new Map<number, (typeof turnos)[number]>();
+  for (const turno of turnos) {
+    const key = turno.inicio.getTime();
+    if (!turnoDeGrillaPorInicio.has(key)) turnoDeGrillaPorInicio.set(key, turno);
+  }
 
   const result: DaySlot[] = slots.map((slot) => {
-    const turno = turnosPorInicio.get(slot.inicio.getTime());
+    const turno = turnoDeGrillaPorInicio.get(slot.inicio.getTime());
     return {
       inicio: slot.inicio.toISOString(),
       fin: slot.fin.toISOString(),
-      turno: turno
-        ? (serializeTurno(
-            { ...turno, fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null },
-            role
-          ) as SerializedTurno)
-        : null,
+      turno: turno ? serialize(turno) : null,
     };
   });
 
-  return { slots: result, sinConfigurar: blocks.length === 0, diasConHorario };
+  const sobreturnos: DaySlot[] = turnos
+    .filter((turno) => turnoDeGrillaPorInicio.get(turno.inicio.getTime())?.id !== turno.id)
+    .map((turno) => ({
+      inicio: turno.inicio.toISOString(),
+      fin: turno.fin.toISOString(),
+      turno: serialize(turno),
+    }));
+
+  return {
+    slots: result,
+    sobreturnos,
+    sinConfigurar: blocks.length === 0,
+    diasConHorario,
+    sobreturnosHabilitados: doctor.sobreturnosHabilitados,
+  };
 }

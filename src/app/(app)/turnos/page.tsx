@@ -12,7 +12,8 @@ export default async function TurnosPage() {
 
   const tenantId = getTenantId(user);
   const today = new Date();
-  const { slots, sinConfigurar, diasConHorario } = await getDaySlots(today, user.role, tenantId);
+  const { slots, sobreturnos, sinConfigurar, diasConHorario, sobreturnosHabilitados } =
+    await getDaySlots(today, user.role, tenantId);
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
@@ -26,8 +27,10 @@ export default async function TurnosPage() {
         role={user.role}
         initialDate={formatDateParamBA(today)}
         initialSlots={slots}
+        initialSobreturnos={sobreturnos}
         initialSinConfigurar={sinConfigurar}
         diasConHorario={diasConHorario}
+        sobreturnosHabilitados={sobreturnosHabilitados}
       />
     </div>
   );

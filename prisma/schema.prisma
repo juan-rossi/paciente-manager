@@ -116,8 +116,6 @@ model User {
   mensajeriaHabilitada     Boolean   @default(true)
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
-  // Por ahora solo el toggle -- la creación de sobreturnos en sí queda para
-  // una iteración futura.
   sobreturnosHabilitados   Boolean   @default(false)
   createdAt                DateTime  @default(now())
 
