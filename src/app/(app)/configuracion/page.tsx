@@ -1,4 +1,4 @@
-import { CalendarDays, Database, Mic, MessageSquare, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { MessagingSettings } from "@/components/messaging-settings";
 import { TranscriberSettings } from "@/components/transcriber-settings";
 import { PlanSettings } from "@/components/plan-settings";
 import { ExportSettings } from "@/components/export-settings";
+import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +71,10 @@ export default async function ConfiguracionPage() {
           </TabsTrigger>
 
           <div className={groupLabelClass}>Cuenta</div>
+          <TabsTrigger value="perfil" className={navItemClass}>
+            <User className="size-4" />
+            Mi perfil
+          </TabsTrigger>
           <TabsTrigger value="plan" className={navItemClass}>
             <Sparkles className="size-4" />
             Mi plan
@@ -99,6 +104,25 @@ export default async function ConfiguracionPage() {
         </TabsContent>
         <TabsContent value="transcriptor" className="w-full">
           <TranscriberSettings />
+        </TabsContent>
+        <TabsContent value="perfil" className="w-full">
+          <MiPerfilSettings
+            email={user.email}
+            initialFotoPerfilBase64={user.fotoPerfilBase64}
+            initialTituloCortesia={user.tituloCortesia}
+            initialNombre={user.nombre}
+            initialApellido={user.apellido}
+            initialEspecialidad={user.especialidad}
+            initialNroMatricula={user.nroMatricula}
+            initialPerfilPublico={user.perfilPublico}
+            initialAtencionTipo={user.atencionTipo}
+            initialNombreConsultorio={user.nombreConsultorio}
+            initialTelefono={user.telefono}
+            initialDireccion={user.direccion}
+            initialBiografia={user.biografia}
+            initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
+            initialPublicSlug={user.publicSlug}
+          />
         </TabsContent>
         <TabsContent value="plan" className="w-full">
           <PlanSettings

@@ -100,6 +100,13 @@ enum PlanDuracion {
   BIANUAL
 }
 
+// Cómo atiende el médico -- solo se pregunta cuando `perfilPublico` está
+// habilitado (ver comentario en el modelo `User`).
+enum AtencionTipo {
+  PARTICULAR
+  CONSULTORIO
+}
+
 enum DiaSemana {
   LUNES
   MARTES
@@ -153,6 +160,31 @@ model User {
   // campo quedaron con "Clínica Médica" (ver la migración que lo agrega).
   especialidad             Especialidad?
   role                     UserRole  @default(SECRETARY)
+  // Todo lo de acá abajo se edita desde "Mi perfil" (Configuración). Se
+  // guarda como base64 en la fila (sin storage externo todavía) -- si en el
+  // futuro se conecta Vercel Blob, esto pasa a ser una URL en su lugar.
+  fotoPerfilBase64         String?   @db.Text
+  biografia                String?   @db.Text
+  // Solo tiene sentido cuando `perfilPublico` está habilitado -- ver
+  // `AtencionTipo`. `nombreConsultorio` a su vez solo aplica cuando
+  // `atencionTipo` es `CONSULTORIO`.
+  atencionTipo             AtencionTipo?
+  nombreConsultorio        String?
+  telefono                 String?
+  direccion                String?
+  // Habilita que el perfil aparezca en el directorio público de Semio360
+  // (pantalla todavía no implementada). Los campos de "Información pública"
+  // de arriba son requeridos en el form cuando este flag está en true, pero
+  // a nivel de schema quedan nullable -- mismo criterio que
+  // `tituloCortesia`/`especialidad`.
+  perfilPublico            Boolean   @default(false)
+  // Habilita que cualquier visitante reserve un turno desde el link
+  // público (`publicSlug`). Independiente de `perfilPublico`.
+  reservaPublicaHabilitada Boolean   @default(false)
+  // Se genera la primera vez que se habilita `reservaPublicaHabilitada` (ver
+  // `src/lib/public-slug.ts`) y después queda fijo -- no se regenera si el
+  // médico cambia de nombre, para que el link ya compartido no se rompa.
+  publicSlug               String?   @unique
   // Un DOCTOR (o SECRETARY) puntual puede tener también acceso al panel
   // /admin sin dejar de ser un tenant normal -- p.ej. un médico que
   // además es owner/staff de Semio 360. No reemplaza `role: ADMIN` (esa
