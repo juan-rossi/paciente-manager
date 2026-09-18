@@ -385,8 +385,8 @@ export function TurnosCalendar({
     <div className="flex flex-1 min-h-0 flex-col gap-4">
       <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
         <div className="flex flex-col gap-3 lg:self-start">
-          <Card className="rounded-none border-0 bg-card py-0 shadow-none lg:rounded-xl lg:border lg:border-border lg:py-(--card-spacing) lg:shadow-sm">
-            <CardContent className="flex flex-col gap-2 px-0 lg:px-(--card-spacing)">
+          <Card>
+            <CardContent className="flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setCalendarOpen((open) => !open)}
@@ -470,8 +470,8 @@ export function TurnosCalendar({
             </Button>
           </div>
 
-          <Card className="flex-1 min-h-0">
-            <CardContent className="flex flex-1 min-h-0 flex-col pt-6">
+          <Card className="-mx-4 flex-1 min-h-0 rounded-none border-0 bg-card py-0 shadow-none lg:mx-0 lg:rounded-xl lg:border lg:border-border lg:py-(--card-spacing) lg:shadow-sm">
+            <CardContent className="flex flex-1 min-h-0 flex-col px-2 pt-[20px] lg:px-(--card-spacing) lg:pt-6">
               {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
 
               {!loading && sinConfigurar && (
