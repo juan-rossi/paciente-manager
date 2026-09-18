@@ -31,6 +31,7 @@ export const perfilSchema = z
     nombreConsultorio: optionalString,
     telefono: optionalString,
     direccion: optionalString,
+    ciudad: optionalString,
     biografia: optionalString,
   })
   .superRefine((data, ctx) => {
@@ -50,6 +51,9 @@ export const perfilSchema = z
     }
     if (!data.direccion) {
       ctx.addIssue({ code: "custom", path: ["direccion"], message: "La dirección es obligatoria." });
+    }
+    if (!data.ciudad) {
+      ctx.addIssue({ code: "custom", path: ["ciudad"], message: "La ciudad es obligatoria." });
     }
   });
 

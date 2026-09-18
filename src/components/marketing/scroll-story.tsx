@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AppWindow } from "./app-window";
 import { MockSidebar } from "./mock-sidebar";
 import { AppointmentCard } from "./appointment-card";
@@ -45,17 +45,25 @@ export function ScrollStory() {
     setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (reducedMotion !== false) return;
     if (!sectionRef.current) return;
 
     let ctx: ReturnType<typeof import("gsap").gsap.context> | undefined;
     let scrollTriggerInstance: { kill: () => void } | undefined;
+    // Sin este flag, un unmount durante el import (p.ej. al navegar rápido a
+    // otra página bajo el mismo layout) deja que gsap.context() se ejecute
+    // igual sobre una sección que React ya está por desmontar -- el pin de
+    // ScrollTrigger reordena el DOM por su cuenta, y React termina llamando
+    // removeChild sobre un nodo que ya no es hijo directo de su padre
+    // original ("NotFoundError: ... not a child of this node").
+    let cancelled = false;
 
     (async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
+      if (cancelled) return;
 
       ctx = gsap.context(() => {
         const scenes = [scene0Ref.current, scene1Ref.current, scene2Ref.current].filter(
@@ -99,8 +107,9 @@ export function ScrollStory() {
     })();
 
     return () => {
-      ctx?.revert();
+      cancelled = true;
       scrollTriggerInstance?.kill();
+      ctx?.revert();
     };
   }, [reducedMotion]);
 

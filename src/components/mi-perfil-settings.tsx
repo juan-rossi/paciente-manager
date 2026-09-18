@@ -57,6 +57,7 @@ type Props = {
   initialNombreConsultorio: string | null;
   initialTelefono: string | null;
   initialDireccion: string | null;
+  initialCiudad: string | null;
   initialBiografia: string | null;
   initialReservaPublicaHabilitada: boolean;
   initialPublicSlug: string | null;
@@ -75,6 +76,7 @@ export function MiPerfilSettings({
   initialNombreConsultorio,
   initialTelefono,
   initialDireccion,
+  initialCiudad,
   initialBiografia,
   initialReservaPublicaHabilitada,
   initialPublicSlug,
@@ -99,6 +101,7 @@ export function MiPerfilSettings({
   const [nombreConsultorio, setNombreConsultorio] = useState(initialNombreConsultorio ?? "");
   const [telefono, setTelefono] = useState(initialTelefono ?? "");
   const [direccion, setDireccion] = useState(initialDireccion ?? "");
+  const [ciudad, setCiudad] = useState(initialCiudad ?? "");
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
 
   const [saving, setSaving] = useState(false);
@@ -202,8 +205,8 @@ export function MiPerfilSettings({
         setError("Completá el nombre del consultorio.");
         return;
       }
-      if (!telefono.trim() || !direccion.trim()) {
-        setError('Completá el teléfono y la dirección en "Información pública".');
+      if (!telefono.trim() || !direccion.trim() || !ciudad.trim()) {
+        setError('Completá el teléfono, la dirección y la ciudad en "Información pública".');
         return;
       }
     }
@@ -224,6 +227,7 @@ export function MiPerfilSettings({
           nombreConsultorio,
           telefono,
           direccion,
+          ciudad,
           biografia,
         }),
       });
@@ -240,6 +244,7 @@ export function MiPerfilSettings({
         return;
       }
       setTriedSubmit(false);
+      setPublicSlug(data.publicSlug);
       router.refresh();
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -277,9 +282,9 @@ export function MiPerfilSettings({
 
   const publicLink =
     publicSlug && typeof window !== "undefined"
-      ? `${window.location.origin}/agendar/${publicSlug}`
+      ? `${window.location.origin}/directorio/${publicSlug}`
       : publicSlug
-        ? `semio360.com/agendar/${publicSlug}`
+        ? `semio360.com/directorio/${publicSlug}`
         : null;
 
   async function handleCopiarLink() {
@@ -486,8 +491,8 @@ export function MiPerfilSettings({
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold">Perfil público</span>
             <p className="max-w-md text-xs text-muted-foreground">
-              Aparecerá en el directorio público de Semio360 (próximamente). Al activarlo, completá
-              los datos de abajo.
+              Aparecerá en el directorio público de Semio360. Al activarlo, completá los datos de
+              abajo.
             </p>
           </div>
           <Switch checked={perfilPublico} onCheckedChange={setPerfilPublico} />
@@ -531,7 +536,7 @@ export function MiPerfilSettings({
               </div>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="perfil-telefono">Teléfono *</Label>
                 <Input
@@ -548,6 +553,15 @@ export function MiPerfilSettings({
                   value={direccion}
                   onChange={(e) => setDireccion(e.target.value)}
                   className={triedSubmit && !direccion.trim() ? "border-destructive" : undefined}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="perfil-ciudad">Ciudad *</Label>
+                <Input
+                  id="perfil-ciudad"
+                  value={ciudad}
+                  onChange={(e) => setCiudad(e.target.value)}
+                  className={triedSubmit && !ciudad.trim() ? "border-destructive" : undefined}
                 />
               </div>
             </div>

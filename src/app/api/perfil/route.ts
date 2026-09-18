@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { perfilSchema } from "@/lib/perfil-schema";
+import { generateUniquePublicSlug } from "@/lib/public-slug";
 
 export async function PATCH(request: NextRequest) {
   const { user, response } = await requireDoctor();
@@ -17,6 +18,15 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
+  // El slug del directorio se genera la primera vez que el perfil se hace
+  // público (si todavía no existe, p.ej. porque nunca se habilitó la agenda
+  // pública tampoco) -- después queda fijo, igual que en el toggle de
+  // agenda pública.
+  const publicSlug =
+    parsed.data.perfilPublico && !user.publicSlug
+      ? await generateUniquePublicSlug(parsed.data.nombre, parsed.data.apellido)
+      : user.publicSlug;
+
   const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -30,7 +40,9 @@ export async function PATCH(request: NextRequest) {
       nombreConsultorio: parsed.data.nombreConsultorio,
       telefono: parsed.data.telefono,
       direccion: parsed.data.direccion,
+      ciudad: parsed.data.ciudad,
       biografia: parsed.data.biografia,
+      publicSlug,
     },
   });
 
@@ -45,6 +57,8 @@ export async function PATCH(request: NextRequest) {
     nombreConsultorio: updated.nombreConsultorio,
     telefono: updated.telefono,
     direccion: updated.direccion,
+    ciudad: updated.ciudad,
     biografia: updated.biografia,
+    publicSlug: updated.publicSlug,
   });
 }

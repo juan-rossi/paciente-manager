@@ -172,11 +172,14 @@ model User {
   nombreConsultorio        String?
   telefono                 String?
   direccion                String?
-  // Habilita que el perfil aparezca en el directorio público de Semio360
-  // (pantalla todavía no implementada). Los campos de "Información pública"
-  // de arriba son requeridos en el form cuando este flag está en true, pero
-  // a nivel de schema quedan nullable -- mismo criterio que
-  // `tituloCortesia`/`especialidad`.
+  // Texto libre, no normalizado -- el filtro por ciudad del directorio
+  // (`src/lib/directorio.ts`) arma sus opciones a partir de los valores
+  // distintos que hay cargados, tal cual los escribió cada médico.
+  ciudad                   String?
+  // Habilita que el perfil aparezca en el directorio público de Semio360.
+  // Los campos de "Información pública" de arriba son requeridos en el form
+  // cuando este flag está en true, pero a nivel de schema quedan nullable --
+  // mismo criterio que `tituloCortesia`/`especialidad`.
   perfilPublico            Boolean   @default(false)
   // Habilita que cualquier visitante reserve un turno desde el link
   // público (`publicSlug`). Independiente de `perfilPublico`.

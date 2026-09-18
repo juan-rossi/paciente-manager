@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,9 +10,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "#producto", label: "Producto" },
-  { href: "#funcionalidades", label: "Funcionalidades" },
   { href: "#planes", label: "Planes" },
-  { href: "#confianza", label: "Confianza" },
   { href: "#testimonios", label: "Testimonios" },
   { href: "#faq", label: "Preguntas frecuentes" },
 ];
@@ -38,20 +36,40 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Semio360Mark className="size-8" />
-          <Semio360Wordmark className="h-5" />
-        </Link>
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-2.5">
+            <Semio360Mark className="size-8" />
+            <Semio360Wordmark className="h-5" />
+          </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
-          {NAV_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+          <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
+            {NAV_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className="transition-colors hover:text-foreground">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <div className="flex items-center gap-2">
+          {/* <a> nativo a propósito, no <Link> -- ScrollStory usa GSAP
+              ScrollTrigger con `pin: true`, que reestructura el DOM por su
+              cuenta; una transición del lado del cliente hacia otra página
+              del mismo layout puede desmontar esa sección a mitad de una
+              carrera con el cleanup de GSAP y tirar un "removeChild" en
+              React. Forzar una navegación completa evita la carrera. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden sm:inline-flex"
+            nativeButton={false}
+            // eslint-disable-next-line @next/next/no-html-link-for-pages
+            render={<a href="/directorio" />}
+          >
+            <Search className="size-3.5" data-icon="inline-start" />
+            Directorio
+          </Button>
+          <span className="hidden h-5 w-px bg-border/60 sm:block" />
           <Button
             variant="ghost"
             size="sm"
@@ -74,6 +92,15 @@ export function SiteHeader() {
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56">
               <nav className="flex flex-col gap-1">
+                {/* <a> nativo a propósito -- ver comentario junto al botón de escritorio. */}
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                <a
+                  href="/directorio"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                  Directorio
+                </a>
                 {NAV_LINKS.map((link) => (
                   <Link
                     key={link.href}

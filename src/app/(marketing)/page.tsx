@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/session";
 import { Hero } from "@/components/marketing/hero";
+import { DirectorioBanner } from "@/components/marketing/directorio-banner";
 import { SocialProof } from "@/components/marketing/social-proof";
 import { ConceptOrbit } from "@/components/marketing/concept-orbit";
 import { ScrollStory } from "@/components/marketing/scroll-story";
@@ -54,6 +55,7 @@ export default async function MarketingHomePage() {
       <InteractiveDemo />
       <TrustSecurity />
       <Testimonials />
+      <DirectorioBanner />
       <Pricing />
       <FAQ />
       <FinalCTA />

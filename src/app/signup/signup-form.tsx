@@ -110,7 +110,9 @@ export function SignupForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center justify-items-center text-center">
-        <Semio360Mark className="mb-1 size-11" />
+        <Link href="/" className="mb-1">
+          <Semio360Mark className="size-11" />
+        </Link>
         <CardTitle className="text-xl">Creá tu cuenta en Semio360</CardTitle>
         <p className="text-sm text-muted-foreground">
           Probá el plan Básico gratis durante 3 meses, sin tarjeta.

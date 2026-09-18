@@ -67,7 +67,9 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="items-center justify-items-center text-center">
-        <Semio360Mark className="mb-1 size-11" />
+        <Link href="/" className="mb-1">
+          <Semio360Mark className="size-11" />
+        </Link>
         <CardTitle className="text-xl">Semio360</CardTitle>
         <p className="text-sm text-muted-foreground">
           Ingresá con tu usuario para acceder a las historias clínicas.
