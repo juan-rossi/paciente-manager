@@ -69,10 +69,16 @@ export async function getDaySlots(
   // `turno-schema.ts`) -- por eso puede haber más de un turno con el mismo
   // `inicio`. El primero creado (orden `createdAt`) es el que ocupa la fila
   // de la grilla; cualquier otro que comparta ese instante pasa a
-  // `sobreturnos`, igual que uno con horario fuera de la grilla.
+  // `sobreturnos`, igual que uno con horario fuera de la grilla. Un turno
+  // solo puede ocupar la grilla si su `inicio` corresponde a un slot real
+  // (un sobreturno "al final de la lista" cae después del último slot y no
+  // corresponde a ninguno -- por eso nunca debe marcarse a sí mismo como
+  // ocupante de grilla, o desaparecería de ambas listas).
+  const slotInicios = new Set(slots.map((slot) => slot.inicio.getTime()));
   const turnoDeGrillaPorInicio = new Map<number, (typeof turnos)[number]>();
   for (const turno of turnos) {
     const key = turno.inicio.getTime();
+    if (!slotInicios.has(key)) continue;
     if (!turnoDeGrillaPorInicio.has(key)) turnoDeGrillaPorInicio.set(key, turno);
   }
 

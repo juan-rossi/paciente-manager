@@ -150,13 +150,30 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
                   <li key={turno.id}>
                     <Link
                       href={`/patients/${turno.patientId}?turnoId=${turno.id}`}
-                      className="flex items-center gap-3 rounded-md border border-border p-2 transition-colors hover:bg-accent/40"
+                      className={cn(
+                        "flex items-center gap-3 rounded-md border p-2 transition-colors",
+                        turno.esSobreturno
+                          ? "border-dashed border-amber-500/70 bg-amber-500/10 hover:bg-amber-500/20"
+                          : "border-border hover:bg-accent/40"
+                      )}
                     >
-                      <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
+                      <span
+                        className={cn(
+                          "flex h-9 w-14 shrink-0 items-center justify-center rounded-md border text-sm font-semibold tabular-nums",
+                          turno.esSobreturno
+                            ? "border-amber-500/70 bg-amber-500/15 text-amber-800 dark:text-amber-400"
+                            : "border-border bg-muted"
+                        )}
+                      >
                         {formatHora(new Date(turno.inicio))}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
+                        {turno.esSobreturno && (
+                          <p className="truncate text-xs font-medium text-amber-700 dark:text-amber-400">
+                            Sobreturno
+                          </p>
+                        )}
                         {turno.dni && (
                           <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
                         )}
@@ -179,13 +196,28 @@ export function TurnosPorDia({ initialDate, initialTurnos, diasConHorario }: Pro
                 ) : (
                   <li
                     key={turno.id}
-                    className="flex items-center gap-3 rounded-md border border-dashed border-border p-2"
+                    className={cn(
+                      "flex items-center gap-3 rounded-md border border-dashed p-2",
+                      turno.esSobreturno ? "border-amber-500/70 bg-amber-500/10" : "border-border"
+                    )}
                   >
-                    <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold tabular-nums">
+                    <span
+                      className={cn(
+                        "flex h-9 w-14 shrink-0 items-center justify-center rounded-md border text-sm font-semibold tabular-nums",
+                        turno.esSobreturno
+                          ? "border-amber-500/70 bg-amber-500/15 text-amber-800 dark:text-amber-400"
+                          : "border-transparent bg-muted"
+                      )}
+                    >
                       {formatHora(new Date(turno.inicio))}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
+                      {turno.esSobreturno && (
+                        <p className="truncate text-xs font-medium text-amber-700 dark:text-amber-400">
+                          Sobreturno
+                        </p>
+                      )}
                       {turno.dni && (
                         <p className="truncate text-xs text-muted-foreground">DNI {turno.dni}</p>
                       )}

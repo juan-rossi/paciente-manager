@@ -385,8 +385,8 @@ export function TurnosCalendar({
     <div className="flex flex-1 min-h-0 flex-col gap-4">
       <div className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row">
         <div className="flex flex-col gap-3 lg:self-start">
-          <Card>
-            <CardContent className="flex flex-col gap-2">
+          <Card className="rounded-none border-0 bg-card py-0 shadow-none lg:rounded-xl lg:border lg:border-border lg:py-(--card-spacing) lg:shadow-sm">
+            <CardContent className="flex flex-col gap-2 px-0 lg:px-(--card-spacing)">
               <button
                 type="button"
                 onClick={() => setCalendarOpen((open) => !open)}
@@ -587,9 +587,9 @@ export function TurnosCalendar({
                         <div
                           key={row.key}
                           style={{ top: `${top}%`, height: `${height}%` }}
-                          className="absolute left-1 min-h-28 w-[calc(100%-0.5rem)] overflow-hidden rounded-md border border-border bg-card shadow-sm sm:min-h-16"
+                          className="absolute left-1 min-h-11 w-[calc(100%-0.5rem)] overflow-hidden rounded-md border border-border bg-card shadow-sm"
                         >
-                          <div className="flex h-full flex-col sm:flex-row">
+                          <div className="flex h-full flex-row">
                             <div className="flex flex-1 flex-col">
                               {pieces.map((piece, index) => {
                                 const ocupado = Boolean(piece.turno);
@@ -642,7 +642,7 @@ export function TurnosCalendar({
                                 );
                               })}
                             </div>
-                            <div className="flex flex-1 flex-col border-t border-dashed border-amber-500/70 sm:border-t-0 sm:border-l">
+                            <div className="flex flex-1 flex-col border-l border-dashed border-amber-500/70">
                               {row.sobreturnosAqui.map((sob, index) => (
                                 <button
                                   key={sob.inicio}
