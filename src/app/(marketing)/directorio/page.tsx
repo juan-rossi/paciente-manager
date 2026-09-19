@@ -1,23 +1,21 @@
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { DirectorioFiltros } from "@/components/marketing/directorio-filtros";
 import { DoctorCard } from "@/components/marketing/doctor-card";
-import { getDoctoresPublicos, getCiudadesDisponibles } from "@/lib/directorio";
+import { getDoctoresPublicos } from "@/lib/directorio";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ especialidad?: string; ciudad?: string }>;
+  searchParams: Promise<{ especialidad?: string; ciudad?: string; lat?: string; lng?: string }>;
 };
 
 export default async function DirectorioPage({ searchParams }: Props) {
   const params = await searchParams;
   const especialidad = params.especialidad || undefined;
-  const ciudad = params.ciudad || undefined;
+  const lat = params.lat ? Number(params.lat) : undefined;
+  const lng = params.lng ? Number(params.lng) : undefined;
 
-  const [doctores, ciudades] = await Promise.all([
-    getDoctoresPublicos({ especialidad, ciudad }),
-    getCiudadesDisponibles(),
-  ]);
+  const doctores = await getDoctoresPublicos({ especialidad, lat, lng });
 
   return (
     <>
@@ -36,7 +34,7 @@ export default async function DirectorioPage({ searchParams }: Props) {
             title="El médico que buscás, a un clic de distancia"
             description="Explorá perfiles verificados, filtrá por especialidad y ciudad, y reservá turno online cuando esté disponible."
           />
-          <DirectorioFiltros ciudades={ciudades} />
+          <DirectorioFiltros />
         </div>
       </section>
 

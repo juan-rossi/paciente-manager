@@ -4,6 +4,11 @@ import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import type { DoctorPublico } from "@/lib/directorio";
 
+function formatDistancia(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km < 10 ? km.toFixed(1) : Math.round(km)} km`;
+}
+
 export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
   const nombreCompleto = formatNombreConTitulo(
     doctor.tituloCortesia,
@@ -35,10 +40,12 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
         </div>
       </div>
 
-      {doctor.ciudad && (
+      {(doctor.ciudad || doctor.distanciaKm != null) && (
         <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <MapPin className="size-3.5 shrink-0" />
           {doctor.ciudad}
+          {doctor.ciudad && doctor.distanciaKm != null && " · "}
+          {doctor.distanciaKm != null && `a ${formatDistancia(doctor.distanciaKm)}`}
         </div>
       )}
 

@@ -8,7 +8,10 @@ import { HeroWindow } from "./hero-window";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-16 sm:pt-20">
+    // 57px = altura real del header sticky (ver SiteHeader) -- se resta acá
+    // para que el hero ocupe exactamente el resto del viewport, sin que el
+    // conjunto header+hero termine siendo más alto que una pantalla.
+    <section className="relative flex min-h-[calc(100vh-57px)] flex-col justify-center overflow-hidden py-12">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
@@ -17,7 +20,7 @@ export function Hero() {
             "radial-gradient(55% 50% at 50% 0%, color-mix(in oklch, var(--primary) 16%, transparent), transparent)",
         }}
       />
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 pb-20 sm:pb-28 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-8">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
