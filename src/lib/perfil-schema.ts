@@ -32,6 +32,8 @@ export const perfilSchema = z
     telefono: optionalString,
     direccion: optionalString,
     ciudad: optionalString,
+    latitud: z.number().nullable().optional(),
+    longitud: z.number().nullable().optional(),
     biografia: optionalString,
   })
   .superRefine((data, ctx) => {

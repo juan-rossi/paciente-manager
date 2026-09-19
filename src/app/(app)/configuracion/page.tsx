@@ -120,6 +120,8 @@ export default async function ConfiguracionPage() {
             initialTelefono={user.telefono}
             initialDireccion={user.direccion}
             initialCiudad={user.ciudad}
+            initialLatitud={user.latitud}
+            initialLongitud={user.longitud}
             initialBiografia={user.biografia}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
             initialPublicSlug={user.publicSlug}

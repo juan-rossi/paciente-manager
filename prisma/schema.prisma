@@ -171,11 +171,15 @@ model User {
   atencionTipo             AtencionTipo?
   nombreConsultorio        String?
   telefono                 String?
+  // `direccion`/`ciudad`/`latitud`/`longitud` se completan juntos al elegir
+  // una sugerencia del autocompletado de Google Places en "Mi perfil" (no
+  // son campos de texto libre editables por separado) -- `ciudad` sale del
+  // "locality" de la dirección elegida, y las coordenadas quedan guardadas
+  // para poder filtrar el directorio por cercanía más adelante.
   direccion                String?
-  // Texto libre, no normalizado -- el filtro por ciudad del directorio
-  // (`src/lib/directorio.ts`) arma sus opciones a partir de los valores
-  // distintos que hay cargados, tal cual los escribió cada médico.
   ciudad                   String?
+  latitud                  Float?
+  longitud                 Float?
   // Habilita que el perfil aparezca en el directorio público de Semio360.
   // Los campos de "Información pública" de arriba son requeridos en el form
   // cuando este flag está en true, pero a nivel de schema quedan nullable --

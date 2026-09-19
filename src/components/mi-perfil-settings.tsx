@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2 } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -58,6 +59,8 @@ type Props = {
   initialTelefono: string | null;
   initialDireccion: string | null;
   initialCiudad: string | null;
+  initialLatitud: number | null;
+  initialLongitud: number | null;
   initialBiografia: string | null;
   initialReservaPublicaHabilitada: boolean;
   initialPublicSlug: string | null;
@@ -77,6 +80,8 @@ export function MiPerfilSettings({
   initialTelefono,
   initialDireccion,
   initialCiudad,
+  initialLatitud,
+  initialLongitud,
   initialBiografia,
   initialReservaPublicaHabilitada,
   initialPublicSlug,
@@ -102,7 +107,31 @@ export function MiPerfilSettings({
   const [telefono, setTelefono] = useState(initialTelefono ?? "");
   const [direccion, setDireccion] = useState(initialDireccion ?? "");
   const [ciudad, setCiudad] = useState(initialCiudad ?? "");
+  const [latitud, setLatitud] = useState(initialLatitud);
+  const [longitud, setLongitud] = useState(initialLongitud);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
+
+  // Escribir en el campo de dirección invalida la ciudad/coordenadas ya
+  // guardadas -- se vuelven a completar solas recién cuando el usuario elige
+  // una sugerencia real del autocompletado (ver AddressAutocomplete).
+  function handleDireccionTextChange(text: string) {
+    setDireccion(text);
+    setCiudad("");
+    setLatitud(null);
+    setLongitud(null);
+  }
+
+  function handleDireccionSelect(result: {
+    direccion: string;
+    ciudad: string | null;
+    latitud: number | null;
+    longitud: number | null;
+  }) {
+    setDireccion(result.direccion);
+    setCiudad(result.ciudad ?? "");
+    setLatitud(result.latitud);
+    setLongitud(result.longitud);
+  }
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,8 +234,12 @@ export function MiPerfilSettings({
         setError("Completá el nombre del consultorio.");
         return;
       }
-      if (!telefono.trim() || !direccion.trim() || !ciudad.trim()) {
-        setError('Completá el teléfono, la dirección y la ciudad en "Información pública".');
+      if (!telefono.trim()) {
+        setError('Completá el teléfono en "Información pública".');
+        return;
+      }
+      if (!direccion.trim() || !ciudad.trim()) {
+        setError('Elegí una dirección de la lista de sugerencias en "Información pública".');
         return;
       }
     }
@@ -228,6 +261,8 @@ export function MiPerfilSettings({
           telefono,
           direccion,
           ciudad,
+          latitud,
+          longitud,
           biografia,
         }),
       });
@@ -536,7 +571,21 @@ export function MiPerfilSettings({
               </div>
             )}
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="perfil-direccion">Dirección *</Label>
+              <AddressAutocomplete
+                id="perfil-direccion"
+                value={direccion}
+                onChangeText={handleDireccionTextChange}
+                onSelect={handleDireccionSelect}
+                className={triedSubmit && !direccion.trim() ? "border-destructive" : undefined}
+              />
+              <span className="text-xs text-muted-foreground">
+                Elegí una sugerencia de la lista para completar la ciudad automáticamente.
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="perfil-telefono">Teléfono *</Label>
                 <Input
@@ -547,20 +596,12 @@ export function MiPerfilSettings({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-direccion">Dirección *</Label>
-                <Input
-                  id="perfil-direccion"
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  className={triedSubmit && !direccion.trim() ? "border-destructive" : undefined}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="perfil-ciudad">Ciudad *</Label>
                 <Input
                   id="perfil-ciudad"
                   value={ciudad}
-                  onChange={(e) => setCiudad(e.target.value)}
+                  disabled
+                  placeholder="Se completa al elegir la dirección"
                   className={triedSubmit && !ciudad.trim() ? "border-destructive" : undefined}
                 />
               </div>

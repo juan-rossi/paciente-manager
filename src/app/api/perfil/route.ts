@@ -41,6 +41,8 @@ export async function PATCH(request: NextRequest) {
       telefono: parsed.data.telefono,
       direccion: parsed.data.direccion,
       ciudad: parsed.data.ciudad,
+      latitud: parsed.data.latitud ?? null,
+      longitud: parsed.data.longitud ?? null,
       biografia: parsed.data.biografia,
       publicSlug,
     },
@@ -58,6 +60,8 @@ export async function PATCH(request: NextRequest) {
     telefono: updated.telefono,
     direccion: updated.direccion,
     ciudad: updated.ciudad,
+    latitud: updated.latitud,
+    longitud: updated.longitud,
     biografia: updated.biografia,
     publicSlug: updated.publicSlug,
   });
