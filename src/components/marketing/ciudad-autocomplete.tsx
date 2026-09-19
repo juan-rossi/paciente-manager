@@ -37,7 +37,16 @@ export function CiudadAutocomplete({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function handleInputValueChange(text: string) {
+  function handleInputValueChange(text: string, eventDetails?: { reason?: string }) {
+    // Al elegir una sugerencia, el combobox cierra el popup y -- como nunca
+    // le pasamos un `value` real (todo el manejo de texto es nuestro, ver
+    // `value={null}` más abajo) -- interpreta que "no hubo selección" y
+    // limpia el input solo (reason "input-clear"), justo antes de que
+    // `handleValueChange` complete el fetch de detalle y confirme el texto
+    // final. Eso se veía como un parpadeo: texto elegido -> vacío -> texto
+    // final. Ese clear es siempre espurio acá (el nuestro, con el botón de
+    // limpiar, no pasa por este handler), así que se ignora.
+    if (eventDetails?.reason === "input-clear") return;
     onChangeText(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (text.trim().length < 2) {
