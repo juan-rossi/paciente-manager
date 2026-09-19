@@ -22,9 +22,18 @@ type Props = {
   onSelect: (result: CiudadResult) => void;
   onClear: () => void;
   className?: string;
+  groupClassName?: string;
 };
 
-export function CiudadAutocomplete({ id, value, onChangeText, onSelect, onClear, className }: Props) {
+export function CiudadAutocomplete({
+  id,
+  value,
+  onChangeText,
+  onSelect,
+  onClear,
+  className,
+  groupClassName,
+}: Props) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -74,7 +83,7 @@ export function CiudadAutocomplete({ id, value, onChangeText, onSelect, onClear,
       itemToStringValue={(item: Suggestion) => item.text}
       itemToStringLabel={(item: Suggestion) => item.text}
     >
-      <ComboboxInputGroup>
+      <ComboboxInputGroup className={groupClassName}>
         <ComboboxInput id={id} placeholder="Todas las ciudades" className={className} />
         {value !== "" && (
           <button
