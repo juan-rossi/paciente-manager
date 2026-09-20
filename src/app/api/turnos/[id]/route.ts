@@ -10,12 +10,27 @@ type RouteParams = { params: Promise<{ id: string }> };
 const turnoUpdateSchema = z.union([z.object({ estado: z.literal("CANCELADO") }), turnoEditSchema]);
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
 
   const { id } = await params;
 
-  const owned = await prisma.turno.findFirst({ where: { id, doctorId: tenantId }, select: { id: true } });
+  // Una secretaria solo puede tocar turnos del lugar que tiene activo (ver
+  // `resolveActiveLugarId`) -- si no tiene ninguno asignado, no ve ningún
+  // turno como propio (un `lugarId: null` en el where matchearía turnos sin
+  // lugar, que es justo lo que NO queremos acá).
+  if (user.role === "SECRETARY" && activeLugarId === null) {
+    return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
+  }
+
+  const owned = await prisma.turno.findFirst({
+    where: {
+      id,
+      doctorId: tenantId,
+      ...(user.role === "SECRETARY" ? { lugarId: activeLugarId } : {}),
+    },
+    select: { id: true },
+  });
   if (!owned) {
     return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
   }

@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 /**
  * En multi-tenant, cada `Patient`/`Turno` pertenece a la cuenta de UN
@@ -22,4 +23,49 @@ export function getTenantId(user: { role: UserRole; id: string; activeDoctorId: 
     );
   }
   return user.role === "DOCTOR" ? user.id : user.activeDoctorId!;
+}
+
+/**
+ * Dentro del médico activo, una secretaria solo puede administrar turnos de
+ * uno de los lugares que tiene asignados para ESE médico (ver
+ * `DoctorSecretariaLugar` -- es específico de la relación médico-secretaria,
+ * no de la secretaria en general). Devuelve:
+ * - `undefined` para un DOCTOR: no hay restricción, ve todos sus lugares.
+ * - el `lugarId` activo para una SECRETARY con al menos un lugar asignado.
+ * - `null` para una SECRETARY sin ningún lugar asignado (no debería pasar
+ *   dado que es obligatorio al crear/editar, pero el médico puede haberle
+ *   sacado todos después) -- el llamador debe tratarlo como "no ve nada",
+ *   nunca como "sin restricción".
+ *
+ * El médico puede cambiarle los lugares asignados a la secretaria en
+ * cualquier momento (ver PATCH /api/users/[id]), así que esto se revalida
+ * en cada request contra `DoctorSecretariaLugar` en vez de confiar
+ * ciegamente en `activeLugarId` -- si el guardado ya no es válido, se
+ * autocorrige al primero de los permitidos y lo persiste.
+ */
+export async function resolveActiveLugarId(user: {
+  role: UserRole;
+  id: string;
+  activeDoctorId: string | null;
+  activeLugarId: string | null;
+}): Promise<string | null | undefined> {
+  if (user.role !== "SECRETARY") return undefined;
+
+  const doctorId = user.activeDoctorId;
+  if (!doctorId) return null;
+
+  const asignacion = await prisma.doctorSecretaria.findUnique({
+    where: { doctorId_secretariaId: { doctorId, secretariaId: user.id } },
+    select: { lugares: { orderBy: { createdAt: "asc" }, select: { lugarId: true } } },
+  });
+  const permitidos = asignacion?.lugares.map((l) => l.lugarId) ?? [];
+  if (permitidos.length === 0) return null;
+
+  if (user.activeLugarId && permitidos.includes(user.activeLugarId)) {
+    return user.activeLugarId;
+  }
+
+  const nuevoActivo = permitidos[0];
+  await prisma.user.update({ where: { id: user.id }, data: { activeLugarId: nuevoActivo } });
+  return nuevoActivo;
 }

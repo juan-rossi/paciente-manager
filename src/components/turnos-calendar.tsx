@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { es } from "date-fns/locale";
 import {
@@ -65,6 +65,21 @@ function addDays(date: Date, amount: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
   return next;
+}
+
+// "Anterior"/"Siguiente" saltan directo al próximo día que de hecho tiene
+// horario cargado (el mismo criterio que ya deshabilita los días sin
+// horario en el date-picker de al lado) -- si no, uno podía terminar
+// clickeando varias veces seguidas sobre días vacíos. Tope de 7 vueltas
+// porque `diasConHorario` es un patrón semanal, nunca hace falta más.
+function nextDiaConHorario(date: Date, direction: 1 | -1, diasConHorario: DiaSemana[]): Date {
+  let candidate = addDays(date, direction);
+  if (diasConHorario.length === 0) return candidate;
+  for (let i = 0; i < 7; i++) {
+    if (diasConHorario.includes(diaSemanaFromDate(candidate))) return candidate;
+    candidate = addDays(candidate, direction);
+  }
+  return candidate;
 }
 
 function capitalize(text: string) {
@@ -137,22 +152,31 @@ function getGridRange(slots: Slot[]) {
 
 type Props = {
   role: UserRole;
+  // Identifican de quién son los turnos que se están mostrando -- una
+  // secretaria puede cambiar de médico y/o de lugar activo sin salir de
+  // esta pantalla (ver doctor-switcher.tsx/lugar-switcher.tsx en el
+  // header). El efecto más abajo los usa para refetchear sin resetear el
+  // día que se está mirando.
+  tenantId: string;
+  activeLugarId?: string | null;
   initialDate: string;
   initialSlots: Slot[];
   initialSobreturnos: Slot[];
   initialSinConfigurar: boolean;
-  diasConHorario: DiaSemana[];
-  sobreturnosHabilitados: boolean;
+  initialDiasConHorario: DiaSemana[];
+  initialSobreturnosHabilitados: boolean;
 };
 
 export function TurnosCalendar({
   role,
+  tenantId,
+  activeLugarId,
   initialDate,
   initialSlots,
   initialSobreturnos,
   initialSinConfigurar,
-  diasConHorario,
-  sobreturnosHabilitados,
+  initialDiasConHorario,
+  initialSobreturnosHabilitados,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -160,6 +184,10 @@ export function TurnosCalendar({
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [sobreturnos, setSobreturnos] = useState<Slot[]>(initialSobreturnos);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
+  const [diasConHorario, setDiasConHorario] = useState<DiaSemana[]>(initialDiasConHorario);
+  const [sobreturnosHabilitados, setSobreturnosHabilitados] = useState(
+    initialSobreturnosHabilitados
+  );
   const [loading, setLoading] = useState(false);
   // En mobile arranca colapsado para no ocupar toda la pantalla con el
   // calendario -- en desktop (lg+) siempre se muestra, sin importar este
@@ -200,10 +228,30 @@ export function TurnosCalendar({
       setSlots(data.slots ?? []);
       setSobreturnos(data.sobreturnos ?? []);
       setSinConfigurar(Boolean(data.sinConfigurar));
+      setDiasConHorario(data.diasConHorario ?? []);
+      setSobreturnosHabilitados(Boolean(data.sobreturnosHabilitados));
     } finally {
       setLoading(false);
     }
   }
+
+  // Cambiar de médico o de lugar activo (secretaria) no debe hacer perder
+  // el día que se está mirando -- solo hay que traer de nuevo los turnos de
+  // ESE día, pero para el nuevo médico/lugar. `selectedDateRef` evita que
+  // este efecto dependa de `selectedDate` (que ya se refetchea solo al
+  // navegar de día) y solo dispare ante un cambio real de médico/lugar.
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  });
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    loadSlots(selectedDateRef.current);
+  }, [tenantId, activeLugarId]);
 
   async function handleSelectDate(date: Date | undefined) {
     if (!date) return;
@@ -455,7 +503,7 @@ export function TurnosCalendar({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleSelectDate(addDays(selectedDate, -1))}
+              onClick={() => handleSelectDate(nextDiaConHorario(selectedDate, -1, diasConHorario))}
             >
               <ChevronLeft className="size-4" />
               <span className="hidden sm:inline">Anterior</span>
@@ -474,7 +522,7 @@ export function TurnosCalendar({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleSelectDate(addDays(selectedDate, 1))}
+              onClick={() => handleSelectDate(nextDiaConHorario(selectedDate, 1, diasConHorario))}
             >
               <span className="hidden sm:inline">Siguiente</span>
               <ChevronRight className="size-4" />

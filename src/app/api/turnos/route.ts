@@ -7,7 +7,7 @@ import { getDaySlots } from "@/lib/get-day-slots";
 import { dateParamToDateBA } from "@/lib/timezone";
 
 export async function GET(request: NextRequest) {
-  const { user, tenantId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
 
   const date = dateParamToDateBA(request.nextUrl.searchParams.get("date") ?? "");
@@ -15,13 +15,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Parámetro 'date' inválido (YYYY-MM-DD)." }, { status: 400 });
   }
 
-  const result = await getDaySlots(date, user.role, tenantId);
+  const result = await getDaySlots(date, user.role, tenantId, activeLugarId);
 
   return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
-  const { user, tenantId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -31,6 +31,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
       { status: 400 }
+    );
+  }
+
+  // Una secretaria solo puede agendar en el lugar que tiene activo -- ver
+  // `resolveActiveLugarId`. El lugar del turno sale del slot que se clickeó
+  // en la grilla (ya viene filtrado a su lugar activo), así que esto es una
+  // segunda validación de defensa, no la única barrera.
+  if (user.role === "SECRETARY" && (activeLugarId === null || parsed.data.lugarId !== activeLugarId)) {
+    return NextResponse.json(
+      { error: "No tenés permiso para agendar turnos en ese lugar." },
+      { status: 403 }
     );
   }
 

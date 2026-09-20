@@ -27,7 +27,12 @@ export type DaySlot = {
 export async function getDaySlots(
   date: Date,
   role: UserRole,
-  tenantId: string
+  tenantId: string,
+  // Solo aplica a una SECRETARY (ver `resolveActiveLugarId`): `undefined` no
+  // restringe nada (un DOCTOR siempre pasa esto así); un `lugarId` acota la
+  // grilla a ese lugar; `null` significa que la secretaria no tiene ningún
+  // lugar asignado -- no ve nada, en vez de ver todo el médico sin filtrar.
+  lugarId?: string | null
 ): Promise<{
   slots: DaySlot[];
   sobreturnos: DaySlot[];
@@ -36,17 +41,19 @@ export async function getDaySlots(
   sobreturnosHabilitados: boolean;
 }> {
   const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
-  if (!doctor) {
+  if (!doctor || lugarId === null) {
     return {
       slots: [],
       sobreturnos: [],
       sinConfigurar: true,
       diasConHorario: [],
-      sobreturnosHabilitados: false,
+      sobreturnosHabilitados: doctor?.sobreturnosHabilitados ?? false,
     };
   }
 
-  const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
+  const blocks = await prisma.workScheduleBlock.findMany({
+    where: { userId: doctor.id, ...(lugarId ? { lugarId } : {}) },
+  });
   const diasConHorario = [...new Set(blocks.map((b) => b.diaSemana as DiaSemana))];
   const slots = generarSlots(date, blocks, doctor.slotDurationMinutes);
 
@@ -54,7 +61,12 @@ export async function getDaySlots(
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const turnos = await prisma.turno.findMany({
-    where: { doctorId: tenantId, inicio: { gte: dayStart, lt: dayEnd }, estado: "CONFIRMADO" },
+    where: {
+      doctorId: tenantId,
+      inicio: { gte: dayStart, lt: dayEnd },
+      estado: "CONFIRMADO",
+      ...(lugarId ? { lugarId } : {}),
+    },
     orderBy: { createdAt: "asc" },
   });
 

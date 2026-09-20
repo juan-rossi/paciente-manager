@@ -219,6 +219,14 @@ model User {
   // `plan`/`trialEndsAt` solo tienen sentido en la fila del DOCTOR (la
   // cuenta/tenant), no en sus secretarias.
   activeDoctorId String?
+  // Análogo a `activeDoctorId` pero para el lugar: dentro del médico activo,
+  // una secretaria solo puede administrar turnos del lugar que tiene
+  // elegido acá (ver `src/lib/tenant.ts#resolveActiveLugarId` y
+  // `src/components/lugar-switcher.tsx`). Sin relación a nivel DB -- mismo
+  // criterio que `activeDoctorId`, se revalida en cada lectura contra
+  // `DoctorSecretariaLugar` porque el médico puede cambiarle los lugares
+  // asignados a la secretaria en cualquier momento.
+  activeLugarId  String?
   plan           PlanTipo  @default(BASICA)
   trialEndsAt    DateTime?
 

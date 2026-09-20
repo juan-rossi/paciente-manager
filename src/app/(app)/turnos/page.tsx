@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { getDaySlots } from "@/lib/get-day-slots";
-import { getTenantId } from "@/lib/tenant";
+import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
 import { formatDateParamBA } from "@/lib/timezone";
 import { TurnosCalendar } from "@/components/turnos-calendar";
 
@@ -11,26 +11,23 @@ export default async function TurnosPage() {
   if (!user) return null;
 
   const tenantId = getTenantId(user);
+  const activeLugarId = await resolveActiveLugarId(user);
   const today = new Date();
   const { slots, sobreturnos, sinConfigurar, diasConHorario, sobreturnosHabilitados } =
-    await getDaySlots(today, user.role, tenantId);
+    await getDaySlots(today, user.role, tenantId, activeLugarId);
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
-      {/* `key` fuerza a remontar el calendario (y resetear todo su estado
-          interno) cuando una secretaria cambia de médico activo -- si no,
-          `router.refresh()` recalcula los props en el server pero el cliente
-          conserva el `useState` viejo y sigue mostrando los turnos del
-          médico anterior. */}
       <TurnosCalendar
-        key={tenantId}
         role={user.role}
+        tenantId={tenantId}
+        activeLugarId={activeLugarId}
         initialDate={formatDateParamBA(today)}
         initialSlots={slots}
         initialSobreturnos={sobreturnos}
         initialSinConfigurar={sinConfigurar}
-        diasConHorario={diasConHorario}
-        sobreturnosHabilitados={sobreturnosHabilitados}
+        initialDiasConHorario={diasConHorario}
+        initialSobreturnosHabilitados={sobreturnosHabilitados}
       />
     </div>
   );

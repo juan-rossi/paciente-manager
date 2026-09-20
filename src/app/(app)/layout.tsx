@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { NavLinks } from "@/components/nav-links";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { DoctorSwitcher } from "@/components/doctor-switcher";
+import { LugarSwitcher } from "@/components/lugar-switcher";
 import { UserChip } from "@/components/user-chip";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
 import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
+import { resolveActiveLugarId } from "@/lib/tenant";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -29,6 +31,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           orderBy: { nombre: "asc" },
         })
       : [];
+
+  // Dentro del médico activo, una secretaria puede tener más de un lugar
+  // asignado -- si es el caso, se muestra el selector para elegir cuál está
+  // administrando ahora (ver `resolveActiveLugarId`, que también
+  // autocorrige `activeLugarId` si el guardado ya no es válido).
+  const lugaresAsignados =
+    user && user.role === "SECRETARY" && user.activeDoctorId
+      ? await prisma.lugarDeTrabajo.findMany({
+          where: {
+            deletedAt: null,
+            secretariasConAcceso: {
+              some: { doctorSecretaria: { doctorId: user.activeDoctorId, secretariaId: user.id } },
+            },
+          },
+          select: { id: true, tipo: true, nombre: true },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
+  const activeLugarId = user ? await resolveActiveLugarId(user) : undefined;
 
   // La mensajería es una configuración del médico (tenant) -- una
   // secretaria hereda la del médico que tiene activo en el selector.
@@ -93,6 +114,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <DoctorSwitcher doctores={doctoresAsignados} activeDoctorId={user.activeDoctorId ?? ""} />
               </div>
             )}
+            {user && lugaresAsignados.length >= 2 && (
+              <div className="hidden sm:block">
+                <LugarSwitcher lugares={lugaresAsignados} activeLugarId={activeLugarId ?? ""} />
+              </div>
+            )}
             {user && nombreConTitulo && (
               <div className="hidden sm:block">
                 <UserChip
@@ -111,6 +137,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <DoctorSwitcher
               doctores={doctoresAsignados}
               activeDoctorId={user.activeDoctorId ?? ""}
+              className="w-full"
+            />
+          </div>
+        )}
+        {user && lugaresAsignados.length >= 2 && (
+          <div className="border-t border-border bg-muted/30 px-4 py-2 sm:hidden">
+            <LugarSwitcher
+              lugares={lugaresAsignados}
+              activeLugarId={activeLugarId ?? ""}
               className="w-full"
             />
           </div>

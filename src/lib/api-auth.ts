@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
-import { getTenantId } from "@/lib/tenant";
+import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
 import { isPlatformAdmin } from "@/lib/admin-access";
 
 export async function requireUser() {
@@ -9,10 +9,12 @@ export async function requireUser() {
     return {
       user: null,
       tenantId: null,
+      activeLugarId: null,
       response: NextResponse.json({ error: "No autorizado." }, { status: 401 }),
     };
   }
-  return { user, tenantId: getTenantId(user), response: null };
+  const activeLugarId = await resolveActiveLugarId(user);
+  return { user, tenantId: getTenantId(user), activeLugarId, response: null };
 }
 
 export async function requireDoctor() {
