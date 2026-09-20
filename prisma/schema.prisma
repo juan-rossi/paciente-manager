@@ -304,14 +304,20 @@ model AuditLog {
 }
 
 model WorkScheduleBlock {
-  id         String    @id @default(cuid())
+  id         String          @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Nullable a nivel DB por los bloques que ya existían antes de "Mi
+  // práctica" -- la UI (schedule-settings.tsx) lo exige siempre para
+  // bloques nuevos o editados.
+  lugarId    String?
+  lugar      LugarDeTrabajo? @relation(fields: [lugarId], references: [id], onDelete: Cascade)
   diaSemana  DiaSemana
   horaInicio String
   horaFin    String
 
   @@index([userId])
+  @@index([lugarId])
 }
 
 enum LugarTrabajoTipo {
@@ -333,8 +339,16 @@ model LugarDeTrabajo {
   latitud   Float?
   longitud  Float?
   telefono  String
+  // Baja lógica -- ver DELETE /api/lugares-trabajo/[id]. Un lugar que
+  // alguna vez tuvo un turno asociado (Turno.lugarId) nunca se borra de
+  // verdad, solo se marca acá; toda lectura (lista, dropdown de horario,
+  // chequeo de "un solo particular") filtra `deletedAt: null`.
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  bloques WorkScheduleBlock[]
+  turnos  Turno[]
 
   @@index([userId])
 }
@@ -363,11 +377,20 @@ model Turno {
   doctorId String
   doctor   User   @relation("TurnoDoctor", fields: [doctorId], references: [id])
 
+  // Se completa a partir del bloque que generó el slot elegido (ver
+  // generarSlots/getDaySlots) -- null para turnos agendados antes de esta
+  // feature o en un bloque legado sin lugar asignado. `onDelete: Restrict`
+  // es la red de seguridad: un lugar con turnos nunca se puede borrar de
+  // verdad, solo dar de baja lógica (ver /api/lugares-trabajo/[id]).
+  lugarId String?
+  lugar   LugarDeTrabajo? @relation(fields: [lugarId], references: [id], onDelete: Restrict)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([inicio])
   @@index([doctorId])
+  @@index([lugarId])
 }
 
 model Patient {

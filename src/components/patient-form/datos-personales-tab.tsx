@@ -96,7 +96,9 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
                 invalidFields.has("estadoCivil") ? "w-full border-destructive" : "w-full"
               }
             >
-              <SelectValue placeholder="Seleccionar..." />
+              <SelectValue placeholder="Seleccionar...">
+                {() => ESTADO_CIVIL_OPTIONS.find((o) => o.value === values.estadoCivil)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {ESTADO_CIVIL_OPTIONS.map((option) => (

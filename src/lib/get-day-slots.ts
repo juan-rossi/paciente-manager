@@ -20,6 +20,7 @@ export type SerializedTurno = {
 export type DaySlot = {
   inicio: string;
   fin: string;
+  lugarId: string | null;
   turno: SerializedTurno | null;
 };
 
@@ -87,6 +88,7 @@ export async function getDaySlots(
     return {
       inicio: slot.inicio.toISOString(),
       fin: slot.fin.toISOString(),
+      lugarId: slot.lugarId,
       turno: turno ? serialize(turno) : null,
     };
   });
@@ -96,6 +98,7 @@ export async function getDaySlots(
     .map((turno) => ({
       inicio: turno.inicio.toISOString(),
       fin: turno.fin.toISOString(),
+      lugarId: turno.lugarId,
       turno: serialize(turno),
     }));
 

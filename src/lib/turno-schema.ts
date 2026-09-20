@@ -8,6 +8,10 @@ export const scheduleBlockSchema = z
     diaSemana: z.enum(DIA_SEMANA_VALUES),
     horaInicio: z.string().regex(HORA_REGEX, "Formato de hora inválido."),
     horaFin: z.string().regex(HORA_REGEX, "Formato de hora inválido."),
+    // Obligatorio para bloques nuevos o editados -- ver "Mi práctica". Los
+    // bloques creados antes de esa feature pueden tener `lugarId: null` en
+    // la DB, pero no se pueden volver a guardar sin elegir uno.
+    lugarId: z.string().trim().min(1, "Elegí un lugar."),
   })
   .refine((data) => data.horaInicio < data.horaFin, {
     message: "La hora de salida debe ser posterior a la de entrada.",
@@ -54,6 +58,10 @@ export const turnoInputSchema = z.object({
   // reservado (es la idea: agregarlo de más, no reemplazar la grilla) --
   // salta el chequeo de duplicado que sí aplica a una reserva normal.
   esSobreturno: z.boolean().optional(),
+  // Lo completa el cliente a partir del `DaySlot` elegido (que ya trae el
+  // `lugarId` del bloque que generó ese horario) -- puede venir `null` si
+  // el slot corresponde a un bloque legado sin lugar asignado.
+  lugarId: z.string().trim().min(1).nullable().optional(),
 });
 
 export const turnoEditSchema = turnoInputSchema.pick({

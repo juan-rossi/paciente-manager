@@ -54,6 +54,7 @@ type TurnoInfo = {
 type Slot = {
   inicio: string;
   fin: string;
+  lugarId: string | null;
   turno: TurnoInfo | null;
 };
 
@@ -254,6 +255,7 @@ export function TurnosCalendar({
             dni,
             telefono,
             obraSocial,
+            ...(editingTurnoId ? {} : { lugarId: formSlot.lugarId }),
           }),
         }
       );
@@ -285,16 +287,20 @@ export function TurnosCalendar({
     }
   }
 
-  // El final del último turno (normal o sobreturno) del día -- `null` si
+  // El slot (normal o sobreturno) que termina más tarde ese día -- `null` si
   // todavía no hay ningún turno agendado, en cuyo caso "al final de la
   // lista" no tiene sentido (la lista está vacía) y esa opción se deshabilita.
+  function ultimoSlotDelDia(): Slot | null {
+    const ocupados = [...slots.filter((s) => s.turno), ...sobreturnos];
+    if (ocupados.length === 0) return null;
+    return ocupados.reduce((max, s) =>
+      new Date(s.fin).getTime() > new Date(max.fin).getTime() ? s : max
+    );
+  }
+
   function ultimoFinDelDia(): Date | null {
-    const fines = [
-      ...slots.filter((s) => s.turno).map((s) => new Date(s.fin)),
-      ...sobreturnos.map((s) => new Date(s.fin)),
-    ];
-    if (fines.length === 0) return null;
-    return new Date(Math.max(...fines.map((d) => d.getTime())));
+    const slot = ultimoSlotDelDia();
+    return slot ? new Date(slot.fin) : null;
   }
 
   // Los turnos normales (no sobreturnos) ya ocupados ese día que todavía no
@@ -327,11 +333,15 @@ export function TurnosCalendar({
     }
 
     let inicio: Date | null;
+    let lugarId: string | null;
     if (sobreturnoModo === "final") {
-      inicio = ultimoFinDelDia();
+      const ultimo = ultimoSlotDelDia();
+      inicio = ultimo ? new Date(ultimo.fin) : null;
+      lugarId = ultimo?.lugarId ?? null;
     } else {
       const turnoSlot = ocupadosDelDia().find((s) => s.turno!.id === sobreturnoTurnoId);
       inicio = turnoSlot ? new Date(turnoSlot.inicio) : null;
+      lugarId = turnoSlot?.lugarId ?? null;
     }
     if (!inicio) {
       setSobreturnoError(
@@ -355,6 +365,7 @@ export function TurnosCalendar({
           telefono: sobreturnoTelefono,
           obraSocial: sobreturnoObraSocial,
           esSobreturno: true,
+          lugarId,
         }),
       });
       const data = await response.json();

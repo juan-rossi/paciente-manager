@@ -47,3 +47,42 @@ export async function countTurnosSinCoberturaTrasCambio(
     (t) => estaCubierto(t.inicio, allBlocks) && !estaCubierto(t.inicio, blocksDespues)
   ).length;
 }
+
+export type ConflictoHorario = {
+  lugarLabel: string;
+  horaInicio: string;
+  horaFin: string;
+};
+
+/**
+ * Busca, entre TODOS los bloques del médico (sin importar el lugar al que
+ * pertenezcan), uno que se superponga con el horario propuesto el mismo
+ * día -- un médico no puede estar en dos lugares a la vez, así que la
+ * superposición se valida cruzando lugares, no solo dentro de uno.
+ * `excludeBlockId` se usa al editar, para no chocar contra sí mismo.
+ */
+export async function encontrarSolapamiento(
+  userId: string,
+  diaSemana: DiaSemana,
+  horaInicio: string,
+  horaFin: string,
+  excludeBlockId?: string
+): Promise<ConflictoHorario | null> {
+  const blocks = await prisma.workScheduleBlock.findMany({
+    where: {
+      userId,
+      diaSemana,
+      ...(excludeBlockId ? { id: { not: excludeBlockId } } : {}),
+    },
+    include: { lugar: true },
+  });
+
+  const conflicto = blocks.find((b) => horaInicio < b.horaFin && b.horaInicio < horaFin);
+  if (!conflicto) return null;
+
+  return {
+    lugarLabel: conflicto.lugar?.nombre ?? "Particular",
+    horaInicio: conflicto.horaInicio,
+    horaFin: conflicto.horaFin,
+  };
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { scheduleBlockSchema } from "@/lib/turno-schema";
-import { countTurnosSinCoberturaTrasCambio } from "@/lib/schedule-block-guard";
+import { countTurnosSinCoberturaTrasCambio, encontrarSolapamiento } from "@/lib/schedule-block-guard";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -27,6 +27,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Bloque no encontrado." }, { status: 404 });
   }
 
+  const lugar = await prisma.lugarDeTrabajo.findFirst({
+    where: { id: parsed.data.lugarId, userId: user.id, deletedAt: null },
+  });
+  if (!lugar) {
+    return NextResponse.json({ error: "Elegí un lugar válido." }, { status: 400 });
+  }
+
+  const conflicto = await encontrarSolapamiento(
+    user.id,
+    parsed.data.diaSemana,
+    parsed.data.horaInicio,
+    parsed.data.horaFin,
+    id
+  );
+  if (conflicto) {
+    return NextResponse.json(
+      {
+        error: `Se superpone con ${conflicto.lugarLabel} (${conflicto.horaInicio} a ${conflicto.horaFin}).`,
+      },
+      { status: 409 }
+    );
+  }
+
   const turnosSinCobertura = await countTurnosSinCoberturaTrasCambio(user.id, id, parsed.data);
   if (turnosSinCobertura > 0) {
     return NextResponse.json(
@@ -40,6 +63,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const block = await prisma.workScheduleBlock.update({
     where: { id },
     data: {
+      lugarId: lugar.id,
       diaSemana: parsed.data.diaSemana,
       horaInicio: parsed.data.horaInicio,
       horaFin: parsed.data.horaFin,

@@ -8,7 +8,7 @@ export async function GET() {
   if (response) return response;
 
   const lugares = await prisma.lugarDeTrabajo.findMany({
-    where: { userId: tenantId },
+    where: { userId: tenantId, deletedAt: null },
     orderBy: { createdAt: "asc" },
   });
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   if (parsed.data.tipo === "PARTICULAR") {
     const existente = await prisma.lugarDeTrabajo.findFirst({
-      where: { userId: tenantId, tipo: "PARTICULAR" },
+      where: { userId: tenantId, tipo: "PARTICULAR", deletedAt: null },
     });
     if (existente) {
       return NextResponse.json({ error: "Ya tenés un lugar particular cargado." }, { status: 409 });

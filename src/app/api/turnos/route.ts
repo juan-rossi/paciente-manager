@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
       patientId: patient?.id ?? null,
       creadoPorId: user.id,
       doctorId: tenantId,
+      lugarId: parsed.data.lugarId ?? null,
     },
   });
 

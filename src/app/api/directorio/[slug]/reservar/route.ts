@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { turnoInputSchema } from "@/lib/turno-schema";
-import { getDoctorParaReserva, esHorarioValido } from "@/lib/public-booking";
+import { getDoctorParaReserva, buscarSlotValido } from "@/lib/public-booking";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -31,9 +31,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   // Una reserva pública nunca puede ser un sobreturno -- solo puede ocupar
-  // un slot realmente libre de la grilla (ver esHorarioValido más abajo).
-  const esValido = await esHorarioValido(doctor, inicio);
-  if (!esValido) {
+  // un slot realmente libre de la grilla. El `lugarId` del turno sale de
+  // acá, nunca del body -- un cliente no autenticado no es una fuente
+  // confiable para ese dato.
+  const slotValido = await buscarSlotValido(doctor, inicio);
+  if (!slotValido) {
     return NextResponse.json({ error: "Ese horario ya no está disponible." }, { status: 409 });
   }
 
@@ -69,6 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       patientId: patient?.id ?? null,
       creadoPorId: doctor.id,
       doctorId: doctor.id,
+      lugarId: slotValido.lugarId,
     },
   });
 

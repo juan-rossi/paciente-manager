@@ -20,9 +20,14 @@ export async function getDoctorParaReserva(slug: string) {
   });
 }
 
+export type HorarioDisponible = {
+  inicio: string;
+  lugarId: string | null;
+};
+
 export type DisponibilidadDia = {
   fecha: string;
-  horarios: string[];
+  horarios: HorarioDisponible[];
 };
 
 // Trae los turnos de todo el horizonte en una sola query (no una por día,
@@ -51,9 +56,9 @@ export async function getDisponibilidadPublica(
   for (let i = 0; i < horizonteDias; i++) {
     const dia = addDays(hoy, i);
     const slots = generarSlots(dia, blocks, doctor.slotDurationMinutes);
-    const horarios = slots
+    const horarios: HorarioDisponible[] = slots
       .filter((slot) => slot.inicio.getTime() > ahora && !ocupados.has(slot.inicio.getTime()))
-      .map((slot) => slot.inicio.toISOString());
+      .map((slot) => ({ inicio: slot.inicio.toISOString(), lugarId: slot.lugarId }));
     dias.push({ fecha: formatDateParamBA(dia), horarios });
   }
   return dias;
@@ -61,12 +66,15 @@ export async function getDisponibilidadPublica(
 
 // Defensa contra horarios inventados: un `inicio` solo es válido para
 // reservar si coincide exactamente con un slot generado a partir del
-// horario de trabajo real del médico ese día.
-export async function esHorarioValido(
+// horario de trabajo real del médico ese día. Devuelve el slot que matchea
+// (con su `lugarId`) en vez de un booleano -- la ruta de reserva pública lo
+// usa para completar el `lugarId` del turno del lado del server, nunca
+// confiando en lo que mande el cliente.
+export async function buscarSlotValido(
   doctor: { id: string; slotDurationMinutes: number },
   inicio: Date
-): Promise<boolean> {
+): Promise<{ inicio: Date; fin: Date; lugarId: string | null } | null> {
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
   const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes);
-  return slots.some((slot) => slot.inicio.getTime() === inicio.getTime());
+  return slots.find((slot) => slot.inicio.getTime() === inicio.getTime()) ?? null;
 }

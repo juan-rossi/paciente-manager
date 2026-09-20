@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 
-type DisponibilidadDia = { fecha: string; horarios: string[] };
+type HorarioDisponible = { inicio: string; lugarId: string | null };
+type DisponibilidadDia = { fecha: string; horarios: HorarioDisponible[] };
 
 function formatDiaChip(fecha: string): string {
   const date = new Date(`${fecha}T12:00:00`);
@@ -197,11 +198,11 @@ export function PublicBookingCalendar({ slug }: { slug: string }) {
           <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
             {diaActivo.horarios.map((h) => (
               <button
-                key={h}
-                onClick={() => abrirFormulario(h)}
+                key={h.inicio}
+                onClick={() => abrirFormulario(h.inicio)}
                 className="rounded-lg border border-border/60 px-3 py-2 text-sm font-medium hover:bg-muted"
               >
-                {formatHoraBA(new Date(h))}
+                {formatHoraBA(new Date(h.inicio))}
               </button>
             ))}
           </div>

@@ -1,9 +1,8 @@
-import { Building2, CalendarDays, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
+import { Building2, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
-import { ScheduleSettings } from "@/components/schedule-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { TranscriberSettings } from "@/components/transcriber-settings";
@@ -37,7 +36,7 @@ export default async function ConfiguracionPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.lugarDeTrabajo.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, deletedAt: null },
       orderBy: { createdAt: "asc" },
     }),
   ]);
@@ -52,7 +51,7 @@ export default async function ConfiguracionPage() {
       <h1 className="text-2xl font-semibold">Configuración</h1>
 
       <Tabs
-        defaultValue="horario"
+        defaultValue="practica"
         orientation="vertical"
         className="flex-col items-stretch gap-6 md:flex-row md:items-start"
       >
@@ -61,10 +60,6 @@ export default async function ConfiguracionPage() {
           <TabsTrigger value="practica" className={navItemClass}>
             <Building2 className="size-4" />
             Mi práctica
-          </TabsTrigger>
-          <TabsTrigger value="horario" className={navItemClass}>
-            <CalendarDays className="size-4" />
-            Horario de trabajo
           </TabsTrigger>
           <TabsTrigger value="usuarios" className={navItemClass}>
             <Users className="size-4" />
@@ -95,10 +90,8 @@ export default async function ConfiguracionPage() {
         </TabsList>
 
         <TabsContent value="practica" className="w-full">
-          <MiPracticaSettings initialLugares={lugares} />
-        </TabsContent>
-        <TabsContent value="horario" className="w-full">
-          <ScheduleSettings
+          <MiPracticaSettings
+            initialLugares={lugares}
             initialBlocks={blocks}
             initialSlotDurationMinutes={user.slotDurationMinutes}
             initialSobreturnosHabilitados={user.sobreturnosHabilitados}
