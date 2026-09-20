@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { LogoutButton } from "@/components/logout-button";
 import { NavLinks } from "@/components/nav-links";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { DoctorSwitcher } from "@/components/doctor-switcher";
+import { UserChip } from "@/components/user-chip";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
 import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
@@ -69,6 +69,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : user.nombre
     : undefined;
 
+  const iniciales = user
+    ? `${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase()
+    : "";
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border bg-card shadow-sm print:hidden">
@@ -89,15 +93,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <DoctorSwitcher doctores={doctoresAsignados} activeDoctorId={user.activeDoctorId ?? ""} />
               </div>
             )}
-            {user && doctoresAsignados.length < 2 && (
-              <span className="hidden text-sm text-muted-foreground sm:inline">
-                {nombreConTitulo}
-              </span>
-            )}
             <NavLinks links={configLink} />
-            <div className="hidden sm:block">
-              <LogoutButton />
-            </div>
+            {user && nombreConTitulo && (
+              <div className="hidden sm:block">
+                <UserChip
+                  nombreConTitulo={nombreConTitulo}
+                  iniciales={iniciales}
+                  fotoPerfilBase64={user.fotoPerfilBase64}
+                />
+              </div>
+            )}
             <MobileNavMenu navLinks={navLinks} configLink={configLink} userName={nombreConTitulo} />
           </div>
         </div>
