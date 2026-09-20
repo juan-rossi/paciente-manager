@@ -226,52 +226,62 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
           <DialogHeader>
             <DialogTitle>{editingSecretaria ? "Editar secretario" : "Nuevo secretario"}</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-3">
-            {!editingSecretaria && (
-              <p className="text-xs text-muted-foreground">
-                Si el email ya pertenece a un secretario que asiste a otro médico, se suma a tu
-                cuenta tal cual está. (Nombre y contraseña no hacen falta en ese caso)
-              </p>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <Label>Nombre</Label>
-              <Input
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                autoComplete="off"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3.5">
+              <span className="text-[11px] font-bold tracking-wide text-muted-foreground/75 uppercase">
+                Datos de acceso
+              </span>
+              {!editingSecretaria && (
+                <p className="-mt-1.5 text-xs text-muted-foreground">
+                  Si el email ya pertenece a un secretario que asiste a otro médico, se suma a tu
+                  cuenta tal cual está. (Nombre y contraseña no hacen falta en ese caso)
+                </p>
+              )}
+              <div className="flex flex-col gap-2">
+                <Label>Nombre</Label>
+                <Input
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>
+                  Contraseña
+                  {editingSecretaria && (
+                    <span className="text-muted-foreground"> (dejar en blanco para no cambiarla)</span>
+                  )}
+                </Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>
-                Contraseña
-                {editingSecretaria && (
-                  <span className="text-muted-foreground"> (dejar en blanco para no cambiarla)</span>
-                )}
-              </Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Lugares que podrá administrar</Label>
+
+            <div className="h-px bg-border" />
+
+            <div className="flex flex-col gap-3.5">
+              <span className="text-[11px] font-bold tracking-wide text-muted-foreground/75 uppercase">
+                Lugares que podrá administrar
+              </span>
               {lugares.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="-mt-1.5 text-xs text-muted-foreground">
                   Todavía no cargaste ningún lugar en &quot;Mi práctica&quot;.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2.5">
                   {lugares.map((lugar) => (
                     <div key={lugar.id} className="flex items-center gap-2">
                       <Checkbox
