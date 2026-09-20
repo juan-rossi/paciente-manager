@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       telefono: parsed.data.telefono,
       latitud: parsed.data.latitud ?? null,
       longitud: parsed.data.longitud ?? null,
+      ciudad: parsed.data.ciudad ?? null,
     },
   });
 

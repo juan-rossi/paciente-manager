@@ -44,6 +44,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       telefono: parsed.data.telefono,
       latitud: parsed.data.latitud ?? null,
       longitud: parsed.data.longitud ?? null,
+      ciudad: parsed.data.ciudad ?? null,
     },
   });
 

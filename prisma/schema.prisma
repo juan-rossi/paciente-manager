@@ -364,6 +364,12 @@ model LugarDeTrabajo {
   // Solo aplica (y es obligatorio a nivel app) cuando tipo = CONSULTORIO.
   nombre    String?
   direccion String
+  // Sale del mismo autocompletado de Google Places que geocodea `direccion`
+  // (ver AddressAutocomplete) -- se usa para que el directorio público
+  // pueda filtrar por cercanía considerando TODOS los lugares del médico,
+  // no solo la dirección de su perfil (`User.ciudad`). Puede ser null en
+  // lugares cargados antes de este campo, o si el geocoding falló.
+  ciudad    String?
   latitud   Float?
   longitud  Float?
   telefono  String

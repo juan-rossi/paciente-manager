@@ -58,6 +58,7 @@ type LugarDeTrabajo = {
   telefono: string;
   latitud: number | null;
   longitud: number | null;
+  ciudad: string | null;
 };
 
 type Block = {
@@ -127,6 +128,7 @@ export function MiPracticaSettings({
   const [direccion, setDireccion] = useState("");
   const [latitud, setLatitud] = useState<number | null>(null);
   const [longitud, setLongitud] = useState<number | null>(null);
+  const [ciudad, setCiudad] = useState<string | null>(null);
   const [telefono, setTelefono] = useState("");
   const [savingLugar, setSavingLugar] = useState(false);
   const [lugarError, setLugarError] = useState<string | null>(null);
@@ -240,6 +242,7 @@ export function MiPracticaSettings({
     setDireccion("");
     setLatitud(null);
     setLongitud(null);
+    setCiudad(null);
     setTelefono("");
     setLugarError(null);
     setTriedSubmitLugar(false);
@@ -253,6 +256,7 @@ export function MiPracticaSettings({
     setDireccion(lugar.direccion);
     setLatitud(lugar.latitud);
     setLongitud(lugar.longitud);
+    setCiudad(lugar.ciudad);
     setTelefono(lugar.telefono);
     setLugarError(null);
     setTriedSubmitLugar(false);
@@ -263,12 +267,14 @@ export function MiPracticaSettings({
     setDireccion(text);
     setLatitud(null);
     setLongitud(null);
+    setCiudad(null);
   }
 
   function handleDireccionSelect(result: AddressResult) {
     setDireccion(result.direccion);
     setLatitud(result.latitud);
     setLongitud(result.longitud);
+    setCiudad(result.ciudad);
   }
 
   // El radio "Particular" solo se puede elegir si no hay otro particular
@@ -296,6 +302,7 @@ export function MiPracticaSettings({
             telefono,
             latitud,
             longitud,
+            ciudad,
           }),
         }
       );

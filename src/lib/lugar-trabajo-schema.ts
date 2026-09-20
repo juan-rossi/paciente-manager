@@ -15,6 +15,7 @@ export const lugarTrabajoSchema = z
     telefono: z.string().trim().min(1, "El teléfono es obligatorio."),
     latitud: z.number().nullable().optional(),
     longitud: z.number().nullable().optional(),
+    ciudad: z.string().trim().nullable().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.tipo === "CONSULTORIO" && !data.nombre) {
