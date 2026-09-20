@@ -1,6 +1,8 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronDown, Settings } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LogoutButton } from "@/components/logout-button";
 import { cn } from "@/lib/utils";
@@ -9,12 +11,21 @@ type Props = {
   nombreConTitulo: string;
   iniciales: string;
   fotoPerfilBase64: string | null;
+  configHref?: string;
   className?: string;
 };
 
-export function UserChip({ nombreConTitulo, iniciales, fotoPerfilBase64, className }: Props) {
+export function UserChip({
+  nombreConTitulo,
+  iniciales,
+  fotoPerfilBase64,
+  configHref,
+  className,
+}: Props) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
           "flex items-center gap-2 rounded-full border border-border py-1 pr-2.5 pl-1 text-sm font-medium text-foreground transition-colors hover:bg-muted aria-expanded:bg-muted",
@@ -32,8 +43,21 @@ export function UserChip({ nombreConTitulo, iniciales, fotoPerfilBase64, classNa
         <span className="max-w-40 truncate">{nombreConTitulo}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto min-w-fit p-1.5">
-        <LogoutButton />
+      <PopoverContent align="end" className="w-52 p-1.5">
+        {configHref && (
+          <>
+            <Link
+              href={configHref}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              <Settings className="size-4 text-muted-foreground" />
+              Configuración
+            </Link>
+            <div className=" h-px bg-border" />
+          </>
+        )}
+        <LogoutButton variant="menu-item" />
       </PopoverContent>
     </Popover>
   );

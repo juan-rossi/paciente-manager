@@ -529,8 +529,8 @@ export function MiPracticaSettings({
 
         {lugarActivo && (
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/30 p-3.5">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span
                     className={
@@ -543,37 +543,40 @@ export function MiPracticaSettings({
                   </span>
                   <span className="text-sm font-medium">{lugarLabel(lugarActivo)}</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="size-3" />
-                    {lugarActivo.direccion}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Phone className="size-3" />
-                    {lugarActivo.telefono}
-                  </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => openEditLugar(lugarActivo)}
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Editar lugar"
+                  >
+                    <Pencil className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteLugarTarget(lugarActivo);
+                      setNotice(null);
+                    }}
+                    className="text-muted-foreground hover:text-destructive"
+                    aria-label="Eliminar lugar"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => openEditLugar(lugarActivo)}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Editar lugar"
-                >
-                  <Pencil className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteLugarTarget(lugarActivo);
-                    setNotice(null);
-                  }}
-                  className="text-muted-foreground hover:text-destructive"
-                  aria-label="Eliminar lugar"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+
+              <div className="h-px bg-border/60" />
+
+              <div className="flex flex-col gap-1.5">
+                <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                  <MapPin className="size-3.5 shrink-0" />
+                  {lugarActivo.direccion}
+                </span>
+                <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                  <Phone className="size-3.5 shrink-0" />
+                  {lugarActivo.telefono}
+                </span>
               </div>
             </div>
 

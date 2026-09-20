@@ -93,13 +93,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <DoctorSwitcher doctores={doctoresAsignados} activeDoctorId={user.activeDoctorId ?? ""} />
               </div>
             )}
-            <NavLinks links={configLink} />
             {user && nombreConTitulo && (
               <div className="hidden sm:block">
                 <UserChip
                   nombreConTitulo={nombreConTitulo}
                   iniciales={iniciales}
                   fotoPerfilBase64={user.fotoPerfilBase64}
+                  configHref={configLink[0]?.href}
                 />
               </div>
             )}
