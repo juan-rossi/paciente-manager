@@ -1,7 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { getTenantId } from "@/lib/tenant";
+import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
@@ -30,7 +30,10 @@ export default async function RecordatoriosPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const doctor = await prisma.user.findUnique({ where: { id: getTenantId(user) } });
+  const tenantId = getTenantId(user);
+  const activeLugarId = await resolveActiveLugarId(user);
+
+  const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
   if (!doctor) {
     return (
       <p className="text-sm text-muted-foreground">Todavía no se configuró el médico.</p>
@@ -43,11 +46,22 @@ export default async function RecordatoriosPage() {
   );
   const targetEnd = new Date(targetStart.getTime() + 24 * 60 * 60 * 1000);
 
-  const turnos = await prisma.turno.findMany({
-    where: { doctorId: doctor.id, inicio: { gte: targetStart, lt: targetEnd }, estado: "CONFIRMADO" },
-    orderBy: { inicio: "asc" },
-    select: { id: true, nombreYApellido: true, telefono: true, inicio: true },
-  });
+  // Igual criterio que en /turnos: una secretaria solo ve los turnos del
+  // lugar que tiene activo (ver `resolveActiveLugarId`). Sin ningún lugar
+  // asignado no ve ninguno, en vez de ver todos los del médico sin filtrar.
+  const turnos =
+    activeLugarId === null
+      ? []
+      : await prisma.turno.findMany({
+          where: {
+            doctorId: doctor.id,
+            inicio: { gte: targetStart, lt: targetEnd },
+            estado: "CONFIRMADO",
+            ...(activeLugarId ? { lugarId: activeLugarId } : {}),
+          },
+          orderBy: { inicio: "asc" },
+          select: { id: true, nombreYApellido: true, telefono: true, inicio: true },
+        });
 
   const fecha = targetStart.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
   const fechaLabel = capitalize(
