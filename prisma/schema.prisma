@@ -235,6 +235,7 @@ model User {
   secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")
 
   workScheduleBlocks WorkScheduleBlock[]
+  lugaresDeTrabajo   LugarDeTrabajo[]
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")
   pacientes          Patient[]           @relation("PatientDoctor")
   turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
@@ -309,6 +310,31 @@ model WorkScheduleBlock {
   diaSemana  DiaSemana
   horaInicio String
   horaFin    String
+
+  @@index([userId])
+}
+
+enum LugarTrabajoTipo {
+  PARTICULAR
+  CONSULTORIO
+}
+
+// Los lugares donde atiende el médico (Configuración → "Mi práctica") --
+// solo puede haber uno de tipo PARTICULAR, chequeado a nivel aplicación en
+// /api/lugares-trabajo (ver esa ruta), no como constraint de DB.
+model LugarDeTrabajo {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo      LugarTrabajoTipo
+  // Solo aplica (y es obligatorio a nivel app) cuando tipo = CONSULTORIO.
+  nombre    String?
+  direccion String
+  latitud   Float?
+  longitud  Float?
+  telefono  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }

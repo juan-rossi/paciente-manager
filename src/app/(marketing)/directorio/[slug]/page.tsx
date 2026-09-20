@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
-import { Building2, CalendarDays, MapPin, Phone } from "lucide-react";
+import { Building2, MapPin, Phone } from "lucide-react";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
+import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +12,26 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
-function InfoRow({ icon: Icon, text }: { icon: typeof Building2; text: string }) {
+function ContactField({
+  icon: Icon,
+  label,
+  value,
+  className,
+}: {
+  icon: typeof Building2;
+  label: string;
+  value: string;
+  className?: string;
+}) {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Icon className="size-4" />
+    <div className={cn("flex items-start gap-2.5", className)}>
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="size-3.5" />
       </span>
-      {text}
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground">{label}</span>
+        <span className="text-[13.5px] font-medium">{value}</span>
+      </div>
     </div>
   );
 }
@@ -71,43 +86,48 @@ export default async function PerfilPublicoPage({ params }: Props) {
         </div>
       </section>
 
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-12 lg:flex-row lg:items-start">
-        <div className="flex flex-1 flex-col gap-6">
-          {doctor.biografia && (
-            <div className="rounded-2xl border border-border/60 bg-card p-6">
-              <h2 className="font-heading text-lg font-bold">Sobre mí</h2>
-              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-                {doctor.biografia}
-              </p>
-            </div>
-          )}
-
-          {(doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-6">
-              <h2 className="font-heading text-lg font-bold">Información de contacto</h2>
-              {doctor.nombreConsultorio && <InfoRow icon={Building2} text={doctor.nombreConsultorio} />}
-              {doctor.direccion && <InfoRow icon={MapPin} text={doctor.direccion} />}
-              {doctor.telefono && <InfoRow icon={Phone} text={doctor.telefono} />}
-            </div>
-          )}
-        </div>
-
-        {doctor.reservaPublicaHabilitada && (
-          <div className="w-full shrink-0 lg:w-72">
-            <div className="flex flex-col gap-3 rounded-2xl border border-brand-accent/30 bg-brand-accent/5 p-6">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-accent text-white">
-                  <CalendarDays className="size-4.5" />
-                </span>
-                <span className="font-heading text-[15px] font-bold">Agenda online habilitada</span>
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-12">
+        {(doctor.biografia || doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
+          <div className="flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6">
+            {doctor.biografia && (
+              <div>
+                <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                  {doctor.biografia}
+                </p>
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Este médico acepta reservas de turno directamente desde su perfil público, sin
-                necesidad de contactarlo. La reserva online todavía no está disponible en esta
-                pantalla.
-              </p>
-            </div>
+            )}
+
+            {doctor.biografia && (doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
+              <div className="h-px bg-border" />
+            )}
+
+            {(doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
+              <div>
+                <h2 className="font-heading mb-3 text-sm font-bold">Información de contacto</h2>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {doctor.direccion && (
+                    <ContactField
+                      icon={MapPin}
+                      label="Dirección"
+                      value={doctor.direccion}
+                      className="col-span-2"
+                    />
+                  )}
+                  {doctor.nombreConsultorio && (
+                    <ContactField icon={Building2} label="Consultorio" value={doctor.nombreConsultorio} />
+                  )}
+                  {doctor.telefono && (
+                    <ContactField icon={Phone} label="Teléfono" value={doctor.telefono} />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+        )}
+
+        {doctor.reservaPublicaHabilitada && doctor.publicSlug && (
+          <PublicBookingCalendar slug={doctor.publicSlug} />
         )}
       </div>
     </>

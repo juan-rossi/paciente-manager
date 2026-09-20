@@ -235,9 +235,9 @@ export function TurnosCalendar({
 
   async function handleSubmitForm() {
     if (!formSlot) return;
-    if (!nombreYApellido.trim() || !telefono.trim()) {
+    if (!nombreYApellido.trim() || !dni.trim() || !telefono.trim()) {
       setTriedSubmit(true);
-      setError("Completá nombre y teléfono.");
+      setError("Completá nombre, DNI y teléfono.");
       return;
     }
     setError(null);
@@ -320,9 +320,9 @@ export function TurnosCalendar({
   }
 
   async function handleSubmitSobreturno() {
-    if (!sobreturnoNombre.trim() || !sobreturnoTelefono.trim()) {
+    if (!sobreturnoNombre.trim() || !sobreturnoDni.trim() || !sobreturnoTelefono.trim()) {
       setSobreturnoTriedSubmit(true);
-      setSobreturnoError("Completá nombre y teléfono.");
+      setSobreturnoError("Completá nombre, DNI y teléfono.");
       return;
     }
 
@@ -758,11 +758,12 @@ export function TurnosCalendar({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label>DNI</Label>
+                <Label>DNI *</Label>
                 <Input
                   inputMode="numeric"
                   value={dni}
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+                  className={triedSubmit && !dni.trim() ? "border-destructive" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -915,11 +916,14 @@ export function TurnosCalendar({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label>DNI</Label>
+                <Label>DNI *</Label>
                 <Input
                   inputMode="numeric"
                   value={sobreturnoDni}
                   onChange={(e) => setSobreturnoDni(e.target.value.replace(/\D/g, ""))}
+                  className={
+                    sobreturnoTriedSubmit && !sobreturnoDni.trim() ? "border-destructive" : undefined
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">

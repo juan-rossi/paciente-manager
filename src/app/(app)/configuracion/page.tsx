@@ -1,7 +1,8 @@
-import { CalendarDays, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
+import { Building2, CalendarDays, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { ScheduleSettings } from "@/components/schedule-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
@@ -25,7 +26,7 @@ export default async function ConfiguracionPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [blocks, secretarias] = await Promise.all([
+  const [blocks, secretarias, lugares] = await Promise.all([
     prisma.workScheduleBlock.findMany({
       where: { userId: user.id },
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
@@ -34,6 +35,10 @@ export default async function ConfiguracionPage() {
       where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: user.id } } },
       select: { id: true, email: true, nombre: true, createdAt: true },
       orderBy: { createdAt: "desc" },
+    }),
+    prisma.lugarDeTrabajo.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 
@@ -53,6 +58,10 @@ export default async function ConfiguracionPage() {
       >
         <TabsList className="w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
           <div className={groupLabelClass}>Consultorio</div>
+          <TabsTrigger value="practica" className={navItemClass}>
+            <Building2 className="size-4" />
+            Mi práctica
+          </TabsTrigger>
           <TabsTrigger value="horario" className={navItemClass}>
             <CalendarDays className="size-4" />
             Horario de trabajo
@@ -85,6 +94,9 @@ export default async function ConfiguracionPage() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="practica" className="w-full">
+          <MiPracticaSettings initialLugares={lugares} />
+        </TabsContent>
         <TabsContent value="horario" className="w-full">
           <ScheduleSettings
             initialBlocks={blocks}
