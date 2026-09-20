@@ -32,7 +32,16 @@ export default async function ConfiguracionPage() {
     }),
     prisma.user.findMany({
       where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: user.id } } },
-      select: { id: true, email: true, nombre: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        nombre: true,
+        createdAt: true,
+        secretariaAsignaciones: {
+          where: { doctorId: user.id },
+          select: { lugares: { select: { lugarId: true } } },
+        },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.lugarDeTrabajo.findMany({
@@ -41,9 +50,10 @@ export default async function ConfiguracionPage() {
     }),
   ]);
 
-  const initialSecretarias = secretarias.map((s) => ({
+  const initialSecretarias = secretarias.map(({ secretariaAsignaciones, ...s }) => ({
     ...s,
     createdAt: s.createdAt.toISOString(),
+    lugarIds: secretariaAsignaciones[0]?.lugares.map((l) => l.lugarId) ?? [],
   }));
 
   return (
@@ -98,7 +108,7 @@ export default async function ConfiguracionPage() {
           />
         </TabsContent>
         <TabsContent value="usuarios" className="w-full">
-          <SecretaryUsers initialSecretarias={initialSecretarias} />
+          <SecretaryUsers initialSecretarias={initialSecretarias} lugares={lugares} />
         </TabsContent>
         <TabsContent value="mensajeria" className="w-full">
           <MessagingSettings

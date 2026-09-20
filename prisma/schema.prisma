@@ -146,12 +146,12 @@ enum TipoAntecedente {
 }
 
 model User {
-  id                       String    @id @default(cuid())
-  email                    String    @unique
+  id                       String          @id @default(cuid())
+  email                    String          @unique
   passwordHash             String
   nombre                   String
-  apellido                 String    @default("")
-  nroMatricula             String    @default("")
+  apellido                 String          @default("")
+  nroMatricula             String          @default("")
   // Solo aplica a role DOCTOR -- se completa en el registro (`/signup` o
   // `/onboarding` post-Google) y se muestra antes del nombre en el header.
   tituloCortesia           TituloCortesia?
@@ -159,12 +159,12 @@ model User {
   // `/onboarding` post-Google). Los médicos que ya existían al agregar este
   // campo quedaron con "Clínica Médica" (ver la migración que lo agrega).
   especialidad             Especialidad?
-  role                     UserRole  @default(SECRETARY)
+  role                     UserRole        @default(SECRETARY)
   // Todo lo de acá abajo se edita desde "Mi perfil" (Configuración). Se
   // guarda como base64 en la fila (sin storage externo todavía) -- si en el
   // futuro se conecta Vercel Blob, esto pasa a ser una URL en su lugar.
-  fotoPerfilBase64         String?   @db.Text
-  biografia                String?   @db.Text
+  fotoPerfilBase64         String?         @db.Text
+  biografia                String?         @db.Text
   // Solo tiene sentido cuando `perfilPublico` está habilitado -- ver
   // `AtencionTipo`. `nombreConsultorio` a su vez solo aplica cuando
   // `atencionTipo` es `CONSULTORIO`.
@@ -184,31 +184,31 @@ model User {
   // Los campos de "Información pública" de arriba son requeridos en el form
   // cuando este flag está en true, pero a nivel de schema quedan nullable --
   // mismo criterio que `tituloCortesia`/`especialidad`.
-  perfilPublico            Boolean   @default(false)
+  perfilPublico            Boolean         @default(false)
   // Habilita que cualquier visitante reserve un turno desde el link
   // público (`publicSlug`). Independiente de `perfilPublico`.
-  reservaPublicaHabilitada Boolean   @default(false)
+  reservaPublicaHabilitada Boolean         @default(false)
   // Se genera la primera vez que se habilita `reservaPublicaHabilitada` (ver
   // `src/lib/public-slug.ts`) y después queda fijo -- no se regenera si el
   // médico cambia de nombre, para que el link ya compartido no se rompa.
-  publicSlug               String?   @unique
+  publicSlug               String?         @unique
   // Un DOCTOR (o SECRETARY) puntual puede tener también acceso al panel
   // /admin sin dejar de ser un tenant normal -- p.ej. un médico que
   // además es owner/staff de Semio 360. No reemplaza `role: ADMIN` (esa
   // cuenta de plataforma pura sigue sin tenant, ver getTenantId()); es un
   // permiso adicional que se otorga con `scripts/grant-admin-access.ts`.
   // Ver `isPlatformAdmin()` en `src/lib/admin-access.ts`.
-  isAdmin                  Boolean   @default(false)
-  slotDurationMinutes      Int       @default(20)
-  mensajeTemplate          String    @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
-  recordatorioDiasAdelanto Int       @default(0)
+  isAdmin                  Boolean         @default(false)
+  slotDurationMinutes      Int             @default(20)
+  mensajeTemplate          String          @default("Hola {nombre}, te recordamos tu turno para el {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
+  recordatorioDiasAdelanto Int             @default(0)
   // Apaga la mensajería de la cuenta -- con esto en false, el item
   // "Recordatorios" del menú superior se oculta (ver `(app)/layout.tsx`).
-  mensajeriaHabilitada     Boolean   @default(true)
+  mensajeriaHabilitada     Boolean         @default(true)
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
-  sobreturnosHabilitados   Boolean   @default(false)
-  createdAt                DateTime  @default(now())
+  sobreturnosHabilitados   Boolean         @default(false)
+  createdAt                DateTime        @default(now())
 
   // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Una SECRETARY puede
   // asistir a más de un médico (ver `DoctorSecretaria`, la relación real
@@ -254,8 +254,28 @@ model DoctorSecretaria {
   secretaria   User     @relation("AsignacionesComoSecretaria", fields: [secretariaId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
+  lugares DoctorSecretariaLugar[]
+
   @@unique([doctorId, secretariaId])
   @@index([secretariaId])
+}
+
+// Qué lugares de ESE médico puede administrar esta secretaria -- son
+// específicos de cada relación médico-secretaria, no de la secretaria en
+// general (la misma persona puede tener acceso a otros lugares en otro
+// médico). Requerido al menos uno al crear/editar una secretaria, chequeado
+// a nivel aplicación en /api/users (igual criterio que el único PARTICULAR
+// por médico: no es constraint de DB).
+model DoctorSecretariaLugar {
+  id                 String           @id @default(cuid())
+  doctorSecretariaId String
+  doctorSecretaria   DoctorSecretaria @relation(fields: [doctorSecretariaId], references: [id], onDelete: Cascade)
+  lugarId            String
+  lugar              LugarDeTrabajo   @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+
+  @@unique([doctorSecretariaId, lugarId])
+  @@index([lugarId])
 }
 
 enum AuditAccion {
@@ -277,7 +297,7 @@ enum AuditEntidad {
 // reemplaza una firma digital calificada (Ley 25.506), pero es la traza
 // mínima auditable para poder responder "quién tocó esto" ante un reclamo.
 model AuditLog {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
 
   // De qué cuenta/tenant es este registro (para escopar toda consulta).
   doctorId String
@@ -344,11 +364,12 @@ model LugarDeTrabajo {
   // verdad, solo se marca acá; toda lectura (lista, dropdown de horario,
   // chequeo de "un solo particular") filtra `deletedAt: null`.
   deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
-  bloques WorkScheduleBlock[]
-  turnos  Turno[]
+  bloques              WorkScheduleBlock[]
+  turnos               Turno[]
+  secretariasConAcceso DoctorSecretariaLugar[]
 
   @@index([userId])
 }
@@ -489,8 +510,8 @@ model Patient {
   metodosComplementarios String?
   tratamiento            String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   // Ley 26.529 art. 12/18: la historia clínica es inviolable y debe
   // guardarse un mínimo de 10 años -- "borrar" un paciente nunca hace un
   // delete físico, solo marca esta fecha y se excluye de las consultas.
@@ -525,9 +546,9 @@ model PatientAntecedente {
 }
 
 model PatientEvolucion {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   patientId String
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
   fecha     DateTime
   contenido String
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca

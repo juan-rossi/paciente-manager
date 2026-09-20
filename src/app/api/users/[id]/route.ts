@@ -14,6 +14,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const existing = await prisma.user.findFirst({
     where: { id, role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: tenantId } } },
+    include: { secretariaAsignaciones: { where: { doctorId: tenantId } } },
   });
   if (!existing) {
     return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
@@ -36,6 +37,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  const lugaresValidos = await prisma.lugarDeTrabajo.count({
+    where: { id: { in: parsed.data.lugarIds }, userId: tenantId, deletedAt: null },
+  });
+  if (lugaresValidos !== parsed.data.lugarIds.length) {
+    return NextResponse.json({ error: "Uno de los lugares seleccionados no es válido." }, { status: 400 });
+  }
+
   const secretaria = await prisma.user.update({
     where: { id },
     data: {
@@ -46,7 +54,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     select: { id: true, email: true, nombre: true, createdAt: true },
   });
 
-  return NextResponse.json({ secretaria });
+  const doctorSecretariaId = existing.secretariaAsignaciones[0].id;
+  await prisma.doctorSecretariaLugar.deleteMany({ where: { doctorSecretariaId } });
+  await prisma.doctorSecretariaLugar.createMany({
+    data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId, lugarId })),
+  });
+
+  return NextResponse.json({ secretaria: { ...secretaria, lugarIds: parsed.data.lugarIds } });
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {

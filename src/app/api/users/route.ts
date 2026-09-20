@@ -10,11 +10,25 @@ export async function GET() {
 
   const secretarias = await prisma.user.findMany({
     where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: tenantId } } },
-    select: { id: true, email: true, nombre: true, createdAt: true },
+    select: {
+      id: true,
+      email: true,
+      nombre: true,
+      createdAt: true,
+      secretariaAsignaciones: {
+        where: { doctorId: tenantId },
+        select: { lugares: { select: { lugarId: true } } },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ secretarias });
+  return NextResponse.json({
+    secretarias: secretarias.map(({ secretariaAsignaciones, ...s }) => ({
+      ...s,
+      lugarIds: secretariaAsignaciones[0]?.lugares.map((l) => l.lugarId) ?? [],
+    })),
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -29,6 +43,15 @@ export async function POST(request: NextRequest) {
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
       { status: 400 }
     );
+  }
+
+  // Los lugares elegidos tienen que ser lugares activos de ESTE médico --
+  // nunca de otro (nada impide que el cliente mande cualquier id).
+  const lugaresValidos = await prisma.lugarDeTrabajo.count({
+    where: { id: { in: parsed.data.lugarIds }, userId: tenantId, deletedAt: null },
+  });
+  if (lugaresValidos !== parsed.data.lugarIds.length) {
+    return NextResponse.json({ error: "Uno de los lugares seleccionados no es válido." }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
@@ -54,7 +77,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await prisma.doctorSecretaria.create({ data: { doctorId: tenantId, secretariaId: existing.id } });
+    const doctorSecretaria = await prisma.doctorSecretaria.create({
+      data: { doctorId: tenantId, secretariaId: existing.id },
+    });
+    await prisma.doctorSecretariaLugar.createMany({
+      data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId: doctorSecretaria.id, lugarId })),
+    });
     if (!existing.activeDoctorId) {
       await prisma.user.update({ where: { id: existing.id }, data: { activeDoctorId: tenantId } });
     }
@@ -66,6 +94,7 @@ export async function POST(request: NextRequest) {
           email: existing.email,
           nombre: existing.nombre,
           createdAt: existing.createdAt,
+          lugarIds: parsed.data.lugarIds,
         },
         linked: true,
       },
@@ -89,10 +118,18 @@ export async function POST(request: NextRequest) {
       passwordHash,
       role: "SECRETARY",
       activeDoctorId: tenantId,
-      secretariaAsignaciones: { create: { doctorId: tenantId } },
     },
     select: { id: true, email: true, nombre: true, createdAt: true },
   });
+  const doctorSecretaria = await prisma.doctorSecretaria.create({
+    data: { doctorId: tenantId, secretariaId: secretaria.id },
+  });
+  await prisma.doctorSecretariaLugar.createMany({
+    data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId: doctorSecretaria.id, lugarId })),
+  });
 
-  return NextResponse.json({ secretaria, linked: false }, { status: 201 });
+  return NextResponse.json(
+    { secretaria: { ...secretaria, lugarIds: parsed.data.lugarIds }, linked: false },
+    { status: 201 }
+  );
 }

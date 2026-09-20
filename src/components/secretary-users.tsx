@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -19,13 +20,32 @@ type Secretaria = {
   email: string;
   nombre: string;
   createdAt: string;
+  lugarIds: string[];
 };
+
+type LugarOption = {
+  id: string;
+  tipo: "PARTICULAR" | "CONSULTORIO";
+  nombre: string | null;
+};
+
+function lugarLabel(lugar: LugarOption): string {
+  return lugar.nombre ?? "Consulta particular";
+}
+
+function initials(nombre: string): string {
+  const partes = nombre.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].charAt(0).toUpperCase();
+  return (partes[0].charAt(0) + partes[partes.length - 1].charAt(0)).toUpperCase();
+}
 
 type Props = {
   initialSecretarias: Secretaria[];
+  lugares: LugarOption[];
 };
 
-export function SecretaryUsers({ initialSecretarias }: Props) {
+export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
   const [secretarias, setSecretarias] = useState<Secretaria[]>(initialSecretarias);
 
   const [open, setOpen] = useState(false);
@@ -33,6 +53,7 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
+  const [lugarIds, setLugarIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,11 +61,16 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
+  function toggleLugar(lugarId: string, checked: boolean) {
+    setLugarIds((prev) => (checked ? [...prev, lugarId] : prev.filter((id) => id !== lugarId)));
+  }
+
   function openCreate() {
     setEditingSecretaria(null);
     setEmail("");
     setPassword("");
     setNombre("");
+    setLugarIds([]);
     setError(null);
     setNotice(null);
     setOpen(true);
@@ -55,6 +81,7 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
     setEmail(secretaria.email);
     setPassword("");
     setNombre(secretaria.nombre);
+    setLugarIds(secretaria.lugarIds);
     setError(null);
     setNotice(null);
     setOpen(true);
@@ -68,6 +95,10 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
       setError("Completá el email.");
       return;
     }
+    if (lugarIds.length === 0) {
+      setError("Seleccioná al menos un lugar donde podrá administrar turnos.");
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
@@ -77,7 +108,9 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
           method: editingSecretaria ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            editingSecretaria ? { email, nombre, password: password || undefined } : { email, password, nombre }
+            editingSecretaria
+              ? { email, nombre, password: password || undefined, lugarIds }
+              : { email, password, nombre, lugarIds }
           ),
         }
       );
@@ -132,13 +165,34 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
         {secretarias.map((secretaria) => (
           <div
             key={secretaria.id}
-            className="flex items-center justify-between gap-3 rounded-md border p-3"
+            className="flex items-start justify-between gap-3 rounded-md border p-3"
           >
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">{secretaria.nombre}</span>
-              <span className="text-xs text-muted-foreground">{secretaria.email}</span>
+            <div className="flex items-start gap-2.5">
+              <span className="flex size-8.5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {initials(secretaria.nombre)}
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">{secretaria.nombre}</span>
+                <span className="text-xs text-muted-foreground">{secretaria.email}</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {secretaria.lugarIds.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">Sin lugares asignados</span>
+                  ) : (
+                    lugares
+                      .filter((l) => secretaria.lugarIds.includes(l.id))
+                      .map((l) => (
+                        <span
+                          key={l.id}
+                          className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
+                        >
+                          {lugarLabel(l)}
+                        </span>
+                      ))
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => openEdit(secretaria)}
@@ -209,6 +263,29 @@ export function SecretaryUsers({ initialSecretarias }: Props) {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
               />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Lugares que podrá administrar</Label>
+              {lugares.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Todavía no cargaste ningún lugar en &quot;Mi práctica&quot;.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {lugares.map((lugar) => (
+                    <div key={lugar.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`lugar-${lugar.id}`}
+                        checked={lugarIds.includes(lugar.id)}
+                        onCheckedChange={(checked) => toggleLugar(lugar.id, checked === true)}
+                      />
+                      <Label htmlFor={`lugar-${lugar.id}`} className="font-normal">
+                        {lugarLabel(lugar)}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

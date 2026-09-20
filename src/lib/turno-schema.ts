@@ -88,6 +88,10 @@ export const secretaryInputSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
+  // Lugares del médico que esta secretaria va a poder administrar --
+  // específico de esta relación médico-secretaria, no de la cuenta en
+  // general (ver DoctorSecretariaLugar en el schema).
+  lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
 });
 
 export const secretaryUpdateSchema = z.object({
@@ -99,4 +103,5 @@ export const secretaryUpdateSchema = z.object({
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null))
     .refine((v) => v === null || v.length >= 6, "La contraseña debe tener al menos 6 caracteres."),
+  lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
 });
