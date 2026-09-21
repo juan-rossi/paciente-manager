@@ -18,14 +18,17 @@ type NavLink = {
 
 type Props = {
   navLinks: NavLink[];
-  configLink: NavLink[];
+  // Configuración y Panel Admin -- en desktop viven en el menú del chip de
+  // usuario (ver user-chip.tsx), acá van agrupados aparte de la navegación
+  // principal.
+  extraLinks: NavLink[];
   userName?: string;
 };
 
 // Solo se muestra en mobile (el trigger es `sm:hidden`) -- en desktop, los
 // links y el botón de logout ya se ven siempre en el header, así que este
 // menú sería redundante.
-export function MobileNavMenu({ navLinks, configLink, userName }: Props) {
+export function MobileNavMenu({ navLinks, extraLinks, userName }: Props) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -56,9 +59,9 @@ export function MobileNavMenu({ navLinks, configLink, userName }: Props) {
             activeVariant="solid"
             className="flex w-full flex-col items-stretch gap-1"
           />
-          {configLink.length > 0 && (
+          {extraLinks.length > 0 && (
             <NavLinks
-              links={configLink}
+              links={extraLinks}
               activeVariant="solid"
               className="flex w-full flex-col items-stretch gap-1 border-t border-border pt-1"
             />

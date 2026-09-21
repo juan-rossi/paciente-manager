@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
 import { getRecordatoriosDelDia } from "@/lib/get-recordatorios-del-dia";
 import { formatDateParamBA } from "@/lib/timezone";
@@ -10,7 +11,19 @@ export default async function RecordatoriosPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  if (!user.mensajeriaHabilitada) {
+  const tenantId = getTenantId(user);
+
+  // La mensajería (habilitada/plantilla) es una configuración del médico
+  // (tenant), no de la cuenta que está logueada -- para una secretaria,
+  // `user.mensajeTemplate`/`user.mensajeriaHabilitada` son los de SU propia
+  // fila (siempre el default, nunca los tocó), no los del médico que
+  // configuró desde Configuración → Mensajería.
+  const doctor = await prisma.user.findUniqueOrThrow({
+    where: { id: tenantId },
+    select: { mensajeriaHabilitada: true, mensajeTemplate: true },
+  });
+
+  if (!doctor.mensajeriaHabilitada) {
     return (
       <p className="text-sm text-muted-foreground">
         La mensajería está deshabilitada. Podés activarla desde Configuración → Mensajería.
@@ -18,7 +31,6 @@ export default async function RecordatoriosPage() {
     );
   }
 
-  const tenantId = getTenantId(user);
   const activeLugarId = await resolveActiveLugarId(user);
   const today = new Date();
   const { turnos, diasConHorario, sinConfigurar } = await getRecordatoriosDelDia(
@@ -37,7 +49,7 @@ export default async function RecordatoriosPage() {
         initialTurnos={turnos}
         initialDiasConHorario={diasConHorario}
         initialSinConfigurar={sinConfigurar}
-        mensajeTemplate={user.mensajeTemplate}
+        mensajeTemplate={doctor.mensajeTemplate}
       />
     </div>
   );

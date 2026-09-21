@@ -72,17 +72,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(mensajeriaHabilitada
       ? [{ href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const }]
       : []),
-    // Médico o secretaria con acceso admin otorgado a mano (ver
-    // scripts/grant-admin-access.ts) -- puede entrar a /admin sin dejar de
-    // usar su cuenta normal.
-    ...(user && isPlatformAdmin(user)
-      ? [{ href: "/admin", label: "Panel Admin", icon: "LayoutDashboard" as const }]
-      : []),
   ];
 
   const configLink = isDoctor
     ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
     : [];
+
+  // Médico o secretaria con acceso admin otorgado a mano (ver
+  // scripts/grant-admin-access.ts) -- puede entrar a /admin sin dejar de
+  // usar su cuenta normal. Vive en el menú del chip de usuario, no en la
+  // barra de navegación principal.
+  const adminLink =
+    user && isPlatformAdmin(user)
+      ? [{ href: "/admin", label: "Panel Admin", icon: "LayoutDashboard" as const }]
+      : [];
 
   const nombreConTitulo = user
     ? isDoctor
@@ -126,10 +129,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   iniciales={iniciales}
                   fotoPerfilBase64={user.fotoPerfilBase64}
                   configHref={configLink[0]?.href}
+                  adminHref={adminLink[0]?.href}
                 />
               </div>
             )}
-            <MobileNavMenu navLinks={navLinks} configLink={configLink} userName={nombreConTitulo} />
+            <MobileNavMenu
+              navLinks={navLinks}
+              extraLinks={[...configLink, ...adminLink]}
+              userName={nombreConTitulo}
+            />
           </div>
         </div>
         {user && doctoresAsignados.length >= 2 && (
