@@ -82,9 +82,14 @@ function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function OnlineBadge() {
+function OnlineBadge({ className }: { className?: string }) {
   return (
-    <span className="shrink-0 rounded-full border border-sky-600 bg-card px-1.5 py-px text-[9px] font-extrabold tracking-wide text-sky-600 dark:border-sky-400 dark:text-sky-400">
+    <span
+      className={cn(
+        "shrink-0 rounded-full border border-sky-600 bg-card px-1.5 py-px text-[9px] font-extrabold tracking-wide text-sky-600 dark:border-sky-400 dark:text-sky-400",
+        className
+      )}
+    >
       ONLINE
     </span>
   );
@@ -456,11 +461,13 @@ function BloqueContiguoGrid({
                       >
                         {ocupado ? (
                           <>
-                            <span className="flex items-center justify-between gap-1.5">
+                            <span className="flex w-full items-center justify-between gap-1.5">
                               <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
                                 {piece.turno!.nombreYApellido}
                               </strong>
-                              {piece.turno!.origen === "ONLINE" && <OnlineBadge />}
+                              {piece.turno!.origen === "ONLINE" && (
+                                <OnlineBadge className="hidden sm:inline-block" />
+                              )}
                             </span>
                             <span className="flex items-center gap-2 text-[10px] leading-tight opacity-80">
                               <span className="shrink-0">
@@ -500,11 +507,13 @@ function BloqueContiguoGrid({
                         index > 0 && "border-t border-dashed border-amber-500/40"
                       )}
                     >
-                      <span className="flex items-center justify-between gap-1.5">
+                      <span className="flex w-full items-center justify-between gap-1.5">
                         <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
                           {sob.turno!.nombreYApellido}
                         </strong>
-                        {sob.turno!.origen === "ONLINE" && <OnlineBadge />}
+                        {sob.turno!.origen === "ONLINE" && (
+                          <OnlineBadge className="hidden sm:inline-block" />
+                        )}
                       </span>
                       <span className="text-[10px] leading-tight opacity-80">
                         [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno
