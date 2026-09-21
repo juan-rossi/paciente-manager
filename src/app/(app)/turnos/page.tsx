@@ -13,7 +13,7 @@ export default async function TurnosPage() {
   const tenantId = getTenantId(user);
   const activeLugarId = await resolveActiveLugarId(user);
   const today = new Date();
-  const { slots, sobreturnos, sinConfigurar, diasConHorario, sobreturnosHabilitados } =
+  const { slots, sobreturnos, sinConfigurar, diasConHorario, sobreturnosHabilitados, lugares } =
     await getDaySlots(today, user.role, tenantId, activeLugarId);
 
   return (
@@ -28,6 +28,7 @@ export default async function TurnosPage() {
         initialSinConfigurar={sinConfigurar}
         initialDiasConHorario={diasConHorario}
         initialSobreturnosHabilitados={sobreturnosHabilitados}
+        initialLugares={lugares}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import type { DiaSemana } from "@/lib/slots";
 export type SerializedTurno = {
   id: string;
   estado: string;
+  origen: string;
   nombreYApellido: string;
   fechaNacimiento: string | null;
   dni: string | null;
@@ -22,6 +23,13 @@ export type DaySlot = {
   fin: string;
   lugarId: string | null;
   turno: SerializedTurno | null;
+};
+
+export type LugarInfo = {
+  id: string;
+  nombre: string | null;
+  tipo: string;
+  ciudad: string | null;
 };
 
 export async function getDaySlots(
@@ -39,6 +47,7 @@ export async function getDaySlots(
   sinConfigurar: boolean;
   diasConHorario: DiaSemana[];
   sobreturnosHabilitados: boolean;
+  lugares: LugarInfo[];
 }> {
   const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
   if (!doctor || lugarId === null) {
@@ -48,8 +57,15 @@ export async function getDaySlots(
       sinConfigurar: true,
       diasConHorario: [],
       sobreturnosHabilitados: doctor?.sobreturnosHabilitados ?? false,
+      lugares: [],
     };
   }
+
+  const lugares = await prisma.lugarDeTrabajo.findMany({
+    where: { userId: doctor.id, deletedAt: null, ...(lugarId ? { id: lugarId } : {}) },
+    select: { id: true, nombre: true, tipo: true, ciudad: true },
+    orderBy: { createdAt: "asc" },
+  });
 
   const blocks = await prisma.workScheduleBlock.findMany({
     where: { userId: doctor.id, ...(lugarId ? { lugarId } : {}) },
@@ -120,5 +136,6 @@ export async function getDaySlots(
     sinConfigurar: blocks.length === 0,
     diasConHorario,
     sobreturnosHabilitados: doctor.sobreturnosHabilitados,
+    lugares,
   };
 }

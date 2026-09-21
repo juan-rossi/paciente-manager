@@ -26,7 +26,7 @@ function pickDoctorPublico(row: {
   biografia: string | null;
   fotoPerfilBase64: string | null;
   reservaPublicaHabilitada: boolean;
-}): Omit<DoctorPublico, "distanciaKm" | "ciudades"> {
+}): Omit<DoctorPublico, "distanciaKm" | "ciudades" | "lugarIdMasCercano"> {
   return {
     id: row.id,
     publicSlug: row.publicSlug,
@@ -60,6 +60,11 @@ export type DoctorPublico = {
   fotoPerfilBase64: string | null;
   reservaPublicaHabilitada: boolean;
   distanciaKm: number | null;
+  // El `LugarDeTrabajo` que matcheó la búsqueda por ubicación (`null` si
+  // matcheó por el perfil, o si no hubo búsqueda activa) -- se propaga como
+  // query param al link "Ver perfil" (ver DoctorCard) para que el
+  // calendario de reserva pública arranque con ese lugar destacado.
+  lugarIdMasCercano: string | null;
 };
 
 function ciudadesDe(doctor: { ciudad: string | null; lugaresDeTrabajo: { ciudad: string | null }[] }): string[] {
@@ -78,12 +83,13 @@ function ciudadesDe(doctor: { ciudad: string | null; lugaresDeTrabajo: { ciudad:
 // por fuera de eso, mejor no mostrar nada que mostrar algo irrelevante.
 const RADIO_MAXIMO_KM = 50;
 
-type Punto = { latitud: number; longitud: number; ciudad: string | null };
+type Punto = { latitud: number; longitud: number; ciudad: string | null; lugarId: string | null };
 
 function tienePunto(p: {
   latitud: number | null;
   longitud: number | null;
   ciudad: string | null;
+  lugarId: string | null;
 }): p is Punto {
   return p.latitud != null && p.longitud != null;
 }
@@ -123,7 +129,7 @@ export async function getDoctoresPublicos(filtros: {
       longitud: true,
       lugaresDeTrabajo: {
         where: { deletedAt: null },
-        select: { latitud: true, longitud: true, ciudad: true },
+        select: { id: true, latitud: true, longitud: true, ciudad: true },
       },
     },
     orderBy: { apellido: "asc" },
@@ -134,6 +140,7 @@ export async function getDoctoresPublicos(filtros: {
       ...pickDoctorPublico(doctor),
       ciudades: ciudadesDe(doctor),
       distanciaKm: null,
+      lugarIdMasCercano: null,
     }));
   }
 
@@ -141,21 +148,31 @@ export async function getDoctoresPublicos(filtros: {
     .map((doctor) => {
       const ciudades = ciudadesDe(doctor);
       const puntos = [
-        { latitud: doctor.latitud, longitud: doctor.longitud, ciudad: doctor.ciudad },
-        ...doctor.lugaresDeTrabajo,
+        { latitud: doctor.latitud, longitud: doctor.longitud, ciudad: doctor.ciudad, lugarId: null as string | null },
+        ...doctor.lugaresDeTrabajo.map((l) => ({
+          latitud: l.latitud,
+          longitud: l.longitud,
+          ciudad: l.ciudad,
+          lugarId: l.id as string | null,
+        })),
       ].filter(tienePunto);
 
       if (puntos.length === 0) {
-        return { ...pickDoctorPublico(doctor), ciudades, distanciaKm: null };
+        return { ...pickDoctorPublico(doctor), ciudades, distanciaKm: null, lugarIdMasCercano: null };
       }
 
       // La ciudad que se muestra es la del punto que efectivamente matcheó
       // (perfil o alguno de los lugares), no siempre la del perfil -- si no,
       // un médico que aparece por un consultorio en otra ciudad mostraría
       // "Bariloche · a 0 m" al buscar en Buenos Aires, lo cual es
-      // contradictorio.
+      // contradictorio. `lugarId` viaja junto para poder destacar ese mismo
+      // lugar en el calendario de reserva del perfil (ver DoctorCard).
       const masCercano = puntos
-        .map((p) => ({ ciudad: p.ciudad, distanciaKm: distanciaKm(filtros.lat!, filtros.lng!, p.latitud, p.longitud) }))
+        .map((p) => ({
+          ciudad: p.ciudad,
+          lugarId: p.lugarId,
+          distanciaKm: distanciaKm(filtros.lat!, filtros.lng!, p.latitud, p.longitud),
+        }))
         .reduce((min, p) => (p.distanciaKm < min.distanciaKm ? p : min));
 
       return {
@@ -168,6 +185,7 @@ export async function getDoctoresPublicos(filtros: {
         ciudad: masCercano.ciudad,
         ciudades,
         distanciaKm: masCercano.distanciaKm,
+        lugarIdMasCercano: masCercano.lugarId,
       };
     })
     .filter((doctor): doctor is DoctorPublico & { distanciaKm: number } => doctor.distanciaKm !== null)
@@ -184,6 +202,11 @@ export async function getDoctorPublicoPorSlug(slug: string) {
       nombreConsultorio: true,
       telefono: true,
       direccion: true,
+      lugaresDeTrabajo: {
+        where: { deletedAt: null },
+        select: { id: true, tipo: true, nombre: true, ciudad: true, direccion: true, telefono: true },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 }

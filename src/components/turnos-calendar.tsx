@@ -7,7 +7,15 @@ import {
   formatCaption as defaultFormatCaption,
   formatWeekdayName as defaultFormatWeekdayName,
 } from "react-day-picker";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
 import { nextDiaConHorario } from "@/lib/dia-nav";
 import {
@@ -50,6 +58,7 @@ type TurnoInfo = {
   obraSocial: string | null;
   obraSocialNro: string | null;
   patientId?: string | null;
+  origen: string;
 };
 
 type Slot = {
@@ -59,11 +68,26 @@ type Slot = {
   turno: TurnoInfo | null;
 };
 
+type LugarInfo = {
+  id: string;
+  nombre: string | null;
+  tipo: string;
+  ciudad: string | null;
+};
+
 const DEFAULT_START_HOUR = 8;
 const DEFAULT_END_HOUR = 18;
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function OnlineBadge() {
+  return (
+    <span className="shrink-0 rounded-full bg-sky-500 px-1.5 py-px text-[9px] font-extrabold tracking-wide text-white">
+      ONLINE
+    </span>
+  );
 }
 
 function formatHora(iso: string) {
@@ -130,6 +154,325 @@ function getGridRange(slots: Slot[]) {
   return { startMinutes, endMinutes: Math.max(endMinutes, startMinutes + 60) };
 }
 
+type LugarGrupo = {
+  lugarId: string | null;
+  slots: Slot[];
+  sobreturnos: Slot[];
+};
+
+// Un médico con más de un lugar de trabajo puede tener horarios en horas
+// bien separadas del día (mañana en un consultorio, tarde en otro) -- ver
+// esa fecha como una única grilla continua deja un hueco vacío y sin
+// explicación entre ambos tramos. Agrupar por lugar (en el orden en que
+// aparece cada uno por primera vez, ya vienen ordenados cronológicamente)
+// permite que cada lugar tenga su propia mini-grilla acotada a su propio
+// rango horario, sin ese hueco muerto.
+function agruparPorLugar(slots: Slot[], sobreturnos: Slot[]): LugarGrupo[] {
+  const orden: (string | null)[] = [];
+  const grupos = new Map<string | null, LugarGrupo>();
+  function ensure(lugarId: string | null) {
+    let grupo = grupos.get(lugarId);
+    if (!grupo) {
+      grupo = { lugarId, slots: [], sobreturnos: [] };
+      grupos.set(lugarId, grupo);
+      orden.push(lugarId);
+    }
+    return grupo;
+  }
+  for (const slot of slots) ensure(slot.lugarId).slots.push(slot);
+  for (const sob of sobreturnos) ensure(sob.lugarId).sobreturnos.push(sob);
+  return orden.map((lugarId) => grupos.get(lugarId)!);
+}
+
+function lugarNombre(lugar: LugarInfo | undefined) {
+  return lugar?.nombre?.trim() || "Consulta particular";
+}
+
+function tipoLabel(tipo: string) {
+  return tipo === "CONSULTORIO" ? "Consultorio" : "Particular";
+}
+
+function LugarIcon({ tipo }: { tipo: string | undefined }) {
+  if (tipo === "CONSULTORIO") return <Building2 className="size-3.5 text-muted-foreground" />;
+  if (tipo === "PARTICULAR") return <MapPin className="size-3.5 text-muted-foreground" />;
+  return <Clock className="size-3.5 text-muted-foreground" />;
+}
+
+// La grilla de un solo lugar/tramo del día -- se usa una vez por cada grupo
+// de `agruparPorLugar` (o una sola vez, sin agrupar, cuando el médico tiene
+// un único lugar). Cada instancia calcula su propio rango horario (arranca
+// en su primer slot, termina en su último) para no arrastrar el eje de
+// tiempo de otro lugar.
+function LugarDayGrid({
+  slots,
+  sobreturnos,
+  role,
+  isPastDay,
+  isToday,
+  onOpenEdit,
+  onOpenBooking,
+}: {
+  slots: Slot[];
+  sobreturnos: Slot[];
+  role: UserRole;
+  isPastDay: boolean;
+  isToday: boolean;
+  onOpenEdit: (slot: Slot) => void;
+  onOpenBooking: (slot: Slot) => void;
+}) {
+  const { mergedRows, standalone: standaloneSobreturnos, consumedInicios } = mergeSobreturnos(
+    slots,
+    sobreturnos
+  );
+  const { startMinutes, endMinutes } = getGridRange([...slots, ...sobreturnos]);
+  const totalMinutes = endMinutes - startMinutes;
+  const nowOffsetPct =
+    ((getMinutesSinceMidnightBA(new Date()) - startMinutes) / totalMinutes) * 100;
+  const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
+
+  if (slots.length === 0) return null;
+
+  return (
+    <div
+      className="relative flex-1 min-h-0"
+      style={{ minHeight: Math.max(slots.length * 44, 220) }}
+    >
+      {slots.map((slot) => {
+        const top = ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
+        return (
+          <div
+            key={slot.inicio}
+            className="absolute inset-x-0 border-t border-border/70"
+            style={{ top: `${top}%` }}
+          >
+            <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
+              {formatHora(slot.inicio)}
+            </span>
+          </div>
+        );
+      })}
+
+      <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
+        {slots.map((slot) => {
+          if (consumedInicios.has(slot.inicio)) return null;
+          const top = ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
+          const height =
+            ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / totalMinutes) *
+            100;
+          const ocupado = Boolean(slot.turno);
+
+          return (
+            <button
+              key={slot.inicio}
+              type="button"
+              disabled={isPastDay}
+              onClick={() => (slot.turno ? onOpenEdit(slot) : onOpenBooking(slot))}
+              style={{
+                top: `${top}%`,
+                height: `${height}%`,
+                minHeight: ocupado ? 44 : 22,
+              }}
+              aria-label={
+                ocupado
+                  ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
+                  : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
+              }
+              className={cn(
+                "absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                ocupado
+                  ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
+                  : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+              )}
+            >
+              {ocupado ? (
+                <>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <strong className="text-xs leading-tight font-semibold break-words">
+                      {slot.turno!.nombreYApellido}
+                    </strong>
+                    {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
+                  </span>
+                  <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
+                    <span className="shrink-0">
+                      [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                    </span>
+                    {role === "DOCTOR" && slot.turno!.patientId && (
+                      <Link
+                        href={`/patients/${slot.turno!.patientId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0 underline-offset-2 hover:underline"
+                      >
+                        Ver ficha
+                      </Link>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <span className="flex items-center gap-1 overflow-hidden text-xs">
+                  <strong className="shrink-0 font-semibold">Libre</strong>
+                  <span className="truncate">
+                    [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                  </span>
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {mergedRows.map((row) => {
+          const pieces = [...row.leftPieces].sort((a, b) => a.inicio.localeCompare(b.inicio));
+          const allTimes = [...pieces, ...row.sobreturnosAqui];
+          const rangeStart = Math.min(...allTimes.map((p) => minutesFromMidnight(p.inicio)));
+          const rangeEnd = Math.max(...allTimes.map((p) => minutesFromMidnight(p.fin)));
+          const top = ((rangeStart - startMinutes) / totalMinutes) * 100;
+          const height = ((rangeEnd - rangeStart) / totalMinutes) * 100;
+
+          return (
+            <div
+              key={row.key}
+              style={{ top: `${top}%`, height: `${height}%` }}
+              className="absolute left-1 min-h-11 w-[calc(100%-0.5rem)] overflow-hidden rounded-md border border-border bg-card shadow-sm"
+            >
+              <div className="flex h-full flex-row">
+                <div className="flex flex-1 flex-col">
+                  {pieces.map((piece, index) => {
+                    const ocupado = Boolean(piece.turno);
+                    return (
+                      <button
+                        key={piece.inicio}
+                        type="button"
+                        disabled={isPastDay}
+                        onClick={() => (piece.turno ? onOpenEdit(piece) : onOpenBooking(piece))}
+                        aria-label={
+                          ocupado
+                            ? `Turno de ${piece.turno!.nombreYApellido}, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Editar."}`
+                            : `Libre, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Reservar."}`
+                        }
+                        className={cn(
+                          "flex w-full flex-1 flex-col items-start justify-center px-2 py-1 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                          index > 0 && "border-t border-dashed border-border/70",
+                          ocupado
+                            ? "bg-primary/15 text-primary hover:bg-primary/25"
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        )}
+                      >
+                        {ocupado ? (
+                          <>
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              <strong className="text-[11px] leading-tight font-semibold break-words">
+                                {piece.turno!.nombreYApellido}
+                              </strong>
+                              {piece.turno!.origen === "ONLINE" && <OnlineBadge />}
+                            </span>
+                            <span className="flex items-center gap-2 text-[10px] leading-tight opacity-80">
+                              <span className="shrink-0">
+                                [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
+                              </span>
+                              {role === "DOCTOR" && piece.turno!.patientId && (
+                                <Link
+                                  href={`/patients/${piece.turno!.patientId}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="shrink-0 underline-offset-2 hover:underline"
+                                >
+                                  Ver ficha
+                                </Link>
+                              )}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[11px]">
+                            <strong className="font-semibold">Libre</strong>{" "}
+                            [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-1 flex-col border-l border-dashed border-amber-500/70">
+                  {row.sobreturnosAqui.map((sob, index) => (
+                    <button
+                      key={sob.inicio}
+                      type="button"
+                      disabled={isPastDay}
+                      onClick={() => onOpenEdit(sob)}
+                      aria-label={`Sobreturno de ${sob.turno!.nombreYApellido}, ${formatHora(sob.inicio)} a ${formatHora(sob.fin)}${isPastDay ? "." : ". Editar."}`}
+                      className={cn(
+                        "flex w-full flex-1 flex-col items-start justify-center bg-amber-500/15 px-2 py-1 text-left text-amber-800 transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400",
+                        index > 0 && "border-t border-dashed border-amber-500/40"
+                      )}
+                    >
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <strong className="text-[11px] leading-tight font-semibold break-words">
+                          {sob.turno!.nombreYApellido}
+                        </strong>
+                        {sob.turno!.origen === "ONLINE" && <OnlineBadge />}
+                      </span>
+                      <span className="text-[10px] leading-tight opacity-80">
+                        [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {standaloneSobreturnos.map((slot) => {
+          const top = ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
+          const height =
+            ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / totalMinutes) *
+            100;
+
+          return (
+            <button
+              key={`sobreturno-${slot.inicio}`}
+              type="button"
+              disabled={isPastDay}
+              onClick={() => onOpenEdit(slot)}
+              style={{ top: `${top}%`, height: `${height}%`, minHeight: 44 }}
+              aria-label={`Sobreturno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`}
+              className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border border-dashed border-amber-500/70 bg-amber-500/15 py-1 pr-2 pl-6 text-left text-amber-800 shadow-sm transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400"
+            >
+              <span className="flex flex-wrap items-center gap-1.5">
+                <strong className="text-xs leading-tight font-semibold break-words">
+                  {slot.turno!.nombreYApellido}
+                </strong>
+                {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
+              </span>
+              <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
+                <span className="shrink-0">
+                  [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ] · Sobreturno
+                </span>
+                {role === "DOCTOR" && slot.turno!.patientId && (
+                  <Link
+                    href={`/patients/${slot.turno!.patientId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 underline-offset-2 hover:underline"
+                  >
+                    Ver ficha
+                  </Link>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {showNowLine && (
+        <div
+          className="pointer-events-none absolute left-12 z-10 flex w-[calc(100%-3rem)] items-center"
+          style={{ top: `${nowOffsetPct}%` }}
+        >
+          <span className="-ml-1 size-2 shrink-0 rounded-full bg-destructive" />
+          <div className="h-px flex-1 bg-destructive" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   role: UserRole;
   // Identifican de quién son los turnos que se están mostrando -- una
@@ -145,6 +488,7 @@ type Props = {
   initialSinConfigurar: boolean;
   initialDiasConHorario: DiaSemana[];
   initialSobreturnosHabilitados: boolean;
+  initialLugares: LugarInfo[];
 };
 
 export function TurnosCalendar({
@@ -157,6 +501,7 @@ export function TurnosCalendar({
   initialSinConfigurar,
   initialDiasConHorario,
   initialSobreturnosHabilitados,
+  initialLugares,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -168,6 +513,7 @@ export function TurnosCalendar({
   const [sobreturnosHabilitados, setSobreturnosHabilitados] = useState(
     initialSobreturnosHabilitados
   );
+  const [lugares, setLugares] = useState<LugarInfo[]>(initialLugares);
   const [loading, setLoading] = useState(false);
   // En mobile arranca colapsado para no ocupar toda la pantalla con el
   // calendario -- en desktop (lg+) siempre se muestra, sin importar este
@@ -210,6 +556,7 @@ export function TurnosCalendar({
       setSinConfigurar(Boolean(data.sinConfigurar));
       setDiasConHorario(data.diasConHorario ?? []);
       setSobreturnosHabilitados(Boolean(data.sobreturnosHabilitados));
+      setLugares(data.lugares ?? []);
     } finally {
       setLoading(false);
     }
@@ -408,17 +755,19 @@ export function TurnosCalendar({
     }
   }
 
-  const { mergedRows, standalone: standaloneSobreturnos, consumedInicios } = mergeSobreturnos(
-    slots,
-    sobreturnos
-  );
-  const { startMinutes, endMinutes } = getGridRange([...slots, ...sobreturnos]);
-  const totalMinutes = endMinutes - startMinutes;
   const today = new Date();
   const isToday = isSameDayBA(selectedDate, today);
   const isPastDay = selectedDate < todayStart;
-  const nowOffsetPct = ((getMinutesSinceMidnightBA(today) - startMinutes) / totalMinutes) * 100;
-  const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
+
+  const lugaresPorId = new Map(lugares.map((l) => [l.id, l]));
+  const grupos = agruparPorLugar(slots, sobreturnos);
+  // Se muestra el encabezado de cada tarjeta apenas el médico tiene más de
+  // una práctica configurada -- aunque ese día en particular solo una tenga
+  // horarios cargados -- para que quede claro a qué lugar corresponde sin
+  // tener que ir día por día hasta encontrar uno con dos. El caso común (un
+  // solo lugar, o ninguno todavía asignado) se sigue viendo exactamente
+  // igual que antes de esta feature.
+  const mostrarEncabezadosPorLugar = lugares.length > 1;
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
@@ -509,258 +858,104 @@ export function TurnosCalendar({
             </Button>
           </div>
 
-          <Card className="-mx-4 flex-1 min-h-0 rounded-none border-0 bg-card py-0 shadow-none lg:mx-0 lg:rounded-xl lg:border lg:border-border lg:py-(--card-spacing) lg:shadow-sm">
-            <CardContent className="flex flex-1 min-h-0 flex-col px-2 pt-[20px] lg:px-(--card-spacing) lg:pt-6">
-              {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
+          {(() => {
+            // Con más de una práctica configurada, cada lugar ya es su
+            // propia tarjeta con su propio borde -- envolverlas además en
+            // la caja blanca de siempre era una caja dentro de otra caja,
+            // de más. Sin esa envoltura, quedan directamente apoyadas
+            // sobre el fondo de la página (igual que en el mockup
+            // aprobado). Con un solo lugar (el caso común) se mantiene la
+            // caja blanca de toda la vida, sin cambios.
+            const contenido = (
+              <>
+                {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
 
-              {!loading && sinConfigurar && (
-                <p className="text-sm text-muted-foreground">
-                  Todavía no se configuró el horario de trabajo.
-                </p>
-              )}
+                {!loading && sinConfigurar && (
+                  <p className="text-sm text-muted-foreground">
+                    Todavía no se configuró el horario de trabajo.
+                  </p>
+                )}
 
-              {!loading && !sinConfigurar && slots.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No hay horario configurado para este día.
-                </p>
-              )}
+                {!loading && !sinConfigurar && slots.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No hay horario configurado para este día.
+                  </p>
+                )}
 
-              {!loading && slots.length > 0 && (
-                <div
-                  className="relative flex-1 min-h-0"
-                  style={{ minHeight: Math.max(slots.length * 44, 320) }}
-                >
-                  {slots.map((slot) => {
-                    const top =
-                      ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
-                    return (
-                      <div
-                        key={slot.inicio}
-                        className="absolute inset-x-0 border-t border-border/70"
-                        style={{ top: `${top}%` }}
-                      >
-                        <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
-                          {formatHora(slot.inicio)}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                  <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
-                    {slots.map((slot) => {
-                      if (consumedInicios.has(slot.inicio)) return null;
-                      const top =
-                        ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
-                      const height =
-                        ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) /
-                          totalMinutes) *
-                        100;
-                      const ocupado = Boolean(slot.turno);
-
-                      return (
-                        <button
-                          key={slot.inicio}
-                          type="button"
-                          disabled={isPastDay}
-                          onClick={() => (slot.turno ? openEdit(slot) : openBooking(slot))}
-                          style={{
-                            top: `${top}%`,
-                            height: `${height}%`,
-                            minHeight: ocupado ? 44 : 22,
-                          }}
-                          aria-label={
-                            ocupado
-                              ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
-                              : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
-                          }
-                          className={cn(
-                            "absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
-                            ocupado
-                              ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
-                              : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
-                          )}
-                        >
-                          {ocupado ? (
-                            <>
-                              <strong className="text-xs leading-tight font-semibold break-words">
-                                {slot.turno!.nombreYApellido}
-                              </strong>
-                              <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
-                                <span className="shrink-0">
-                                  [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
-                                </span>
-                                {role === "DOCTOR" && slot.turno!.patientId && (
-                                  <Link
-                                    href={`/patients/${slot.turno!.patientId}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="shrink-0 underline-offset-2 hover:underline"
-                                  >
-                                    Ver ficha
-                                  </Link>
-                                )}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="flex items-center gap-1 overflow-hidden text-xs">
-                              <strong className="shrink-0 font-semibold">Libre</strong>
-                              <span className="truncate">
-                                [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
-                              </span>
-                            </span>
-                          )}
-                        </button>
+                {!loading && slots.length > 0 && (
+                  <div className="flex flex-1 min-h-0 flex-col gap-5">
+                    {grupos.map((grupo) => {
+                      const lugar = grupo.lugarId ? lugaresPorId.get(grupo.lugarId) : undefined;
+                      const todosLosItems = [...grupo.slots, ...grupo.sobreturnos];
+                      const primerInicio = todosLosItems.reduce(
+                        (min, s) => (s.inicio < min ? s.inicio : min),
+                        todosLosItems[0]?.inicio ?? ""
                       );
-                    })}
-
-                    {mergedRows.map((row) => {
-                      const pieces = [...row.leftPieces].sort((a, b) =>
-                        a.inicio.localeCompare(b.inicio)
+                      const ultimoFin = todosLosItems.reduce(
+                        (max, s) => (s.fin > max ? s.fin : max),
+                        todosLosItems[0]?.fin ?? ""
                       );
-                      const allTimes = [...pieces, ...row.sobreturnosAqui];
-                      const rangeStart = Math.min(...allTimes.map((p) => minutesFromMidnight(p.inicio)));
-                      const rangeEnd = Math.max(...allTimes.map((p) => minutesFromMidnight(p.fin)));
-                      const top = ((rangeStart - startMinutes) / totalMinutes) * 100;
-                      const height = ((rangeEnd - rangeStart) / totalMinutes) * 100;
 
                       return (
                         <div
-                          key={row.key}
-                          style={{ top: `${top}%`, height: `${height}%` }}
-                          className="absolute left-1 min-h-11 w-[calc(100%-0.5rem)] overflow-hidden rounded-md border border-border bg-card shadow-sm"
+                          key={grupo.lugarId ?? "sin-lugar"}
+                          className={cn(
+                            "flex min-h-0 flex-col",
+                            mostrarEncabezadosPorLugar
+                              ? "flex-none overflow-hidden rounded-xl border border-border"
+                              : "flex-1"
+                          )}
                         >
-                          <div className="flex h-full flex-row">
-                            <div className="flex flex-1 flex-col">
-                              {pieces.map((piece, index) => {
-                                const ocupado = Boolean(piece.turno);
-                                return (
-                                  <button
-                                    key={piece.inicio}
-                                    type="button"
-                                    disabled={isPastDay}
-                                    onClick={() => (piece.turno ? openEdit(piece) : openBooking(piece))}
-                                    aria-label={
-                                      ocupado
-                                        ? `Turno de ${piece.turno!.nombreYApellido}, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Editar."}`
-                                        : `Libre, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Reservar."}`
-                                    }
-                                    className={cn(
-                                      "flex w-full flex-1 flex-col items-start justify-center px-2 py-1 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
-                                      index > 0 && "border-t border-dashed border-border/70",
-                                      ocupado
-                                        ? "bg-primary/15 text-primary hover:bg-primary/25"
-                                        : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                                    )}
-                                  >
-                                    {ocupado ? (
-                                      <>
-                                        <strong className="text-[11px] leading-tight font-semibold break-words">
-                                          {piece.turno!.nombreYApellido}
-                                        </strong>
-                                        <span className="flex items-center gap-2 text-[10px] leading-tight opacity-80">
-                                          <span className="shrink-0">
-                                            [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
-                                          </span>
-                                          {role === "DOCTOR" && piece.turno!.patientId && (
-                                            <Link
-                                              href={`/patients/${piece.turno!.patientId}`}
-                                              onClick={(e) => e.stopPropagation()}
-                                              className="shrink-0 underline-offset-2 hover:underline"
-                                            >
-                                              Ver ficha
-                                            </Link>
-                                          )}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <span className="text-[11px]">
-                                        <strong className="font-semibold">Libre</strong>{" "}
-                                        [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
-                                      </span>
-                                    )}
-                                  </button>
-                                );
-                              })}
+                          {mostrarEncabezadosPorLugar && (
+                            <div className="flex shrink-0 items-center gap-2 border-b border-border bg-muted/40 px-3 py-2">
+                              <LugarIcon tipo={lugar?.tipo} />
+                              <span className="text-sm font-semibold text-foreground">
+                                {grupo.lugarId ? lugarNombre(lugar) : "Horario general"}
+                              </span>
+                              {lugar && (
+                                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                  {tipoLabel(lugar.tipo)}
+                                </span>
+                              )}
+                              <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                                {formatHora(primerInicio)} – {formatHora(ultimoFin)}
+                              </span>
                             </div>
-                            <div className="flex flex-1 flex-col border-l border-dashed border-amber-500/70">
-                              {row.sobreturnosAqui.map((sob, index) => (
-                                <button
-                                  key={sob.inicio}
-                                  type="button"
-                                  disabled={isPastDay}
-                                  onClick={() => openEdit(sob)}
-                                  aria-label={`Sobreturno de ${sob.turno!.nombreYApellido}, ${formatHora(sob.inicio)} a ${formatHora(sob.fin)}${isPastDay ? "." : ". Editar."}`}
-                                  className={cn(
-                                    "flex w-full flex-1 flex-col items-start justify-center bg-amber-500/15 px-2 py-1 text-left text-amber-800 transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400",
-                                    index > 0 && "border-t border-dashed border-amber-500/40"
-                                  )}
-                                >
-                                  <strong className="text-[11px] leading-tight font-semibold break-words">
-                                    {sob.turno!.nombreYApellido}
-                                  </strong>
-                                  <span className="text-[10px] leading-tight opacity-80">
-                                    [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
+                          )}
+                          <div
+                            className={cn(
+                              "flex-1 min-h-0",
+                              mostrarEncabezadosPorLugar && "px-2 pt-4 pb-3 lg:px-(--card-spacing)"
+                            )}
+                          >
+                            <LugarDayGrid
+                              slots={grupo.slots}
+                              sobreturnos={grupo.sobreturnos}
+                              role={role}
+                              isPastDay={isPastDay}
+                              isToday={isToday}
+                              onOpenEdit={openEdit}
+                              onOpenBooking={openBooking}
+                            />
                           </div>
                         </div>
                       );
                     })}
-
-                    {standaloneSobreturnos.map((slot) => {
-                      const top =
-                        ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
-                      const height =
-                        ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) /
-                          totalMinutes) *
-                        100;
-
-                      return (
-                        <button
-                          key={`sobreturno-${slot.inicio}`}
-                          type="button"
-                          disabled={isPastDay}
-                          onClick={() => openEdit(slot)}
-                          style={{ top: `${top}%`, height: `${height}%`, minHeight: 44 }}
-                          aria-label={`Sobreturno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`}
-                          className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border border-dashed border-amber-500/70 bg-amber-500/15 py-1 pr-2 pl-6 text-left text-amber-800 shadow-sm transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400"
-                        >
-                          <strong className="text-xs leading-tight font-semibold break-words">
-                            {slot.turno!.nombreYApellido}
-                          </strong>
-                          <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
-                            <span className="shrink-0">
-                              [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ] · Sobreturno
-                            </span>
-                            {role === "DOCTOR" && slot.turno!.patientId && (
-                              <Link
-                                href={`/patients/${slot.turno!.patientId}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="shrink-0 underline-offset-2 hover:underline"
-                              >
-                                Ver ficha
-                              </Link>
-                            )}
-                          </span>
-                        </button>
-                      );
-                    })}
                   </div>
+                )}
+              </>
+            );
 
-                  {showNowLine && (
-                    <div
-                      className="pointer-events-none absolute left-12 z-10 flex w-[calc(100%-3rem)] items-center"
-                      style={{ top: `${nowOffsetPct}%` }}
-                    >
-                      <span className="-ml-1 size-2 shrink-0 rounded-full bg-destructive" />
-                      <div className="h-px flex-1 bg-destructive" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            return mostrarEncabezadosPorLugar ? (
+              <div className="flex flex-1 min-h-0 flex-col">{contenido}</div>
+            ) : (
+              <Card className="-mx-4 flex-1 min-h-0 rounded-none border-0 bg-card py-0 shadow-none lg:mx-0 lg:rounded-xl lg:border lg:border-border lg:py-(--card-spacing) lg:shadow-sm">
+                <CardContent className="flex flex-1 min-h-0 flex-col px-2 pt-2 lg:px-(--card-spacing) lg:pt-3">
+                  {contenido}
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
       </div>
 

@@ -15,10 +15,16 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
     `${doctor.nombre} ${doctor.apellido}`.trim()
   );
   const iniciales = `${doctor.nombre.charAt(0)}${doctor.apellido.charAt(0)}`.toUpperCase();
+  // Si la búsqueda matcheó por un lugar puntual (no por el perfil), se lo
+  // pasamos al perfil para que el calendario de reserva arranque con ese
+  // lugar destacado (ver PublicBookingCalendar).
+  const href = doctor.lugarIdMasCercano
+    ? `/directorio/${doctor.publicSlug}?lugar=${doctor.lugarIdMasCercano}`
+    : `/directorio/${doctor.publicSlug}`;
 
   return (
     <Link
-      href={`/directorio/${doctor.publicSlug}`}
+      href={href}
       className="group flex flex-col gap-3.5 rounded-2xl border border-border/60 bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/5"
     >
       <div className="flex items-center gap-3">

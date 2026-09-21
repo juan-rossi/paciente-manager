@@ -72,6 +72,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       creadoPorId: doctor.id,
       doctorId: doctor.id,
       lugarId: slotValido.lugarId,
+      origen: "ONLINE",
     },
   });
 

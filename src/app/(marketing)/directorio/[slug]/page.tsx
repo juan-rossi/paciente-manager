@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lugar?: string }>;
 };
 
 function ContactField({
@@ -36,8 +37,36 @@ function ContactField({
   );
 }
 
-export default async function PerfilPublicoPage({ params }: Props) {
+function LugarCard({
+  lugar,
+}: {
+  lugar: { id: string; tipo: "PARTICULAR" | "CONSULTORIO"; nombre: string | null; direccion: string; telefono: string };
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-4">
+      <div className="flex items-center gap-2">
+        <span
+          className={
+            lugar.tipo === "PARTICULAR"
+              ? "rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
+              : "rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
+          }
+        >
+          {lugar.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
+        </span>
+        <span className="text-[13.5px] font-bold">{lugar.nombre ?? "Consulta particular"}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <ContactField icon={MapPin} label="Dirección" value={lugar.direccion} />
+        <ContactField icon={Phone} label="Teléfono" value={lugar.telefono} />
+      </div>
+    </div>
+  );
+}
+
+export default async function PerfilPublicoPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { lugar: lugarDestacado } = await searchParams;
   const doctor = await getDoctorPublicoPorSlug(slug);
   if (!doctor) notFound();
 
@@ -87,47 +116,59 @@ export default async function PerfilPublicoPage({ params }: Props) {
       </section>
 
       <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-4 pb-12">
-        {(doctor.biografia || doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
-          <div className="flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6">
-            {doctor.biografia && (
-              <div>
-                <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                  {doctor.biografia}
-                </p>
-              </div>
-            )}
-
-            {doctor.biografia && (doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
-              <div className="h-px bg-border" />
-            )}
-
-            {(doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
-              <div>
-                <h2 className="font-heading mb-3 text-sm font-bold">Información de contacto</h2>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  {doctor.direccion && (
-                    <ContactField
-                      icon={MapPin}
-                      label="Dirección"
-                      value={doctor.direccion}
-                      className="col-span-2"
-                    />
-                  )}
-                  {doctor.nombreConsultorio && (
-                    <ContactField icon={Building2} label="Consultorio" value={doctor.nombreConsultorio} />
-                  )}
-                  {doctor.telefono && (
-                    <ContactField icon={Phone} label="Teléfono" value={doctor.telefono} />
-                  )}
-                </div>
-              </div>
-            )}
+        {doctor.biografia && (
+          <div className="rounded-2xl border border-border/60 bg-card p-6">
+            <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+              {doctor.biografia}
+            </p>
           </div>
         )}
 
+        {/* Un médico puede atender en más de un lugar (potencialmente en
+            ciudades distintas) -- cada uno tiene su propia dirección y
+            teléfono, así que va en su propia tarjeta en vez de mezclarse en
+            un solo bloque de "información de contacto" (eso hacía parecer
+            que el médico atiende en un único lugar). */}
+        {doctor.lugaresDeTrabajo.length > 0 ? (
+          <div>
+            <h2 className="font-heading mb-3 text-sm font-bold">Dónde atiende</h2>
+            <div className="flex flex-col gap-3">
+              {doctor.lugaresDeTrabajo.map((lugar) => (
+                <LugarCard key={lugar.id} lugar={lugar} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          (doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
+            <div className="rounded-2xl border border-border/60 bg-card p-6">
+              <h2 className="font-heading mb-3 text-sm font-bold">Información de contacto</h2>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {doctor.direccion && (
+                  <ContactField
+                    icon={MapPin}
+                    label="Dirección"
+                    value={doctor.direccion}
+                    className="col-span-2"
+                  />
+                )}
+                {doctor.nombreConsultorio && (
+                  <ContactField icon={Building2} label="Consultorio" value={doctor.nombreConsultorio} />
+                )}
+                {doctor.telefono && (
+                  <ContactField icon={Phone} label="Teléfono" value={doctor.telefono} />
+                )}
+              </div>
+            </div>
+          )
+        )}
+
         {doctor.reservaPublicaHabilitada && doctor.publicSlug && (
-          <PublicBookingCalendar slug={doctor.publicSlug} />
+          <PublicBookingCalendar
+            slug={doctor.publicSlug}
+            lugares={doctor.lugaresDeTrabajo}
+            lugarDestacado={lugarDestacado}
+          />
         )}
       </div>
     </>

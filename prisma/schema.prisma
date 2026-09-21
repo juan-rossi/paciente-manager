@@ -122,6 +122,11 @@ enum TurnoEstado {
   CANCELADO
 }
 
+enum TurnoOrigen {
+  PANEL
+  ONLINE
+}
+
 enum TipoAntecedente {
   DISLIPEMIA
   HIPOTIROIDISMO
@@ -395,6 +400,7 @@ model Turno {
   inicio DateTime
   fin    DateTime
   estado TurnoEstado @default(CONFIRMADO)
+  origen TurnoOrigen @default(PANEL)
 
   nombreYApellido String
   fechaNacimiento DateTime?
