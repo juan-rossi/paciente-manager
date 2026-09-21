@@ -139,7 +139,12 @@ export async function getDoctoresPublicos(filtros: {
 
       return {
         ...pickDoctorPublico(doctor),
-        ciudad: masCercano.ciudad ?? doctor.ciudad,
+        // Ojo: NO cae a `doctor.ciudad` si el punto que matcheó no tiene su
+        // propia ciudad cargada -- eso mezclaría la ciudad de un lugar con
+        // la distancia de otro (ej. un lugar en San Luis sin `ciudad`
+        // cargada mostrando "Corrientes", la ciudad del perfil, a pesar de
+        // que la distancia sí es la de San Luis).
+        ciudad: masCercano.ciudad,
         distanciaKm: masCercano.distanciaKm,
       };
     })

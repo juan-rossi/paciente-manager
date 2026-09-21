@@ -9,6 +9,7 @@ import {
 } from "react-day-picker";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
+import { nextDiaConHorario } from "@/lib/dia-nav";
 import {
   dateParamToDateBA,
   formatDateParamBA,
@@ -60,27 +61,6 @@ type Slot = {
 
 const DEFAULT_START_HOUR = 8;
 const DEFAULT_END_HOUR = 18;
-
-function addDays(date: Date, amount: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + amount);
-  return next;
-}
-
-// "Anterior"/"Siguiente" saltan directo al próximo día que de hecho tiene
-// horario cargado (el mismo criterio que ya deshabilita los días sin
-// horario en el date-picker de al lado) -- si no, uno podía terminar
-// clickeando varias veces seguidas sobre días vacíos. Tope de 7 vueltas
-// porque `diasConHorario` es un patrón semanal, nunca hace falta más.
-function nextDiaConHorario(date: Date, direction: 1 | -1, diasConHorario: DiaSemana[]): Date {
-  let candidate = addDays(date, direction);
-  if (diasConHorario.length === 0) return candidate;
-  for (let i = 0; i < 7; i++) {
-    if (diasConHorario.includes(diaSemanaFromDate(candidate))) return candidate;
-    candidate = addDays(candidate, direction);
-  }
-  return candidate;
-}
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);

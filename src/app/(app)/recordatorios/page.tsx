@@ -1,131 +1,44 @@
-import { MessageCircle } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
+import { getRecordatoriosDelDia } from "@/lib/get-recordatorios-del-dia";
+import { formatDateParamBA } from "@/lib/timezone";
+import { RecordatoriosCalendar } from "@/components/recordatorios-calendar";
 
 export const dynamic = "force-dynamic";
-
-function capitalize(text: string) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-const formatHora = formatHoraBA;
-
-function buildMensaje(template: string, nombre: string, fecha: string, hora: string) {
-  return template
-    .replaceAll("{nombre}", nombre)
-    .replaceAll("{fecha}", fecha)
-    .replaceAll("{hora}", hora);
-}
-
-function buildWhatsAppHref(telefono: string, mensaje: string) {
-  const digits = telefono.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(mensaje)}`;
-}
 
 export default async function RecordatoriosPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const tenantId = getTenantId(user);
-  const activeLugarId = await resolveActiveLugarId(user);
-
-  const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
-  if (!doctor) {
+  if (!user.mensajeriaHabilitada) {
     return (
-      <p className="text-sm text-muted-foreground">Todavía no se configuró el médico.</p>
+      <p className="text-sm text-muted-foreground">
+        La mensajería está deshabilitada. Podés activarla desde Configuración → Mensajería.
+      </p>
     );
   }
 
-  const dias = doctor.recordatorioDiasAdelanto;
-  const targetStart = new Date(
-    startOfDayBA(new Date()).getTime() + dias * 24 * 60 * 60 * 1000
+  const tenantId = getTenantId(user);
+  const activeLugarId = await resolveActiveLugarId(user);
+  const today = new Date();
+  const { turnos, diasConHorario, sinConfigurar } = await getRecordatoriosDelDia(
+    today,
+    tenantId,
+    activeLugarId
   );
-  const targetEnd = new Date(targetStart.getTime() + 24 * 60 * 60 * 1000);
-
-  // Igual criterio que en /turnos: una secretaria solo ve los turnos del
-  // lugar que tiene activo (ver `resolveActiveLugarId`). Sin ningún lugar
-  // asignado no ve ninguno, en vez de ver todos los del médico sin filtrar.
-  const turnos =
-    activeLugarId === null
-      ? []
-      : await prisma.turno.findMany({
-          where: {
-            doctorId: doctor.id,
-            inicio: { gte: targetStart, lt: targetEnd },
-            estado: "CONFIRMADO",
-            ...(activeLugarId ? { lugarId: activeLugarId } : {}),
-          },
-          orderBy: { inicio: "asc" },
-          select: { id: true, nombreYApellido: true, telefono: true, inicio: true },
-        });
-
-  const fecha = targetStart.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
-  const fechaLabel = capitalize(
-    targetStart.toLocaleDateString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })
-  );
-  const diasLabel = dias === 0 ? " (hoy)" : dias === 1 ? " (mañana)" : ` (dentro de ${dias} días)`;
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Recordatorios</h1>
-        <p className="text-sm text-muted-foreground">
-          Turnos del {fechaLabel}
-          {diasLabel}.
-        </p>
-      </div>
-
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          {turnos.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              No hay turnos agendados para ese día.
-            </p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {turnos.map((turno) => {
-                const hora = formatHora(turno.inicio);
-                const mensaje = buildMensaje(doctor.mensajeTemplate, turno.nombreYApellido, fecha, hora);
-                const href = buildWhatsAppHref(turno.telefono, mensaje);
-
-                return (
-                  <li
-                    key={turno.id}
-                    className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2"
-                  >
-                    <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
-                      {hora}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{turno.nombreYApellido}</p>
-                      <p className="text-xs text-muted-foreground">{turno.telefono}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      nativeButton={false}
-                      render={<a href={href} target="_blank" rel="noopener noreferrer" />}
-                    >
-                      <MessageCircle className="size-3.5" />
-                      <span className="sm:hidden">Enviar</span>
-                      <span className="hidden sm:inline">Enviar WhatsApp</span>
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <h1 className="text-2xl font-semibold">Recordatorios</h1>
+      <RecordatoriosCalendar
+        tenantId={tenantId}
+        activeLugarId={activeLugarId}
+        initialDate={formatDateParamBA(today)}
+        initialTurnos={turnos}
+        initialDiasConHorario={diasConHorario}
+        initialSinConfigurar={sinConfigurar}
+        mensajeTemplate={user.mensajeTemplate}
+      />
     </div>
   );
 }

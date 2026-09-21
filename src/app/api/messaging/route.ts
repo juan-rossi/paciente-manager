@@ -9,7 +9,6 @@ export async function GET() {
 
   return NextResponse.json({
     mensajeTemplate: user.mensajeTemplate,
-    recordatorioDiasAdelanto: user.recordatorioDiasAdelanto,
     mensajeriaHabilitada: user.mensajeriaHabilitada,
   });
 }
@@ -35,7 +34,6 @@ export async function PATCH(request: NextRequest) {
 
   return NextResponse.json({
     mensajeTemplate: updated.mensajeTemplate,
-    recordatorioDiasAdelanto: updated.recordatorioDiasAdelanto,
     mensajeriaHabilitada: updated.mensajeriaHabilitada,
   });
 }
