@@ -26,7 +26,7 @@ function pickDoctorPublico(row: {
   biografia: string | null;
   fotoPerfilBase64: string | null;
   reservaPublicaHabilitada: boolean;
-}): Omit<DoctorPublico, "distanciaKm"> {
+}): Omit<DoctorPublico, "distanciaKm" | "ciudades"> {
   return {
     id: row.id,
     publicSlug: row.publicSlug,
@@ -48,12 +48,28 @@ export type DoctorPublico = {
   nombre: string;
   apellido: string;
   especialidad: Especialidad | null;
+  // La ciudad "relevante" para mostrar: la del punto que matcheó una
+  // búsqueda por ubicación, o la del perfil si no hay búsqueda activa.
   ciudad: string | null;
+  // Todas las ciudades distintas donde atiende (perfil + lugares con
+  // `ciudad` cargada) -- sin una búsqueda por ubicación activa, la tarjeta
+  // las muestra todas en vez de solo la del perfil, para que un médico que
+  // atiende en más de una ciudad no parezca que solo atiende en una.
+  ciudades: string[];
   biografia: string | null;
   fotoPerfilBase64: string | null;
   reservaPublicaHabilitada: boolean;
   distanciaKm: number | null;
 };
+
+function ciudadesDe(doctor: { ciudad: string | null; lugaresDeTrabajo: { ciudad: string | null }[] }): string[] {
+  const ciudades = new Set<string>();
+  if (doctor.ciudad) ciudades.add(doctor.ciudad);
+  for (const lugar of doctor.lugaresDeTrabajo) {
+    if (lugar.ciudad) ciudades.add(lugar.ciudad);
+  }
+  return [...ciudades];
+}
 
 // Radio máximo para considerar un médico "de la zona" al buscar por ciudad --
 // sin este corte, una búsqueda sin resultados cercanos terminaba mostrando
@@ -114,18 +130,23 @@ export async function getDoctoresPublicos(filtros: {
   });
 
   if (!buscandoPorUbicacion) {
-    return doctores.map((doctor) => ({ ...pickDoctorPublico(doctor), distanciaKm: null }));
+    return doctores.map((doctor) => ({
+      ...pickDoctorPublico(doctor),
+      ciudades: ciudadesDe(doctor),
+      distanciaKm: null,
+    }));
   }
 
   return doctores
     .map((doctor) => {
+      const ciudades = ciudadesDe(doctor);
       const puntos = [
         { latitud: doctor.latitud, longitud: doctor.longitud, ciudad: doctor.ciudad },
         ...doctor.lugaresDeTrabajo,
       ].filter(tienePunto);
 
       if (puntos.length === 0) {
-        return { ...pickDoctorPublico(doctor), distanciaKm: null };
+        return { ...pickDoctorPublico(doctor), ciudades, distanciaKm: null };
       }
 
       // La ciudad que se muestra es la del punto que efectivamente matcheó
@@ -145,6 +166,7 @@ export async function getDoctoresPublicos(filtros: {
         // cargada mostrando "Corrientes", la ciudad del perfil, a pesar de
         // que la distancia sí es la de San Luis).
         ciudad: masCercano.ciudad,
+        ciudades,
         distanciaKm: masCercano.distanciaKm,
       };
     })

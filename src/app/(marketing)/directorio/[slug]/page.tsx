@@ -49,8 +49,8 @@ export default async function PerfilPublicoPage({ params }: Props) {
 
   return (
     <>
-      <section className="border-b border-border/60 bg-gradient-to-b from-primary/[0.06] to-transparent">
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 py-14 text-center sm:flex-row sm:items-center sm:text-left">
+      <section className="bg-gradient-to-b from-primary/[0.06] to-transparent">
+        <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 pt-14 pb-8 text-center sm:flex-row sm:items-center sm:text-left">
           <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-3xl font-bold text-primary shadow-lg shadow-primary/20">
             {doctor.fotoPerfilBase64 ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -86,7 +86,7 @@ export default async function PerfilPublicoPage({ params }: Props) {
         </div>
       </section>
 
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-12">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-4 pb-12">
         {(doctor.biografia || doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
           <div className="flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6">
             {doctor.biografia && (

@@ -40,13 +40,28 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
         </div>
       </div>
 
-      {(doctor.ciudad || doctor.distanciaKm != null) && (
-        <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-          <MapPin className="size-3.5 shrink-0" />
-          {doctor.ciudad}
-          {doctor.ciudad && doctor.distanciaKm != null && " · "}
-          {doctor.distanciaKm != null && `a ${formatDistancia(doctor.distanciaKm)}`}
-        </div>
+      {doctor.distanciaKm != null ? (
+        // Con una búsqueda por ubicación activa, la ciudad relevante es la
+        // del lugar que matcheó -- mostrar todas acá confundiría cuál es la
+        // cercana.
+        (doctor.ciudad || doctor.distanciaKm != null) && (
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" />
+            {doctor.ciudad}
+            {doctor.ciudad && " · "}
+            {`a ${formatDistancia(doctor.distanciaKm)}`}
+          </div>
+        )
+      ) : (
+        // Sin búsqueda activa, mostrar todas las ciudades donde atiende --
+        // un médico con perfil en una ciudad y un consultorio en otra no
+        // debería parecer que solo atiende en una.
+        doctor.ciudades.length > 0 && (
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" />
+            {doctor.ciudades.join(", ")}
+          </div>
+        )
       )}
 
       {doctor.biografia && (
