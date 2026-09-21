@@ -21,7 +21,7 @@ export type SerializedTurno = {
 export type DaySlot = {
   inicio: string;
   fin: string;
-  lugarId: string | null;
+  lugarId: string;
   turno: SerializedTurno | null;
 };
 

@@ -27,7 +27,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     where: {
       id,
       doctorId: tenantId,
-      ...(user.role === "SECRETARY" ? { lugarId: activeLugarId } : {}),
+      // El guard de arriba ya devolvió 404 si es SECRETARY sin lugar activo
+      // -- acá `activeLugarId` no puede ser null en ese caso.
+      ...(user.role === "SECRETARY" ? { lugarId: activeLugarId! } : {}),
     },
     select: { id: true },
   });

@@ -58,9 +58,10 @@ export const turnoInputSchema = z.object({
   // salta el chequeo de duplicado que sí aplica a una reserva normal.
   esSobreturno: z.boolean().optional(),
   // Lo completa el cliente a partir del `DaySlot` elegido (que ya trae el
-  // `lugarId` del bloque que generó ese horario) -- puede venir `null` si
-  // el slot corresponde a un bloque legado sin lugar asignado.
-  lugarId: z.string().trim().min(1).nullable().optional(),
+  // `lugarId` del bloque que generó ese horario). Todo turno nuevo tiene
+  // que tener un lugar -- un slot sin `lugarId` (bloque legado sin migrar a
+  // "Mi práctica") no se puede reservar hasta que se le asigne uno ahí.
+  lugarId: z.string().trim().min(1, "Este horario no tiene un lugar asignado."),
 });
 
 export const turnoEditSchema = turnoInputSchema.pick({

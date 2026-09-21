@@ -64,7 +64,7 @@ type TurnoInfo = {
 type Slot = {
   inicio: string;
   fin: string;
-  lugarId: string | null;
+  lugarId: string;
   turno: TurnoInfo | null;
 };
 
@@ -84,7 +84,7 @@ function capitalize(text: string) {
 
 function OnlineBadge() {
   return (
-    <span className="shrink-0 rounded-full bg-sky-500 px-1.5 py-px text-[9px] font-extrabold tracking-wide text-white">
+    <span className="shrink-0 rounded-full border border-sky-600 bg-card px-1.5 py-px text-[9px] font-extrabold tracking-wide text-sky-600 dark:border-sky-400 dark:text-sky-400">
       ONLINE
     </span>
   );
@@ -155,7 +155,7 @@ function getGridRange(slots: Slot[]) {
 }
 
 type LugarGrupo = {
-  lugarId: string | null;
+  lugarId: string;
   slots: Slot[];
   sobreturnos: Slot[];
 };
@@ -168,9 +168,9 @@ type LugarGrupo = {
 // permite que cada lugar tenga su propia mini-grilla acotada a su propio
 // rango horario, sin ese hueco muerto.
 function agruparPorLugar(slots: Slot[], sobreturnos: Slot[]): LugarGrupo[] {
-  const orden: (string | null)[] = [];
-  const grupos = new Map<string | null, LugarGrupo>();
-  function ensure(lugarId: string | null) {
+  const orden: string[] = [];
+  const grupos = new Map<string, LugarGrupo>();
+  function ensure(lugarId: string) {
     let grupo = grupos.get(lugarId);
     if (!grupo) {
       grupo = { lugarId, slots: [], sobreturnos: [] };
@@ -182,6 +182,28 @@ function agruparPorLugar(slots: Slot[], sobreturnos: Slot[]): LugarGrupo[] {
   for (const slot of slots) ensure(slot.lugarId).slots.push(slot);
   for (const sob of sobreturnos) ensure(sob.lugarId).sobreturnos.push(sob);
   return orden.map((lugarId) => grupos.get(lugarId)!);
+}
+
+// Dentro de un mismo lugar puede haber más de un bloque de horario cargado
+// para el mismo día (ej.: mañana y tarde, con un corte al mediodía) -- una
+// sola grilla continua de 09:00 a 16:45 deja un espacio enorme y vacío en
+// el medio, porque esa franja "sin horario" ocupa proporcionalmente el
+// mismo lugar que cualquier hora con turnos. Partir `slots` (ya vienen
+// ordenados cronológicamente) en tramos contiguos -- cortando apenas el
+// fin de un slot no coincide con el inicio del siguiente -- permite darle
+// a cada tramo su propia mini-grilla acotada a su propio rango horario.
+function partirEnBloquesContiguos(slots: Slot[]): Slot[][] {
+  const bloques: Slot[][] = [];
+  for (const slot of slots) {
+    const bloqueActual = bloques[bloques.length - 1];
+    const ultimoSlot = bloqueActual?.[bloqueActual.length - 1];
+    if (ultimoSlot && ultimoSlot.fin === slot.inicio) {
+      bloqueActual.push(slot);
+    } else {
+      bloques.push([slot]);
+    }
+  }
+  return bloques;
 }
 
 function lugarNombre(lugar: LugarInfo | undefined) {
@@ -198,12 +220,11 @@ function LugarIcon({ tipo }: { tipo: string | undefined }) {
   return <Clock className="size-3.5 text-muted-foreground" />;
 }
 
-// La grilla de un solo lugar/tramo del día -- se usa una vez por cada grupo
-// de `agruparPorLugar` (o una sola vez, sin agrupar, cuando el médico tiene
-// un único lugar). Cada instancia calcula su propio rango horario (arranca
-// en su primer slot, termina en su último) para no arrastrar el eje de
-// tiempo de otro lugar.
-function LugarDayGrid({
+// La grilla de un solo tramo contiguo de horario -- se usa una vez por cada
+// bloque de `partirEnBloquesContiguos`. Cada instancia calcula su propio
+// rango horario (arranca en su primer slot, termina en su último) para no
+// arrastrar el eje de tiempo de otro tramo ni de otro lugar.
+function BloqueContiguoGrid({
   slots,
   sobreturnos,
   role,
@@ -232,10 +253,20 @@ function LugarDayGrid({
 
   if (slots.length === 0) return null;
 
+  // El piso en píxeles tiene que alcanzar para TODAS las filas que se
+  // dibujan dentro de este rango horario, no solo los slots de la grilla:
+  // un sobreturno "al final de la lista" extiende `totalMinutes` más allá
+  // del último slot (ver `getGridRange`) y ocupa su propia franja de
+  // tiempo -- si no se cuenta acá, esa franja termina midiendo menos de
+  // 44px reales y su `minHeight` forzado la hace pisar a la fila de al
+  // lado. Un sobreturno fusionado en `mergedRows` no suma franja nueva:
+  // comparte el mismo rango horario que el slot al que está pegado.
+  const filasMinimas = slots.length + standaloneSobreturnos.length;
+
   return (
     <div
       className="relative flex-1 min-h-0"
-      style={{ minHeight: Math.max(slots.length * 44, 220) }}
+      style={{ minHeight: Math.max(filasMinimas * 44, 220) }}
     >
       {slots.map((slot) => {
         const top = ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
@@ -286,8 +317,8 @@ function LugarDayGrid({
             >
               {ocupado ? (
                 <>
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <strong className="text-xs leading-tight font-semibold break-words">
+                  <span className="flex items-center justify-between gap-1.5">
+                    <strong className="min-w-0 text-xs leading-tight font-semibold break-words">
                       {slot.turno!.nombreYApellido}
                     </strong>
                     {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
@@ -358,8 +389,8 @@ function LugarDayGrid({
                       >
                         {ocupado ? (
                           <>
-                            <span className="flex flex-wrap items-center gap-1.5">
-                              <strong className="text-[11px] leading-tight font-semibold break-words">
+                            <span className="flex items-center justify-between gap-1.5">
+                              <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
                                 {piece.turno!.nombreYApellido}
                               </strong>
                               {piece.turno!.origen === "ONLINE" && <OnlineBadge />}
@@ -402,8 +433,8 @@ function LugarDayGrid({
                         index > 0 && "border-t border-dashed border-amber-500/40"
                       )}
                     >
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <strong className="text-[11px] leading-tight font-semibold break-words">
+                      <span className="flex items-center justify-between gap-1.5">
+                        <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
                           {sob.turno!.nombreYApellido}
                         </strong>
                         {sob.turno!.origen === "ONLINE" && <OnlineBadge />}
@@ -435,8 +466,8 @@ function LugarDayGrid({
               aria-label={`Sobreturno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`}
               className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border border-dashed border-amber-500/70 bg-amber-500/15 py-1 pr-2 pl-6 text-left text-amber-800 shadow-sm transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400"
             >
-              <span className="flex flex-wrap items-center gap-1.5">
-                <strong className="text-xs leading-tight font-semibold break-words">
+              <span className="flex items-center justify-between gap-1.5">
+                <strong className="min-w-0 text-xs leading-tight font-semibold break-words">
                   {slot.turno!.nombreYApellido}
                 </strong>
                 {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
@@ -469,6 +500,73 @@ function LugarDayGrid({
           <div className="h-px flex-1 bg-destructive" />
         </div>
       )}
+    </div>
+  );
+}
+
+// La grilla de un lugar entero -- se usa una vez por cada grupo de
+// `agruparPorLugar` (o una sola vez, sin agrupar, cuando el médico tiene un
+// único lugar). Si ese lugar tiene más de un tramo de horario ese día,
+// cada uno se dibuja por separado (ver `BloqueContiguoGrid`), apilados con
+// una línea divisoria entre ellos en vez de un único eje horario continuo
+// que dejaría un hueco vacío enorme entre ambos.
+function LugarDayGrid({
+  slots,
+  sobreturnos,
+  role,
+  isPastDay,
+  isToday,
+  onOpenEdit,
+  onOpenBooking,
+}: {
+  slots: Slot[];
+  sobreturnos: Slot[];
+  role: UserRole;
+  isPastDay: boolean;
+  isToday: boolean;
+  onOpenEdit: (slot: Slot) => void;
+  onOpenBooking: (slot: Slot) => void;
+}) {
+  if (slots.length === 0) return null;
+
+  const bloques = partirEnBloquesContiguos(slots);
+  if (bloques.length <= 1) {
+    return (
+      <BloqueContiguoGrid
+        slots={slots}
+        sobreturnos={sobreturnos}
+        role={role}
+        isPastDay={isPastDay}
+        isToday={isToday}
+        onOpenEdit={onOpenEdit}
+        onOpenBooking={onOpenBooking}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-1 min-h-0 flex-col">
+      {bloques.map((bloqueSlots, index) => {
+        const inicioBloque = bloqueSlots[0].inicio;
+        const finBloque = bloqueSlots[bloqueSlots.length - 1].fin;
+        const sobreturnosDelBloque = sobreturnos.filter((sob) =>
+          rangesOverlap(sob.inicio, sob.fin, inicioBloque, finBloque)
+        );
+        return (
+          <div key={inicioBloque}>
+            {index > 0 && <hr className="my-6 border-t border-muted-foreground/30" />}
+            <BloqueContiguoGrid
+              slots={bloqueSlots}
+              sobreturnos={sobreturnosDelBloque}
+              role={role}
+              isPastDay={isPastDay}
+              isToday={isToday}
+              onOpenEdit={onOpenEdit}
+              onOpenBooking={onOpenBooking}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -708,15 +806,15 @@ export function TurnosCalendar({
     }
 
     let inicio: Date | null;
-    let lugarId: string | null;
+    let lugarId: string | undefined;
     if (sobreturnoModo === "final") {
       const ultimo = ultimoSlotDelDia();
       inicio = ultimo ? new Date(ultimo.fin) : null;
-      lugarId = ultimo?.lugarId ?? null;
+      lugarId = ultimo?.lugarId;
     } else {
       const turnoSlot = ocupadosDelDia().find((s) => s.turno!.id === sobreturnoTurnoId);
       inicio = turnoSlot ? new Date(turnoSlot.inicio) : null;
-      lugarId = turnoSlot?.lugarId ?? null;
+      lugarId = turnoSlot?.lugarId;
     }
     if (!inicio) {
       setSobreturnoError(
@@ -885,7 +983,7 @@ export function TurnosCalendar({
                 {!loading && slots.length > 0 && (
                   <div className="flex flex-1 min-h-0 flex-col gap-5">
                     {grupos.map((grupo) => {
-                      const lugar = grupo.lugarId ? lugaresPorId.get(grupo.lugarId) : undefined;
+                      const lugar = lugaresPorId.get(grupo.lugarId);
                       const todosLosItems = [...grupo.slots, ...grupo.sobreturnos];
                       const primerInicio = todosLosItems.reduce(
                         (min, s) => (s.inicio < min ? s.inicio : min),
@@ -898,11 +996,11 @@ export function TurnosCalendar({
 
                       return (
                         <div
-                          key={grupo.lugarId ?? "sin-lugar"}
+                          key={grupo.lugarId}
                           className={cn(
                             "flex min-h-0 flex-col",
                             mostrarEncabezadosPorLugar
-                              ? "flex-none overflow-hidden rounded-xl border border-border"
+                              ? "flex-none overflow-hidden rounded-xl border border-border bg-card"
                               : "flex-1"
                           )}
                         >
@@ -910,7 +1008,7 @@ export function TurnosCalendar({
                             <div className="flex shrink-0 items-center gap-2 border-b border-border bg-muted/40 px-3 py-2">
                               <LugarIcon tipo={lugar?.tipo} />
                               <span className="text-sm font-semibold text-foreground">
-                                {grupo.lugarId ? lugarNombre(lugar) : "Horario general"}
+                                {lugarNombre(lugar)}
                               </span>
                               {lugar && (
                                 <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
@@ -924,7 +1022,7 @@ export function TurnosCalendar({
                           )}
                           <div
                             className={cn(
-                              "flex-1 min-h-0",
+                              "flex flex-1 min-h-0 flex-col",
                               mostrarEncabezadosPorLugar && "px-2 pt-4 pb-3 lg:px-(--card-spacing)"
                             )}
                           >

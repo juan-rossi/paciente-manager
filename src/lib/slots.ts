@@ -30,13 +30,13 @@ export type WorkScheduleBlockLike = {
   diaSemana: DiaSemana;
   horaInicio: string;
   horaFin: string;
-  lugarId: string | null;
+  lugarId: string;
 };
 
 export type Slot = {
   inicio: Date;
   fin: Date;
-  lugarId: string | null;
+  lugarId: string;
 };
 
 function parseHora(hhmm: string) {

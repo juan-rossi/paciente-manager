@@ -22,7 +22,7 @@ export async function getDoctorParaReserva(slug: string) {
 
 export type HorarioDisponible = {
   inicio: string;
-  lugarId: string | null;
+  lugarId: string;
 };
 
 export type DisponibilidadDia = {
@@ -73,7 +73,7 @@ export async function getDisponibilidadPublica(
 export async function buscarSlotValido(
   doctor: { id: string; slotDurationMinutes: number },
   inicio: Date
-): Promise<{ inicio: Date; fin: Date; lugarId: string | null } | null> {
+): Promise<{ inicio: Date; fin: Date; lugarId: string } | null> {
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
   const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes);
   return slots.find((slot) => slot.inicio.getTime() === inicio.getTime()) ?? null;

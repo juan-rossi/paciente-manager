@@ -342,11 +342,11 @@ model WorkScheduleBlock {
   id         String          @id @default(cuid())
   userId     String
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // Nullable a nivel DB por los bloques que ya existían antes de "Mi
-  // práctica" -- la UI (schedule-settings.tsx) lo exige siempre para
-  // bloques nuevos o editados.
-  lugarId    String?
-  lugar      LugarDeTrabajo? @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  // Obligatorio -- todo horario tiene que pertenecer a un lugar (ver la
+  // migración que backfillea los bloques que quedaron en null de antes de
+  // "Mi práctica").
+  lugarId    String
+  lugar      LugarDeTrabajo @relation(fields: [lugarId], references: [id], onDelete: Cascade)
   diaSemana  DiaSemana
   horaInicio String
   horaFin    String
@@ -421,12 +421,13 @@ model Turno {
   doctor   User   @relation("TurnoDoctor", fields: [doctorId], references: [id])
 
   // Se completa a partir del bloque que generó el slot elegido (ver
-  // generarSlots/getDaySlots) -- null para turnos agendados antes de esta
-  // feature o en un bloque legado sin lugar asignado. `onDelete: Restrict`
-  // es la red de seguridad: un lugar con turnos nunca se puede borrar de
-  // verdad, solo dar de baja lógica (ver /api/lugares-trabajo/[id]).
-  lugarId String?
-  lugar   LugarDeTrabajo? @relation(fields: [lugarId], references: [id], onDelete: Restrict)
+  // generarSlots/getDaySlots) -- obligatorio, todo turno tiene que tener un
+  // lugar (ver la migración que backfillea los que quedaron en null de
+  // antes de esta regla). `onDelete: Restrict` es la red de seguridad: un
+  // lugar con turnos nunca se puede borrar de verdad, solo dar de baja
+  // lógica (ver /api/lugares-trabajo/[id]).
+  lugarId String
+  lugar   LugarDeTrabajo @relation(fields: [lugarId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
