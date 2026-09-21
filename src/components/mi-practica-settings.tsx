@@ -36,7 +36,7 @@ import { SettingsSection } from "@/components/settings-section";
 import { AddressAutocomplete, type AddressResult } from "@/components/address-autocomplete";
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { DIA_SEMANA_VALUES, type DiaSemana } from "@/lib/slots";
-import { cn } from "@/lib/utils";
+import { cn, filterTelefono } from "@/lib/utils";
 
 const DIA_LABELS: Record<DiaSemana, string> = {
   LUNES: "Lunes",
@@ -709,8 +709,9 @@ export function MiPracticaSettings({
               <Label htmlFor="lugar-telefono">Teléfono *</Label>
               <Input
                 id="lugar-telefono"
+                inputMode="numeric"
                 value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
+                onChange={(e) => setTelefono(filterTelefono(e.target.value))}
                 className={triedSubmitLugar && !telefono.trim() ? "border-destructive" : undefined}
               />
             </div>

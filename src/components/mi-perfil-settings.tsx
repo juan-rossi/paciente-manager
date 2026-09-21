@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2 } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
+import { filterTelefono } from "@/lib/utils";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -590,8 +591,9 @@ export function MiPerfilSettings({
                 <Label htmlFor="perfil-telefono">Teléfono *</Label>
                 <Input
                   id="perfil-telefono"
+                  inputMode="numeric"
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => setTelefono(filterTelefono(e.target.value))}
                   className={triedSubmit && !telefono.trim() ? "border-destructive" : undefined}
                 />
               </div>

@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { LucideProps } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, filterTelefono } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -61,8 +61,7 @@ export function FormSection({
 type NumericMode = "digits" | "phone";
 
 function filterNumeric(value: string, mode: NumericMode) {
-  // "phone" preserva un único "+" inicial (prefijo internacional); el resto son solo dígitos.
-  return mode === "phone" ? value.replace(/(?!^\+)[^\d]/g, "") : value.replace(/\D/g, "");
+  return mode === "phone" ? filterTelefono(value) : value.replace(/\D/g, "");
 }
 
 type TextFieldProps = {

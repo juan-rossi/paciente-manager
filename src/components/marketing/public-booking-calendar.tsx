@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
+import { filterTelefono } from "@/lib/utils";
 
 type HorarioDisponible = { inicio: string; lugarId: string | null };
 type DisponibilidadDia = { fecha: string; horarios: HorarioDisponible[] };
@@ -366,8 +367,9 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
               <div className="flex flex-col gap-1.5">
                 <Label>Teléfono *</Label>
                 <Input
+                  inputMode="numeric"
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => setTelefono(filterTelefono(e.target.value))}
                   className={triedSubmit && !telefono.trim() ? "border-destructive" : undefined}
                 />
               </div>

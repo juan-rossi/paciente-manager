@@ -26,7 +26,7 @@ import {
   isSameDayBA,
   startOfDayBA,
 } from "@/lib/timezone";
-import { cn } from "@/lib/utils";
+import { cn, filterTelefono } from "@/lib/utils";
 import type { UserRole } from "@/lib/auth";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -202,6 +202,73 @@ function partirEnBloquesContiguos(slots: Slot[]): Slot[][] {
     } else {
       bloques.push([slot]);
     }
+  }
+  return bloques;
+}
+
+type BloqueDelDia = {
+  key: string;
+  lugarId: string;
+  inicio: string;
+  fin: string;
+  slots: Slot[];
+  sobreturnos: Slot[];
+};
+
+// Aplana `agruparPorLugar` + `partirEnBloquesContiguos` en una sola lista de
+// "bloques de horario reales" del día -- ej. con Particular 9-11, Particular
+// 13-15 y Consultorio1 16-18, da 3 bloques (dos de ellos comparten lugar
+// pero no rango horario). Se usa para el diálogo de sobreturno: "junto a un
+// turno" nunca es ambiguo (cada turno ya sabe su horario y lugar), pero "al
+// final de la lista" sí lo era con más de un bloque en el día -- ahora el
+// usuario elige primero EN QUÉ bloque, y todo lo demás se acota a ese.
+// A qué tramo (índice) pertenece cada sobreturno: al que solapa de verdad
+// (sobreturno "junto a un turno"), o si no solapa a ninguno -- arranca
+// justo donde termina uno, sin overlap real -- al tramo anterior más
+// cercano (sobreturno "al final de la lista"). Sin este segundo paso, dos
+// sobreturnos agregados uno tras otro "al final" quedaban ambos fuera de
+// cualquier tramo, así que el segundo recalculaba el mismo horario que el
+// primero en vez de encadenarse después -- terminaban superpuestos.
+function asignarSobreturnosATramos(
+  tramos: { inicio: string; fin: string }[],
+  sobreturnos: Slot[]
+): Slot[][] {
+  const porTramo: Slot[][] = tramos.map(() => []);
+  for (const sob of sobreturnos) {
+    let index = tramos.findIndex((t) => rangesOverlap(sob.inicio, sob.fin, t.inicio, t.fin));
+    if (index === -1) {
+      let mejorFin: string | null = null;
+      tramos.forEach((t, i) => {
+        if (t.fin <= sob.inicio && (mejorFin === null || t.fin > mejorFin!)) {
+          mejorFin = t.fin;
+          index = i;
+        }
+      });
+    }
+    porTramo[index === -1 ? 0 : index].push(sob);
+  }
+  return porTramo;
+}
+
+function bloquesDelDia(grupos: LugarGrupo[]): BloqueDelDia[] {
+  const bloques: BloqueDelDia[] = [];
+  for (const grupo of grupos) {
+    const tramosSlots = partirEnBloquesContiguos(grupo.slots);
+    const tramos = tramosSlots.map((tramoSlots) => ({
+      inicio: tramoSlots[0].inicio,
+      fin: tramoSlots[tramoSlots.length - 1].fin,
+    }));
+    const sobreturnosPorTramo = asignarSobreturnosATramos(tramos, grupo.sobreturnos);
+    tramosSlots.forEach((tramoSlots, i) => {
+      bloques.push({
+        key: `${grupo.lugarId}-${tramos[i].inicio}`,
+        lugarId: grupo.lugarId,
+        inicio: tramos[i].inicio,
+        fin: tramos[i].fin,
+        slots: tramoSlots,
+        sobreturnos: sobreturnosPorTramo[i],
+      });
+    });
   }
   return bloques;
 }
@@ -544,20 +611,21 @@ function LugarDayGrid({
     );
   }
 
+  const tramos = bloques.map((bloqueSlots) => ({
+    inicio: bloqueSlots[0].inicio,
+    fin: bloqueSlots[bloqueSlots.length - 1].fin,
+  }));
+  const sobreturnosPorTramo = asignarSobreturnosATramos(tramos, sobreturnos);
+
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       {bloques.map((bloqueSlots, index) => {
-        const inicioBloque = bloqueSlots[0].inicio;
-        const finBloque = bloqueSlots[bloqueSlots.length - 1].fin;
-        const sobreturnosDelBloque = sobreturnos.filter((sob) =>
-          rangesOverlap(sob.inicio, sob.fin, inicioBloque, finBloque)
-        );
         return (
-          <div key={inicioBloque}>
+          <div key={bloqueSlots[0].inicio}>
             {index > 0 && <hr className="my-6 border-t border-muted-foreground/30" />}
             <BloqueContiguoGrid
               slots={bloqueSlots}
-              sobreturnos={sobreturnosDelBloque}
+              sobreturnos={sobreturnosPorTramo[index]}
               role={role}
               isPastDay={isPastDay}
               isToday={isToday}
@@ -632,6 +700,12 @@ export function TurnosCalendar({
   const [cancelling, setCancelling] = useState(false);
 
   const [sobreturnoOpen, setSobreturnoOpen] = useState(false);
+  // A qué bloque de horario (lugar + tramo contiguo, ver `bloquesDelDia`)
+  // pertenece el sobreturno que se está por agregar -- necesario porque un
+  // mismo día puede tener más de un bloque (dos lugares, o el mismo lugar
+  // partido por un corte a mediodía) y "el final de la lista" ya no tiene
+  // un único sentido en ese caso.
+  const [sobreturnoBloqueKey, setSobreturnoBloqueKey] = useState("");
   const [sobreturnoModo, setSobreturnoModo] = useState<"hora" | "final">("hora");
   const [sobreturnoTurnoId, setSobreturnoTurnoId] = useState("");
   const [sobreturnoNombre, setSobreturnoNombre] = useState("");
@@ -760,35 +834,46 @@ export function TurnosCalendar({
     }
   }
 
-  // El slot (normal o sobreturno) que termina más tarde ese día -- `null` si
-  // todavía no hay ningún turno agendado, en cuyo caso "al final de la
-  // lista" no tiene sentido (la lista está vacía) y esa opción se deshabilita.
-  function ultimoSlotDelDia(): Slot | null {
-    const ocupados = [...slots.filter((s) => s.turno), ...sobreturnos];
+  function bloqueActivo(): BloqueDelDia | undefined {
+    return bloques.find((b) => b.key === sobreturnoBloqueKey);
+  }
+
+  // El slot (normal o sobreturno) que termina más tarde DENTRO de ese
+  // bloque -- `null` si todavía no hay ningún turno agendado ahí, en cuyo
+  // caso "al final" no tiene sentido (la lista está vacía) y esa opción se
+  // deshabilita.
+  function ultimoSlotDelBloque(bloque: BloqueDelDia | undefined): Slot | null {
+    if (!bloque) return null;
+    const ocupados = [...bloque.slots.filter((s) => s.turno), ...bloque.sobreturnos];
     if (ocupados.length === 0) return null;
     return ocupados.reduce((max, s) =>
       new Date(s.fin).getTime() > new Date(max.fin).getTime() ? s : max
     );
   }
 
-  function ultimoFinDelDia(): Date | null {
-    const slot = ultimoSlotDelDia();
-    return slot ? new Date(slot.fin) : null;
+  // Los turnos normales (no sobreturnos) ya ocupados en ese bloque que
+  // todavía no tienen un sobreturno propio -- de acá sale la lista del
+  // select "Junto a un turno" (solo se permite un sobreturno por horario).
+  function ocupadosDelBloque(bloque: BloqueDelDia | undefined): Slot[] {
+    if (!bloque) return [];
+    const sobreturnoInicios = new Set(bloque.sobreturnos.map((s) => s.inicio));
+    return bloque.slots.filter((s) => s.turno && !sobreturnoInicios.has(s.inicio));
   }
 
-  // Los turnos normales (no sobreturnos) ya ocupados ese día que todavía no
-  // tienen un sobreturno propio -- de acá sale la lista del select "Junto a
-  // un turno" (solo se permite un sobreturno por horario).
-  function ocupadosDelDia(): Slot[] {
-    const sobreturnoInicios = new Set(sobreturnos.map((s) => s.inicio));
-    return slots.filter((s) => s.turno && !sobreturnoInicios.has(s.inicio));
+  // Se llama al abrir el diálogo y cada vez que el usuario cambia de
+  // bloque en el paso "¿En qué bloque de horario?" -- recalcula el modo y
+  // el turno preseleccionado para el bloque recién elegido, porque los que
+  // valían para el bloque anterior pueden no existir en este.
+  function elegirBloqueSobreturno(key: string) {
+    setSobreturnoBloqueKey(key);
+    const bloque = bloques.find((b) => b.key === key);
+    const ocupados = ocupadosDelBloque(bloque);
+    setSobreturnoModo(ultimoSlotDelBloque(bloque) ? "final" : "hora");
+    setSobreturnoTurnoId(ocupados[0]?.turno?.id ?? "");
   }
 
   function openSobreturnoDialog() {
-    const finDelDia = ultimoFinDelDia();
-    const ocupados = ocupadosDelDia();
-    setSobreturnoModo(finDelDia ? "final" : "hora");
-    setSobreturnoTurnoId(ocupados[0]?.turno?.id ?? "");
+    elegirBloqueSobreturno(bloques[0]?.key ?? "");
     setSobreturnoNombre("");
     setSobreturnoDni("");
     setSobreturnoTelefono("");
@@ -805,21 +890,20 @@ export function TurnosCalendar({
       return;
     }
 
+    const bloque = bloqueActivo();
     let inicio: Date | null;
-    let lugarId: string | undefined;
     if (sobreturnoModo === "final") {
-      const ultimo = ultimoSlotDelDia();
+      const ultimo = ultimoSlotDelBloque(bloque);
       inicio = ultimo ? new Date(ultimo.fin) : null;
-      lugarId = ultimo?.lugarId;
     } else {
-      const turnoSlot = ocupadosDelDia().find((s) => s.turno!.id === sobreturnoTurnoId);
+      const turnoSlot = ocupadosDelBloque(bloque).find((s) => s.turno!.id === sobreturnoTurnoId);
       inicio = turnoSlot ? new Date(turnoSlot.inicio) : null;
-      lugarId = turnoSlot?.lugarId;
     }
-    if (!inicio) {
+    const lugarId = bloque?.lugarId;
+    if (!inicio || !lugarId) {
       setSobreturnoError(
         sobreturnoModo === "final"
-          ? "No hay turnos agendados para calcular el final del día."
+          ? "No hay turnos agendados para calcular el final de este bloque."
           : "Elegí un turno."
       );
       return;
@@ -859,6 +943,7 @@ export function TurnosCalendar({
 
   const lugaresPorId = new Map(lugares.map((l) => [l.id, l]));
   const grupos = agruparPorLugar(slots, sobreturnos);
+  const bloques = bloquesDelDia(grupos);
   // Se muestra el encabezado de cada tarjeta apenas el médico tiene más de
   // una práctica configurada -- aunque ese día en particular solo una tenga
   // horarios cargados -- para que quede claro a qué lugar corresponde sin
@@ -866,6 +951,8 @@ export function TurnosCalendar({
   // solo lugar, o ninguno todavía asignado) se sigue viendo exactamente
   // igual que antes de esta feature.
   const mostrarEncabezadosPorLugar = lugares.length > 1;
+  const bloqueSobreturno = bloqueActivo();
+  const ocupadosBloqueSobreturno = ocupadosDelBloque(bloqueSobreturno);
 
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
@@ -1101,8 +1188,9 @@ export function TurnosCalendar({
               <div className="flex flex-col gap-1.5">
                 <Label>Teléfono *</Label>
                 <Input
+                  inputMode="numeric"
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => setTelefono(filterTelefono(e.target.value))}
                   className={triedSubmit && !telefono.trim() ? "border-destructive" : undefined}
                 />
               </div>
@@ -1173,13 +1261,40 @@ export function TurnosCalendar({
           <DialogHeader>
             <DialogTitle>Agregar sobreturno</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <Label>Día</Label>
               <strong className="text-sm">{selectedDate.toLocaleDateString("es-AR")}</strong>
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            {bloques.length > 1 && (
+              <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/50 p-3">
+                <Label>¿En qué bloque de horario?</Label>
+                <RadioGroup
+                  value={sobreturnoBloqueKey}
+                  onValueChange={(v) => elegirBloqueSobreturno(v ?? "")}
+                  className="flex flex-col gap-2.5"
+                >
+                  {bloques.map((bloque) => (
+                    <div key={bloque.key} className="flex items-center gap-2">
+                      <RadioGroupItem value={bloque.key} id={`sobreturno-bloque-${bloque.key}`} />
+                      <Label
+                        htmlFor={`sobreturno-bloque-${bloque.key}`}
+                        className="font-normal"
+                      >
+                        {lugarNombre(lugaresPorId.get(bloque.lugarId))}
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {formatHora(bloque.inicio)} a {formatHora(bloque.fin)}
+                        </span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/50 p-3">
               <Label>¿Cuándo?</Label>
               <RadioGroup
                 value={sobreturnoModo}
@@ -1190,7 +1305,7 @@ export function TurnosCalendar({
                   <RadioGroupItem
                     value="hora"
                     id="sobreturno-modo-hora"
-                    disabled={ocupadosDelDia().length === 0}
+                    disabled={ocupadosBloqueSobreturno.length === 0}
                   />
                   <Label htmlFor="sobreturno-modo-hora" className="font-normal">
                     Junto a un turno
@@ -1200,10 +1315,10 @@ export function TurnosCalendar({
                   <RadioGroupItem
                     value="final"
                     id="sobreturno-modo-final"
-                    disabled={!ultimoFinDelDia()}
+                    disabled={!ultimoSlotDelBloque(bloqueSobreturno)}
                   />
                   <Label htmlFor="sobreturno-modo-final" className="font-normal">
-                    Al final de la lista
+                    Al final de este bloque
                   </Label>
                 </div>
               </RadioGroup>
@@ -1212,10 +1327,10 @@ export function TurnosCalendar({
                   value={sobreturnoTurnoId}
                   onValueChange={(v) => setSobreturnoTurnoId(v ?? "")}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-card">
                     <SelectValue>
                       {(id: string) => {
-                        const slot = ocupadosDelDia().find((s) => s.turno!.id === id);
+                        const slot = ocupadosBloqueSobreturno.find((s) => s.turno!.id === id);
                         return slot
                           ? `${formatHora(slot.inicio)} - ${slot.turno!.nombreYApellido}`
                           : "Elegir turno...";
@@ -1223,7 +1338,7 @@ export function TurnosCalendar({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {ocupadosDelDia().map((slot) => (
+                    {ocupadosBloqueSobreturno.map((slot) => (
                       <SelectItem key={slot.turno!.id} value={slot.turno!.id}>
                         {formatHora(slot.inicio)} - {slot.turno!.nombreYApellido}
                       </SelectItem>
@@ -1261,8 +1376,9 @@ export function TurnosCalendar({
               <div className="flex flex-col gap-1.5">
                 <Label>Teléfono *</Label>
                 <Input
+                  inputMode="numeric"
                   value={sobreturnoTelefono}
-                  onChange={(e) => setSobreturnoTelefono(e.target.value)}
+                  onChange={(e) => setSobreturnoTelefono(filterTelefono(e.target.value))}
                   className={
                     sobreturnoTriedSubmit && !sobreturnoTelefono.trim()
                       ? "border-destructive"
