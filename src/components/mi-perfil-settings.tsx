@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2 } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
@@ -316,12 +316,17 @@ export function MiPerfilSettings({
     }
   }
 
-  const publicLink =
-    publicSlug && typeof window !== "undefined"
-      ? `${window.location.origin}/directorio/${publicSlug}`
-      : publicSlug
-        ? `semio360.com/directorio/${publicSlug}`
-        : null;
+  // El server no conoce `window.location.origin` -- arranca mostrando el
+  // dominio de producción (igual en server y cliente, sin mismatch de
+  // hidratación) y recién en el cliente, ya montado, lo corrige al origin
+  // real (útil para probar el link en local). Mismo criterio que el filtro
+  // recordado en PatientSearch.
+  const [origin, setOrigin] = useState<string | null>(null);
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const publicLink = publicSlug ? `${origin ?? "semio360.com"}/directorio/${publicSlug}` : null;
 
   async function handleCopiarLink() {
     if (!publicLink) return;

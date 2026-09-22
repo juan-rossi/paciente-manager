@@ -6,6 +6,7 @@ import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { DoctorSwitcher } from "@/components/doctor-switcher";
 import { LugarSwitcher } from "@/components/lugar-switcher";
 import { UserChip } from "@/components/user-chip";
+import { ConfiguracionTabCookieReset } from "@/components/configuracion-tab-cookie-reset";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
 import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
@@ -99,6 +100,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
+      {isDoctor && <ConfiguracionTabCookieReset />}
       <header className="border-b border-border bg-card shadow-sm print:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-6">

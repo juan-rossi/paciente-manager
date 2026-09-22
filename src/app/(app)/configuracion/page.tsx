@@ -1,7 +1,14 @@
+import { cookies } from "next/headers";
 import { Building2, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ConfiguracionTabs } from "@/components/configuracion-tabs";
+import {
+  CONFIGURACION_TAB_COOKIE,
+  DEFAULT_CONFIGURACION_TAB,
+  esConfiguracionTab,
+} from "@/lib/configuracion-tabs";
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
@@ -24,6 +31,10 @@ const groupLabelClass =
 export default async function ConfiguracionPage() {
   const user = await getCurrentUser();
   if (!user) return null;
+
+  const cookieStore = await cookies();
+  const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
+  const initialTab = esConfiguracionTab(tabGuardada) ? tabGuardada : DEFAULT_CONFIGURACION_TAB;
 
   const [blocks, secretarias, lugares] = await Promise.all([
     prisma.workScheduleBlock.findMany({
@@ -60,8 +71,8 @@ export default async function ConfiguracionPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Configuración</h1>
 
-      <Tabs
-        defaultValue="practica"
+      <ConfiguracionTabs
+        initialTab={initialTab}
         orientation="vertical"
         className="flex-col items-stretch gap-6 md:flex-row md:items-start"
       >
@@ -151,7 +162,7 @@ export default async function ConfiguracionPage() {
         <TabsContent value="datos" className="w-full">
           <ExportSettings />
         </TabsContent>
-      </Tabs>
+      </ConfiguracionTabs>
     </div>
   );
 }
