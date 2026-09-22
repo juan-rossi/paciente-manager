@@ -116,7 +116,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       </section>
 
       <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-4 pb-12">
-        {doctor.biografia && (
+        {doctor.perfilPublico && doctor.biografia && (
           <div className="rounded-2xl border border-border/60 bg-card p-6">
             <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
             <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">

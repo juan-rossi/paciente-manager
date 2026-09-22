@@ -10,13 +10,15 @@ function addDays(date: Date, amount: number): Date {
   return next;
 }
 
-// Un médico solo es reservable públicamente si además de tener el perfil
-// público habilitó explícitamente `reservaPublicaHabilitada` -- son toggles
-// independientes (ver "Mi perfil"), y esta es la única función que debe
-// decidir si un slug es válido para las rutas públicas de reserva.
+// `reservaPublicaHabilitada` es independiente de `perfilPublico` (ver "Mi
+// perfil") -- un médico puede compartir el link directo a su agenda sin
+// aparecer en el directorio. Esta es la única función que debe decidir si
+// un slug es válido para las rutas públicas de reserva, y no exige
+// `perfilPublico` por la misma razón que `getDoctorPublicoPorSlug` no lo
+// exige para la página del perfil.
 export async function getDoctorParaReserva(slug: string) {
   return prisma.user.findFirst({
-    where: { role: "DOCTOR", perfilPublico: true, reservaPublicaHabilitada: true, publicSlug: slug },
+    where: { role: "DOCTOR", reservaPublicaHabilitada: true, publicSlug: slug },
   });
 }
 

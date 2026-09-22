@@ -193,11 +193,22 @@ export async function getDoctoresPublicos(filtros: {
     .sort((a, b) => a.distanciaKm - b.distanciaKm);
 }
 
+// Alcanzable con `perfilPublico: false` si el médico igual habilitó la
+// reserva pública -- ese caso no aparece en el listado del directorio (ver
+// `getDoctoresPublicos`, que sigue filtrando por `perfilPublico`), pero el
+// link directo a su agenda (compartido a mano, no descubierto navegando)
+// tiene que seguir funcionando. El componente oculta la sección "Sobre mí"
+// en ese caso -- ver `doctor.perfilPublico` en la página.
 export async function getDoctorPublicoPorSlug(slug: string) {
   return prisma.user.findFirst({
-    where: { role: "DOCTOR", perfilPublico: true, publicSlug: slug },
+    where: {
+      role: "DOCTOR",
+      publicSlug: slug,
+      OR: [{ perfilPublico: true }, { reservaPublicaHabilitada: true }],
+    },
     select: {
       ...doctorPublicoSelect,
+      perfilPublico: true,
       atencionTipo: true,
       nombreConsultorio: true,
       telefono: true,
