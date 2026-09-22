@@ -14,13 +14,14 @@ type Props = {
   initialDate: string;
   initialTurnos: TurnoDelDia[];
   diasConHorario: DiaSemana[];
+  totalPacientes: number;
 };
 
 // Componente cliente separado del server component de la página únicamente
 // porque el estado vacío de "Por turnos" necesita cambiar a la pestaña
 // "Buscar paciente" mediante código (el acceso rápido "Buscar paciente"),
 // algo que un <Tabs defaultValue> sin controlar no permite.
-export function DashboardTabs({ initialDate, initialTurnos, diasConHorario }: Props) {
+export function DashboardTabs({ initialDate, initialTurnos, diasConHorario, totalPacientes }: Props) {
   const [tab, setTab] = useState("turnos");
 
   return (
@@ -36,7 +37,13 @@ export function DashboardTabs({ initialDate, initialTurnos, diasConHorario }: Pr
             Buscar paciente
           </TabsTrigger>
         </TabsList>
-        <Button size="sm" nativeButton={false} render={<Link href="/patients/new">+ Nuevo paciente</Link>} />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5">
+            <span className="text-sm font-bold text-foreground">{totalPacientes}</span>
+            <span className="text-sm text-muted-foreground">pacientes</span>
+          </div>
+          <Button nativeButton={false} render={<Link href="/patients/new">+ Nuevo paciente</Link>} />
+        </div>
       </div>
       <TabsContent value="turnos">
         <TurnosPorDia
