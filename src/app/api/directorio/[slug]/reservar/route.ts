@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { turnoInputSchema } from "@/lib/turno-schema";
+import { reservaPublicaInputSchema } from "@/lib/turno-schema";
 import { getDoctorParaReserva, buscarSlotValido } from "@/lib/public-booking";
 
 type RouteParams = { params: Promise<{ slug: string }> };
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { slug } = await params;
 
   const body = await request.json().catch(() => null);
-  const parsed = turnoInputSchema.safeParse(body);
+  const parsed = reservaPublicaInputSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Datos inválidos.", issues: parsed.error.flatten() },

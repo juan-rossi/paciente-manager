@@ -64,6 +64,18 @@ export const turnoInputSchema = z.object({
   lugarId: z.string().trim().min(1, "Este horario no tiene un lugar asignado."),
 });
 
+// La reserva pública (`/api/directorio/[slug]/reservar`) nunca manda
+// `lugarId` -- ni `esSobreturno`, que no tiene sentido ahí ("una reserva
+// pública nunca puede ser un sobreturno") -- el `lugarId` real del turno lo
+// calcula el servidor a partir del slot elegido, nunca confiando en un
+// cliente no autenticado para ese dato. Si esos campos siguieran siendo
+// obligatorios acá, el `safeParse` rechazaría cualquier reserva pública
+// antes de llegar a esa lógica.
+export const reservaPublicaInputSchema = turnoInputSchema.omit({
+  lugarId: true,
+  esSobreturno: true,
+});
+
 export const turnoEditSchema = turnoInputSchema.pick({
   nombreYApellido: true,
   dni: true,
