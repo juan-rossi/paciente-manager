@@ -173,11 +173,11 @@ export function PatientSummary({
           <Button
             variant="outline"
             nativeButton={false}
+            className="hidden sm:inline-flex"
             render={<Link href={`/patients/${patient.id}/historia-clinica`} target="_blank" />}
           >
             <FileText className="size-4" />
-            <span className="sm:hidden">Imprimir</span>
-            <span className="hidden sm:inline">Copia para el paciente</span>
+            Copia para el paciente
           </Button>
           <Button nativeButton={false} render={<Link href={`/patients/${patient.id}/edit`} />}>
             <Pencil className="size-4" />

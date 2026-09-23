@@ -76,6 +76,7 @@ export function PatientSearch() {
           size="sm"
           variant="outline"
           nativeButton={false}
+          className="hidden sm:inline-flex"
           render={<Link href="/patients/eliminados" />}
         >
           <Trash2 className="size-4" />
@@ -94,7 +95,7 @@ export function PatientSearch() {
             <TableRow>
               <TableHead>Nombre y Apellido</TableHead>
               <TableHead>DNI</TableHead>
-              <TableHead>Teléfono</TableHead>
+              <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -124,7 +125,7 @@ export function PatientSearch() {
                     </Link>
                   </TableCell>
                   <TableCell>{patient.nroDocumento ?? "—"}</TableCell>
-                  <TableCell>{patient.telefono ?? "—"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{patient.telefono ?? "—"}</TableCell>
                 </TableRow>
               ))}
           </TableBody>

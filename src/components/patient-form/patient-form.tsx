@@ -202,7 +202,11 @@ export function PatientForm({
   return (
     <div className="flex flex-col gap-4">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
-        <TabsList className="flex w-full flex-wrap justify-start">
+        {/* Desktop: la fila de pills de siempre. En mobile, wrappeaba en
+            varias filas desprolijas, así que ahí se reemplaza por la
+            grilla de abajo -- mismos TabsTrigger (mismo value), nomás
+            ocultos/mostrados según el breakpoint. */}
+        <TabsList className="hidden w-full flex-wrap justify-start sm:flex">
           <TabsTrigger value="datos-personales">
             <User className="size-4" />
             Datos Personales
@@ -226,6 +230,53 @@ export function PatientForm({
           {mode === "edit" && (
             <TabsTrigger value="evolucion">
               <TrendingUp className="size-4" />
+              Evolución Clínica
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsList className="grid w-full grid-cols-3 gap-2 sm:hidden">
+          <TabsTrigger
+            value="datos-personales"
+            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+          >
+            <User className="size-[18px]" />
+            Datos Personales
+          </TabsTrigger>
+          <TabsTrigger
+            value="consulta-inicial"
+            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+          >
+            <ClipboardList className="size-[18px]" />
+            Consulta Inicial
+          </TabsTrigger>
+          <TabsTrigger
+            value="antecedentes"
+            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+          >
+            <History className="size-[18px]" />
+            Antecedentes Personales
+          </TabsTrigger>
+          <TabsTrigger
+            value="examen-fisico"
+            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+          >
+            <Stethoscope className="size-[18px]" />
+            Exámen Físico
+          </TabsTrigger>
+          <TabsTrigger
+            value="diagnostico"
+            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+          >
+            <ClipboardCheck className="size-[18px]" />
+            Diagnóstico
+          </TabsTrigger>
+          {mode === "edit" && (
+            <TabsTrigger
+              value="evolucion"
+              className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <TrendingUp className="size-[18px]" />
               Evolución Clínica
             </TabsTrigger>
           )}
