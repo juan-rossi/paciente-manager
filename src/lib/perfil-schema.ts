@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { ESPECIALIDAD_VALUES, type Especialidad } from "@/lib/especialidad";
+import { TITULO_CORTESIA_VALUES, type TituloCortesia } from "@/lib/titulo-cortesia";
 
-const tituloCortesiaSchema = z.enum(["DR", "DRA", "LIC"], {
+const tituloCortesiaSchema = z.enum(TITULO_CORTESIA_VALUES as [TituloCortesia, ...TituloCortesia[]], {
   message: "Elegí un título.",
 });
 

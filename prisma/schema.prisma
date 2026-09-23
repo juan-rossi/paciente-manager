@@ -39,6 +39,17 @@ enum TituloCortesia {
   DR
   DRA
   LIC
+  MED
+  MED_SIN_TILDE
+  ODONT
+  OD
+  PSIC
+  PSI
+  BIOQ
+  BIOQCA
+  KLGO
+  KLGA
+  ENF
 }
 
 enum Especialidad {

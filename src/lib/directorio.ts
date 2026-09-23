@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Especialidad } from "@/lib/especialidad";
+import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
 
 const doctorPublicoSelect = {
@@ -18,7 +19,7 @@ const doctorPublicoSelect = {
 function pickDoctorPublico(row: {
   id: string;
   publicSlug: string | null;
-  tituloCortesia: "DR" | "DRA" | "LIC" | null;
+  tituloCortesia: TituloCortesia | null;
   nombre: string;
   apellido: string;
   especialidad: Especialidad | null;
@@ -44,7 +45,7 @@ function pickDoctorPublico(row: {
 export type DoctorPublico = {
   id: string;
   publicSlug: string | null;
-  tituloCortesia: "DR" | "DRA" | "LIC" | null;
+  tituloCortesia: TituloCortesia | null;
   nombre: string;
   apellido: string;
   especialidad: Especialidad | null;
