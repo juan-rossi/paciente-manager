@@ -1093,28 +1093,36 @@ export function TurnosCalendar({
               </div>
             </CardContent>
           </Card>
-          {sobreturnosHabilitados && (
-            <Button
-              type="button"
-              className="w-full"
-              disabled={isPastDay}
-              onClick={openSobreturnoDialog}
-            >
-              + Sobreturno
-            </Button>
-          )}
-          {puedeBloquearHorarios && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={isPastDay || bloques.length === 0}
-              onClick={openBloqueoDialog}
-            >
-              <Lock className="size-4" />
-              Bloquear horarios
-            </Button>
-          )}
+          <div className="grid grid-cols-5 gap-2 lg:flex lg:flex-col lg:gap-3">
+            {sobreturnosHabilitados && (
+              <Button
+                type="button"
+                className={cn(
+                  sobreturnosHabilitados && puedeBloquearHorarios ? "col-span-3" : "col-span-5",
+                  "lg:w-full"
+                )}
+                disabled={isPastDay}
+                onClick={openSobreturnoDialog}
+              >
+                + Sobreturno
+              </Button>
+            )}
+            {puedeBloquearHorarios && (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  sobreturnosHabilitados && puedeBloquearHorarios ? "col-span-2" : "col-span-5",
+                  "lg:w-full"
+                )}
+                disabled={isPastDay || bloques.length === 0}
+                onClick={openBloqueoDialog}
+              >
+                <Lock className="size-4" />
+                Bloquear<span className="hidden lg:inline"> horarios</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-1 min-h-0 flex-col gap-3">
