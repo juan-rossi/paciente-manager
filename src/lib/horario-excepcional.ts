@@ -41,3 +41,35 @@ export async function getAperturasDelHorizonte(
     select: { inicio: true, fin: true, lugarId: true },
   });
 }
+
+// Si al cancelar (o mover) un turno ya no queda ningún turno CONFIRMADO
+// dentro del rango de una `HorarioExcepcional` de `fecha`+`lugarId`, esa
+// apertura se borra -- el día vuelve a su estado original de "no
+// disponible" en vez de quedar abierto indefinidamente a nuevos turnos sin
+// que nadie lo haya pedido. No hace nada si no hay ninguna apertura ese
+// día (caso normal, la inmensa mayoría de las cancelaciones).
+export async function limpiarAperturasSinTurnos(
+  userId: string,
+  lugarId: string,
+  fecha: Date
+): Promise<void> {
+  const dayStart = startOfDayBA(fecha);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const aperturas = await prisma.horarioExcepcional.findMany({
+    where: { userId, lugarId, inicio: { lt: dayEnd }, fin: { gt: dayStart } },
+  });
+
+  for (const apertura of aperturas) {
+    const hayTurnos = await prisma.turno.count({
+      where: {
+        doctorId: userId,
+        lugarId,
+        estado: "CONFIRMADO",
+        inicio: { gte: apertura.inicio, lt: apertura.fin },
+      },
+    });
+    if (hayTurnos === 0) {
+      await prisma.horarioExcepcional.delete({ where: { id: apertura.id } });
+    }
+  }
+}

@@ -297,6 +297,35 @@ function BloqueContiguoGrid({
         );
       })}
 
+      {// Un día sin horario real (ej. un turno movido a un día libre, sin
+      // "Habilitar turnos nuevos ese día") no tiene ningún slot que dibuje
+      // el eje de horas de arriba -- sin esto, la(s) card(s) de sobreturno
+      // quedan flotando sin ninguna referencia horaria a la izquierda. Se
+      // marca el inicio Y el fin de cada una (a diferencia de los slots
+      // reales, que solo marcan su inicio porque el de al lado ya cubre el
+      // otro extremo) porque acá no hay ningún vecino que lo haga.
+      slots.length === 0 &&
+        [
+          ...new Map(
+            standaloneSobreturnos
+              .flatMap((slot) => [slot.inicio, slot.fin])
+              .map((iso) => [iso, iso])
+          ).values(),
+        ].map((iso) => {
+          const top = ((minutesFromMidnight(iso) - startMinutes) / totalMinutes) * 100;
+          return (
+            <div
+              key={`ruler-sobreturno-${iso}`}
+              className="absolute inset-x-0 border-t border-border/70"
+              style={{ top: `${top}%` }}
+            >
+              <span className="absolute left-0 top-0 w-12 -translate-y-1/2 bg-card px-1 text-right text-xs text-muted-foreground">
+                {formatHora(iso)}
+              </span>
+            </div>
+          );
+        })}
+
       <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
         {slots.map((slot) => {
           if (consumedInicios.has(slot.inicio) || bloqueadosInicios.has(slot.inicio)) return null;
@@ -754,7 +783,7 @@ export function TurnosCalendar({
   >([]);
   const [bloqueoResolucion, setBloqueoResolucion] = useState<
     "cancelar" | "mover_dia_libre" | "mover_siguiente_libre"
-  >("mover_dia_libre");
+  >("cancelar");
   // Para "mover_dia_libre": los próximos 10 días sin horario configurado de
   // CADA lugar afectado (puede haber más de uno si el conflicto viene de un
   // "Día completo" que toca varios lugares), y la fecha que el usuario
@@ -1013,7 +1042,7 @@ export function TurnosCalendar({
     setBloqueoError(null);
     setBloqueoStep("form");
     setBloqueoConflictoTurnos([]);
-    setBloqueoResolucion("mover_dia_libre");
+    setBloqueoResolucion("cancelar");
     setBloqueoDiasLibreDisponibles([]);
     setBloqueoDiaLibreElegido({});
     setBloqueoHorariosConsecutivos(false);

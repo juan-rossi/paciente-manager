@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/api-auth";
 import { serializeTurno } from "@/lib/turno-serialize";
 import { turnoEditSchema } from "@/lib/turno-schema";
+import { limpiarAperturasSinTurnos } from "@/lib/horario-excepcional";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -52,6 +53,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       where: { id },
       data: { estado: parsed.data.estado },
     });
+    // Si este turno era el último ocupando una apertura excepcional (día
+    // libre habilitado al mover turnos de un bloqueo), esa apertura queda
+    // sin uso -- el día vuelve a no disponible en vez de quedar abierto
+    // indefinidamente a turnos nuevos que nadie pidió.
+    await limpiarAperturasSinTurnos(turno.doctorId, turno.lugarId, turno.inicio);
     return NextResponse.json({ turno: serializeTurno(turno, user.role) });
   }
 

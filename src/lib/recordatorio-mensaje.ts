@@ -51,7 +51,9 @@ export function buildMensajeCambioTurno(
     .replaceAll("{fecha}", formatFechaRecordatorio(fechaOriginal, ahora))
     .replaceAll("{hora}", formatHoraBA(fechaOriginal));
   if (nuevaFecha) {
-    mensaje = mensaje.replaceAll("{nueva_fecha}", formatFechaRecordatorio(nuevaFecha, ahora));
+    mensaje = mensaje
+      .replaceAll("{nueva_fecha}", formatFechaRecordatorio(nuevaFecha, ahora))
+      .replaceAll("{nueva_hora}", formatHoraBA(nuevaFecha));
   }
   return mensaje;
 }

@@ -167,7 +167,8 @@ export function MessagingSettings({
               <strong> original</strong>, antes de moverse.
             </p>
             <p>
-              <code>{"{nueva_fecha}"}</code> — la fecha a la que se movió el turno.
+              <code>{"{nueva_fecha}"}</code> / <code>{"{nueva_hora}"}</code> — día y horario a
+              los que se movió el turno.
             </p>
           </div>
         </div>
