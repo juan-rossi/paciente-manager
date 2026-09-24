@@ -17,7 +17,7 @@ export async function GET() {
       createdAt: true,
       secretariaAsignaciones: {
         where: { doctorId: tenantId },
-        select: { lugares: { select: { lugarId: true } } },
+        select: { lugares: { select: { lugarId: true } }, puedeBloquearHorarios: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -27,6 +27,7 @@ export async function GET() {
     secretarias: secretarias.map(({ secretariaAsignaciones, ...s }) => ({
       ...s,
       lugarIds: secretariaAsignaciones[0]?.lugares.map((l) => l.lugarId) ?? [],
+      puedeBloquearHorarios: secretariaAsignaciones[0]?.puedeBloquearHorarios ?? false,
     })),
   });
 }
@@ -78,7 +79,11 @@ export async function POST(request: NextRequest) {
     }
 
     const doctorSecretaria = await prisma.doctorSecretaria.create({
-      data: { doctorId: tenantId, secretariaId: existing.id },
+      data: {
+        doctorId: tenantId,
+        secretariaId: existing.id,
+        puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+      },
     });
     await prisma.doctorSecretariaLugar.createMany({
       data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId: doctorSecretaria.id, lugarId })),
@@ -95,6 +100,7 @@ export async function POST(request: NextRequest) {
           nombre: existing.nombre,
           createdAt: existing.createdAt,
           lugarIds: parsed.data.lugarIds,
+          puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
         },
         linked: true,
       },
@@ -122,14 +128,25 @@ export async function POST(request: NextRequest) {
     select: { id: true, email: true, nombre: true, createdAt: true },
   });
   const doctorSecretaria = await prisma.doctorSecretaria.create({
-    data: { doctorId: tenantId, secretariaId: secretaria.id },
+    data: {
+      doctorId: tenantId,
+      secretariaId: secretaria.id,
+      puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+    },
   });
   await prisma.doctorSecretariaLugar.createMany({
     data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId: doctorSecretaria.id, lugarId })),
   });
 
   return NextResponse.json(
-    { secretaria: { ...secretaria, lugarIds: parsed.data.lugarIds }, linked: false },
+    {
+      secretaria: {
+        ...secretaria,
+        lugarIds: parsed.data.lugarIds,
+        puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+      },
+      linked: false,
+    },
     { status: 201 }
   );
 }

@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { getDaySlots } from "@/lib/get-day-slots";
-import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
+import { getTenantId, resolveActiveLugarId, resolvePuedeBloquearHorarios } from "@/lib/tenant";
 import { formatDateParamBA } from "@/lib/timezone";
 import { TurnosCalendar } from "@/components/turnos-calendar";
 
@@ -12,6 +12,7 @@ export default async function TurnosPage() {
 
   const tenantId = getTenantId(user);
   const activeLugarId = await resolveActiveLugarId(user);
+  const puedeBloquearHorarios = await resolvePuedeBloquearHorarios(user);
   const today = new Date();
   const {
     slots,
@@ -29,6 +30,7 @@ export default async function TurnosPage() {
         role={user.role}
         tenantId={tenantId}
         activeLugarId={activeLugarId}
+        puedeBloquearHorarios={puedeBloquearHorarios}
         initialDate={formatDateParamBA(today)}
         initialSlots={slots}
         initialSobreturnos={sobreturnos}

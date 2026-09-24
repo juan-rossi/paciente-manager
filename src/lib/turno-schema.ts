@@ -104,6 +104,10 @@ export const secretaryInputSchema = z.object({
   // específico de esta relación médico-secretaria, no de la cuenta en
   // general (ver DoctorSecretariaLugar en el schema).
   lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
+  // Igual de específico de esta relación -- ver `puedeBloquearHorarios` en
+  // el schema. `.default(false)` porque el formulario de alta puede no
+  // mandarlo en absoluto si no se toca el switch.
+  puedeBloquearHorarios: z.boolean().default(false),
 });
 
 export const secretaryUpdateSchema = z.object({
@@ -116,4 +120,5 @@ export const secretaryUpdateSchema = z.object({
     .transform((v) => (v && v.length > 0 ? v : null))
     .refine((v) => v === null || v.length >= 6, "La contraseña debe tener al menos 6 caracteres."),
   lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
+  puedeBloquearHorarios: z.boolean().default(false),
 });

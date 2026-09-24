@@ -281,6 +281,14 @@ model DoctorSecretaria {
   secretaria   User     @relation("AsignacionesComoSecretaria", fields: [secretariaId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
+  // Permiso específico de ESTA relación médico-secretaria (la misma persona
+  // puede tener otro permiso en otro médico) -- habilita el botón "Bloquear
+  // horarios" en la pantalla de turnos y las rutas de horarios-bloqueados.
+  // Por defecto en false: es un permiso elevado (puede afectar lugares que
+  // ni siquiera administra, vía "Día completo"), no algo que una secretaria
+  // nueva tenga habilitado de entrada.
+  puedeBloquearHorarios Boolean @default(false)
+
   lugares DoctorSecretariaLugar[]
 
   @@unique([doctorId, secretariaId])

@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/api-auth";
 import { dividirBloqueoExcluyendoLugar } from "@/lib/bloqueo-horario";
+import { resolvePuedeBloquearHorarios } from "@/lib/tenant";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
+
+  if (!(await resolvePuedeBloquearHorarios(user))) {
+    return NextResponse.json(
+      { error: "No tenés permiso para desbloquear horarios." },
+      { status: 403 }
+    );
+  }
 
   const { id } = await params;
   const lugarId = request.nextUrl.searchParams.get("lugarId");

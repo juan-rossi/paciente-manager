@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ type Secretaria = {
   nombre: string;
   createdAt: string;
   lugarIds: string[];
+  puedeBloquearHorarios: boolean;
 };
 
 type LugarOption = {
@@ -54,6 +56,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
   const [password, setPassword] = useState("");
   const [nombre, setNombre] = useState("");
   const [lugarIds, setLugarIds] = useState<string[]>([]);
+  const [puedeBloquearHorarios, setPuedeBloquearHorarios] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,6 +74,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
     setPassword("");
     setNombre("");
     setLugarIds([]);
+    setPuedeBloquearHorarios(false);
     setError(null);
     setNotice(null);
     setOpen(true);
@@ -82,6 +86,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
     setPassword("");
     setNombre(secretaria.nombre);
     setLugarIds(secretaria.lugarIds);
+    setPuedeBloquearHorarios(secretaria.puedeBloquearHorarios);
     setError(null);
     setNotice(null);
     setOpen(true);
@@ -109,8 +114,8 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             editingSecretaria
-              ? { email, nombre, password: password || undefined, lugarIds }
-              : { email, password, nombre, lugarIds }
+              ? { email, nombre, password: password || undefined, lugarIds, puedeBloquearHorarios }
+              : { email, password, nombre, lugarIds, puedeBloquearHorarios }
           ),
         }
       );
@@ -296,6 +301,29 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="h-px bg-border" />
+
+            <div className="flex flex-col gap-3.5">
+              <span className="text-[11px] font-bold tracking-wide text-muted-foreground/75 uppercase">
+                Permisos
+              </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <Label htmlFor="puede-bloquear-horarios" className="font-medium">
+                    Bloquear turnos
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    Puede bloquear y desbloquear horarios de la agenda
+                  </span>
+                </div>
+                <Switch
+                  id="puede-bloquear-horarios"
+                  checked={puedeBloquearHorarios}
+                  onCheckedChange={setPuedeBloquearHorarios}
+                />
+              </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

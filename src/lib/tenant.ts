@@ -69,3 +69,27 @@ export async function resolveActiveLugarId(user: {
   await prisma.user.update({ where: { id: user.id }, data: { activeLugarId: nuevoActivo } });
   return nuevoActivo;
 }
+
+/**
+ * `puedeBloquearHorarios` es un permiso específico de la relación
+ * médico-secretaria (ver `DoctorSecretaria` en el schema), no de la cuenta
+ * en general -- la misma secretaria puede tenerlo habilitado con un médico
+ * y no con otro. Un `DOCTOR` siempre puede bloquear/desbloquear (no hay
+ * restricción que consultar).
+ */
+export async function resolvePuedeBloquearHorarios(user: {
+  role: UserRole;
+  id: string;
+  activeDoctorId: string | null;
+}): Promise<boolean> {
+  if (user.role !== "SECRETARY") return true;
+
+  const doctorId = user.activeDoctorId;
+  if (!doctorId) return false;
+
+  const asignacion = await prisma.doctorSecretaria.findUnique({
+    where: { doctorId_secretariaId: { doctorId, secretariaId: user.id } },
+    select: { puedeBloquearHorarios: true },
+  });
+  return asignacion?.puedeBloquearHorarios ?? false;
+}

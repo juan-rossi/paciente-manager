@@ -3,10 +3,18 @@ import { requireUser } from "@/lib/api-auth";
 import { bloqueoHorarioInputSchema } from "@/lib/bloqueo-horario-schema";
 import { crearBloqueoDia, crearBloqueosDeBloques, BloqueoSinBloquesError } from "@/lib/bloqueo-horario";
 import { dateParamToDateBA, startOfDayBA } from "@/lib/timezone";
+import { resolvePuedeBloquearHorarios } from "@/lib/tenant";
 
 export async function POST(request: NextRequest) {
   const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
+
+  if (!(await resolvePuedeBloquearHorarios(user))) {
+    return NextResponse.json(
+      { error: "No tenés permiso para bloquear horarios." },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = bloqueoHorarioInputSchema.safeParse(body);

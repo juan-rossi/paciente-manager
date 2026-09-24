@@ -237,6 +237,7 @@ function BloqueContiguoGrid({
   onOpenEdit,
   onOpenBooking,
   onUnblock,
+  puedeBloquearHorarios,
 }: {
   slots: Slot[];
   sobreturnos: Slot[];
@@ -246,6 +247,7 @@ function BloqueContiguoGrid({
   onOpenEdit: (slot: Slot) => void;
   onOpenBooking: (slot: Slot) => void;
   onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
+  puedeBloquearHorarios: boolean;
 }) {
   const { mergedRows, standalone: standaloneSobreturnos, consumedInicios } = mergeSobreturnos(
     slots,
@@ -380,20 +382,22 @@ function BloqueContiguoGrid({
                   {row.motivo ? ` · ${row.motivo}` : ""}
                 </span>
               </span>
-              <button
-                type="button"
-                disabled={isPastDay}
-                onClick={() =>
-                  onUnblock(
-                    row.bloqueoId,
-                    row.slots[0].lugarId,
-                    `${formatHora(primero.inicio)} a ${formatHora(ultimo.fin)}${row.motivo ? ` · ${row.motivo}` : ""}`
-                  )
-                }
-                className="mt-2 shrink-0 rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
-              >
-                Desbloquear
-              </button>
+              {puedeBloquearHorarios && (
+                <button
+                  type="button"
+                  disabled={isPastDay}
+                  onClick={() =>
+                    onUnblock(
+                      row.bloqueoId,
+                      row.slots[0].lugarId,
+                      `${formatHora(primero.inicio)} a ${formatHora(ultimo.fin)}${row.motivo ? ` · ${row.motivo}` : ""}`
+                    )
+                  }
+                  className="mt-2 shrink-0 rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Desbloquear
+                </button>
+              )}
             </div>
           );
         })}
@@ -571,6 +575,7 @@ function LugarDayGrid({
   onOpenEdit,
   onOpenBooking,
   onUnblock,
+  puedeBloquearHorarios,
 }: {
   slots: Slot[];
   sobreturnos: Slot[];
@@ -580,6 +585,7 @@ function LugarDayGrid({
   onOpenEdit: (slot: Slot) => void;
   onOpenBooking: (slot: Slot) => void;
   onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
+  puedeBloquearHorarios: boolean;
 }) {
   if (slots.length === 0) return null;
 
@@ -595,6 +601,7 @@ function LugarDayGrid({
         onOpenEdit={onOpenEdit}
         onOpenBooking={onOpenBooking}
         onUnblock={onUnblock}
+        puedeBloquearHorarios={puedeBloquearHorarios}
       />
     );
   }
@@ -620,6 +627,7 @@ function LugarDayGrid({
               onOpenEdit={onOpenEdit}
               onOpenBooking={onOpenBooking}
               onUnblock={onUnblock}
+              puedeBloquearHorarios={puedeBloquearHorarios}
             />
           </div>
         );
@@ -637,6 +645,9 @@ type Props = {
   // día que se está mirando.
   tenantId: string;
   activeLugarId?: string | null;
+  // Permiso específico de la relación médico-secretaria (ver
+  // `DoctorSecretaria.puedeBloquearHorarios`) -- un DOCTOR siempre puede.
+  puedeBloquearHorarios: boolean;
   initialDate: string;
   initialSlots: Slot[];
   initialSobreturnos: Slot[];
@@ -651,6 +662,7 @@ export function TurnosCalendar({
   role,
   tenantId,
   activeLugarId,
+  puedeBloquearHorarios,
   initialDate,
   initialSlots,
   initialSobreturnos,
@@ -944,8 +956,12 @@ export function TurnosCalendar({
   }
 
   function openBloqueoDialog() {
-    setBloqueoModo("dia");
-    setBloqueoBloqueKeys([]);
+    // Una secretaria nunca ve la opción "Día completo" -- bloquea siempre
+    // por bloques puntuales de su único lugar (ver Tabs más abajo, oculto
+    // para su rol). Con un solo bloque disponible ese día no tiene sentido
+    // obligarla a tildarlo a mano -- arranca preseleccionado.
+    setBloqueoModo(role === "SECRETARY" ? "bloques" : "dia");
+    setBloqueoBloqueKeys(role === "SECRETARY" && bloques.length === 1 ? [bloques[0].key] : []);
     setBloqueoMotivo("");
     setBloqueoError(null);
     setBloqueoOpen(true);
@@ -1087,16 +1103,18 @@ export function TurnosCalendar({
               + Sobreturno
             </Button>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={isPastDay || bloques.length === 0}
-            onClick={openBloqueoDialog}
-          >
-            <Lock className="size-4" />
-            Bloquear horarios
-          </Button>
+          {puedeBloquearHorarios && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isPastDay || bloques.length === 0}
+              onClick={openBloqueoDialog}
+            >
+              <Lock className="size-4" />
+              Bloquear horarios
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-1 min-h-0 flex-col gap-3">
@@ -1216,6 +1234,7 @@ export function TurnosCalendar({
                                   lugarId
                                 )
                               }
+                              puedeBloquearHorarios={puedeBloquearHorarios}
                             />
                           </div>
                         </div>
@@ -1545,14 +1564,16 @@ export function TurnosCalendar({
             )}
 
             <Tabs value={bloqueoModo} onValueChange={(v) => setBloqueoModo(v as "dia" | "bloques")}>
-              <TabsList className="w-full">
-                <TabsTrigger value="dia" className="flex-1">
-                  Día completo
-                </TabsTrigger>
-                <TabsTrigger value="bloques" className="flex-1">
-                  Horarios específicos
-                </TabsTrigger>
-              </TabsList>
+              {role === "DOCTOR" && (
+                <TabsList className="w-full">
+                  <TabsTrigger value="dia" className="flex-1">
+                    Día completo
+                  </TabsTrigger>
+                  <TabsTrigger value="bloques" className="flex-1">
+                    Horarios específicos
+                  </TabsTrigger>
+                </TabsList>
+              )}
               <TabsContent value="dia" className="mt-3">
                 <p className="text-sm text-muted-foreground">
                   {role === "DOCTOR"

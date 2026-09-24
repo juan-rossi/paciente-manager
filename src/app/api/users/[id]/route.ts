@@ -55,12 +55,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   });
 
   const doctorSecretariaId = existing.secretariaAsignaciones[0].id;
+  await prisma.doctorSecretaria.update({
+    where: { id: doctorSecretariaId },
+    data: { puedeBloquearHorarios: parsed.data.puedeBloquearHorarios },
+  });
   await prisma.doctorSecretariaLugar.deleteMany({ where: { doctorSecretariaId } });
   await prisma.doctorSecretariaLugar.createMany({
     data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId, lugarId })),
   });
 
-  return NextResponse.json({ secretaria: { ...secretaria, lugarIds: parsed.data.lugarIds } });
+  return NextResponse.json({
+    secretaria: {
+      ...secretaria,
+      lugarIds: parsed.data.lugarIds,
+      puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+    },
+  });
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {

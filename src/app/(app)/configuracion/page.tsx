@@ -50,7 +50,7 @@ export default async function ConfiguracionPage() {
         createdAt: true,
         secretariaAsignaciones: {
           where: { doctorId: user.id },
-          select: { lugares: { select: { lugarId: true } } },
+          select: { lugares: { select: { lugarId: true } }, puedeBloquearHorarios: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -65,6 +65,7 @@ export default async function ConfiguracionPage() {
     ...s,
     createdAt: s.createdAt.toISOString(),
     lugarIds: secretariaAsignaciones[0]?.lugares.map((l) => l.lugarId) ?? [],
+    puedeBloquearHorarios: secretariaAsignaciones[0]?.puedeBloquearHorarios ?? false,
   }));
 
   return (
