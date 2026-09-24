@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Power, Sparkles } from "lucide-react";
+import { Ban, CalendarClock, MessageSquare, Power, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,12 +15,25 @@ import { cn } from "@/lib/utils";
 type Props = {
   initialMensajeTemplate: string;
   initialMensajeriaHabilitada: boolean;
+  initialMensajeTemplateCancelado: string;
+  initialMensajeTemplateAplazado: string;
 };
 
-export function MessagingSettings({ initialMensajeTemplate, initialMensajeriaHabilitada }: Props) {
+export function MessagingSettings({
+  initialMensajeTemplate,
+  initialMensajeriaHabilitada,
+  initialMensajeTemplateCancelado,
+  initialMensajeTemplateAplazado,
+}: Props) {
   const router = useRouter();
   const [mensajeriaHabilitada, setMensajeriaHabilitada] = useState(initialMensajeriaHabilitada);
   const [mensajeTemplate, setMensajeTemplate] = useState(initialMensajeTemplate);
+  const [mensajeTemplateCancelado, setMensajeTemplateCancelado] = useState(
+    initialMensajeTemplateCancelado
+  );
+  const [mensajeTemplateAplazado, setMensajeTemplateAplazado] = useState(
+    initialMensajeTemplateAplazado
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +46,12 @@ export function MessagingSettings({ initialMensajeTemplate, initialMensajeriaHab
       const response = await fetch("/api/messaging", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensajeTemplate, mensajeriaHabilitada }),
+        body: JSON.stringify({
+          mensajeTemplate,
+          mensajeriaHabilitada,
+          mensajeTemplateCancelado,
+          mensajeTemplateAplazado,
+        }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -95,6 +113,61 @@ export function MessagingSettings({ initialMensajeTemplate, initialMensajeriaHab
             </p>
             <p>
               <code>{"{hora}"}</code> — horario del turno (HH:MM).
+            </p>
+          </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Mensaje de cancelación"
+        description="Se usa al notificar a un paciente cuyo turno se canceló al resolver un conflicto de &quot;Bloquear horarios&quot;."
+        icon={Ban}
+      >
+        <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
+          <Label>Mensaje</Label>
+          <Textarea
+            rows={4}
+            value={mensajeTemplateCancelado}
+            onChange={(e) => setMensajeTemplateCancelado(e.target.value)}
+            disabled={!mensajeriaHabilitada}
+          />
+          <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Variables disponibles:</span>
+            <p>
+              <code>{"{nombre}"}</code> — nombre y apellido del paciente.
+            </p>
+            <p>
+              <code>{"{fecha}"}</code> / <code>{"{hora}"}</code> — día y horario del turno que se
+              canceló.
+            </p>
+          </div>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Mensaje de aplazamiento"
+        description="Se usa al notificar a un paciente cuyo turno se reprogramó al resolver un conflicto de &quot;Bloquear horarios&quot;."
+        icon={CalendarClock}
+      >
+        <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
+          <Label>Mensaje</Label>
+          <Textarea
+            rows={4}
+            value={mensajeTemplateAplazado}
+            onChange={(e) => setMensajeTemplateAplazado(e.target.value)}
+            disabled={!mensajeriaHabilitada}
+          />
+          <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Variables disponibles:</span>
+            <p>
+              <code>{"{nombre}"}</code> — nombre y apellido del paciente.
+            </p>
+            <p>
+              <code>{"{fecha}"}</code> / <code>{"{hora}"}</code> — día y horario del turno
+              <strong> original</strong>, antes de moverse.
+            </p>
+            <p>
+              <code>{"{nueva_fecha}"}</code> — la fecha a la que se movió el turno.
             </p>
           </div>
         </div>

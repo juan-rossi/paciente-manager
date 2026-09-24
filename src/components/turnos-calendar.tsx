@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -261,7 +262,10 @@ function BloqueContiguoGrid({
     ((getMinutesSinceMidnightBA(new Date()) - startMinutes) / totalMinutes) * 100;
   const showNowLine = isToday && nowOffsetPct >= 0 && nowOffsetPct <= 100;
 
-  if (slots.length === 0) return null;
+  // Un turno movido a un día sin horario configurado (ver "Mover a un día
+  // libre" en bloqueo-conflictos.ts) no tiene ningún slot real ese día --
+  // solo bailar cuando TAMPOCO hay sobreturnos, para no perderlo de vista.
+  if (slots.length === 0 && sobreturnos.length === 0) return null;
 
   // El piso en píxeles tiene que alcanzar para TODAS las filas que se
   // dibujan dentro de este rango horario, no solo los slots de la grilla:
@@ -587,7 +591,10 @@ function LugarDayGrid({
   onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
   puedeBloquearHorarios: boolean;
 }) {
-  if (slots.length === 0) return null;
+  // Igual que en `BloqueContiguoGrid`: un día sin horario configurado que
+  // igual tiene un turno (movido ahí vía "Mover a un día libre") no tiene
+  // slots, pero no hay que ocultarlo si hay sobreturnos para mostrar.
+  if (slots.length === 0 && sobreturnos.length === 0) return null;
 
   const bloques = partirEnBloquesContiguos(slots);
   if (bloques.length <= 1) {
@@ -653,6 +660,10 @@ type Props = {
   initialSobreturnos: Slot[];
   initialSinConfigurar: boolean;
   initialDiasConHorario: DiaSemana[];
+  // Fechas puntuales fuera de `diasConHorario` (turnos movidos vía "Mover a
+  // un día libre") que igual tienen que poder navegarse -- ver
+  // get-day-slots.ts.
+  initialDiasEspeciales: string[];
   initialSobreturnosHabilitados: boolean;
   initialLugares: LugarInfo[];
   initialBloqueosDelDia: BloqueoDelDia[];
@@ -668,6 +679,7 @@ export function TurnosCalendar({
   initialSobreturnos,
   initialSinConfigurar,
   initialDiasConHorario,
+  initialDiasEspeciales,
   initialSobreturnosHabilitados,
   initialLugares,
   initialBloqueosDelDia,
@@ -684,6 +696,7 @@ export function TurnosCalendar({
   const [sobreturnos, setSobreturnos] = useState<Slot[]>(initialSobreturnos);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
   const [diasConHorario, setDiasConHorario] = useState<DiaSemana[]>(initialDiasConHorario);
+  const [diasEspeciales, setDiasEspeciales] = useState<string[]>(initialDiasEspeciales);
   const [sobreturnosHabilitados, setSobreturnosHabilitados] = useState(
     initialSobreturnosHabilitados
   );
@@ -731,6 +744,33 @@ export function TurnosCalendar({
   const [bloqueoMotivo, setBloqueoMotivo] = useState("");
   const [bloqueoSaving, setBloqueoSaving] = useState(false);
   const [bloqueoError, setBloqueoError] = useState<string | null>(null);
+  // Paso 2 del diálogo (alternativa "A"): si el rango a bloquear tiene
+  // turnos confirmados adentro, el POST inicial devuelve 409 con la lista
+  // en vez de crear el bloqueo -- se muestra acá, sin cerrar el diálogo,
+  // hasta que el usuario elige cómo resolverlos.
+  const [bloqueoStep, setBloqueoStep] = useState<"form" | "conflicto">("form");
+  const [bloqueoConflictoTurnos, setBloqueoConflictoTurnos] = useState<
+    { id: string; nombreYApellido: string; inicio: string }[]
+  >([]);
+  const [bloqueoResolucion, setBloqueoResolucion] = useState<
+    "cancelar" | "mover_dia_libre" | "mover_siguiente_libre"
+  >("mover_dia_libre");
+  // Para "mover_dia_libre": los próximos 10 días sin horario configurado de
+  // CADA lugar afectado (puede haber más de uno si el conflicto viene de un
+  // "Día completo" que toca varios lugares), y la fecha que el usuario
+  // eligió para cada uno -- arranca en la más cercana de cada lista.
+  const [bloqueoDiasLibreDisponibles, setBloqueoDiasLibreDisponibles] = useState<
+    { lugarId: string; fechas: string[] }[]
+  >([]);
+  const [bloqueoDiaLibreElegido, setBloqueoDiaLibreElegido] = useState<Record<string, string>>({});
+  // "Horarios consecutivos": los turnos afectados se acomodan uno tras
+  // otro desde el inicio del bloque original, en vez de conservar cada
+  // uno su propia hora. "Habilitar turnos nuevos ese día": además de
+  // mover los turnos, esa fecha puntual queda abierta a reservas nuevas
+  // (panel y directorio), sin afectar otras ocurrencias del mismo día de
+  // semana.
+  const [bloqueoHorariosConsecutivos, setBloqueoHorariosConsecutivos] = useState(false);
+  const [bloqueoHabilitarTurnosNuevos, setBloqueoHabilitarTurnosNuevos] = useState(true);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [unblockTarget, setUnblockTarget] = useState<{
     bloqueoId: string;
@@ -749,6 +789,7 @@ export function TurnosCalendar({
       setSobreturnos(data.sobreturnos ?? []);
       setSinConfigurar(Boolean(data.sinConfigurar));
       setDiasConHorario(data.diasConHorario ?? []);
+      setDiasEspeciales(data.diasEspeciales ?? []);
       setSobreturnosHabilitados(Boolean(data.sobreturnosHabilitados));
       setLugares(data.lugares ?? []);
       setBloqueosDelDia(data.bloqueosDelDia ?? []);
@@ -970,11 +1011,47 @@ export function TurnosCalendar({
     setBloqueoBloqueKeys(role === "SECRETARY" && bloques.length === 1 ? [bloques[0].key] : []);
     setBloqueoMotivo("");
     setBloqueoError(null);
+    setBloqueoStep("form");
+    setBloqueoConflictoTurnos([]);
+    setBloqueoResolucion("mover_dia_libre");
+    setBloqueoDiasLibreDisponibles([]);
+    setBloqueoDiaLibreElegido({});
+    setBloqueoHorariosConsecutivos(false);
+    setBloqueoHabilitarTurnosNuevos(true);
     setBloqueoOpen(true);
   }
 
   function toggleBloqueKey(key: string, checked: boolean) {
     setBloqueoBloqueKeys((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)));
+  }
+
+  function buildBloqueoBody(resolucionConflicto?: "cancelar" | "mover_dia_libre" | "mover_siguiente_libre") {
+    const esMoverDiaLibre = resolucionConflicto === "mover_dia_libre";
+    const diasLibreElegidos = esMoverDiaLibre
+      ? Object.entries(bloqueoDiaLibreElegido).map(([lugarId, fecha]) => ({ lugarId, fecha }))
+      : undefined;
+    const horariosConsecutivos = esMoverDiaLibre ? bloqueoHorariosConsecutivos : undefined;
+    const habilitarTurnosNuevos = esMoverDiaLibre ? bloqueoHabilitarTurnosNuevos : undefined;
+    return bloqueoModo === "dia"
+      ? {
+          modo: "dia",
+          fecha: formatDateParamBA(selectedDate),
+          motivo: bloqueoMotivo,
+          resolucionConflicto,
+          diasLibreElegidos,
+          horariosConsecutivos,
+          habilitarTurnosNuevos,
+        }
+      : {
+          modo: "bloques",
+          fecha: formatDateParamBA(selectedDate),
+          bloqueKeys: bloqueoBloqueKeys,
+          motivo: bloqueoMotivo,
+          resolucionConflicto,
+          diasLibreElegidos,
+          horariosConsecutivos,
+          habilitarTurnosNuevos,
+        };
   }
 
   async function handleSubmitBloqueo() {
@@ -988,20 +1065,52 @@ export function TurnosCalendar({
       const response = await fetch("/api/horarios-bloqueados", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          bloqueoModo === "dia"
-            ? { modo: "dia", fecha: formatDateParamBA(selectedDate), motivo: bloqueoMotivo }
-            : {
-                modo: "bloques",
-                fecha: formatDateParamBA(selectedDate),
-                bloqueKeys: bloqueoBloqueKeys,
-                motivo: bloqueoMotivo,
-              }
-        ),
+        body: JSON.stringify(buildBloqueoBody()),
       });
       const data = await response.json();
       if (!response.ok) {
+        if (response.status === 409 && data.conflict) {
+          const disponibles: { lugarId: string; fechas: string[] }[] = data.diasLibreDisponibles ?? [];
+          setBloqueoConflictoTurnos(data.turnos ?? []);
+          setBloqueoDiasLibreDisponibles(disponibles);
+          setBloqueoDiaLibreElegido(
+            Object.fromEntries(
+              disponibles.filter((d) => d.fechas.length > 0).map((d) => [d.lugarId, d.fechas[0]])
+            )
+          );
+          setBloqueoStep("conflicto");
+          return;
+        }
         setBloqueoError(data.error ?? "No se pudo bloquear el horario.");
+        return;
+      }
+      setBloqueoOpen(false);
+      await loadSlots(selectedDate);
+    } finally {
+      setBloqueoSaving(false);
+    }
+  }
+
+  async function handleConfirmResolucion() {
+    if (
+      bloqueoResolucion === "mover_dia_libre" &&
+      (bloqueoDiasLibreDisponibles.length === 0 ||
+        bloqueoDiasLibreDisponibles.some((d) => !bloqueoDiaLibreElegido[d.lugarId]))
+    ) {
+      setBloqueoError("Elegí a qué día mover estos turnos.");
+      return;
+    }
+    setBloqueoError(null);
+    setBloqueoSaving(true);
+    try {
+      const response = await fetch("/api/horarios-bloqueados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildBloqueoBody(bloqueoResolucion)),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBloqueoError(data.error ?? "No se pudo resolver los turnos afectados.");
         return;
       }
       setBloqueoOpen(false);
@@ -1094,7 +1203,10 @@ export function TurnosCalendar({
                   onSelect={handleSelectDate}
                   month={calendarMonth}
                   onMonthChange={setCalendarMonth}
-                  disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
+                  disabled={(date) =>
+                    !diasConHorario.includes(diaSemanaFromDate(date)) &&
+                    !diasEspeciales.includes(formatDateParamBA(date))
+                  }
                   modifiers={{ past: (date) => date < todayStart }}
                   modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
                 />
@@ -1121,7 +1233,7 @@ export function TurnosCalendar({
                 variant="outline"
                 className={cn(
                   sobreturnosHabilitados && puedeBloquearHorarios ? "col-span-2" : "col-span-5",
-                  "lg:w-full"
+                  "lg:w-full bg-card shadow-sm"
                 )}
                 disabled={isPastDay || bloques.length === 0}
                 onClick={openBloqueoDialog}
@@ -1139,7 +1251,10 @@ export function TurnosCalendar({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleSelectDate(nextDiaConHorario(selectedDate, -1, diasConHorario))}
+              className="bg-card shadow-sm"
+              onClick={() =>
+                handleSelectDate(nextDiaConHorario(selectedDate, -1, diasConHorario, diasEspeciales))
+              }
             >
               <ChevronLeft className="size-4" />
               <span className="hidden sm:inline">Anterior</span>
@@ -1158,7 +1273,10 @@ export function TurnosCalendar({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleSelectDate(nextDiaConHorario(selectedDate, 1, diasConHorario))}
+              className="bg-card shadow-sm"
+              onClick={() =>
+                handleSelectDate(nextDiaConHorario(selectedDate, 1, diasConHorario, diasEspeciales))
+              }
             >
               <span className="hidden sm:inline">Siguiente</span>
               <ChevronRight className="size-4" />
@@ -1183,13 +1301,13 @@ export function TurnosCalendar({
                   </p>
                 )}
 
-                {!loading && !sinConfigurar && slots.length === 0 && (
+                {!loading && !sinConfigurar && slots.length === 0 && sobreturnos.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     No hay horario configurado para este día.
                   </p>
                 )}
 
-                {!loading && slots.length > 0 && (
+                {!loading && (slots.length > 0 || sobreturnos.length > 0) && (
                   <div className="flex flex-1 min-h-0 flex-col gap-5">
                     {grupos.map((grupo) => {
                       const lugar = lugaresPorId.get(grupo.lugarId);
@@ -1537,47 +1655,186 @@ export function TurnosCalendar({
       <Dialog open={bloqueoOpen} onOpenChange={(open) => !open && setBloqueoOpen(false)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Bloquear horarios</DialogTitle>
+            {bloqueoStep === "conflicto" ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBloqueoStep("form")}
+                  aria-label="Volver"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+                <DialogTitle>Hay turnos en este horario</DialogTitle>
+              </div>
+            ) : (
+              <DialogTitle>Bloquear horarios</DialogTitle>
+            )}
           </DialogHeader>
+          {bloqueoStep === "conflicto" ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Hay <strong className="text-foreground">{bloqueoConflictoTurnos.length}</strong> turno
+                {bloqueoConflictoTurnos.length === 1 ? "" : "s"} programado
+                {bloqueoConflictoTurnos.length === 1 ? "" : "s"} en ese horario. Elegí qué hacer con
+                {bloqueoConflictoTurnos.length === 1 ? " él" : " ellos"}.
+              </p>
+
+              <div className="flex max-h-32 flex-col gap-1.5 overflow-y-auto rounded-lg border border-border/60 p-2">
+                {bloqueoConflictoTurnos.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between gap-2 px-1 text-sm">
+                    <span className="font-medium">{t.nombreYApellido}</span>
+                    <span className="text-muted-foreground">{formatHoraBA(new Date(t.inicio))}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {(
+                  [
+                    {
+                      value: "cancelar" as const,
+                      titulo: "Cancelar los turnos",
+                      detalle: "Se cancelan y cada paciente queda pendiente de aviso en Recordatorios.",
+                    },
+                    {
+                      value: "mover_dia_libre" as const,
+                      titulo: "Mover a un día libre",
+                      detalle: "Elegí a qué día sin horario configurado se reprograma.",
+                    },
+                    {
+                      value: "mover_siguiente_libre" as const,
+                      titulo: "Mover al primer horario libre",
+                      detalle: "Se reacomodan al próximo lugar disponible en la agenda, sin dejar huecos.",
+                    },
+                  ]
+                ).map((opcion) => {
+                  const selected = bloqueoResolucion === opcion.value;
+                  return (
+                    <div
+                      key={opcion.value}
+                      className={cn(
+                        "flex flex-col gap-2.5 rounded-lg border p-3 transition-colors",
+                        selected ? "border-primary bg-primary/5" : "border-border/60 hover:bg-accent/40"
+                      )}
+                    >
+                      <label className="flex cursor-pointer items-start gap-2.5">
+                        <input
+                          type="radio"
+                          name="bloqueo-resolucion"
+                          value={opcion.value}
+                          checked={selected}
+                          onChange={() => setBloqueoResolucion(opcion.value)}
+                          className="mt-1"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold">{opcion.titulo}</span>
+                          <span className="block text-xs text-muted-foreground">{opcion.detalle}</span>
+                        </span>
+                      </label>
+                      {selected && opcion.value === "mover_dia_libre" && (
+                        <div className="ml-7 flex flex-col gap-2">
+                          {bloqueoDiasLibreDisponibles.length === 0 && (
+                            <p className="text-xs text-destructive">
+                              No hay ningún día sin horario configurado para reprogramar estos turnos.
+                            </p>
+                          )}
+                          {bloqueoDiasLibreDisponibles.map((d) => (
+                            <div key={d.lugarId} className="flex flex-col gap-1">
+                              {bloqueoDiasLibreDisponibles.length > 1 && (
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {lugarNombre(lugaresPorId.get(d.lugarId))}
+                                </span>
+                              )}
+                              <Select
+                                value={bloqueoDiaLibreElegido[d.lugarId] ?? ""}
+                                onValueChange={(v) =>
+                                  v && setBloqueoDiaLibreElegido((prev) => ({ ...prev, [d.lugarId]: v }))
+                                }
+                              >
+                                <SelectTrigger className="w-full bg-card">
+                                  <SelectValue>
+                                    {() => {
+                                      const fecha = bloqueoDiaLibreElegido[d.lugarId];
+                                      return fecha
+                                        ? capitalize(
+                                            dateParamToDateBA(fecha)!.toLocaleDateString("es-AR", {
+                                              weekday: "long",
+                                              day: "numeric",
+                                              month: "long",
+                                              year: "numeric",
+                                            })
+                                          )
+                                        : "Elegí un día";
+                                    }}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {d.fechas.map((fecha) => (
+                                    <SelectItem key={fecha} value={fecha}>
+                                      {capitalize(
+                                        dateParamToDateBA(fecha)!.toLocaleDateString("es-AR", {
+                                          weekday: "long",
+                                          day: "numeric",
+                                          month: "long",
+                                          year: "numeric",
+                                        })
+                                      )}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+
+                          <div className="mt-1 flex flex-col gap-2.5 border-t border-border/60 pt-2.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="min-w-0">
+                                <Label htmlFor="bloqueo-horarios-consecutivos" className="text-xs font-semibold">
+                                  Horarios consecutivos
+                                </Label>
+                                <span className="block text-[11px] text-muted-foreground">
+                                  Se acomodan uno tras otro desde el inicio del bloque, en vez de conservar el
+                                  horario original.
+                                </span>
+                              </span>
+                              <Switch
+                                id="bloqueo-horarios-consecutivos"
+                                checked={bloqueoHorariosConsecutivos}
+                                onCheckedChange={setBloqueoHorariosConsecutivos}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="min-w-0">
+                                <Label htmlFor="bloqueo-habilitar-turnos-nuevos" className="text-xs font-semibold">
+                                  Habilitar turnos nuevos ese día
+                                </Label>
+                                <span className="block text-[11px] text-muted-foreground">
+                                  Solo esta fecha puntual va a poder reservarse (panel y directorio) -- no afecta
+                                  otras semanas.
+                                </span>
+                              </span>
+                              <Switch
+                                id="bloqueo-habilitar-turnos-nuevos"
+                                checked={bloqueoHabilitarTurnosNuevos}
+                                onCheckedChange={setBloqueoHabilitarTurnosNuevos}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {bloqueoError && <p className="text-sm text-destructive">{bloqueoError}</p>}
+            </div>
+          ) : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <Label>Día</Label>
               <strong className="text-sm">{selectedDate.toLocaleDateString("es-AR")}</strong>
             </div>
-
-            {bloqueosDelDia.length > 0 && (
-              <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/50 p-3">
-                <Label>Ya bloqueado</Label>
-                <div className="flex flex-col gap-2">
-                  {bloqueosDelDia.map((b) => (
-                    <div key={b.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span>
-                        {b.lugarId ? lugarNombre(lugaresPorId.get(b.lugarId)) : "Todo el día"}
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · {formatHora(b.inicio)} a {formatHora(b.fin)}
-                          {b.motivo ? ` · ${b.motivo}` : ""}
-                        </span>
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={unblockingId === b.id}
-                        onClick={() =>
-                          requestUnblock(
-                            b.id,
-                            `${b.lugarId ? lugarNombre(lugaresPorId.get(b.lugarId)) : "Todo el día"} · ${formatHora(b.inicio)} a ${formatHora(b.fin)}${b.motivo ? ` · ${b.motivo}` : ""}`
-                          )
-                        }
-                      >
-                        {unblockingId === b.id ? "Desbloqueando..." : "Desbloquear"}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <Tabs value={bloqueoModo} onValueChange={(v) => setBloqueoModo(v as "dia" | "bloques")}>
               {role === "DOCTOR" && (
@@ -1643,10 +1900,22 @@ export function TurnosCalendar({
             </div>
             {bloqueoError && <p className="text-sm text-destructive">{bloqueoError}</p>}
           </div>
+          )}
           <DialogFooter>
-            <Button type="button" onClick={handleSubmitBloqueo} disabled={bloqueoSaving}>
-              {bloqueoSaving ? "Bloqueando..." : "Bloquear"}
-            </Button>
+            {bloqueoStep === "conflicto" ? (
+              <>
+                <Button type="button" variant="outline" onClick={() => setBloqueoStep("form")}>
+                  Volver
+                </Button>
+                <Button type="button" onClick={handleConfirmResolucion} disabled={bloqueoSaving}>
+                  {bloqueoSaving ? "Confirmando..." : "Confirmar"}
+                </Button>
+              </>
+            ) : (
+              <Button type="button" onClick={handleSubmitBloqueo} disabled={bloqueoSaving}>
+                {bloqueoSaving ? "Bloqueando..." : "Bloquear"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

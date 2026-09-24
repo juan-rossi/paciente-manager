@@ -19,6 +19,7 @@ export default async function TurnosPage() {
     sobreturnos,
     sinConfigurar,
     diasConHorario,
+    diasEspeciales,
     sobreturnosHabilitados,
     lugares,
     bloqueosDelDia,
@@ -36,6 +37,7 @@ export default async function TurnosPage() {
         initialSobreturnos={sobreturnos}
         initialSinConfigurar={sinConfigurar}
         initialDiasConHorario={diasConHorario}
+        initialDiasEspeciales={diasEspeciales}
         initialSobreturnosHabilitados={sobreturnosHabilitados}
         initialLugares={lugares}
         initialBloqueosDelDia={bloqueosDelDia}

@@ -33,6 +33,29 @@ export function buildMensajeRecordatorio(
     .replaceAll("{hora}", formatHoraBA(turnoInicio));
 }
 
+// Mensaje de cancelación/aplazamiento (ver "Pendientes de notificar" en
+// Recordatorios) -- a diferencia de `buildMensajeRecordatorio`, `{fecha}`/
+// `{hora}` son las del turno ANTES del cambio (lo que el paciente tenía
+// agendado), no las de un turno futuro. `nuevaFecha` solo se pasa para un
+// aplazamiento; si la plantilla no tiene `{nueva_fecha}` (ej. la de
+// cancelación) el `.replaceAll` no encuentra nada y no hace nada.
+export function buildMensajeCambioTurno(
+  template: string,
+  nombre: string,
+  fechaOriginal: Date,
+  nuevaFecha: Date | null = null,
+  ahora: Date = new Date()
+): string {
+  let mensaje = template
+    .replaceAll("{nombre}", nombre)
+    .replaceAll("{fecha}", formatFechaRecordatorio(fechaOriginal, ahora))
+    .replaceAll("{hora}", formatHoraBA(fechaOriginal));
+  if (nuevaFecha) {
+    mensaje = mensaje.replaceAll("{nueva_fecha}", formatFechaRecordatorio(nuevaFecha, ahora));
+  }
+  return mensaje;
+}
+
 export function buildWhatsAppHref(telefono: string, mensaje: string): string {
   let digits = telefono.replace(/\D/g, "");
   // Un teléfono cargado sin código de país (10 dígitos: código de área +

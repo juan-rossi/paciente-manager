@@ -1,9 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { generarSlots, type WorkScheduleBlockLike } from "@/lib/slots";
 import { agruparPorLugar, bloquesDelDia } from "@/lib/bloques-dia";
+import { getAperturasDelDia } from "@/lib/horario-excepcional";
 import { startOfDayBA } from "@/lib/timezone";
 
 export type BloqueoRango = { lugarId: string | null; inicio: Date; fin: Date };
+export type BloqueoRowInput = { lugarId: string | null; inicio: Date; fin: Date };
 
 // `lugarId: null` en un bloqueo significa "aplica a cualquier lugar" (el
 // "Día completo" de un médico) -- por eso nunca alcanza con comparar
@@ -21,37 +24,49 @@ export function isRangoBloqueado(
   );
 }
 
+// Fase 1 (solo calcula, nunca escribe) del "Día completo": el rango de 24hs
+// de `fecha`. Separado de `crearBloqueoDia` para poder detectar conflictos
+// con turnos existentes ANTES de crear la fila (ver bloqueo-conflictos.ts).
+export function resolverRangoDia(lugarId: string | null, fecha: Date): BloqueoRowInput[] {
+  const inicio = startOfDayBA(fecha);
+  const fin = startOfDayBA(new Date(fecha.getTime() + 24 * 60 * 60 * 1000));
+  return [{ lugarId, inicio, fin }];
+}
+
 // "Día completo": una sola fila que cubre las 24hs de `fecha`. Para un
 // médico, `lugarId: null` (todos sus lugares); para una secretaria, se le
 // pasa su `activeLugarId` (nunca puede bloquear un lugar que no administra).
+// `db` acepta `prisma` o un `tx` de `$transaction` (ver `registrarAuditoria`
+// en audit-log.ts para el mismo patrón) -- se le pasa el `tx` cuando ya se
+// resolvieron conflictos con turnos existentes en la misma transacción.
 export async function crearBloqueoDia(
   userId: string,
   lugarId: string | null,
   fecha: Date,
-  motivo: string | null
+  motivo: string | null,
+  db: typeof prisma | Prisma.TransactionClient = prisma
 ) {
-  const inicio = startOfDayBA(fecha);
-  const fin = startOfDayBA(new Date(fecha.getTime() + 24 * 60 * 60 * 1000));
-  return prisma.bloqueoHorario.create({ data: { userId, lugarId, inicio, fin, motivo } });
+  const [rango] = resolverRangoDia(lugarId, fecha);
+  return db.bloqueoHorario.create({ data: { userId, ...rango, motivo } });
 }
 
 export class BloqueoSinBloquesError extends Error {}
 
-// "Bloques específicos": nunca confía en los rangos horarios que mande el
-// cliente (mismo criterio que `buscarSlotValido` en public-booking.ts) --
-// recalcula los bloques REALES de `fecha` server-side a partir del
-// `WorkScheduleBlock` vigente y solo crea filas para los `bloqueKeys` que
-// matchean uno de verdad. `scopeLugarId` acota qué bloques puede ver quien
-// pide el bloqueo: `undefined` para un médico (ve todos sus lugares), un
-// id concreto para una secretaria (sus bloques nunca van a incluir un
-// lugar que no administra, porque ni siquiera se computan).
-export async function crearBloqueosDeBloques(
+// Fase 1 (solo calcula, nunca escribe) de "Bloques específicos": nunca
+// confía en los rangos horarios que mande el cliente (mismo criterio que
+// `buscarSlotValido` en public-booking.ts) -- recalcula los bloques REALES
+// de `fecha` server-side a partir del `WorkScheduleBlock` vigente y solo
+// devuelve los `bloqueKeys` que matchean uno de verdad. `scopeLugarId` acota
+// qué bloques puede ver quien pide el bloqueo: `undefined` para un médico
+// (ve todos sus lugares), un id concreto para una secretaria (sus bloques
+// nunca van a incluir un lugar que no administra, porque ni siquiera se
+// computan).
+export async function resolverRangosBloques(
   userId: string,
   scopeLugarId: string | undefined,
   fecha: Date,
-  bloqueKeys: string[],
-  motivo: string | null
-) {
+  bloqueKeys: string[]
+): Promise<BloqueoRowInput[]> {
   const doctor = await prisma.user.findUnique({
     where: { id: userId },
     select: { slotDurationMinutes: true },
@@ -61,7 +76,12 @@ export async function crearBloqueosDeBloques(
   const blocks: WorkScheduleBlockLike[] = await prisma.workScheduleBlock.findMany({
     where: { userId, ...(scopeLugarId ? { lugarId: scopeLugarId } : {}) },
   });
-  const slots = generarSlots(fecha, blocks, doctor.slotDurationMinutes);
+  // Si un día quedó habilitado vía "Mover a un día libre" -> "Habilitar
+  // turnos nuevos ese día", tiene que poder volver a bloquearse (parcial o
+  // totalmente) como cualquier otro -- sin esto, esos bloques ni existen
+  // para el recálculo server-side.
+  const aperturas = await getAperturasDelDia(userId, fecha, scopeLugarId);
+  const slots = generarSlots(fecha, blocks, doctor.slotDurationMinutes, aperturas);
   const slotsIso = slots.map((s) => ({
     inicio: s.inicio.toISOString(),
     fin: s.fin.toISOString(),
@@ -75,14 +95,20 @@ export async function crearBloqueosDeBloques(
     throw new BloqueoSinBloquesError("Ninguno de los bloques elegidos corresponde a un horario real de ese día.");
   }
 
-  return prisma.bloqueoHorario.createMany({
-    data: matched.map((b) => ({
-      userId,
-      lugarId: b.lugarId,
-      inicio: new Date(b.inicio),
-      fin: new Date(b.fin),
-      motivo,
-    })),
+  return matched.map((b) => ({ lugarId: b.lugarId, inicio: new Date(b.inicio), fin: new Date(b.fin) }));
+}
+
+export async function crearBloqueosDeBloques(
+  userId: string,
+  scopeLugarId: string | undefined,
+  fecha: Date,
+  bloqueKeys: string[],
+  motivo: string | null,
+  db: typeof prisma | Prisma.TransactionClient = prisma
+) {
+  const rangos = await resolverRangosBloques(userId, scopeLugarId, fecha, bloqueKeys);
+  return db.bloqueoHorario.createMany({
+    data: rangos.map((r) => ({ userId, ...r, motivo })),
   });
 }
 

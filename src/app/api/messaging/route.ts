@@ -10,6 +10,8 @@ export async function GET() {
   return NextResponse.json({
     mensajeTemplate: user.mensajeTemplate,
     mensajeriaHabilitada: user.mensajeriaHabilitada,
+    mensajeTemplateCancelado: user.mensajeTemplateCancelado,
+    mensajeTemplateAplazado: user.mensajeTemplateAplazado,
   });
 }
 
@@ -35,5 +37,7 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json({
     mensajeTemplate: updated.mensajeTemplate,
     mensajeriaHabilitada: updated.mensajeriaHabilitada,
+    mensajeTemplateCancelado: updated.mensajeTemplateCancelado,
+    mensajeTemplateAplazado: updated.mensajeTemplateAplazado,
   });
 }

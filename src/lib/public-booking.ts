@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { generarSlots } from "@/lib/slots";
 import { startOfDayBA, formatDateParamBA } from "@/lib/timezone";
 import { isRangoBloqueado } from "@/lib/bloqueo-horario";
+import { getAperturasDelDia, getAperturasDelHorizonte } from "@/lib/horario-excepcional";
 
 const HORIZONTE_DIAS_DEFAULT = 14;
 
@@ -62,11 +63,19 @@ export async function getDisponibilidadPublica(
     where: { userId: doctor.id, inicio: { lt: hasta }, fin: { gt: desde } },
   });
 
+  // Fechas puntuales habilitadas fuera del patrón semanal (ver "Mover a un
+  // día libre" -> "Habilitar turnos nuevos ese día") -- una sola consulta
+  // para todo el horizonte, filtrada por día dentro del loop.
+  const aperturasHorizonte = await getAperturasDelHorizonte(doctor.id, desde, hasta);
+
   const ahora = Date.now();
   const dias: DisponibilidadDia[] = [];
   for (let i = 0; i < horizonteDias; i++) {
     const dia = addDays(hoy, i);
-    const slots = generarSlots(dia, blocks, doctor.slotDurationMinutes);
+    const aperturasDelDia = aperturasHorizonte.filter(
+      (a) => formatDateParamBA(a.inicio) === formatDateParamBA(dia)
+    );
+    const slots = generarSlots(dia, blocks, doctor.slotDurationMinutes, aperturasDelDia);
     const horarios: HorarioDisponible[] = slots
       .filter(
         (slot) =>
@@ -91,7 +100,8 @@ export async function buscarSlotValido(
   inicio: Date
 ): Promise<{ inicio: Date; fin: Date; lugarId: string } | null> {
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
-  const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes);
+  const aperturasDelDia = await getAperturasDelDia(doctor.id, inicio);
+  const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes, aperturasDelDia);
   const slot = slots.find((s) => s.inicio.getTime() === inicio.getTime());
   if (!slot) return null;
 

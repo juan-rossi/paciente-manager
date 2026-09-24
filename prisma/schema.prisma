@@ -138,6 +138,11 @@ enum TurnoOrigen {
   ONLINE
 }
 
+enum TurnoAvisoPendienteMotivo {
+  CANCELADO
+  APLAZADO
+}
+
 enum TipoAntecedente {
   DISLIPEMIA
   HIPOTIROIDISMO
@@ -220,6 +225,11 @@ model User {
   // dd/mm/aaaa" -- ver formatFechaRecordatorio en recordatorio-mensaje.ts),
   // por eso no lleva un "el" fijo antes en la plantilla.
   mensajeTemplate          String          @default("Hola {nombre}, te recordamos tu turno para {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
+  // Mensajes para la resolución de conflictos de "Bloquear horarios" (ver
+  // BloqueoConflicto) -- {fecha}/{hora} son las del turno ANTES del
+  // cambio; {nueva_fecha} (solo en la de aplazado) es la fecha nueva.
+  mensajeTemplateCancelado String          @default("Hola {nombre}, lamentablemente tu turno para {fecha} a las {hora}hs fue cancelado. Te contactaremos para reprogramarlo.")
+  mensajeTemplateAplazado  String          @default("Hola {nombre}, tu turno para {fecha} a las {hora}hs fue reprogramado para {nueva_fecha}. Cualquier consulta, respondé este mensaje.")
   // Apaga la mensajería de la cuenta -- con esto en false, el item
   // "Recordatorios" del menú superior se oculta (ver `(app)/layout.tsx`).
   mensajeriaHabilitada     Boolean         @default(true)
@@ -260,9 +270,10 @@ model User {
   doctorAsignaciones     DoctorSecretaria[] @relation("AsignacionesComoDoctor")
   secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")
 
-  workScheduleBlocks WorkScheduleBlock[]
-  lugaresDeTrabajo   LugarDeTrabajo[]
-  bloqueosHorario    BloqueoHorario[]
+  workScheduleBlocks     WorkScheduleBlock[]
+  lugaresDeTrabajo       LugarDeTrabajo[]
+  bloqueosHorario        BloqueoHorario[]
+  horariosExcepcionales  HorarioExcepcional[]
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")
   pacientes          Patient[]           @relation("PatientDoctor")
   turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
@@ -399,6 +410,27 @@ model BloqueoHorario {
   @@index([lugarId])
 }
 
+// El espejo de BloqueoHorario -- en vez de cerrar un rango de una fecha
+// puntual, lo abre. Existe para "Mover a un día libre" con "Habilitar
+// turnos nuevos ese día": a diferencia de WorkScheduleBlock (semanal,
+// recurrente todas las semanas), esto habilita SOLO esa fecha puntual --
+// nunca otras ocurrencias del mismo día de semana. `lugarId` siempre es
+// un lugar concreto (como WorkScheduleBlock, nunca "todos los lugares").
+model HorarioExcepcional {
+  id      String         @id @default(cuid())
+  userId  String
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lugarId String
+  lugar   LugarDeTrabajo @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  inicio  DateTime
+  fin     DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, inicio])
+  @@index([lugarId])
+}
+
 enum LugarTrabajoTipo {
   PARTICULAR
   CONSULTORIO
@@ -432,10 +464,11 @@ model LugarDeTrabajo {
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  bloques              WorkScheduleBlock[]
-  turnos               Turno[]
-  secretariasConAcceso DoctorSecretariaLugar[]
-  bloqueosHorario      BloqueoHorario[]
+  bloques               WorkScheduleBlock[]
+  turnos                Turno[]
+  secretariasConAcceso  DoctorSecretariaLugar[]
+  bloqueosHorario       BloqueoHorario[]
+  horariosExcepcionales HorarioExcepcional[]
 
   @@index([userId])
 }
@@ -477,9 +510,21 @@ model Turno {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Se prende cuando este turno fue cancelado o reprogramado por la
+  // resolución de conflictos de "Bloquear horarios" (nunca por el
+  // "Cancelar turno" común) -- hasta que alguien lo marque como notificado,
+  // aparece en la sección "Pendientes de notificar" de Recordatorios.
+  avisoPendiente       Boolean                    @default(false)
+  avisoPendienteMotivo TurnoAvisoPendienteMotivo?
+  // Solo se completa para APLAZADO -- `inicio` ya se pisó con la fecha
+  // nueva, así que sin esto se pierde contra qué fecha vieja armar el
+  // mensaje ({fecha} = esta, {nueva_fecha} = el `inicio` actual).
+  avisoPendienteFechaAnterior DateTime?
+
   @@index([inicio])
   @@index([doctorId])
   @@index([lugarId])
+  @@index([doctorId, avisoPendiente])
 }
 
 model Patient {

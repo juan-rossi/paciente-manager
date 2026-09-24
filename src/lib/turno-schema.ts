@@ -27,6 +27,10 @@ export const slotDurationSchema = z.object({
 export const messagingSchema = z.object({
   mensajeTemplate: z.string().trim().min(1, "El mensaje es obligatorio."),
   mensajeriaHabilitada: z.boolean(),
+  // Plantillas de la resolución de conflictos de "Bloquear horarios" -- ver
+  // Turno.avisoPendiente en el schema.
+  mensajeTemplateCancelado: z.string().trim().min(1, "El mensaje es obligatorio."),
+  mensajeTemplateAplazado: z.string().trim().min(1, "El mensaje es obligatorio."),
 });
 
 export const turnoInputSchema = z.object({

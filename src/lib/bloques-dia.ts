@@ -89,6 +89,12 @@ export function asignarSobreturnosATramos<T extends SlotLike>(
   tramos: { inicio: string; fin: string }[],
   sobreturnos: T[]
 ): T[][] {
+  // Sin tramos no hay a dónde asignar un sobreturno -- pasa con un turno
+  // movido a un día sin horario configurado ("Mover a un día libre" en
+  // bloqueo-conflictos.ts): ese lugar no tiene NINGÚN slot real ese día,
+  // así que tampoco tiene ningún bloque que ofrecer para sobreturnos.
+  if (tramos.length === 0) return [];
+
   const porTramo: T[][] = tramos.map(() => []);
   for (const sob of sobreturnos) {
     let index = tramos.findIndex((t) => rangesOverlap(sob.inicio, sob.fin, t.inicio, t.fin));

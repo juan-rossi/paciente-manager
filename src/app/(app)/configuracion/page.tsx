@@ -126,6 +126,8 @@ export default async function ConfiguracionPage() {
           <MessagingSettings
             initialMensajeTemplate={user.mensajeTemplate}
             initialMensajeriaHabilitada={user.mensajeriaHabilitada}
+            initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
+            initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
           />
         </TabsContent>
         <TabsContent value="transcriptor" className="w-full">
