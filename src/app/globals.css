@@ -130,6 +130,12 @@
   }
   html {
     @apply font-sans;
+    /* Reserva el ancho de la scrollbar vertical siempre, aparezca o no --
+       sin esto, cambiar de día en /turnos (la grilla cambia de alto y a
+       veces dispara/saca el scroll de la página) corre todo el contenido
+       unos pixeles hacia los costados en cada click de "Anterior"/
+       "Siguiente". */
+    scrollbar-gutter: stable;
   }
 }
 

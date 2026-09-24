@@ -675,6 +675,11 @@ export function TurnosCalendar({
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
   );
+  // Mes que muestra el mini-calendario -- separado de `selectedDate` para
+  // que navegar con "Anterior"/"Siguiente" (que puede cruzar de mes) lo
+  // siga, sin perder la posición si el usuario lo hojea a mano sin elegir
+  // un día (ver `onMonthChange` más abajo).
+  const [calendarMonth, setCalendarMonth] = useState<Date>(selectedDate);
   const [slots, setSlots] = useState<Slot[]>(initialSlots);
   const [sobreturnos, setSobreturnos] = useState<Slot[]>(initialSobreturnos);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
@@ -773,6 +778,7 @@ export function TurnosCalendar({
   async function handleSelectDate(date: Date | undefined) {
     if (!date) return;
     setSelectedDate(date);
+    setCalendarMonth(date);
     await loadSlots(date);
   }
 
@@ -1086,6 +1092,8 @@ export function TurnosCalendar({
                   }}
                   selected={selectedDate}
                   onSelect={handleSelectDate}
+                  month={calendarMonth}
+                  onMonthChange={setCalendarMonth}
                   disabled={(date) => !diasConHorario.includes(diaSemanaFromDate(date))}
                   modifiers={{ past: (date) => date < todayStart }}
                   modifiersClassNames={{ past: "text-muted-foreground opacity-50" }}
@@ -1101,7 +1109,7 @@ export function TurnosCalendar({
                   sobreturnosHabilitados && puedeBloquearHorarios ? "col-span-3" : "col-span-5",
                   "lg:w-full"
                 )}
-                disabled={isPastDay}
+                disabled={isPastDay || bloques.length === 0}
                 onClick={openSobreturnoDialog}
               >
                 + Sobreturno
