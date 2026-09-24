@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { generarSlots } from "@/lib/slots";
 import { startOfDayBA, formatDateParamBA } from "@/lib/timezone";
+import { isRangoBloqueado } from "@/lib/bloqueo-horario";
 
 const HORIZONTE_DIAS_DEFAULT = 14;
 
@@ -53,13 +54,26 @@ export async function getDisponibilidadPublica(
   });
   const ocupados = new Set(turnos.map((t) => t.inicio.getTime()));
 
+  // Un horario bloqueado nunca debe aparecer como disponible para un
+  // paciente -- se descarta acá, no se anota (a diferencia del panel
+  // interno, que sí muestra el bloqueo para que el médico/secretaria lo
+  // vea y pueda desbloquearlo).
+  const bloqueos = await prisma.bloqueoHorario.findMany({
+    where: { userId: doctor.id, inicio: { lt: hasta }, fin: { gt: desde } },
+  });
+
   const ahora = Date.now();
   const dias: DisponibilidadDia[] = [];
   for (let i = 0; i < horizonteDias; i++) {
     const dia = addDays(hoy, i);
     const slots = generarSlots(dia, blocks, doctor.slotDurationMinutes);
     const horarios: HorarioDisponible[] = slots
-      .filter((slot) => slot.inicio.getTime() > ahora && !ocupados.has(slot.inicio.getTime()))
+      .filter(
+        (slot) =>
+          slot.inicio.getTime() > ahora &&
+          !ocupados.has(slot.inicio.getTime()) &&
+          !isRangoBloqueado(slot.inicio, slot.lugarId, bloqueos)
+      )
       .map((slot) => ({ inicio: slot.inicio.toISOString(), lugarId: slot.lugarId }));
     dias.push({ fecha: formatDateParamBA(dia), horarios });
   }
@@ -78,5 +92,15 @@ export async function buscarSlotValido(
 ): Promise<{ inicio: Date; fin: Date; lugarId: string } | null> {
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
   const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes);
-  return slots.find((slot) => slot.inicio.getTime() === inicio.getTime()) ?? null;
+  const slot = slots.find((s) => s.inicio.getTime() === inicio.getTime());
+  if (!slot) return null;
+
+  const dayStart = startOfDayBA(inicio);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const bloqueos = await prisma.bloqueoHorario.findMany({
+    where: { userId: doctor.id, inicio: { lt: dayEnd }, fin: { gt: dayStart } },
+  });
+  if (isRangoBloqueado(slot.inicio, slot.lugarId, bloqueos)) return null;
+
+  return slot;
 }

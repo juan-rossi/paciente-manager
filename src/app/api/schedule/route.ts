@@ -65,13 +65,14 @@ export async function PATCH(request: NextRequest) {
 
   const todayStart = startOfDayBA(new Date());
 
-  const [blocks, turnosAfectados] = await Promise.all([
+  const [blocks, turnosAfectados, bloqueos] = await Promise.all([
     prisma.workScheduleBlock.findMany({ where: { userId: user.id } }),
     prisma.turno.findMany({
       where: { doctorId: user.id, estado: "CONFIRMADO", inicio: { gte: todayStart } },
       select: { id: true, nombreYApellido: true, inicio: true },
       orderBy: { inicio: "asc" },
     }),
+    prisma.bloqueoHorario.findMany({ where: { userId: user.id, fin: { gt: todayStart } } }),
   ]);
 
   if (turnosAfectados.length === 0) {
@@ -85,7 +86,7 @@ export async function PATCH(request: NextRequest) {
     });
   }
 
-  const { plan, sinSolucion } = planReschedule(turnosAfectados, blocks, slotDurationMinutes);
+  const { plan, sinSolucion } = planReschedule(turnosAfectados, blocks, slotDurationMinutes, bloqueos);
 
   if (sinSolucion.length > 0) {
     return NextResponse.json(

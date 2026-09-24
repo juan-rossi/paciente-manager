@@ -14,10 +14,19 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Lock,
   MapPin,
 } from "lucide-react";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
 import { nextDiaConHorario } from "@/lib/dia-nav";
+import {
+  agruparPorLugar,
+  asignarSobreturnosATramos,
+  bloquesDelDia,
+  partirEnBloquesContiguos,
+  rangesOverlap,
+  type BloqueDelDia,
+} from "@/lib/bloques-dia";
 import {
   dateParamToDateBA,
   formatDateParamBA,
@@ -40,6 +49,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -66,6 +77,15 @@ type Slot = {
   fin: string;
   lugarId: string;
   turno: TurnoInfo | null;
+  bloqueado: { bloqueoId: string; motivo: string | null } | null;
+};
+
+type BloqueoDelDia = {
+  id: string;
+  lugarId: string | null;
+  inicio: string;
+  fin: string;
+  motivo: string | null;
 };
 
 type LugarInfo = {
@@ -101,10 +121,6 @@ function formatHora(iso: string) {
 
 function minutesFromMidnight(iso: string) {
   return getMinutesSinceMidnightBA(new Date(iso));
-}
-
-function rangesOverlap(aInicio: string, aFin: string, bInicio: string, bFin: string) {
-  return new Date(aInicio) < new Date(bFin) && new Date(aFin) > new Date(bInicio);
 }
 
 type MergedRow = {
@@ -148,6 +164,41 @@ function mergeSobreturnos(slots: Slot[], sobreturnos: Slot[]) {
   return { mergedRows, standalone, consumedInicios };
 }
 
+type BloqueadoRow = {
+  key: string;
+  bloqueoId: string;
+  motivo: string | null;
+  slots: Slot[];
+};
+
+// Igual que `mergeSobreturnos`, pero para horarios bloqueados: una
+// secuencia de slots libres consecutivos bloqueados por el MISMO
+// `bloqueoId` se dibuja como una sola card que abarca todo el rango, en
+// vez de una card repetida por cada slot individual (ilegible apenas el
+// bloqueo cubre más de uno o dos slots). Un turno ya reservado ANTES de
+// crear el bloqueo corta la secuencia (esos slots no entran acá, ver el
+// filtro `!slot.turno`), así que puede haber más de una fila para el
+// mismo `bloqueoId` si un turno existente quedó en el medio.
+function agruparBloqueados(slots: Slot[]): BloqueadoRow[] {
+  const rows: BloqueadoRow[] = [];
+  for (const slot of slots) {
+    if (slot.turno || !slot.bloqueado) continue;
+    const last = rows[rows.length - 1];
+    const ultimoSlot = last?.slots[last.slots.length - 1];
+    if (last && last.bloqueoId === slot.bloqueado.bloqueoId && ultimoSlot?.fin === slot.inicio) {
+      last.slots.push(slot);
+    } else {
+      rows.push({
+        key: `bloqueado-${slot.bloqueado.bloqueoId}-${slot.inicio}`,
+        bloqueoId: slot.bloqueado.bloqueoId,
+        motivo: slot.bloqueado.motivo,
+        slots: [slot],
+      });
+    }
+  }
+  return rows;
+}
+
 function getGridRange(slots: Slot[]) {
   if (slots.length === 0) {
     return { startMinutes: DEFAULT_START_HOUR * 60, endMinutes: DEFAULT_END_HOUR * 60 };
@@ -157,125 +208,6 @@ function getGridRange(slots: Slot[]) {
   const startMinutes = Math.min(...starts);
   const endMinutes = Math.max(...ends);
   return { startMinutes, endMinutes: Math.max(endMinutes, startMinutes + 60) };
-}
-
-type LugarGrupo = {
-  lugarId: string;
-  slots: Slot[];
-  sobreturnos: Slot[];
-};
-
-// Un médico con más de un lugar de trabajo puede tener horarios en horas
-// bien separadas del día (mañana en un consultorio, tarde en otro) -- ver
-// esa fecha como una única grilla continua deja un hueco vacío y sin
-// explicación entre ambos tramos. Agrupar por lugar (en el orden en que
-// aparece cada uno por primera vez, ya vienen ordenados cronológicamente)
-// permite que cada lugar tenga su propia mini-grilla acotada a su propio
-// rango horario, sin ese hueco muerto.
-function agruparPorLugar(slots: Slot[], sobreturnos: Slot[]): LugarGrupo[] {
-  const orden: string[] = [];
-  const grupos = new Map<string, LugarGrupo>();
-  function ensure(lugarId: string) {
-    let grupo = grupos.get(lugarId);
-    if (!grupo) {
-      grupo = { lugarId, slots: [], sobreturnos: [] };
-      grupos.set(lugarId, grupo);
-      orden.push(lugarId);
-    }
-    return grupo;
-  }
-  for (const slot of slots) ensure(slot.lugarId).slots.push(slot);
-  for (const sob of sobreturnos) ensure(sob.lugarId).sobreturnos.push(sob);
-  return orden.map((lugarId) => grupos.get(lugarId)!);
-}
-
-// Dentro de un mismo lugar puede haber más de un bloque de horario cargado
-// para el mismo día (ej.: mañana y tarde, con un corte al mediodía) -- una
-// sola grilla continua de 09:00 a 16:45 deja un espacio enorme y vacío en
-// el medio, porque esa franja "sin horario" ocupa proporcionalmente el
-// mismo lugar que cualquier hora con turnos. Partir `slots` (ya vienen
-// ordenados cronológicamente) en tramos contiguos -- cortando apenas el
-// fin de un slot no coincide con el inicio del siguiente -- permite darle
-// a cada tramo su propia mini-grilla acotada a su propio rango horario.
-function partirEnBloquesContiguos(slots: Slot[]): Slot[][] {
-  const bloques: Slot[][] = [];
-  for (const slot of slots) {
-    const bloqueActual = bloques[bloques.length - 1];
-    const ultimoSlot = bloqueActual?.[bloqueActual.length - 1];
-    if (ultimoSlot && ultimoSlot.fin === slot.inicio) {
-      bloqueActual.push(slot);
-    } else {
-      bloques.push([slot]);
-    }
-  }
-  return bloques;
-}
-
-type BloqueDelDia = {
-  key: string;
-  lugarId: string;
-  inicio: string;
-  fin: string;
-  slots: Slot[];
-  sobreturnos: Slot[];
-};
-
-// Aplana `agruparPorLugar` + `partirEnBloquesContiguos` en una sola lista de
-// "bloques de horario reales" del día -- ej. con Particular 9-11, Particular
-// 13-15 y Consultorio1 16-18, da 3 bloques (dos de ellos comparten lugar
-// pero no rango horario). Se usa para el diálogo de sobreturno: "junto a un
-// turno" nunca es ambiguo (cada turno ya sabe su horario y lugar), pero "al
-// final de la lista" sí lo era con más de un bloque en el día -- ahora el
-// usuario elige primero EN QUÉ bloque, y todo lo demás se acota a ese.
-// A qué tramo (índice) pertenece cada sobreturno: al que solapa de verdad
-// (sobreturno "junto a un turno"), o si no solapa a ninguno -- arranca
-// justo donde termina uno, sin overlap real -- al tramo anterior más
-// cercano (sobreturno "al final de la lista"). Sin este segundo paso, dos
-// sobreturnos agregados uno tras otro "al final" quedaban ambos fuera de
-// cualquier tramo, así que el segundo recalculaba el mismo horario que el
-// primero en vez de encadenarse después -- terminaban superpuestos.
-function asignarSobreturnosATramos(
-  tramos: { inicio: string; fin: string }[],
-  sobreturnos: Slot[]
-): Slot[][] {
-  const porTramo: Slot[][] = tramos.map(() => []);
-  for (const sob of sobreturnos) {
-    let index = tramos.findIndex((t) => rangesOverlap(sob.inicio, sob.fin, t.inicio, t.fin));
-    if (index === -1) {
-      let mejorFin: string | null = null;
-      tramos.forEach((t, i) => {
-        if (t.fin <= sob.inicio && (mejorFin === null || t.fin > mejorFin!)) {
-          mejorFin = t.fin;
-          index = i;
-        }
-      });
-    }
-    porTramo[index === -1 ? 0 : index].push(sob);
-  }
-  return porTramo;
-}
-
-function bloquesDelDia(grupos: LugarGrupo[]): BloqueDelDia[] {
-  const bloques: BloqueDelDia[] = [];
-  for (const grupo of grupos) {
-    const tramosSlots = partirEnBloquesContiguos(grupo.slots);
-    const tramos = tramosSlots.map((tramoSlots) => ({
-      inicio: tramoSlots[0].inicio,
-      fin: tramoSlots[tramoSlots.length - 1].fin,
-    }));
-    const sobreturnosPorTramo = asignarSobreturnosATramos(tramos, grupo.sobreturnos);
-    tramosSlots.forEach((tramoSlots, i) => {
-      bloques.push({
-        key: `${grupo.lugarId}-${tramos[i].inicio}`,
-        lugarId: grupo.lugarId,
-        inicio: tramos[i].inicio,
-        fin: tramos[i].fin,
-        slots: tramoSlots,
-        sobreturnos: sobreturnosPorTramo[i],
-      });
-    });
-  }
-  return bloques;
 }
 
 function lugarNombre(lugar: LugarInfo | undefined) {
@@ -304,6 +236,7 @@ function BloqueContiguoGrid({
   isToday,
   onOpenEdit,
   onOpenBooking,
+  onUnblock,
 }: {
   slots: Slot[];
   sobreturnos: Slot[];
@@ -312,11 +245,14 @@ function BloqueContiguoGrid({
   isToday: boolean;
   onOpenEdit: (slot: Slot) => void;
   onOpenBooking: (slot: Slot) => void;
+  onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
 }) {
   const { mergedRows, standalone: standaloneSobreturnos, consumedInicios } = mergeSobreturnos(
     slots,
     sobreturnos
   );
+  const bloqueadosRows = agruparBloqueados(slots);
+  const bloqueadosInicios = new Set(bloqueadosRows.flatMap((row) => row.slots.map((s) => s.inicio)));
   const { startMinutes, endMinutes } = getGridRange([...slots, ...sobreturnos]);
   const totalMinutes = endMinutes - startMinutes;
   const nowOffsetPct =
@@ -357,7 +293,7 @@ function BloqueContiguoGrid({
 
       <div className="absolute inset-y-0 left-12 w-[calc(100%-3rem)]">
         {slots.map((slot) => {
-          if (consumedInicios.has(slot.inicio)) return null;
+          if (consumedInicios.has(slot.inicio) || bloqueadosInicios.has(slot.inicio)) return null;
           const top = ((minutesFromMidnight(slot.inicio) - startMinutes) / totalMinutes) * 100;
           const height =
             ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / totalMinutes) *
@@ -419,6 +355,46 @@ function BloqueContiguoGrid({
                 </span>
               )}
             </button>
+          );
+        })}
+
+        {bloqueadosRows.map((row) => {
+          const primero = row.slots[0];
+          const ultimo = row.slots[row.slots.length - 1];
+          const top = ((minutesFromMidnight(primero.inicio) - startMinutes) / totalMinutes) * 100;
+          const height =
+            ((minutesFromMidnight(ultimo.fin) - minutesFromMidnight(primero.inicio)) / totalMinutes) *
+            100;
+
+          return (
+            <div
+              key={row.key}
+              style={{ top: `${top}%`, height: `${height}%`, minHeight: 44 }}
+              className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col items-center justify-center gap-1.5 rounded-md border border-border bg-muted px-3 py-2 text-center text-muted-foreground"
+            >
+              <span className="flex items-center gap-2 text-xs">
+                <Lock className="size-3.5 shrink-0" />
+                <strong className="shrink-0 font-semibold">Bloqueado</strong>
+                <span>
+                  [ {formatHora(primero.inicio)} - {formatHora(ultimo.fin)} ]
+                  {row.motivo ? ` · ${row.motivo}` : ""}
+                </span>
+              </span>
+              <button
+                type="button"
+                disabled={isPastDay}
+                onClick={() =>
+                  onUnblock(
+                    row.bloqueoId,
+                    row.slots[0].lugarId,
+                    `${formatHora(primero.inicio)} a ${formatHora(ultimo.fin)}${row.motivo ? ` · ${row.motivo}` : ""}`
+                  )
+                }
+                className="mt-2 shrink-0 rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+              >
+                Desbloquear
+              </button>
+            </div>
           );
         })}
 
@@ -594,6 +570,7 @@ function LugarDayGrid({
   isToday,
   onOpenEdit,
   onOpenBooking,
+  onUnblock,
 }: {
   slots: Slot[];
   sobreturnos: Slot[];
@@ -602,6 +579,7 @@ function LugarDayGrid({
   isToday: boolean;
   onOpenEdit: (slot: Slot) => void;
   onOpenBooking: (slot: Slot) => void;
+  onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
 }) {
   if (slots.length === 0) return null;
 
@@ -616,6 +594,7 @@ function LugarDayGrid({
         isToday={isToday}
         onOpenEdit={onOpenEdit}
         onOpenBooking={onOpenBooking}
+        onUnblock={onUnblock}
       />
     );
   }
@@ -640,6 +619,7 @@ function LugarDayGrid({
               isToday={isToday}
               onOpenEdit={onOpenEdit}
               onOpenBooking={onOpenBooking}
+              onUnblock={onUnblock}
             />
           </div>
         );
@@ -664,6 +644,7 @@ type Props = {
   initialDiasConHorario: DiaSemana[];
   initialSobreturnosHabilitados: boolean;
   initialLugares: LugarInfo[];
+  initialBloqueosDelDia: BloqueoDelDia[];
 };
 
 export function TurnosCalendar({
@@ -677,6 +658,7 @@ export function TurnosCalendar({
   initialDiasConHorario,
   initialSobreturnosHabilitados,
   initialLugares,
+  initialBloqueosDelDia,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -689,6 +671,7 @@ export function TurnosCalendar({
     initialSobreturnosHabilitados
   );
   const [lugares, setLugares] = useState<LugarInfo[]>(initialLugares);
+  const [bloqueosDelDia, setBloqueosDelDia] = useState<BloqueoDelDia[]>(initialBloqueosDelDia);
   const [loading, setLoading] = useState(false);
   // En mobile arranca colapsado para no ocupar toda la pantalla con el
   // calendario -- en desktop (lg+) siempre se muestra, sin importar este
@@ -725,6 +708,19 @@ export function TurnosCalendar({
   const [sobreturnoError, setSobreturnoError] = useState<string | null>(null);
   const [sobreturnoTriedSubmit, setSobreturnoTriedSubmit] = useState(false);
 
+  const [bloqueoOpen, setBloqueoOpen] = useState(false);
+  const [bloqueoModo, setBloqueoModo] = useState<"dia" | "bloques">("dia");
+  const [bloqueoBloqueKeys, setBloqueoBloqueKeys] = useState<string[]>([]);
+  const [bloqueoMotivo, setBloqueoMotivo] = useState("");
+  const [bloqueoSaving, setBloqueoSaving] = useState(false);
+  const [bloqueoError, setBloqueoError] = useState<string | null>(null);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
+  const [unblockTarget, setUnblockTarget] = useState<{
+    bloqueoId: string;
+    lugarId?: string;
+    label: string;
+  } | null>(null);
+
   const todayStart = startOfDayBA(new Date());
 
   async function loadSlots(date: Date) {
@@ -738,6 +734,7 @@ export function TurnosCalendar({
       setDiasConHorario(data.diasConHorario ?? []);
       setSobreturnosHabilitados(Boolean(data.sobreturnosHabilitados));
       setLugares(data.lugares ?? []);
+      setBloqueosDelDia(data.bloqueosDelDia ?? []);
     } finally {
       setLoading(false);
     }
@@ -843,7 +840,7 @@ export function TurnosCalendar({
     }
   }
 
-  function bloqueActivo(): BloqueDelDia | undefined {
+  function bloqueActivo(): BloqueDelDia<Slot> | undefined {
     return bloques.find((b) => b.key === sobreturnoBloqueKey);
   }
 
@@ -851,7 +848,7 @@ export function TurnosCalendar({
   // bloque -- `null` si todavía no hay ningún turno agendado ahí, en cuyo
   // caso "al final" no tiene sentido (la lista está vacía) y esa opción se
   // deshabilita.
-  function ultimoSlotDelBloque(bloque: BloqueDelDia | undefined): Slot | null {
+  function ultimoSlotDelBloque(bloque: BloqueDelDia<Slot> | undefined): Slot | null {
     if (!bloque) return null;
     const ocupados = [...bloque.slots.filter((s) => s.turno), ...bloque.sobreturnos];
     if (ocupados.length === 0) return null;
@@ -863,7 +860,7 @@ export function TurnosCalendar({
   // Los turnos normales (no sobreturnos) ya ocupados en ese bloque que
   // todavía no tienen un sobreturno propio -- de acá sale la lista del
   // select "Junto a un turno" (solo se permite un sobreturno por horario).
-  function ocupadosDelBloque(bloque: BloqueDelDia | undefined): Slot[] {
+  function ocupadosDelBloque(bloque: BloqueDelDia<Slot> | undefined): Slot[] {
     if (!bloque) return [];
     const sobreturnoInicios = new Set(bloque.sobreturnos.map((s) => s.inicio));
     return bloque.slots.filter((s) => s.turno && !sobreturnoInicios.has(s.inicio));
@@ -946,6 +943,78 @@ export function TurnosCalendar({
     }
   }
 
+  function openBloqueoDialog() {
+    setBloqueoModo("dia");
+    setBloqueoBloqueKeys([]);
+    setBloqueoMotivo("");
+    setBloqueoError(null);
+    setBloqueoOpen(true);
+  }
+
+  function toggleBloqueKey(key: string, checked: boolean) {
+    setBloqueoBloqueKeys((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)));
+  }
+
+  async function handleSubmitBloqueo() {
+    if (bloqueoModo === "bloques" && bloqueoBloqueKeys.length === 0) {
+      setBloqueoError("Elegí al menos un bloque.");
+      return;
+    }
+    setBloqueoError(null);
+    setBloqueoSaving(true);
+    try {
+      const response = await fetch("/api/horarios-bloqueados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          bloqueoModo === "dia"
+            ? { modo: "dia", fecha: formatDateParamBA(selectedDate), motivo: bloqueoMotivo }
+            : {
+                modo: "bloques",
+                fecha: formatDateParamBA(selectedDate),
+                bloqueKeys: bloqueoBloqueKeys,
+                motivo: bloqueoMotivo,
+              }
+        ),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setBloqueoError(data.error ?? "No se pudo bloquear el horario.");
+        return;
+      }
+      setBloqueoOpen(false);
+      await loadSlots(selectedDate);
+    } finally {
+      setBloqueoSaving(false);
+    }
+  }
+
+  // Abre el diálogo de confirmación en vez de desbloquear directo -- `label`
+  // es lo que se muestra ahí para que quede claro exactamente qué se va a
+  // desbloquear (un lugar puntual, o "todo el día" desde la lista del
+  // diálogo de bloqueo).
+  function requestUnblock(bloqueoId: string, label: string, lugarId?: string) {
+    setUnblockTarget({ bloqueoId, lugarId, label });
+  }
+
+  // `lugarId` solo se manda cuando el desbloqueo sale de UNA card puntual
+  // de la grilla (un "Día completo" se ve como una card por lugar) -- ahí
+  // el server libera solo ese lugar, no todo el día. El desbloqueo desde
+  // la lista "Ya bloqueado" del diálogo (sin `lugarId`) sigue siendo total.
+  async function handleConfirmUnblock() {
+    if (!unblockTarget) return;
+    const { bloqueoId, lugarId } = unblockTarget;
+    setUnblockingId(bloqueoId);
+    try {
+      const query = lugarId ? `?lugarId=${encodeURIComponent(lugarId)}` : "";
+      await fetch(`/api/horarios-bloqueados/${bloqueoId}${query}`, { method: "DELETE" });
+      await loadSlots(selectedDate);
+      setUnblockTarget(null);
+    } finally {
+      setUnblockingId(null);
+    }
+  }
+
   const today = new Date();
   const isToday = isSameDayBA(selectedDate, today);
   const isPastDay = selectedDate < todayStart;
@@ -1018,6 +1087,16 @@ export function TurnosCalendar({
               + Sobreturno
             </Button>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={isPastDay || bloques.length === 0}
+            onClick={openBloqueoDialog}
+          >
+            <Lock className="size-4" />
+            Bloquear horarios
+          </Button>
         </div>
 
         <div className="flex flex-1 min-h-0 flex-col gap-3">
@@ -1130,6 +1209,13 @@ export function TurnosCalendar({
                               isToday={isToday}
                               onOpenEdit={openEdit}
                               onOpenBooking={openBooking}
+                              onUnblock={(bloqueoId, lugarId, rango) =>
+                                requestUnblock(
+                                  bloqueoId,
+                                  `${lugarNombre(lugaresPorId.get(lugarId))} · ${rango}`,
+                                  lugarId
+                                )
+                              }
                             />
                           </div>
                         </div>
@@ -1408,6 +1494,148 @@ export function TurnosCalendar({
           <DialogFooter>
             <Button type="button" onClick={handleSubmitSobreturno} disabled={sobreturnoSaving}>
               {sobreturnoSaving ? "Agregando..." : "Agregar sobreturno"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bloqueoOpen} onOpenChange={(open) => !open && setBloqueoOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Bloquear horarios</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <Label>Día</Label>
+              <strong className="text-sm">{selectedDate.toLocaleDateString("es-AR")}</strong>
+            </div>
+
+            {bloqueosDelDia.length > 0 && (
+              <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/50 p-3">
+                <Label>Ya bloqueado</Label>
+                <div className="flex flex-col gap-2">
+                  {bloqueosDelDia.map((b) => (
+                    <div key={b.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span>
+                        {b.lugarId ? lugarNombre(lugaresPorId.get(b.lugarId)) : "Todo el día"}
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {formatHora(b.inicio)} a {formatHora(b.fin)}
+                          {b.motivo ? ` · ${b.motivo}` : ""}
+                        </span>
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={unblockingId === b.id}
+                        onClick={() =>
+                          requestUnblock(
+                            b.id,
+                            `${b.lugarId ? lugarNombre(lugaresPorId.get(b.lugarId)) : "Todo el día"} · ${formatHora(b.inicio)} a ${formatHora(b.fin)}${b.motivo ? ` · ${b.motivo}` : ""}`
+                          )
+                        }
+                      >
+                        {unblockingId === b.id ? "Desbloqueando..." : "Desbloquear"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Tabs value={bloqueoModo} onValueChange={(v) => setBloqueoModo(v as "dia" | "bloques")}>
+              <TabsList className="w-full">
+                <TabsTrigger value="dia" className="flex-1">
+                  Día completo
+                </TabsTrigger>
+                <TabsTrigger value="bloques" className="flex-1">
+                  Horarios específicos
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="dia" className="mt-3">
+                <p className="text-sm text-muted-foreground">
+                  {role === "DOCTOR"
+                    ? "Se va a bloquear toda tu agenda de este día, en todos tus lugares."
+                    : "Se va a bloquear todo el día en tu lugar activo."}
+                </p>
+              </TabsContent>
+              <TabsContent value="bloques" className="mt-3">
+                <div className="flex flex-col gap-2.5 rounded-lg border border-border/60 bg-muted/50 p-3">
+                  {bloques.map((bloque) => {
+                    const yaBloqueado = bloqueosDelDia.some(
+                      (b) =>
+                        (b.lugarId === null || b.lugarId === bloque.lugarId) &&
+                        b.inicio <= bloque.inicio &&
+                        b.fin >= bloque.fin
+                    );
+                    return (
+                      <div key={bloque.key} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`bloqueo-bloque-${bloque.key}`}
+                          checked={yaBloqueado || bloqueoBloqueKeys.includes(bloque.key)}
+                          disabled={yaBloqueado}
+                          onCheckedChange={(checked) => toggleBloqueKey(bloque.key, checked === true)}
+                        />
+                        <Label htmlFor={`bloqueo-bloque-${bloque.key}`} className="font-normal">
+                          {lugarNombre(lugaresPorId.get(bloque.lugarId))}
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {formatHora(bloque.inicio)} a {formatHora(bloque.fin)}
+                          </span>
+                          {yaBloqueado && (
+                            <span className="text-muted-foreground"> (ya bloqueado)</span>
+                          )}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex flex-col gap-1.5">
+              <Label>
+                Motivo <span className="font-normal text-muted-foreground">(opcional)</span>
+              </Label>
+              <Input
+                value={bloqueoMotivo}
+                onChange={(e) => setBloqueoMotivo(e.target.value)}
+                placeholder="Ej: Congreso, día libre..."
+              />
+            </div>
+            {bloqueoError && <p className="text-sm text-destructive">{bloqueoError}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={handleSubmitBloqueo} disabled={bloqueoSaving}>
+              {bloqueoSaving ? "Bloqueando..." : "Bloquear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={unblockTarget !== null} onOpenChange={(open) => !open && setUnblockTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desbloquear horario</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm">
+            {unblockTarget && (
+              <>
+                ¿Desbloquear <strong>{unblockTarget.label}</strong>?
+              </>
+            )}
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setUnblockTarget(null)}>
+              Volver
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmUnblock}
+              disabled={unblockingId === unblockTarget?.bloqueoId}
+            >
+              {unblockingId === unblockTarget?.bloqueoId ? "Desbloqueando..." : "Desbloquear"}
             </Button>
           </DialogFooter>
         </DialogContent>

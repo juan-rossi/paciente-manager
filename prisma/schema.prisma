@@ -262,6 +262,7 @@ model User {
 
   workScheduleBlocks WorkScheduleBlock[]
   lugaresDeTrabajo   LugarDeTrabajo[]
+  bloqueosHorario    BloqueoHorario[]
   turnosCreados      Turno[]             @relation("TurnoCreadoPor")
   pacientes          Patient[]           @relation("PatientDoctor")
   turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
@@ -366,6 +367,30 @@ model WorkScheduleBlock {
   @@index([lugarId])
 }
 
+// Bloqueo puntual de una fecha futura para que no se puedan reservar turnos
+// ahí -- a diferencia de `WorkScheduleBlock` (plantilla semanal recurrente),
+// esto es una excepción anclada a un día calendario concreto, por eso usa
+// `inicio`/`fin` absolutos igual que `Turno`, no `diaSemana` + "HH:mm".
+model BloqueoHorario {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // `null` = aplica a todos los lugares en ese rango horario ("Día
+  // completo" para un médico). Con `lugarId`, el bloqueo es específico de
+  // ese lugar (bloques puntuales, o "Día completo" de una secretaria
+  // acotado a su lugar activo).
+  lugarId String?
+  lugar   LugarDeTrabajo? @relation(fields: [lugarId], references: [id], onDelete: Cascade)
+  inicio  DateTime
+  fin     DateTime
+  motivo  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, inicio])
+  @@index([lugarId])
+}
+
 enum LugarTrabajoTipo {
   PARTICULAR
   CONSULTORIO
@@ -402,6 +427,7 @@ model LugarDeTrabajo {
   bloques              WorkScheduleBlock[]
   turnos               Turno[]
   secretariasConAcceso DoctorSecretariaLugar[]
+  bloqueosHorario      BloqueoHorario[]
 
   @@index([userId])
 }

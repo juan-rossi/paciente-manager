@@ -23,6 +23,7 @@ export type DaySlot = {
   fin: string;
   lugarId: string;
   turno: SerializedTurno | null;
+  bloqueado: { bloqueoId: string; motivo: string | null } | null;
 };
 
 export type LugarInfo = {
@@ -30,6 +31,14 @@ export type LugarInfo = {
   nombre: string | null;
   tipo: string;
   ciudad: string | null;
+};
+
+export type BloqueoDelDia = {
+  id: string;
+  lugarId: string | null;
+  inicio: string;
+  fin: string;
+  motivo: string | null;
 };
 
 export async function getDaySlots(
@@ -48,6 +57,7 @@ export async function getDaySlots(
   diasConHorario: DiaSemana[];
   sobreturnosHabilitados: boolean;
   lugares: LugarInfo[];
+  bloqueosDelDia: BloqueoDelDia[];
 }> {
   const doctor = await prisma.user.findUnique({ where: { id: tenantId } });
   if (!doctor || lugarId === null) {
@@ -58,6 +68,7 @@ export async function getDaySlots(
       diasConHorario: [],
       sobreturnosHabilitados: doctor?.sobreturnosHabilitados ?? false,
       lugares: [],
+      bloqueosDelDia: [],
     };
   }
 
@@ -86,6 +97,27 @@ export async function getDaySlots(
     orderBy: { createdAt: "asc" },
   });
 
+  // `OR` explícito (no el mismo spread condicional que `blocks`/`turnos`
+  // de arriba) porque un bloqueo "Día completo" de un médico tiene
+  // `lugarId: null` -- filtrar por `{lugarId}` a secas lo excluiría mal
+  // cuando se está viendo la grilla acotada al lugar de una secretaria.
+  const bloqueos = await prisma.bloqueoHorario.findMany({
+    where: {
+      userId: doctor.id,
+      inicio: { lt: dayEnd },
+      fin: { gt: dayStart },
+      ...(lugarId ? { OR: [{ lugarId }, { lugarId: null }] } : {}),
+    },
+  });
+
+  function bloqueoQueAplica(slotInicio: Date, slotLugarId: string) {
+    return (
+      bloqueos.find(
+        (b) => (b.lugarId === null || b.lugarId === slotLugarId) && slotInicio >= b.inicio && slotInicio < b.fin
+      ) ?? null
+    );
+  }
+
   function serialize(turno: (typeof turnos)[number]) {
     return serializeTurno(
       { ...turno, fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null },
@@ -113,11 +145,13 @@ export async function getDaySlots(
 
   const result: DaySlot[] = slots.map((slot) => {
     const turno = turnoDeGrillaPorInicio.get(slot.inicio.getTime());
+    const bloqueo = turno ? null : bloqueoQueAplica(slot.inicio, slot.lugarId);
     return {
       inicio: slot.inicio.toISOString(),
       fin: slot.fin.toISOString(),
       lugarId: slot.lugarId,
       turno: turno ? serialize(turno) : null,
+      bloqueado: bloqueo ? { bloqueoId: bloqueo.id, motivo: bloqueo.motivo } : null,
     };
   });
 
@@ -128,7 +162,16 @@ export async function getDaySlots(
       fin: turno.fin.toISOString(),
       lugarId: turno.lugarId,
       turno: serialize(turno),
+      bloqueado: null,
     }));
+
+  const bloqueosDelDia: BloqueoDelDia[] = bloqueos.map((b) => ({
+    id: b.id,
+    lugarId: b.lugarId,
+    inicio: b.inicio.toISOString(),
+    fin: b.fin.toISOString(),
+    motivo: b.motivo,
+  }));
 
   return {
     slots: result,
@@ -137,5 +180,6 @@ export async function getDaySlots(
     diasConHorario,
     sobreturnosHabilitados: doctor.sobreturnosHabilitados,
     lugares,
+    bloqueosDelDia,
   };
 }

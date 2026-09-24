@@ -1,5 +1,6 @@
 import { generarSlots, type WorkScheduleBlockLike } from "@/lib/slots";
 import { startOfDayBA } from "@/lib/timezone";
+import { isRangoBloqueado, type BloqueoRango } from "@/lib/bloqueo-horario";
 
 export type TurnoParaReprogramar = {
   id: string;
@@ -33,7 +34,11 @@ function addDays(date: Date, amount: number) {
 export function planReschedule(
   turnos: TurnoParaReprogramar[],
   blocks: WorkScheduleBlockLike[],
-  newDurationMinutes: number
+  newDurationMinutes: number,
+  // Rangos bloqueados vigentes (ver "Bloquear horarios" en turnos-calendar):
+  // un candidato que caiga ahí se descarta, para no reprogramar un turno
+  // real justo adentro de un horario que el médico bloqueó a propósito.
+  bloqueos: BloqueoRango[] = []
 ): { plan: ReprogramacionItem[]; sinSolucion: TurnoParaReprogramar[] } {
   const ordenados = [...turnos].sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
   const usedSlots = new Set<number>();
@@ -48,7 +53,10 @@ export function planReschedule(
     for (let i = 0; i <= HORIZONTE_DIAS && !asignado; i++) {
       const slots = generarSlots(day, blocks, newDurationMinutes);
       const candidato = slots.find(
-        (s) => s.inicio.getTime() >= minInicio && !usedSlots.has(s.inicio.getTime())
+        (s) =>
+          s.inicio.getTime() >= minInicio &&
+          !usedSlots.has(s.inicio.getTime()) &&
+          !isRangoBloqueado(s.inicio, s.lugarId, bloqueos)
       );
 
       if (candidato) {

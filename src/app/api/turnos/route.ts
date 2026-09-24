@@ -4,7 +4,8 @@ import { requireUser } from "@/lib/api-auth";
 import { turnoInputSchema } from "@/lib/turno-schema";
 import { serializeTurno } from "@/lib/turno-serialize";
 import { getDaySlots } from "@/lib/get-day-slots";
-import { dateParamToDateBA } from "@/lib/timezone";
+import { dateParamToDateBA, startOfDayBA } from "@/lib/timezone";
+import { isRangoBloqueado } from "@/lib/bloqueo-horario";
 
 export async function GET(request: NextRequest) {
   const { user, tenantId, activeLugarId, response } = await requireUser();
@@ -56,6 +57,17 @@ export async function POST(request: NextRequest) {
   const inicio = new Date(parsed.data.inicio);
   if (Number.isNaN(inicio.getTime())) {
     return NextResponse.json({ error: "Fecha y hora inválidas." }, { status: 400 });
+  }
+
+  // Un bloqueo frena cualquier turno nuevo en ese rango, sobreturno
+  // incluido -- por eso este chequeo va antes de separar ambos casos.
+  const dayStart = startOfDayBA(inicio);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const bloqueos = await prisma.bloqueoHorario.findMany({
+    where: { userId: tenantId, inicio: { lt: dayEnd }, fin: { gt: dayStart } },
+  });
+  if (isRangoBloqueado(inicio, parsed.data.lugarId, bloqueos)) {
+    return NextResponse.json({ error: "Ese horario está bloqueado." }, { status: 409 });
   }
 
   if (!parsed.data.esSobreturno) {
