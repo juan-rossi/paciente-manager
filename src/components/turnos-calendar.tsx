@@ -247,7 +247,7 @@ function BloqueContiguoGrid({
   isToday: boolean;
   onOpenEdit: (slot: Slot) => void;
   onOpenBooking: (slot: Slot) => void;
-  onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
+  onUnblock: (bloqueoId: string, lugarId: string, rango: string, rangoInicio: string, rangoFin: string) => void;
   puedeBloquearHorarios: boolean;
 }) {
   const { mergedRows, standalone: standaloneSobreturnos, consumedInicios } = mergeSobreturnos(
@@ -423,7 +423,9 @@ function BloqueContiguoGrid({
                     onUnblock(
                       row.bloqueoId,
                       row.slots[0].lugarId,
-                      `${formatHora(primero.inicio)} a ${formatHora(ultimo.fin)}${row.motivo ? ` · ${row.motivo}` : ""}`
+                      `${formatHora(primero.inicio)} a ${formatHora(ultimo.fin)}${row.motivo ? ` · ${row.motivo}` : ""}`,
+                      primero.inicio,
+                      ultimo.fin
                     )
                   }
                   className="mt-2 shrink-0 rounded-md border border-border bg-card px-3 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
@@ -617,7 +619,7 @@ function LugarDayGrid({
   isToday: boolean;
   onOpenEdit: (slot: Slot) => void;
   onOpenBooking: (slot: Slot) => void;
-  onUnblock: (bloqueoId: string, lugarId: string, rango: string) => void;
+  onUnblock: (bloqueoId: string, lugarId: string, rango: string, rangoInicio: string, rangoFin: string) => void;
   puedeBloquearHorarios: boolean;
 }) {
   // Igual que en `BloqueContiguoGrid`: un día sin horario configurado que
@@ -773,38 +775,54 @@ export function TurnosCalendar({
   const [bloqueoMotivo, setBloqueoMotivo] = useState("");
   const [bloqueoSaving, setBloqueoSaving] = useState(false);
   const [bloqueoError, setBloqueoError] = useState<string | null>(null);
-  // Paso 2 del diálogo (alternativa "A"): si el rango a bloquear tiene
-  // turnos confirmados adentro, el POST inicial devuelve 409 con la lista
-  // en vez de crear el bloqueo -- se muestra acá, sin cerrar el diálogo,
-  // hasta que el usuario elige cómo resolverlos.
+  // Paso 2 del diálogo (wizard por bloque, alternativa "A"): si el rango a
+  // bloquear tiene turnos confirmados adentro, el POST inicial devuelve 409
+  // con los bloques afectados en vez de crear el bloqueo -- se muestran acá,
+  // uno a la vez, sin cerrar el diálogo, hasta que el usuario elige cómo
+  // resolver cada uno.
   const [bloqueoStep, setBloqueoStep] = useState<"form" | "conflicto">("form");
-  const [bloqueoConflictoTurnos, setBloqueoConflictoTurnos] = useState<
-    { id: string; nombreYApellido: string; inicio: string }[]
+  const [bloqueoConflictoBloques, setBloqueoConflictoBloques] = useState<
+    {
+      key: string;
+      lugarId: string;
+      inicio: string;
+      fin: string;
+      turnos: { id: string; nombreYApellido: string; inicio: string }[];
+    }[]
   >([]);
-  const [bloqueoResolucion, setBloqueoResolucion] = useState<
-    "cancelar" | "mover_dia_libre" | "mover_siguiente_libre"
-  >("cancelar");
-  // Para "mover_dia_libre": los próximos 10 días sin horario configurado de
-  // CADA lugar afectado (puede haber más de uno si el conflicto viene de un
-  // "Día completo" que toca varios lugares), y la fecha que el usuario
-  // eligió para cada uno -- arranca en la más cercana de cada lista.
+  // A qué bloque del wizard corresponde el paso que se está mostrando --
+  // índice sobre `bloqueoConflictoBloques`.
+  const [bloqueoWizardIndex, setBloqueoWizardIndex] = useState(0);
+  // Los próximos 10 días sin horario configurado de CADA lugar afectado
+  // (puede haber más de un bloque del mismo lugar) -- se busca por
+  // `lugarId` del bloque actual.
   const [bloqueoDiasLibreDisponibles, setBloqueoDiasLibreDisponibles] = useState<
     { lugarId: string; fechas: string[] }[]
   >([]);
-  const [bloqueoDiaLibreElegido, setBloqueoDiaLibreElegido] = useState<Record<string, string>>({});
-  // "Horarios consecutivos": los turnos afectados se acomodan uno tras
-  // otro desde el inicio del bloque original, en vez de conservar cada
-  // uno su propia hora. "Habilitar turnos nuevos ese día": además de
-  // mover los turnos, esa fecha puntual queda abierta a reservas nuevas
-  // (panel y directorio), sin afectar otras ocurrencias del mismo día de
-  // semana.
-  const [bloqueoHorariosConsecutivos, setBloqueoHorariosConsecutivos] = useState(false);
-  const [bloqueoHabilitarTurnosNuevos, setBloqueoHabilitarTurnosNuevos] = useState(true);
+  // Un estado de resolución por bloque (keyed por `bloque.key`) -- conserva
+  // lo elegido en cada bloque al navegar Anterior/Siguiente sin perder los
+  // demás. "Horarios consecutivos"/"Habilitar turnos nuevos ese día" solo
+  // aplican con `resolucion: "mover_dia_libre"` (ver `resolverConflictos`).
+  type ResolucionBloqueState = {
+    resolucion: "cancelar" | "mover_dia_libre" | "mover_siguiente_libre";
+    diaLibreElegido: string;
+    horariosConsecutivos: boolean;
+    habilitarTurnosNuevos: boolean;
+  };
+  const [bloqueoResolucionesPorBloque, setBloqueoResolucionesPorBloque] = useState<
+    Record<string, ResolucionBloqueState>
+  >({});
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [unblockTarget, setUnblockTarget] = useState<{
     bloqueoId: string;
     lugarId?: string;
     label: string;
+    // El tramo horario EXACTO de la card que se clickeó -- puede ser menor
+    // al rango completo de la fila real (ver `dividirBloqueoExcluyendoRango`
+    // en bloqueo-horario.ts, ej. un bloqueo cubre mañana y tarde con un
+    // corte al mediodía, y esta card es solo una de las dos mitades).
+    rangoInicio?: string;
+    rangoFin?: string;
   } | null>(null);
 
   const todayStart = startOfDayBA(new Date());
@@ -1041,12 +1059,10 @@ export function TurnosCalendar({
     setBloqueoMotivo("");
     setBloqueoError(null);
     setBloqueoStep("form");
-    setBloqueoConflictoTurnos([]);
-    setBloqueoResolucion("cancelar");
+    setBloqueoConflictoBloques([]);
+    setBloqueoWizardIndex(0);
     setBloqueoDiasLibreDisponibles([]);
-    setBloqueoDiaLibreElegido({});
-    setBloqueoHorariosConsecutivos(false);
-    setBloqueoHabilitarTurnosNuevos(true);
+    setBloqueoResolucionesPorBloque({});
     setBloqueoOpen(true);
   }
 
@@ -1054,32 +1070,28 @@ export function TurnosCalendar({
     setBloqueoBloqueKeys((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)));
   }
 
-  function buildBloqueoBody(resolucionConflicto?: "cancelar" | "mover_dia_libre" | "mover_siguiente_libre") {
-    const esMoverDiaLibre = resolucionConflicto === "mover_dia_libre";
-    const diasLibreElegidos = esMoverDiaLibre
-      ? Object.entries(bloqueoDiaLibreElegido).map(([lugarId, fecha]) => ({ lugarId, fecha }))
-      : undefined;
-    const horariosConsecutivos = esMoverDiaLibre ? bloqueoHorariosConsecutivos : undefined;
-    const habilitarTurnosNuevos = esMoverDiaLibre ? bloqueoHabilitarTurnosNuevos : undefined;
+  function buildBloqueoBody(
+    resolucionesPorBloque?: {
+      bloqueKey: string;
+      resolucion: "cancelar" | "mover_dia_libre" | "mover_siguiente_libre";
+      fecha?: string;
+      horariosConsecutivos?: boolean;
+      habilitarTurnosNuevos?: boolean;
+    }[]
+  ) {
     return bloqueoModo === "dia"
       ? {
           modo: "dia",
           fecha: formatDateParamBA(selectedDate),
           motivo: bloqueoMotivo,
-          resolucionConflicto,
-          diasLibreElegidos,
-          horariosConsecutivos,
-          habilitarTurnosNuevos,
+          resolucionesPorBloque,
         }
       : {
           modo: "bloques",
           fecha: formatDateParamBA(selectedDate),
           bloqueKeys: bloqueoBloqueKeys,
           motivo: bloqueoMotivo,
-          resolucionConflicto,
-          diasLibreElegidos,
-          horariosConsecutivos,
-          habilitarTurnosNuevos,
+          resolucionesPorBloque,
         };
   }
 
@@ -1099,14 +1111,27 @@ export function TurnosCalendar({
       const data = await response.json();
       if (!response.ok) {
         if (response.status === 409 && data.conflict) {
+          const bloquesConflicto: typeof bloqueoConflictoBloques = data.bloques ?? [];
           const disponibles: { lugarId: string; fechas: string[] }[] = data.diasLibreDisponibles ?? [];
-          setBloqueoConflictoTurnos(data.turnos ?? []);
+          setBloqueoConflictoBloques(bloquesConflicto);
           setBloqueoDiasLibreDisponibles(disponibles);
-          setBloqueoDiaLibreElegido(
+          setBloqueoResolucionesPorBloque(
             Object.fromEntries(
-              disponibles.filter((d) => d.fechas.length > 0).map((d) => [d.lugarId, d.fechas[0]])
+              bloquesConflicto.map((b) => {
+                const fechas = disponibles.find((d) => d.lugarId === b.lugarId)?.fechas ?? [];
+                return [
+                  b.key,
+                  {
+                    resolucion: "cancelar" as const,
+                    diaLibreElegido: fechas[0] ?? "",
+                    horariosConsecutivos: false,
+                    habilitarTurnosNuevos: true,
+                  },
+                ];
+              })
             )
           );
+          setBloqueoWizardIndex(0);
           setBloqueoStep("conflicto");
           return;
         }
@@ -1120,25 +1145,75 @@ export function TurnosCalendar({
     }
   }
 
+  const bloqueoCurrentBloque = bloqueoConflictoBloques[bloqueoWizardIndex];
+  const bloqueoCurrentResolucion = bloqueoCurrentBloque
+    ? bloqueoResolucionesPorBloque[bloqueoCurrentBloque.key]
+    : undefined;
+  const bloqueoIsFirstBloque = bloqueoWizardIndex === 0;
+  const bloqueoIsLastBloque = bloqueoWizardIndex === bloqueoConflictoBloques.length - 1;
+  const bloqueoFechasDelBloqueActual = bloqueoCurrentBloque
+    ? (bloqueoDiasLibreDisponibles.find((d) => d.lugarId === bloqueoCurrentBloque.lugarId)?.fechas ?? [])
+    : [];
+
+  function updateBloqueoCurrentResolucion(patch: Partial<ResolucionBloqueState>) {
+    if (!bloqueoCurrentBloque) return;
+    const key = bloqueoCurrentBloque.key;
+    setBloqueoResolucionesPorBloque((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
+  }
+
+  function handleBloqueoAnterior() {
+    setBloqueoError(null);
+    if (bloqueoIsFirstBloque) {
+      setBloqueoStep("form");
+      return;
+    }
+    setBloqueoWizardIndex((i) => i - 1);
+  }
+
   async function handleConfirmResolucion() {
+    if (!bloqueoCurrentBloque || !bloqueoCurrentResolucion) return;
     if (
-      bloqueoResolucion === "mover_dia_libre" &&
-      (bloqueoDiasLibreDisponibles.length === 0 ||
-        bloqueoDiasLibreDisponibles.some((d) => !bloqueoDiaLibreElegido[d.lugarId]))
+      bloqueoCurrentResolucion.resolucion === "mover_dia_libre" &&
+      (bloqueoFechasDelBloqueActual.length === 0 || !bloqueoCurrentResolucion.diaLibreElegido)
     ) {
       setBloqueoError("Elegí a qué día mover estos turnos.");
       return;
     }
     setBloqueoError(null);
+
+    if (!bloqueoIsLastBloque) {
+      setBloqueoWizardIndex((i) => i + 1);
+      return;
+    }
+
     setBloqueoSaving(true);
     try {
+      const resolucionesPorBloque = bloqueoConflictoBloques.map((b) => {
+        const r = bloqueoResolucionesPorBloque[b.key];
+        return {
+          bloqueKey: b.key,
+          resolucion: r.resolucion,
+          fecha: r.resolucion === "mover_dia_libre" ? r.diaLibreElegido : undefined,
+          horariosConsecutivos: r.horariosConsecutivos,
+          habilitarTurnosNuevos: r.habilitarTurnosNuevos,
+        };
+      });
       const response = await fetch("/api/horarios-bloqueados", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildBloqueoBody(bloqueoResolucion)),
+        body: JSON.stringify(buildBloqueoBody(resolucionesPorBloque)),
       });
       const data = await response.json();
       if (!response.ok) {
+        if (response.status === 409 && data.conflict === undefined) {
+          // Los bloques cambiaron entre el 409 inicial y esta confirmación
+          // (ej. alguien canceló un turno desde otra pestaña mientras el
+          // diálogo seguía abierto) -- se vuelve al paso "form" en vez de
+          // reintentar en silencio con datos que ya no aplican.
+          setBloqueoStep("form");
+          setBloqueoError(data.error ?? "Los bloques en conflicto cambiaron -- volvé a intentar.");
+          return;
+        }
         setBloqueoError(data.error ?? "No se pudo resolver los turnos afectados.");
         return;
       }
@@ -1153,20 +1228,31 @@ export function TurnosCalendar({
   // es lo que se muestra ahí para que quede claro exactamente qué se va a
   // desbloquear (un lugar puntual, o "todo el día" desde la lista del
   // diálogo de bloqueo).
-  function requestUnblock(bloqueoId: string, label: string, lugarId?: string) {
-    setUnblockTarget({ bloqueoId, lugarId, label });
+  function requestUnblock(
+    bloqueoId: string,
+    label: string,
+    lugarId?: string,
+    rangoInicio?: string,
+    rangoFin?: string
+  ) {
+    setUnblockTarget({ bloqueoId, lugarId, label, rangoInicio, rangoFin });
   }
 
-  // `lugarId` solo se manda cuando el desbloqueo sale de UNA card puntual
-  // de la grilla (un "Día completo" se ve como una card por lugar) -- ahí
-  // el server libera solo ese lugar, no todo el día. El desbloqueo desde
-  // la lista "Ya bloqueado" del diálogo (sin `lugarId`) sigue siendo total.
+  // `lugarId`+`rangoInicio`+`rangoFin` se mandan siempre que el desbloqueo
+  // sale de UNA card puntual de la grilla -- ahí el server libera solo el
+  // tramo horario de ESA card (que puede ser apenas una mitad del rango
+  // real de la fila, ver `dividirBloqueoExcluyendoRango`), no todo el día
+  // ni el resto de los tramos del mismo lugar.
   async function handleConfirmUnblock() {
     if (!unblockTarget) return;
-    const { bloqueoId, lugarId } = unblockTarget;
+    const { bloqueoId, lugarId, rangoInicio, rangoFin } = unblockTarget;
     setUnblockingId(bloqueoId);
     try {
-      const query = lugarId ? `?lugarId=${encodeURIComponent(lugarId)}` : "";
+      const params = new URLSearchParams();
+      if (lugarId) params.set("lugarId", lugarId);
+      if (rangoInicio) params.set("inicio", rangoInicio);
+      if (rangoFin) params.set("fin", rangoFin);
+      const query = params.toString() ? `?${params.toString()}` : "";
       await fetch(`/api/horarios-bloqueados/${bloqueoId}${query}`, { method: "DELETE" });
       await loadSlots(selectedDate);
       setUnblockTarget(null);
@@ -1390,11 +1476,13 @@ export function TurnosCalendar({
                               isToday={isToday}
                               onOpenEdit={openEdit}
                               onOpenBooking={openBooking}
-                              onUnblock={(bloqueoId, lugarId, rango) =>
+                              onUnblock={(bloqueoId, lugarId, rango, rangoInicio, rangoFin) =>
                                 requestUnblock(
                                   bloqueoId,
                                   `${lugarNombre(lugaresPorId.get(lugarId))} · ${rango}`,
-                                  lugarId
+                                  lugarId,
+                                  rangoInicio,
+                                  rangoFin
                                 )
                               }
                               puedeBloquearHorarios={puedeBloquearHorarios}
@@ -1688,8 +1776,8 @@ export function TurnosCalendar({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setBloqueoStep("form")}
-                  aria-label="Volver"
+                  onClick={handleBloqueoAnterior}
+                  aria-label="Anterior"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <ChevronLeft className="size-4" />
@@ -1700,17 +1788,43 @@ export function TurnosCalendar({
               <DialogTitle>Bloquear horarios</DialogTitle>
             )}
           </DialogHeader>
-          {bloqueoStep === "conflicto" ? (
+          {bloqueoStep === "conflicto" && bloqueoCurrentBloque && bloqueoCurrentResolucion ? (
             <div className="flex flex-col gap-4">
+              {bloqueoConflictoBloques.length > 1 && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Bloque {bloqueoWizardIndex + 1} de {bloqueoConflictoBloques.length}
+                  </span>
+                  <div className="flex gap-1">
+                    {bloqueoConflictoBloques.map((b, i) => (
+                      <div
+                        key={b.key}
+                        className={cn(
+                          "h-1.5 flex-1 rounded-full transition-colors",
+                          i <= bloqueoWizardIndex ? "bg-primary" : "bg-muted"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm font-semibold">
+                    {lugarNombre(lugaresPorId.get(bloqueoCurrentBloque.lugarId))}
+                    <span className="font-normal text-muted-foreground">
+                      {" "}
+                      · {formatHora(bloqueoCurrentBloque.inicio)} a {formatHora(bloqueoCurrentBloque.fin)}
+                    </span>
+                  </span>
+                </div>
+              )}
+
               <p className="text-sm text-muted-foreground">
-                Hay <strong className="text-foreground">{bloqueoConflictoTurnos.length}</strong> turno
-                {bloqueoConflictoTurnos.length === 1 ? "" : "s"} programado
-                {bloqueoConflictoTurnos.length === 1 ? "" : "s"} en ese horario. Elegí qué hacer con
-                {bloqueoConflictoTurnos.length === 1 ? " él" : " ellos"}.
+                Hay <strong className="text-foreground">{bloqueoCurrentBloque.turnos.length}</strong> turno
+                {bloqueoCurrentBloque.turnos.length === 1 ? "" : "s"} programado
+                {bloqueoCurrentBloque.turnos.length === 1 ? "" : "s"} en ese horario. Elegí qué hacer con
+                {bloqueoCurrentBloque.turnos.length === 1 ? " él" : " ellos"}.
               </p>
 
               <div className="flex max-h-32 flex-col gap-1.5 overflow-y-auto rounded-lg border border-border/60 p-2">
-                {bloqueoConflictoTurnos.map((t) => (
+                {bloqueoCurrentBloque.turnos.map((t) => (
                   <div key={t.id} className="flex items-center justify-between gap-2 px-1 text-sm">
                     <span className="font-medium">{t.nombreYApellido}</span>
                     <span className="text-muted-foreground">{formatHoraBA(new Date(t.inicio))}</span>
@@ -1738,7 +1852,7 @@ export function TurnosCalendar({
                     },
                   ]
                 ).map((opcion) => {
-                  const selected = bloqueoResolucion === opcion.value;
+                  const selected = bloqueoCurrentResolucion.resolucion === opcion.value;
                   return (
                     <div
                       key={opcion.value}
@@ -1753,7 +1867,7 @@ export function TurnosCalendar({
                           name="bloqueo-resolucion"
                           value={opcion.value}
                           checked={selected}
-                          onChange={() => setBloqueoResolucion(opcion.value)}
+                          onChange={() => updateBloqueoCurrentResolucion({ resolucion: opcion.value })}
                           className="mt-1"
                         />
                         <span>
@@ -1763,58 +1877,48 @@ export function TurnosCalendar({
                       </label>
                       {selected && opcion.value === "mover_dia_libre" && (
                         <div className="ml-7 flex flex-col gap-2">
-                          {bloqueoDiasLibreDisponibles.length === 0 && (
+                          {bloqueoFechasDelBloqueActual.length === 0 ? (
                             <p className="text-xs text-destructive">
                               No hay ningún día sin horario configurado para reprogramar estos turnos.
                             </p>
+                          ) : (
+                            <Select
+                              value={bloqueoCurrentResolucion.diaLibreElegido}
+                              onValueChange={(v) => v && updateBloqueoCurrentResolucion({ diaLibreElegido: v })}
+                            >
+                              <SelectTrigger className="w-full bg-card">
+                                <SelectValue>
+                                  {() => {
+                                    const fecha = bloqueoCurrentResolucion.diaLibreElegido;
+                                    return fecha
+                                      ? capitalize(
+                                          dateParamToDateBA(fecha)!.toLocaleDateString("es-AR", {
+                                            weekday: "long",
+                                            day: "numeric",
+                                            month: "long",
+                                            year: "numeric",
+                                          })
+                                        )
+                                      : "Elegí un día";
+                                  }}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {bloqueoFechasDelBloqueActual.map((fecha) => (
+                                  <SelectItem key={fecha} value={fecha}>
+                                    {capitalize(
+                                      dateParamToDateBA(fecha)!.toLocaleDateString("es-AR", {
+                                        weekday: "long",
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      })
+                                    )}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           )}
-                          {bloqueoDiasLibreDisponibles.map((d) => (
-                            <div key={d.lugarId} className="flex flex-col gap-1">
-                              {bloqueoDiasLibreDisponibles.length > 1 && (
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  {lugarNombre(lugaresPorId.get(d.lugarId))}
-                                </span>
-                              )}
-                              <Select
-                                value={bloqueoDiaLibreElegido[d.lugarId] ?? ""}
-                                onValueChange={(v) =>
-                                  v && setBloqueoDiaLibreElegido((prev) => ({ ...prev, [d.lugarId]: v }))
-                                }
-                              >
-                                <SelectTrigger className="w-full bg-card">
-                                  <SelectValue>
-                                    {() => {
-                                      const fecha = bloqueoDiaLibreElegido[d.lugarId];
-                                      return fecha
-                                        ? capitalize(
-                                            dateParamToDateBA(fecha)!.toLocaleDateString("es-AR", {
-                                              weekday: "long",
-                                              day: "numeric",
-                                              month: "long",
-                                              year: "numeric",
-                                            })
-                                          )
-                                        : "Elegí un día";
-                                    }}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {d.fechas.map((fecha) => (
-                                    <SelectItem key={fecha} value={fecha}>
-                                      {capitalize(
-                                        dateParamToDateBA(fecha)!.toLocaleDateString("es-AR", {
-                                          weekday: "long",
-                                          day: "numeric",
-                                          month: "long",
-                                          year: "numeric",
-                                        })
-                                      )}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          ))}
 
                           <div className="mt-1 flex flex-col gap-2.5 border-t border-border/60 pt-2.5">
                             <div className="flex items-center justify-between gap-3">
@@ -1829,8 +1933,10 @@ export function TurnosCalendar({
                               </span>
                               <Switch
                                 id="bloqueo-horarios-consecutivos"
-                                checked={bloqueoHorariosConsecutivos}
-                                onCheckedChange={setBloqueoHorariosConsecutivos}
+                                checked={bloqueoCurrentResolucion.horariosConsecutivos}
+                                onCheckedChange={(checked) =>
+                                  updateBloqueoCurrentResolucion({ horariosConsecutivos: checked })
+                                }
                               />
                             </div>
                             <div className="flex items-center justify-between gap-3">
@@ -1845,8 +1951,10 @@ export function TurnosCalendar({
                               </span>
                               <Switch
                                 id="bloqueo-habilitar-turnos-nuevos"
-                                checked={bloqueoHabilitarTurnosNuevos}
-                                onCheckedChange={setBloqueoHabilitarTurnosNuevos}
+                                checked={bloqueoCurrentResolucion.habilitarTurnosNuevos}
+                                onCheckedChange={(checked) =>
+                                  updateBloqueoCurrentResolucion({ habilitarTurnosNuevos: checked })
+                                }
                               />
                             </div>
                           </div>
@@ -1858,7 +1966,7 @@ export function TurnosCalendar({
               </div>
               {bloqueoError && <p className="text-sm text-destructive">{bloqueoError}</p>}
             </div>
-          ) : (
+          ) : bloqueoStep === "conflicto" ? null : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <Label>Día</Label>
@@ -1933,11 +2041,15 @@ export function TurnosCalendar({
           <DialogFooter>
             {bloqueoStep === "conflicto" ? (
               <>
-                <Button type="button" variant="outline" onClick={() => setBloqueoStep("form")}>
-                  Volver
+                <Button type="button" variant="outline" onClick={handleBloqueoAnterior}>
+                  Anterior
                 </Button>
                 <Button type="button" onClick={handleConfirmResolucion} disabled={bloqueoSaving}>
-                  {bloqueoSaving ? "Confirmando..." : "Confirmar"}
+                  {bloqueoSaving
+                    ? "Confirmando..."
+                    : bloqueoIsLastBloque
+                      ? "Confirmar"
+                      : "Siguiente"}
                 </Button>
               </>
             ) : (

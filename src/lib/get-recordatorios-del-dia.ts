@@ -7,6 +7,7 @@ export type RecordatorioTurno = {
   nombreYApellido: string;
   telefono: string;
   inicio: string;
+  recordatorioEnviado: boolean;
 };
 
 // Mismo criterio que `getDaySlots` para turnos: una secretaria solo ve los
@@ -43,7 +44,7 @@ export async function getRecordatoriosDelDia(
       ...(lugarId ? { lugarId } : {}),
     },
     orderBy: { inicio: "asc" },
-    select: { id: true, nombreYApellido: true, telefono: true, inicio: true },
+    select: { id: true, nombreYApellido: true, telefono: true, inicio: true, recordatorioEnviado: true },
   });
 
   return {

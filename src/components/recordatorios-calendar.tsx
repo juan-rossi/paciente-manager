@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { nextDiaConHorario } from "@/lib/dia-nav";
@@ -19,6 +20,7 @@ type RecordatorioTurno = {
   nombreYApellido: string;
   telefono: string;
   inicio: string;
+  recordatorioEnviado: boolean;
 };
 
 function capitalize(text: string) {
@@ -51,6 +53,23 @@ export function RecordatoriosCalendar({
   const [diasConHorario, setDiasConHorario] = useState<DiaSemana[]>(initialDiasConHorario);
   const [sinConfigurar, setSinConfigurar] = useState(initialSinConfigurar);
   const [loading, setLoading] = useState(false);
+  const [marcandoId, setMarcandoId] = useState<string | null>(null);
+
+  // A diferencia de "Pendientes de notificar" (que saca el turno de su
+  // lista al marcarlo), acá el turno sigue siendo parte de la agenda del
+  // día -- se actualiza en el lugar, mostrando la insignia "Enviado" en vez
+  // de desaparecer.
+  async function handleMarcarNotificado(id: string) {
+    setMarcandoId(id);
+    try {
+      const response = await fetch(`/api/turnos/${id}/recordatorio`, { method: "PATCH" });
+      if (response.ok) {
+        setTurnos((prev) => prev.map((t) => (t.id === id ? { ...t, recordatorioEnviado: true } : t)));
+      }
+    } finally {
+      setMarcandoId(null);
+    }
+  }
 
   async function loadTurnos(date: Date) {
     setLoading(true);
@@ -160,15 +179,33 @@ export function RecordatoriosCalendar({
                       <p className="text-sm font-medium">{turno.nombreYApellido}</p>
                       <p className="text-xs text-muted-foreground">{turno.telefono}</p>
                     </div>
-                    <Button
-                      size="sm"
-                      nativeButton={false}
-                      render={<a href={href} target="_blank" rel="noopener noreferrer" />}
-                    >
-                      <MessageCircle className="size-3.5" />
-                      <span className="sm:hidden">Enviar</span>
-                      <span className="hidden sm:inline">Enviar WhatsApp</span>
-                    </Button>
+                    {turno.recordatorioEnviado ? (
+                      <Badge className="h-auto gap-1 self-center bg-green-600 px-2.5 pt-1.5 pb-1 leading-none text-white">
+                        <Check className="size-3" data-icon="inline-start" />
+                        Enviado
+                      </Badge>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          nativeButton={false}
+                          render={<a href={href} target="_blank" rel="noopener noreferrer" />}
+                        >
+                          <MessageCircle className="size-3.5" />
+                          <span className="sm:hidden">Enviar</span>
+                          <span className="hidden sm:inline">Enviar WhatsApp</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={marcandoId === turno.id}
+                          onClick={() => handleMarcarNotificado(turno.id)}
+                        >
+                          <Check className="size-3.5" />
+                          {marcandoId === turno.id ? "Marcando..." : "Marcar como enviado"}
+                        </Button>
+                      </>
+                    )}
                   </li>
                 );
               })}

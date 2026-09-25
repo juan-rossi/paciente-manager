@@ -47,6 +47,72 @@ export class SinDiaLibreError extends Error {}
 export class SinHorarioDisponibleError extends Error {}
 export class DiaLibreInvalidoError extends Error {}
 
+export type BloqueConflicto = {
+  key: string; // mismo formato que BloqueDelDia.key: `${lugarId}-${isoInicio}`
+  lugarId: string;
+  inicio: Date;
+  fin: Date;
+  turnos: ConflictoTurno[];
+};
+
+// Agrupa los conflictos planos de `detectarConflictos` en los bloques de
+// horario REALES a los que pertenecen -- ej. "Consulta particular
+// 09:00-10:15" y "Consulta particular 13:50-16:15" son dos bloques
+// distintos aunque compartan lugar. Se reusa tanto para armar la respuesta
+// 409 (un paso del wizard por bloque) como dentro de `resolverConflictos`.
+// Por construcción, un bloque devuelto acá siempre tiene al menos 1 turno
+// (nace de agrupar turnos reales, nunca al revés).
+export function agruparConflictosPorBloque(
+  fecha: Date,
+  conflictos: ConflictoTurno[],
+  blocks: WorkScheduleBlockLike[],
+  slotDurationMinutes: number
+): BloqueConflicto[] {
+  const porLugar = new Map<string, ConflictoTurno[]>();
+  for (const turno of conflictos) {
+    const lista = porLugar.get(turno.lugarId) ?? [];
+    lista.push(turno);
+    porLugar.set(turno.lugarId, lista);
+  }
+
+  const resultado: BloqueConflicto[] = [];
+  for (const [lugarId, turnosDelLugar] of porLugar) {
+    const blocksDelLugar = blocks.filter((b) => b.lugarId === lugarId);
+    const slots = generarSlots(fecha, blocksDelLugar, slotDurationMinutes);
+    const slotsIso = slots.map((s) => ({
+      inicio: s.inicio.toISOString(),
+      fin: s.fin.toISOString(),
+      lugarId: s.lugarId,
+    }));
+    const bloquesReales = bloquesDelDia(agruparPorLugar(slotsIso, []));
+
+    const porBloqueKey = new Map<string, BloqueConflicto>();
+    for (const turno of turnosDelLugar) {
+      const bloque = bloquesReales.find(
+        (b) => new Date(b.inicio) <= turno.inicio && turno.inicio < new Date(b.fin)
+      );
+      // Un turno sin bloque real que lo contenga (caso raro, ej. un
+      // sobreturno fuera de grilla) se trata como su propio bloque de 1.
+      const key = bloque ? bloque.key : `turno-${turno.id}`;
+      const existente = porBloqueKey.get(key);
+      if (existente) {
+        existente.turnos.push(turno);
+      } else {
+        porBloqueKey.set(key, {
+          key,
+          lugarId,
+          inicio: bloque ? new Date(bloque.inicio) : turno.inicio,
+          fin: bloque ? new Date(bloque.fin) : turno.fin,
+          turnos: [turno],
+        });
+      }
+    }
+    resultado.push(...porBloqueKey.values());
+  }
+
+  return resultado.sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
+}
+
 export type CandidatosDiaLibre = { lugarId: string; fechas: Date[] };
 
 // Para el paso 2 del diálogo: los próximos 10 días sin horario configurado
@@ -66,195 +132,175 @@ export async function prepararCandidatosDiasLibres(
   );
 }
 
-// El usuario ya eligió una fecha por lugar en el paso 2 -- nunca se confía
-// en lo que mande el cliente (podría no ser un día real sin configurar, o
-// ya haber pasado): se recalculan los candidatos reales de cada lugar acá y
-// se verifica que la fecha elegida esté entre ellos. Tiene que resolverse
-// ANTES de abrir la transacción -- mezclar una consulta con el cliente
-// `prisma` normal (no `tx`) mientras hay una transacción interactiva
-// abierta en el mismo pool puede colgarse (confirmado contra el proxy
-// local de `prisma dev`; en el pool pooled de producción no debería pasar,
-// pero tampoco hace falta correr el riesgo).
+// El usuario ya eligió una fecha por BLOQUE en el paso 2 (dos bloques del
+// mismo lugar pueden elegir días libres distintos) -- nunca se confía en lo
+// que mande el cliente (podría no ser un día real sin configurar, o ya
+// haber pasado): se recalculan los candidatos reales de cada lugar acá y se
+// verifica que la fecha elegida esté entre ellos. `buscarProximosDiasLibres`
+// se memoiza por `lugarId` porque dos bloques pueden compartir lugar. Tiene
+// que resolverse ANTES de abrir la transacción -- mezclar una consulta con
+// el cliente `prisma` normal (no `tx`) mientras hay una transacción
+// interactiva abierta en el mismo pool puede colgarse (confirmado contra el
+// proxy local de `prisma dev`; en el pool pooled de producción no debería
+// pasar, pero tampoco hace falta correr el riesgo).
 export async function validarDiasLibreElegidos(
   tenantId: string,
-  conflictos: ConflictoTurno[],
-  elegidos: { lugarId: string; fecha: string }[]
+  bloques: { key: string; lugarId: string }[],
+  elegidos: { bloqueKey: string; fecha: string }[]
 ): Promise<Map<string, Date>> {
-  const lugares = [...new Set(conflictos.map((c) => c.lugarId))];
   const hoy = startOfDayBA(new Date());
+  const candidatosPorLugar = new Map<string, Date[]>();
   const resultado = new Map<string, Date>();
 
-  for (const lugarId of lugares) {
-    const fechaElegida = elegidos.find((e) => e.lugarId === lugarId)?.fecha;
+  for (const bloque of bloques) {
+    const fechaElegida = elegidos.find((e) => e.bloqueKey === bloque.key)?.fecha;
     if (!fechaElegida) {
       throw new DiaLibreInvalidoError("Elegí a qué día mover estos turnos.");
     }
-    const candidatos = await buscarProximosDiasLibres(tenantId, lugarId, hoy);
+    let candidatos = candidatosPorLugar.get(bloque.lugarId);
+    if (!candidatos) {
+      candidatos = await buscarProximosDiasLibres(tenantId, bloque.lugarId, hoy);
+      candidatosPorLugar.set(bloque.lugarId, candidatos);
+    }
     const match = candidatos.find((c) => formatDateParamBA(c) === fechaElegida);
     if (!match) {
       throw new DiaLibreInvalidoError(
         "Ese día ya no es una opción válida -- elegí otro de la lista."
       );
     }
-    resultado.set(lugarId, match);
+    resultado.set(bloque.key, match);
   }
 
   return resultado;
 }
 
-// Aplica la resolución elegida por el usuario a los turnos en conflicto,
-// vía `tx` -- se llama dentro de la misma transacción que después crea las
-// filas de `BloqueoHorario`, para que todo se confirme (o revierta) junto.
-// Agrupa por `lugarId` antes de resolver "mover_dia_libre"/
-// "mover_siguiente_libre": un bloqueo "Día completo" puede afectar turnos
-// de más de un lugar del médico, y tanto el día sin configurar como el
-// próximo horario libre son cosas propias de CADA lugar, nunca globales
-// (mover un turno de "Consulta particular" no debería poder terminar en un
-// horario de "Devlights").
+export type ResolucionPorBloque = {
+  bloqueKey: string;
+  resolucion: ResolucionConflicto;
+  // Solo aplican con "mover_dia_libre".
+  horariosConsecutivos?: boolean;
+  habilitarTurnosNuevos?: boolean;
+};
+
+// Aplica la resolución que el usuario eligió PARA CADA BLOQUE (wizard por
+// bloque, ver turnos-calendar.tsx) -- vía `tx`, dentro de la misma
+// transacción que después crea las filas de `BloqueoHorario`, para que todo
+// se confirme (o revierta) junto.
+//
+// "mover_siguiente_libre" es la única resolución que NO se resuelve bloque
+// por bloque: se sigue agrupando por `lugarId` (juntando los turnos de
+// TODOS los bloques de ese lugar que hayan elegido esta resolución) porque
+// `planReschedule` usa un `usedSlots` local a cada llamada -- si dos
+// bloques hermanos del mismo lugar se resolvieran con llamadas separadas,
+// cada una podría reservarle a un paciente distinto el mismo slot libre sin
+// que la otra lo supiera (doble reserva). "cancelar" y "mover_dia_libre" sí
+// son genuinamente por bloque.
 export async function resolverConflictos(
   tx: Prisma.TransactionClient,
   tenantId: string,
-  conflictos: ConflictoTurno[],
-  resolucion: ResolucionConflicto,
+  bloques: BloqueConflicto[],
+  resoluciones: ResolucionPorBloque[],
   contexto: {
     blocks: WorkScheduleBlockLike[];
     slotDurationMinutes: number;
     bloqueosVigentes: BloqueoRango[];
-    // Obligatorios para "mover_dia_libre" -- ver `validarDiasLibreElegidos`.
-    diasLibrePorLugar?: Map<string, Date | null>;
-    // "Horarios consecutivos": en vez de que cada turno conserve su propia
-    // hora, se acomodan uno tras otro arrancando en el inicio del bloque
-    // de horarios ORIGINAL (transplantado a `diaLibre`).
-    horariosConsecutivos?: boolean;
-    // "Habilitar turnos nuevos ese día": además de mover los turnos, crea
-    // una `HorarioExcepcional` que cubre el rango completo del bloque
-    // original -- así el día queda realmente abierto a reservas nuevas,
-    // no solo alrededor de los turnos reubicados.
-    habilitarTurnosNuevos?: boolean;
+    // Obligatorio para los bloques con "mover_dia_libre" -- ver
+    // `validarDiasLibreElegidos`. Keyed por `bloque.key`, no por lugarId.
+    diasLibrePorBloque?: Map<string, Date>;
   }
 ): Promise<void> {
-  if (resolucion === "cancelar") {
-    for (const turno of conflictos) {
+  const resolucionPorKey = new Map(resoluciones.map((r) => [r.bloqueKey, r]));
+  function resolucionDe(bloque: BloqueConflicto): ResolucionPorBloque {
+    const r = resolucionPorKey.get(bloque.key);
+    if (!r) throw new DiaLibreInvalidoError("Falta la resolución de uno de los bloques.");
+    return r;
+  }
+
+  for (const bloque of bloques) {
+    if (resolucionDe(bloque).resolucion !== "cancelar") continue;
+    for (const turno of bloque.turnos) {
       await tx.turno.update({
         where: { id: turno.id },
         data: { estado: "CANCELADO", avisoPendiente: true, avisoPendienteMotivo: "CANCELADO" },
       });
     }
-    return;
   }
 
-  const porLugar = new Map<string, ConflictoTurno[]>();
-  for (const turno of conflictos) {
-    const lista = porLugar.get(turno.lugarId) ?? [];
-    lista.push(turno);
-    porLugar.set(turno.lugarId, lista);
-  }
+  for (const bloque of bloques) {
+    const r = resolucionDe(bloque);
+    if (r.resolucion !== "mover_dia_libre") continue;
 
-  if (resolucion === "mover_dia_libre") {
-    const horariosConsecutivos = contexto.horariosConsecutivos ?? false;
-    const habilitarTurnosNuevos = contexto.habilitarTurnosNuevos ?? true;
+    const diaLibre = contexto.diasLibrePorBloque?.get(bloque.key);
+    if (!diaLibre) {
+      throw new SinDiaLibreError(
+        "No hay ningún día sin horario configurado para reprogramar estos turnos."
+      );
+    }
+    const horariosConsecutivos = r.horariosConsecutivos ?? false;
+    const habilitarTurnosNuevos = r.habilitarTurnosNuevos ?? true;
+    const minutosInicioBloque = getMinutesSinceMidnightBA(bloque.inicio);
+    const minutosFinBloque = getMinutesSinceMidnightBA(bloque.fin);
 
-    for (const [lugarId, turnosDelLugar] of porLugar) {
-      const diaLibre = contexto.diasLibrePorLugar?.get(lugarId);
-      if (!diaLibre) {
-        throw new SinDiaLibreError(
-          "No hay ningún día sin horario configurado para reprogramar estos turnos."
-        );
+    if (horariosConsecutivos) {
+      const ordenados = [...bloque.turnos].sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
+      let cursor = setTimeBA(diaLibre, Math.floor(minutosInicioBloque / 60), minutosInicioBloque % 60);
+      for (const turno of ordenados) {
+        const duracionMs = turno.fin.getTime() - turno.inicio.getTime();
+        const nuevoInicio = new Date(cursor);
+        const nuevoFin = new Date(cursor.getTime() + duracionMs);
+        await tx.turno.update({
+          where: { id: turno.id },
+          data: {
+            inicio: nuevoInicio,
+            fin: nuevoFin,
+            avisoPendiente: true,
+            avisoPendienteMotivo: "APLAZADO",
+            avisoPendienteFechaAnterior: turno.inicio,
+          },
+        });
+        cursor = nuevoFin;
       }
-
-      // Se agrupan los turnos por el bloque de horario REAL al que
-      // pertenecían originalmente (mismo cálculo server-side que ya usa
-      // `resolverRangosBloques` -- nunca se confía en nada del cliente
-      // para esto) -- "Día completo" puede haber tocado más de un bloque
-      // del mismo lugar, y cada uno tiene su propia hora de inicio.
-      const blocksDelLugar = contexto.blocks.filter((b) => b.lugarId === lugarId);
-      const fechaOriginal = startOfDayBA(turnosDelLugar[0].inicio);
-      const slotsOriginales = generarSlots(fechaOriginal, blocksDelLugar, contexto.slotDurationMinutes);
-      const slotsOriginalesIso = slotsOriginales.map((s) => ({
-        inicio: s.inicio.toISOString(),
-        fin: s.fin.toISOString(),
-        lugarId: s.lugarId,
-      }));
-      const bloquesOriginales = bloquesDelDia(agruparPorLugar(slotsOriginalesIso, []));
-
-      const gruposPorBloque = new Map<string, { inicio: Date; fin: Date; turnos: ConflictoTurno[] }>();
-      for (const turno of turnosDelLugar) {
-        const bloque = bloquesOriginales.find(
-          (b) => new Date(b.inicio) <= turno.inicio && turno.inicio < new Date(b.fin)
-        );
-        // Un turno sin bloque real que lo contenga (caso raro, ej. un
-        // sobreturno fuera de grilla) se trata como su propio bloque de 1,
-        // acotado a su propio horario -- ni "consecutivos" ni "habilitar"
-        // tienen un rango más amplio y confiable para ofrecer ahí.
-        const key = bloque ? bloque.key : `turno-${turno.id}`;
-        const grupo = gruposPorBloque.get(key) ?? {
-          inicio: bloque ? new Date(bloque.inicio) : turno.inicio,
-          fin: bloque ? new Date(bloque.fin) : turno.fin,
-          turnos: [],
-        };
-        grupo.turnos.push(turno);
-        gruposPorBloque.set(key, grupo);
-      }
-
-      for (const { inicio: bloqueInicio, fin: bloqueFin, turnos } of gruposPorBloque.values()) {
-        const minutosInicioBloque = getMinutesSinceMidnightBA(bloqueInicio);
-        const minutosFinBloque = getMinutesSinceMidnightBA(bloqueFin);
-
-        if (horariosConsecutivos) {
-          const ordenados = [...turnos].sort((a, b) => a.inicio.getTime() - b.inicio.getTime());
-          let cursor = setTimeBA(diaLibre, Math.floor(minutosInicioBloque / 60), minutosInicioBloque % 60);
-          for (const turno of ordenados) {
-            const duracionMs = turno.fin.getTime() - turno.inicio.getTime();
-            const nuevoInicio = new Date(cursor);
-            const nuevoFin = new Date(cursor.getTime() + duracionMs);
-            await tx.turno.update({
-              where: { id: turno.id },
-              data: {
-                inicio: nuevoInicio,
-                fin: nuevoFin,
-                avisoPendiente: true,
-                avisoPendienteMotivo: "APLAZADO",
-                avisoPendienteFechaAnterior: turno.inicio,
-              },
-            });
-            cursor = nuevoFin;
-          }
-        } else {
-          for (const turno of turnos) {
-            const duracionMs = turno.fin.getTime() - turno.inicio.getTime();
-            const minutos = getMinutesSinceMidnightBA(turno.inicio);
-            const nuevoInicio = setTimeBA(diaLibre, Math.floor(minutos / 60), minutos % 60);
-            const nuevoFin = new Date(nuevoInicio.getTime() + duracionMs);
-            await tx.turno.update({
-              where: { id: turno.id },
-              data: {
-                inicio: nuevoInicio,
-                fin: nuevoFin,
-                avisoPendiente: true,
-                avisoPendienteMotivo: "APLAZADO",
-                avisoPendienteFechaAnterior: turno.inicio,
-              },
-            });
-          }
-        }
-
-        if (habilitarTurnosNuevos) {
-          const aperturaInicio = setTimeBA(diaLibre, Math.floor(minutosInicioBloque / 60), minutosInicioBloque % 60);
-          const aperturaFin = setTimeBA(diaLibre, Math.floor(minutosFinBloque / 60), minutosFinBloque % 60);
-          await tx.horarioExcepcional.create({
-            data: { userId: tenantId, lugarId, inicio: aperturaInicio, fin: aperturaFin },
-          });
-        }
+    } else {
+      for (const turno of bloque.turnos) {
+        const duracionMs = turno.fin.getTime() - turno.inicio.getTime();
+        const minutos = getMinutesSinceMidnightBA(turno.inicio);
+        const nuevoInicio = setTimeBA(diaLibre, Math.floor(minutos / 60), minutos % 60);
+        const nuevoFin = new Date(nuevoInicio.getTime() + duracionMs);
+        await tx.turno.update({
+          where: { id: turno.id },
+          data: {
+            inicio: nuevoInicio,
+            fin: nuevoFin,
+            avisoPendiente: true,
+            avisoPendienteMotivo: "APLAZADO",
+            avisoPendienteFechaAnterior: turno.inicio,
+          },
+        });
       }
     }
-    return;
+
+    if (habilitarTurnosNuevos) {
+      const aperturaInicio = setTimeBA(diaLibre, Math.floor(minutosInicioBloque / 60), minutosInicioBloque % 60);
+      const aperturaFin = setTimeBA(diaLibre, Math.floor(minutosFinBloque / 60), minutosFinBloque % 60);
+      await tx.horarioExcepcional.create({
+        data: { userId: tenantId, lugarId: bloque.lugarId, inicio: aperturaInicio, fin: aperturaFin },
+      });
+    }
   }
 
-  // "mover_siguiente_libre": reusa `planReschedule` (ya sabe saltear
-  // `bloqueosVigentes` y buscar hacia adelante hasta 120 días), acotado a
-  // los bloques del lugar de CADA grupo para que nunca reubique un turno en
-  // un horario de otro lugar.
-  for (const [lugarId, turnosDelLugar] of porLugar) {
+  // "mover_siguiente_libre": ver comentario arriba -- se agrupa por
+  // `lugarId`, juntando los turnos de todos los bloques de ese lugar que
+  // hayan elegido esta resolución, y se llama `planReschedule` una sola vez
+  // por lugar (ya sabe saltear `bloqueosVigentes` y buscar hacia adelante
+  // hasta 120 días).
+  const porLugarSiguienteLibre = new Map<string, ConflictoTurno[]>();
+  for (const bloque of bloques) {
+    if (resolucionDe(bloque).resolucion !== "mover_siguiente_libre") continue;
+    const lista = porLugarSiguienteLibre.get(bloque.lugarId) ?? [];
+    lista.push(...bloque.turnos);
+    porLugarSiguienteLibre.set(bloque.lugarId, lista);
+  }
+  for (const [lugarId, turnosDelLugar] of porLugarSiguienteLibre) {
     const blocksDelLugar = contexto.blocks.filter((b) => b.lugarId === lugarId);
     const { plan, sinSolucion } = planReschedule(
       turnosDelLugar.map((t) => ({ id: t.id, nombreYApellido: t.nombreYApellido, inicio: t.inicio })),

@@ -39,6 +39,13 @@ export function resolverRangoDia(lugarId: string | null, fecha: Date): BloqueoRo
 // `db` acepta `prisma` o un `tx` de `$transaction` (ver `registrarAuditoria`
 // en audit-log.ts para el mismo patrón) -- se le pasa el `tx` cuando ya se
 // resolvieron conflictos con turnos existentes en la misma transacción.
+//
+// Idempotente: si ya existe una fila IDÉNTICA (mismo lugar y mismo rango
+// horario exacto), no crea una segunda -- doble click en "Bloquear",
+// reintentar tras un error de red, etc. no deben ir acumulando filas
+// redundantes que después "Desbloquear" no sabe limpiar de una (ver
+// `dividirBloqueoExcluyendoRango`: partir UNA fila no toca duplicados que
+// sigan vivos, cada uno queda bloqueando por su cuenta).
 export async function crearBloqueoDia(
   userId: string,
   lugarId: string | null,
@@ -47,6 +54,11 @@ export async function crearBloqueoDia(
   db: typeof prisma | Prisma.TransactionClient = prisma
 ) {
   const [rango] = resolverRangoDia(lugarId, fecha);
+  const existente = await db.bloqueoHorario.findFirst({
+    where: { userId, lugarId, inicio: rango.inicio, fin: rango.fin },
+    select: { id: true },
+  });
+  if (existente) return existente;
   return db.bloqueoHorario.create({ data: { userId, ...rango, motivo } });
 }
 
@@ -98,53 +110,125 @@ export async function resolverRangosBloques(
   return matched.map((b) => ({ lugarId: b.lugarId, inicio: new Date(b.inicio), fin: new Date(b.fin) }));
 }
 
+// Mismo criterio de idempotencia que `crearBloqueoDia` -- filtra los rangos
+// que ya tienen una fila idéntica antes del `createMany`, para no dejar
+// duplicados exactos si el mismo bloque se vuelve a mandar (reintento,
+// doble click, etc.).
+//
+// Recibe `rangos` YA resueltos (por `resolverRangosBloques`, llamado antes
+// en el caller) en vez de volver a resolverlos acá -- esa función hace
+// lecturas con el cliente `prisma` de siempre, nunca con `db`/`tx`, y
+// llamarla desde acá cuando `db` es una transacción interactiva abierta
+// cuelga contra el proxy local de `prisma dev` hasta que esa transacción
+// expira (confirmado: "A query cannot be executed on an expired
+// transaction" a los ~20s, justo el timeout configurado en la ruta).
 export async function crearBloqueosDeBloques(
   userId: string,
-  scopeLugarId: string | undefined,
-  fecha: Date,
-  bloqueKeys: string[],
+  rangos: BloqueoRowInput[],
   motivo: string | null,
   db: typeof prisma | Prisma.TransactionClient = prisma
 ) {
-  const rangos = await resolverRangosBloques(userId, scopeLugarId, fecha, bloqueKeys);
+  const existentes = await db.bloqueoHorario.findMany({
+    where: { userId, OR: rangos.map((r) => ({ lugarId: r.lugarId, inicio: r.inicio, fin: r.fin })) },
+    select: { lugarId: true, inicio: true, fin: true },
+  });
+  const nuevos = rangos.filter(
+    (r) =>
+      !existentes.some(
+        (e) =>
+          e.lugarId === r.lugarId &&
+          e.inicio.getTime() === r.inicio.getTime() &&
+          e.fin.getTime() === r.fin.getTime()
+      )
+  );
+  if (nuevos.length === 0) return { count: 0 };
   return db.bloqueoHorario.createMany({
-    data: rangos.map((r) => ({ userId, ...r, motivo })),
+    data: nuevos.map((r) => ({ userId, ...r, motivo })),
   });
 }
 
-// Un bloqueo "Día completo" (`lugarId: null`) se ve en la grilla como una
-// card por cada lugar que tiene horario ese día -- todas comparten el mismo
-// `bloqueoId`, pero "Desbloquear" en UNA de esas cards nunca debe levantar
-// el bloqueo de los demás lugares (ver el pedido del usuario: cada botón
-// afecta solo al bloque/lugar donde está, no a todo el día). Como el
-// bloqueo real es una única fila sin lugar propio, "desbloquear un lugar"
-// se resuelve partiéndolo: se borra la fila `lugarId: null` y se recrea,
-// con el mismo rango horario y motivo, una fila por cada OTRO lugar del
-// médico que seguía bloqueado -- el lugar excluido queda libre, el resto
-// sigue bloqueado exactamente como antes.
-export async function dividirBloqueoExcluyendoLugar(
-  bloqueo: { id: string; userId: string; inicio: Date; fin: Date; motivo: string | null },
-  lugarIdExcluido: string
+// Una card "Bloqueado" en la grilla muestra el rango de UN tramo contiguo
+// real (ver `agruparBloqueados`/`LugarDayGrid`) -- pero la fila de
+// `BloqueoHorario` que la generó puede cubrir mucho más que eso: un "Día
+// completo" (`lugarId: null`) aplica a TODOS los lugares del médico y
+// siempre cubre las 24hs (ver `resolverRangoDia`), y aunque sea de un solo
+// lugar puntual, dos tramos separados por un corte al mediodía (ej. mañana
+// 09:00-10:40 y tarde 13:00-16:45) pueden ser en realidad LA MISMA fila --
+// la única "Bloqueado" que existe cubre igual las horas muertas del medio.
+// "Desbloquear" en UNA card nunca debe levantar el bloqueo de otro lugar NI
+// del otro tramo horario del mismo lugar -- se resuelve partiendo la fila
+// original: se borra y se recrea, (a) una fila sin cambios por cada OTRO
+// lugar del médico que seguía bloqueado (si la original era "Día
+// completo"), y (b) para el lugar puntual que pidió desbloquear, lo que
+// queda del rango original A LOS COSTADOS del tramo excluido (antes de su
+// inicio y/o después de su fin) -- si el tramo excluido era todo lo que
+// había, no queda nada y no se recrea ninguna fila para ese lugar.
+export async function dividirBloqueoExcluyendoRango(
+  bloqueo: { id: string; userId: string; lugarId: string | null; inicio: Date; fin: Date; motivo: string | null },
+  lugarId: string,
+  rango: { inicio: Date; fin: Date }
 ) {
-  const otrosLugares = await prisma.lugarDeTrabajo.findMany({
-    where: { userId: bloqueo.userId, deletedAt: null, id: { not: lugarIdExcluido } },
-    select: { id: true },
-  });
+  const nuevasFilas: { userId: string; lugarId: string; inicio: Date; fin: Date; motivo: string | null }[] = [];
+
+  if (bloqueo.lugarId === null) {
+    const otrosLugares = await prisma.lugarDeTrabajo.findMany({
+      where: { userId: bloqueo.userId, deletedAt: null, id: { not: lugarId } },
+      select: { id: true },
+    });
+    for (const l of otrosLugares) {
+      nuevasFilas.push({
+        userId: bloqueo.userId,
+        lugarId: l.id,
+        inicio: bloqueo.inicio,
+        fin: bloqueo.fin,
+        motivo: bloqueo.motivo,
+      });
+    }
+  }
+
+  if (bloqueo.inicio < rango.inicio) {
+    nuevasFilas.push({
+      userId: bloqueo.userId,
+      lugarId,
+      inicio: bloqueo.inicio,
+      fin: rango.inicio,
+      motivo: bloqueo.motivo,
+    });
+  }
+  if (rango.fin < bloqueo.fin) {
+    nuevasFilas.push({
+      userId: bloqueo.userId,
+      lugarId,
+      inicio: rango.fin,
+      fin: bloqueo.fin,
+      motivo: bloqueo.motivo,
+    });
+  }
+
+  // Mismo criterio de idempotencia que `crearBloqueoDia`/
+  // `crearBloqueosDeBloques` -- si ya existe otra fila (ej. un duplicado
+  // viejo de la misma fila que se está partiendo) con exactamente el mismo
+  // lugar y rango que una de las que se van a recrear, no se la duplica.
+  const existentes =
+    nuevasFilas.length > 0
+      ? await prisma.bloqueoHorario.findMany({
+          where: {
+            userId: bloqueo.userId,
+            id: { not: bloqueo.id },
+            OR: nuevasFilas.map((f) => ({ lugarId: f.lugarId, inicio: f.inicio, fin: f.fin })),
+          },
+          select: { lugarId: true, inicio: true, fin: true },
+        })
+      : [];
+  const filasAInsertar = nuevasFilas.filter(
+    (f) =>
+      !existentes.some(
+        (e) => e.lugarId === f.lugarId && e.inicio.getTime() === f.inicio.getTime() && e.fin.getTime() === f.fin.getTime()
+      )
+  );
 
   await prisma.$transaction([
     prisma.bloqueoHorario.delete({ where: { id: bloqueo.id } }),
-    ...(otrosLugares.length > 0
-      ? [
-          prisma.bloqueoHorario.createMany({
-            data: otrosLugares.map((l) => ({
-              userId: bloqueo.userId,
-              lugarId: l.id,
-              inicio: bloqueo.inicio,
-              fin: bloqueo.fin,
-              motivo: bloqueo.motivo,
-            })),
-          }),
-        ]
-      : []),
+    ...(filasAInsertar.length > 0 ? [prisma.bloqueoHorario.createMany({ data: filasAInsertar })] : []),
   ]);
 }

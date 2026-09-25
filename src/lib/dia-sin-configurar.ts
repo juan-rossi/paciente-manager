@@ -25,10 +25,33 @@ export async function buscarProximosDiasLibres(
   const diasLibres = DIA_SEMANA_VALUES.filter((d) => !diasConHorario.has(d));
   if (diasLibres.length === 0) return [];
 
+  // Un día sin `WorkScheduleBlock` puede de todos modos tener un
+  // `BloqueoHorario` ya existente encima (ej. un "Día completo" bloqueado
+  // por otro motivo, sin relación con este conflicto) -- ofrecerlo igual
+  // como "día libre" terminaría creando una `HorarioExcepcional` que ese
+  // bloqueo tapa por completo: el turno se mueve bien, pero el resto del
+  // bloque queda "abierto" en el papel y bloqueado en la práctica. Se traen
+  // de una sola vez todos los bloqueos vigentes que aplican a este lugar
+  // (los suyos propios, o un "Día completo" con `lugarId: null`) dentro del
+  // horizonte de búsqueda, para no consultar uno por candidato.
+  const horizonteFin = addDays(desde, HORIZONTE_DIAS);
+  const bloqueos = await prisma.bloqueoHorario.findMany({
+    where: {
+      userId,
+      inicio: { lt: horizonteFin },
+      fin: { gt: desde },
+      ...(lugarId ? { OR: [{ lugarId }, { lugarId: null }] } : {}),
+    },
+    select: { inicio: true, fin: true },
+  });
+
   const resultado: Date[] = [];
   for (let i = 0; i < HORIZONTE_DIAS && resultado.length < cantidad; i++) {
     const candidato = addDays(desde, i);
-    if (diasLibres.includes(diaSemanaFromDate(candidato))) resultado.push(candidato);
+    if (!diasLibres.includes(diaSemanaFromDate(candidato))) continue;
+    const candidatoFin = addDays(candidato, 1);
+    const bloqueado = bloqueos.some((b) => b.inicio < candidatoFin && b.fin > candidato);
+    if (!bloqueado) resultado.push(candidato);
   }
   return resultado;
 }

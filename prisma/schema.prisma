@@ -521,6 +521,13 @@ model Turno {
   // mensaje ({fecha} = esta, {nueva_fecha} = el `inicio` actual).
   avisoPendienteFechaAnterior DateTime?
 
+  // El recordatorio normal (no relacionado a "Pendientes de notificar") que
+  // se manda desde la lista del día en Recordatorios -- a diferencia de
+  // `avisoPendiente`, nunca se prende solo: el médico/secretaria lo marca a
+  // mano después de mandar el WhatsApp, para llevar registro de a quién ya
+  // se le avisó ese día sin tener que acordarse.
+  recordatorioEnviado Boolean @default(false)
+
   @@index([inicio])
   @@index([doctorId])
   @@index([lugarId])
