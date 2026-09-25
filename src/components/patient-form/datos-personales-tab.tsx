@@ -41,6 +41,7 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
           required
           invalid={invalidFields.has("nroDocumento")}
           numeric="digits"
+          maxLength={8}
         />
         <TextField
           label="Fecha de Nacimiento"

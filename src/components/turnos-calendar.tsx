@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
 import { nextDiaConHorario } from "@/lib/dia-nav";
+import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
 import {
   agruparPorLugar,
   asignarSobreturnosATramos,
@@ -900,6 +901,11 @@ export function TurnosCalendar({
       setError("Completá nombre, DNI y teléfono.");
       return;
     }
+    if (!DNI_REGEX.test(dni)) {
+      setTriedSubmit(true);
+      setError(DNI_ERROR_MESSAGE);
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
@@ -999,6 +1005,11 @@ export function TurnosCalendar({
     if (!sobreturnoNombre.trim() || !sobreturnoDni.trim() || !sobreturnoTelefono.trim()) {
       setSobreturnoTriedSubmit(true);
       setSobreturnoError("Completá nombre, DNI y teléfono.");
+      return;
+    }
+    if (!DNI_REGEX.test(sobreturnoDni)) {
+      setSobreturnoTriedSubmit(true);
+      setSobreturnoError(DNI_ERROR_MESSAGE);
       return;
     }
 
@@ -1545,9 +1556,12 @@ export function TurnosCalendar({
                 <Label>DNI *</Label>
                 <Input
                   inputMode="numeric"
+                  maxLength={8}
                   value={dni}
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
-                  className={triedSubmit && !dni.trim() ? "border-destructive" : undefined}
+                  className={
+                    triedSubmit && !DNI_REGEX.test(dni) ? "border-destructive" : undefined
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -1731,10 +1745,13 @@ export function TurnosCalendar({
                 <Label>DNI *</Label>
                 <Input
                   inputMode="numeric"
+                  maxLength={8}
                   value={sobreturnoDni}
                   onChange={(e) => setSobreturnoDni(e.target.value.replace(/\D/g, ""))}
                   className={
-                    sobreturnoTriedSubmit && !sobreturnoDni.trim() ? "border-destructive" : undefined
+                    sobreturnoTriedSubmit && !DNI_REGEX.test(sobreturnoDni)
+                      ? "border-destructive"
+                      : undefined
                   }
                 />
               </div>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DIA_SEMANA_VALUES } from "@/lib/slots";
+import { dniSchema } from "@/lib/dni";
 
 const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -41,11 +42,7 @@ export const turnoInputSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
-  dni: z
-    .string()
-    .trim()
-    .min(1, "El DNI es obligatorio.")
-    .regex(/^\d+$/, "El DNI solo puede contener números."),
+  dni: dniSchema,
   telefono: z.string().trim().min(1, "El teléfono es obligatorio."),
   obraSocial: z
     .string()

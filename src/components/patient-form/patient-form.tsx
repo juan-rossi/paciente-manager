@@ -31,6 +31,7 @@ import { DiagnosticoTab } from "./diagnostico-tab";
 import { EvolucionTab } from "./evolucion-tab";
 import { emptyPatientFormValues } from "./utils";
 import type { AntecedenteValue, EvolucionValue, PatientFormValues } from "./types";
+import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
 
 type Props = {
   mode: "create" | "edit";
@@ -63,6 +64,16 @@ const FIELD_TAB: Record<(typeof REQUIRED_FIELDS)[number], string> = {
 function isFieldEmpty(values: PatientFormValues, field: (typeof REQUIRED_FIELDS)[number]) {
   const value = values[field];
   return typeof value === "string" ? value.trim().length === 0 : !value;
+}
+
+// Además de "vacío", el DNI tiene un formato propio (8 dígitos exactos,
+// ver src/lib/dni.ts) -- se chequea acá para bloquear "Siguiente"/"Guardar"
+// con el mismo mecanismo de `invalidFields` que ya usa el resto del form,
+// en vez de dejar que el error recién aparezca al pegarle al servidor.
+function isFieldInvalid(values: PatientFormValues, field: (typeof REQUIRED_FIELDS)[number]) {
+  if (isFieldEmpty(values, field)) return true;
+  if (field === "nroDocumento") return !DNI_REGEX.test(values.nroDocumento.trim());
+  return false;
 }
 
 const TAB_ORDER_CREATE = [
@@ -130,13 +141,17 @@ export function PatientForm({
   }
 
   function handleNext() {
-    const missing = REQUIRED_FIELDS.filter(
-      (field) => FIELD_TAB[field] === activeTab && isFieldEmpty(values, field)
+    const invalid = REQUIRED_FIELDS.filter(
+      (field) => FIELD_TAB[field] === activeTab && isFieldInvalid(values, field)
     );
 
-    if (missing.length > 0) {
-      setInvalidFields((prev) => new Set([...prev, ...missing]));
-      setError("Completá los campos obligatorios (*) antes de continuar.");
+    if (invalid.length > 0) {
+      setInvalidFields((prev) => new Set([...prev, ...invalid]));
+      setError(
+        invalid.length === 1 && invalid[0] === "nroDocumento" && !isFieldEmpty(values, "nroDocumento")
+          ? DNI_ERROR_MESSAGE
+          : "Completá los campos obligatorios (*) antes de continuar."
+      );
       return;
     }
 
@@ -147,12 +162,16 @@ export function PatientForm({
   }
 
   async function handleSubmit(options?: { resolveDniConflict?: boolean }) {
-    const missing = REQUIRED_FIELDS.filter((field) => isFieldEmpty(values, field));
+    const invalid = REQUIRED_FIELDS.filter((field) => isFieldInvalid(values, field));
 
-    if (missing.length > 0) {
-      setInvalidFields(new Set(missing));
-      setError("Completá los campos obligatorios (*).");
-      setActiveTab(FIELD_TAB[missing[0]]);
+    if (invalid.length > 0) {
+      setInvalidFields(new Set(invalid));
+      setError(
+        invalid.length === 1 && invalid[0] === "nroDocumento" && !isFieldEmpty(values, "nroDocumento")
+          ? DNI_ERROR_MESSAGE
+          : "Completá los campos obligatorios (*)."
+      );
+      setActiveTab(FIELD_TAB[invalid[0]]);
       return;
     }
 

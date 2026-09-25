@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dniSchema } from "@/lib/dni";
 
 const optionalString = z
   .string()
@@ -71,11 +72,7 @@ export const patientSchema = z.object({
     .optional()
     .pipe(z.enum(["SOLTERO", "CASADO", "VIUDO", "CONCUBINO"]).nullable().optional()),
   profesion: optionalString,
-  nroDocumento: z
-    .string()
-    .trim()
-    .min(1, "El número de documento es obligatorio.")
-    .regex(/^\d+$/, "El número de documento solo puede contener números."),
+  nroDocumento: dniSchema,
   nacionalidad: optionalString,
   obraSocial: optionalString,
   obraSocialNro: optionalString,

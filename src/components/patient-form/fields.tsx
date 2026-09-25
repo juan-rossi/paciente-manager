@@ -73,6 +73,7 @@ type TextFieldProps = {
   required?: boolean;
   invalid?: boolean;
   numeric?: NumericMode;
+  maxLength?: number;
 };
 
 export function TextField({
@@ -84,6 +85,7 @@ export function TextField({
   required,
   invalid,
   numeric,
+  maxLength,
 }: TextFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -94,6 +96,7 @@ export function TextField({
         <Input
           type={type}
           inputMode={numeric === "phone" ? "tel" : numeric === "digits" ? "numeric" : undefined}
+          maxLength={maxLength}
           value={value}
           onChange={(e) => onChange(numeric ? filterNumeric(e.target.value, numeric) : e.target.value)}
           className={invalid ? "border-destructive" : undefined}

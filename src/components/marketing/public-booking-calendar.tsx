@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { filterTelefono } from "@/lib/utils";
+import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
 
 type HorarioDisponible = { inicio: string; lugarId: string | null };
 type DisponibilidadDia = { fecha: string; horarios: HorarioDisponible[] };
@@ -133,6 +134,10 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
     setTriedSubmit(true);
     if (!nombreYApellido.trim() || !dni.trim() || !telefono.trim() || !horarioElegido) {
       setError("Completá los campos obligatorios.");
+      return;
+    }
+    if (!DNI_REGEX.test(dni)) {
+      setError(DNI_ERROR_MESSAGE);
       return;
     }
     setSaving(true);
@@ -359,9 +364,10 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
                 <Label>DNI *</Label>
                 <Input
                   inputMode="numeric"
+                  maxLength={8}
                   value={dni}
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
-                  className={triedSubmit && !dni.trim() ? "border-destructive" : undefined}
+                  className={triedSubmit && !DNI_REGEX.test(dni) ? "border-destructive" : undefined}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
