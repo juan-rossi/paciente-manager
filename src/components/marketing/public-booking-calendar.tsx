@@ -15,6 +15,7 @@ import {
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { filterTelefono } from "@/lib/utils";
 import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
+import { TurnstileWidget } from "./turnstile-widget";
 
 type HorarioDisponible = { inicio: string; lugarId: string | null };
 type DisponibilidadDia = { fecha: string; horarios: HorarioDisponible[] };
@@ -89,6 +90,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
   const [triedSubmit, setTriedSubmit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   async function cargarDisponibilidad(lugarActivo: string | null) {
     try {
@@ -128,6 +130,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
     setObraSocial("");
     setTriedSubmit(false);
     setError(null);
+    setTurnstileToken("");
   }
 
   async function handleSubmitForm() {
@@ -138,6 +141,10 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
     }
     if (!DNI_REGEX.test(dni)) {
       setError(DNI_ERROR_MESSAGE);
+      return;
+    }
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Completá la verificación de seguridad.");
       return;
     }
     setSaving(true);
@@ -152,6 +159,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
           dni,
           telefono,
           obraSocial: obraSocial || undefined,
+          turnstileToken,
         }),
       });
       const data = await response.json().catch(() => null);
@@ -384,6 +392,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
               <Label>Obra Social</Label>
               <Input value={obraSocial} onChange={(e) => setObraSocial(e.target.value)} />
             </div>
+            <TurnstileWidget onToken={setTurnstileToken} />
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>

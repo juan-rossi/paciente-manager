@@ -369,6 +369,24 @@ model AuditLog {
   @@index([doctorId, createdAt])
 }
 
+// Rate limiting de la reserva pública del directorio (`/directorio/[slug]`,
+// sin autenticar) -- cada llamada a "reservar" o "disponibilidad" inserta
+// una fila acá, haya sido permitida o no, para que un reintento inmediato
+// tras ser bloqueado también cuente contra el límite. Ver
+// `src/lib/rate-limit.ts`. Sin relación con `AuditLog` (esa es para
+// trazabilidad clínica de un actor autenticado, esto es anti-abuso de
+// tráfico anónimo).
+model IntentoReserva {
+  id        String   @id @default(cuid())
+  ip        String
+  slug      String
+  ruta      String
+  createdAt DateTime @default(now())
+
+  @@index([ip, ruta, createdAt])
+  @@index([slug, ruta, createdAt])
+}
+
 model WorkScheduleBlock {
   id         String          @id @default(cuid())
   userId     String

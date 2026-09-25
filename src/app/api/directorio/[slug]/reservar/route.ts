@@ -2,13 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { reservaPublicaInputSchema } from "@/lib/turno-schema";
 import { getDoctorParaReserva, buscarSlotValido } from "@/lib/public-booking";
+import { getClientIp } from "@/lib/request-ip";
+import { rateLimitOk } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { slug } = await params;
+  const ip = getClientIp(request);
+
+  if (!(await rateLimitOk(ip, slug, "reservar"))) {
+    return NextResponse.json(
+      { error: "Demasiados intentos. Probá de nuevo en unos minutos." },
+      { status: 429 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
+  // `turnstileToken` no es un dato del turno -- se saca aparte antes de
+  // validar el resto contra `reservaPublicaInputSchema`, que no lo conoce.
+  const turnstileToken =
+    body && typeof body === "object" && typeof (body as Record<string, unknown>).turnstileToken === "string"
+      ? ((body as Record<string, unknown>).turnstileToken as string)
+      : "";
   const parsed = reservaPublicaInputSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -17,9 +34,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  if (!(await verifyTurnstileToken(turnstileToken, ip))) {
+    return NextResponse.json(
+      { error: "No pudimos verificar que sos una persona. Volvé a intentar." },
+      { status: 400 }
+    );
+  }
+
   const doctor = await getDoctorParaReserva(slug);
   if (!doctor) {
     return NextResponse.json({ error: "Médico no encontrado." }, { status: 404 });
+  }
+
+  // Un visitante no autenticado no puede reservar un turno nuevo si ya
+  // tiene uno futuro con este médico -- sin esto, alguien con un DNI fijo
+  // (real o inventado) podría ocupar muchos horarios distintos en una
+  // sola tanda de reservas. No aplica a turnos cargados desde el panel
+  // (esos sí pueden acumular varios a propósito, ej. controles seguidos).
+  const turnoFuturoDelPaciente = await prisma.turno.findFirst({
+    where: {
+      doctorId: doctor.id,
+      dni: parsed.data.dni,
+      estado: "CONFIRMADO",
+      inicio: { gte: new Date() },
+    },
+    select: { id: true },
+  });
+  if (turnoFuturoDelPaciente) {
+    return NextResponse.json(
+      {
+        error:
+          "Ya tenés un turno reservado con este médico. Si necesitás cambiarlo, contactalo directamente.",
+      },
+      { status: 409 }
+    );
   }
 
   const inicio = new Date(parsed.data.inicio);
