@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Loader2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,7 +130,6 @@ export function RecordatoriosCalendar({
         </Button>
         <h2 className="min-w-0 flex-1 truncate text-center text-sm font-semibold sm:text-lg">
           {fechaLabel}
-          {esHoy && " (hoy)"}
         </h2>
         <Button
           type="button"
@@ -167,17 +166,19 @@ export function RecordatoriosCalendar({
                 const mensaje = buildMensajeRecordatorio(mensajeTemplate, turno.nombreYApellido, inicio);
                 const href = buildWhatsAppHref(turno.telefono, mensaje);
 
+                const marcando = marcandoId === turno.id;
+
                 return (
                   <li
                     key={turno.id}
-                    className="flex flex-wrap items-start gap-3 rounded-md border border-border p-2"
+                    className="flex items-center gap-2 rounded-md border border-border p-2 sm:gap-3"
                   >
                     <span className="flex h-9 w-14 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-sm font-semibold tabular-nums">
                       {hora}
                     </span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{turno.nombreYApellido}</p>
-                      <p className="text-xs text-muted-foreground">{turno.telefono}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
+                      <p className="truncate text-xs text-muted-foreground">{turno.telefono}</p>
                     </div>
                     {turno.recordatorioEnviado ? (
                       <Badge className="h-auto gap-1 self-center bg-green-600 px-2.5 pt-1.5 pb-1 leading-none text-white">
@@ -187,22 +188,29 @@ export function RecordatoriosCalendar({
                     ) : (
                       <>
                         <Button
-                          size="sm"
+                          size="icon-sm"
                           variant="outline"
+                          aria-label="Enviar por WhatsApp"
+                          className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
                           nativeButton={false}
                           render={<a href={href} target="_blank" rel="noopener noreferrer" />}
                         >
                           <MessageCircle className="size-3.5" />
-                          <span className="sm:hidden">Enviar</span>
                           <span className="hidden sm:inline">Enviar WhatsApp</span>
                         </Button>
                         <Button
-                          size="sm"
-                          disabled={marcandoId === turno.id}
+                          size="icon-sm"
+                          aria-label="Marcar como enviado"
+                          className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
+                          disabled={marcando}
                           onClick={() => handleMarcarNotificado(turno.id)}
                         >
-                          <Check className="size-3.5" />
-                          {marcandoId === turno.id ? "Marcando..." : "Marcar como enviado"}
+                          {marcando ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Check className="size-3.5" />
+                          )}
+                          <span className="hidden sm:inline">{marcando ? "Marcando..." : "Marcar como enviado"}</span>
                         </Button>
                       </>
                     )}

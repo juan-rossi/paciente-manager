@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, MessageCircle } from "lucide-react";
+import { Check, Loader2, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { buildMensajeCambioTurno, buildWhatsAppHref } from "@/lib/recordatorio-mensaje";
@@ -21,6 +21,14 @@ type Props = {
   mensajeTemplateCancelado: string;
   mensajeTemplateAplazado: string;
 };
+
+function fechaCorta(date: Date) {
+  return date.toLocaleDateString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "numeric",
+    month: "numeric",
+  });
+}
 
 // Sección fija (no colapsable, alternativa "F"): a diferencia del
 // navegador de abajo, no depende de qué día se esté mirando -- lista TODOS
@@ -71,33 +79,49 @@ export function RecordatoriosPendientes({
             turno.avisoPendienteMotivo === "CANCELADO"
               ? `Turno cancelado · era el ${fechaOriginal.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })} a las ${formatHoraBA(fechaOriginal)}`
               : `Turno aplazado · ahora es el ${nuevaFecha!.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })} a las ${formatHoraBA(nuevaFecha!)}`;
+          // Versión corta para mobile -- el detalle completo de arriba
+          // wrappeaba feo en pantallas angostas ("Turno aplazado - ahora es
+          // el 24/9/2026 a las 18:25" en varias líneas).
+          const detalleCorto =
+            turno.avisoPendienteMotivo === "CANCELADO"
+              ? `Cancelado · ${fechaCorta(fechaOriginal)} ${formatHoraBA(fechaOriginal)}`
+              : `Aplazado → ${fechaCorta(nuevaFecha!)} ${formatHoraBA(nuevaFecha!)}`;
+          const marcando = marcandoId === turno.id;
 
           return (
             <li
               key={turno.id}
-              className="flex flex-wrap items-center gap-3 rounded-md border border-border border-l-4 border-l-amber-500 bg-amber-500/5 p-3"
+              className="flex items-center gap-2 rounded-md border border-border border-l-4 border-l-amber-500 bg-amber-500/5 p-2.5 sm:gap-3 sm:p-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{turno.nombreYApellido}</p>
-                <p className="text-xs text-muted-foreground">{detalle}</p>
+                <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
+                <p className="truncate text-xs text-muted-foreground sm:hidden">{detalleCorto}</p>
+                <p className="hidden text-xs text-muted-foreground sm:block">{detalle}</p>
               </div>
               <Button
-                size="sm"
+                size="icon-sm"
                 variant="outline"
+                aria-label="Enviar por WhatsApp"
+                className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
                 nativeButton={false}
                 render={<a href={href} target="_blank" rel="noopener noreferrer" />}
               >
                 <MessageCircle className="size-3.5" />
-                <span className="sm:hidden">Enviar</span>
                 <span className="hidden sm:inline">Enviar por WhatsApp</span>
               </Button>
               <Button
-                size="sm"
-                disabled={marcandoId === turno.id}
+                size="icon-sm"
+                aria-label="Marcar como notificado"
+                className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
+                disabled={marcando}
                 onClick={() => handleMarcarNotificado(turno.id)}
               >
-                <Check className="size-3.5" />
-                {marcandoId === turno.id ? "Marcando..." : "Marcar como notificado"}
+                {marcando ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Check className="size-3.5" />
+                )}
+                <span className="hidden sm:inline">{marcando ? "Marcando..." : "Marcar como notificado"}</span>
               </Button>
             </li>
           );
