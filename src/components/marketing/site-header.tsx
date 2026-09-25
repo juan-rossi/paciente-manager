@@ -8,11 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+// `/#id` (con el `/` adelante) en vez de `#id` a secas -- las secciones que
+// apuntan (Producto, Planes, Testimonios, FAQ) solo existen en el home. Un
+// link `#id` a secas navega bien desde el home mismo, pero desde cualquier
+// otra ruta (ej. /directorio) solo cambia el hash de ESA página sin mover a
+// ningún lado, porque ahí no hay ningún elemento con ese id.
 const NAV_LINKS = [
-  { href: "#producto", label: "Producto" },
-  { href: "#planes", label: "Planes" },
-  { href: "#testimonios", label: "Testimonios" },
-  { href: "#faq", label: "Preguntas frecuentes" },
+  { href: "/#producto", label: "Producto" },
+  { href: "/#testimonios", label: "Testimonios" },
+  { href: "/#planes", label: "Planes" },
+  { href: "/#faq", label: "Preguntas frecuentes" },
 ];
 
 export function SiteHeader() {

@@ -73,7 +73,7 @@ export function Pricing() {
                 nativeButton={false}
                 render={<Link href="/signup" />}
               >
-                Empezar gratis
+                {plan.featured ? "Empezar" : "Empezar gratis"}
               </Button>
             </motion.div>
           ))}

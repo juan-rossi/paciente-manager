@@ -77,13 +77,13 @@ export function DirectorioFiltros() {
   }
 
   return (
-    <div className="mx-auto mt-8 flex max-w-2xl flex-wrap gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-lg shadow-primary/10">
+    <div className="mx-auto mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-lg shadow-primary/10 sm:flex-row sm:flex-wrap">
       <Combobox
         items={ESPECIALIDAD_OPTIONS}
         value={ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ?? null}
         onValueChange={(item) => handleEspecialidadChange((item as EspecialidadOption | null)?.value ?? TODAS)}
       >
-        <ComboboxInputGroup className="flex-1 min-w-[170px]">
+        <ComboboxInputGroup className="w-full sm:min-w-[170px] sm:flex-1">
           <ComboboxInput id="directorio-especialidad" placeholder="Todas las especialidades" className="h-11" />
           <ComboboxClear aria-label="Limpiar especialidad" />
           <ComboboxTrigger aria-label="Abrir especialidades" />
@@ -104,7 +104,7 @@ export function DirectorioFiltros() {
         onSelect={handleCiudadSelect}
         onClear={handleCiudadClear}
         className="h-11"
-        groupClassName="flex-1 min-w-[150px]"
+        groupClassName="w-full sm:min-w-[150px] sm:flex-1"
       />
     </div>
   );

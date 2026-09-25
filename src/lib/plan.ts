@@ -29,11 +29,14 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
   BASICA: [
     "Historia clínica de pacientes",
     "Asignación de turnos",
-    "Transcripción de audio (dictado)",
     "Recordatorios de turnos por WhatsApp (manual)",
+    "Usuarios de tipo Secretario/a",
+    "Listado en Directorio de profesionales",
+    "Agenda pública",
   ],
   PREMIUM: [
     "Todo lo de Básica",
+    "Transcripción de audio (dictado)",
     "Resúmenes y autocompletado de campos con IA",
     "Envío automático de recordatorios por WhatsApp",
   ],

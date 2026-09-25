@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/session";
 import { Hero } from "@/components/marketing/hero";
+import { ScrollToHash } from "@/components/marketing/scroll-to-hash";
 import { DirectorioBanner } from "@/components/marketing/directorio-banner";
 import { SocialProof } from "@/components/marketing/social-proof";
 import { ConceptOrbit } from "@/components/marketing/concept-orbit";
@@ -46,6 +47,7 @@ export default async function MarketingHomePage() {
 
   return (
     <>
+      <ScrollToHash />
       <Hero />
       <SocialProof />
       <ConceptOrbit />
