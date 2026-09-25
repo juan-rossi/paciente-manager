@@ -25,13 +25,13 @@ const ITEMS: OrbitItem[] = [
 export function OrbitDiagram() {
   const n = ITEMS.length;
   return (
-    <div className="relative mx-auto size-[280px] [--orbit-radius:88px] sm:size-[420px] sm:[--orbit-radius:168px]">
+    <div className="relative mx-auto size-[320px] [--orbit-radius:132px] sm:size-[420px] sm:[--orbit-radius:168px]">
       <div className="absolute inset-0 rounded-full border border-dashed border-border/70" />
 
       <div className="absolute inset-0 z-10 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/60 bg-card px-5 py-4 shadow-lg">
-          <Semio360Mark className="size-8" />
-          <span className="font-heading text-sm font-extrabold">
+        <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-border/60 bg-card px-3.5 py-3 shadow-lg sm:px-5 sm:py-4">
+          <Semio360Mark className="size-6 sm:size-8" />
+          <span className="font-heading text-xs font-extrabold sm:text-sm">
             Semio<span className="text-primary">360</span>
           </span>
         </div>
@@ -62,11 +62,19 @@ export function OrbitDiagram() {
                   primero deja la etiqueta permanentemente inclinada. */}
               <div style={{ transform: `rotate(${-angle}deg)` }}>
                 <div className="animate-orbit-reverse">
-                  <div className="flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5">
-                    <span className="flex size-11 items-center justify-center rounded-xl border border-border/60 bg-card text-primary shadow-sm sm:size-12">
+                  {/* El ícono se centra en el punto de la órbita por su cuenta
+                      (posición absoluta propia), en vez de compartir un único
+                      `-translate-y-1/2` con la etiqueta -- así su posición en
+                      el anillo queda fija sin importar si la etiqueta ocupa
+                      una línea ("Turnos") o dos ("Historia clínica"). Antes
+                      compartían un mismo bloque flex centrado como un todo, y
+                      una etiqueta más alta corría el ícono hacia arriba de su
+                      lugar real en el círculo. */}
+                  <div className="relative size-0">
+                    <span className="absolute top-1/2 left-1/2 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-border/60 bg-card text-primary shadow-sm sm:size-12">
                       <item.icon className="size-5" />
                     </span>
-                    <span className="rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm">
+                    <span className="absolute top-[calc(50%+28px)] left-1/2 inline-block max-w-[64px] -translate-x-1/2 rounded-lg bg-background/90 px-1.5 py-0.5 text-center text-[10px] leading-tight font-medium text-muted-foreground shadow-sm sm:top-[calc(50%+30px)] sm:max-w-none sm:rounded-full sm:px-2">
                       {item.label}
                     </span>
                   </div>

@@ -8,7 +8,7 @@ import { TESTIMONIOS } from "@/lib/testimonios";
 // inventadas ("+5.000 médicos" y similares no existen en ningún lado real).
 export function SocialProof() {
   return (
-    <section className="border-y border-border/60 bg-muted/20 py-8">
+    <section className="hidden border-y border-border/60 bg-muted/20 py-8 sm:block">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:grid-cols-3">
         {TESTIMONIOS.map((t, i) => (
           <motion.blockquote
