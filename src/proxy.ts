@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isPlatformAdmin } from "@/lib/admin-access";
+import { prisma } from "@/lib/prisma";
+import { esActivo } from "@/lib/plan";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -10,8 +12,14 @@ const PROTECTED_PREFIXES = [
   "/configuracion",
   "/onboarding",
   "/admin",
+  "/cuenta-inactiva",
 ];
 const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
+// Rutas que requieren una cuenta al día (trial vigente o suscripción paga
+// vigente, ver `esActivo()`) -- deliberadamente sin `/configuracion`, que
+// tiene que seguir siendo alcanzable con la cuenta vencida para poder
+// pagar (ver "Mi plan"), y sin `/admin`/`/onboarding`.
+const PLAN_GATED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios"];
 // Rutas de la app de consultorio (médico/secretaria) -- un ADMIN no
 // pertenece a ningún tenant y no tiene nada que hacer acá (ver
 // src/lib/tenant.ts).
@@ -31,7 +39,7 @@ function homeFor(role: string) {
   return "/dashboard";
 }
 
-export default auth((request) => {
+export default auth(async (request) => {
   const { pathname } = request.nextUrl;
   const session = request.auth;
 
@@ -85,6 +93,32 @@ export default auth((request) => {
     return NextResponse.redirect(new URL(homeFor(session.user.role), request.url));
   }
 
+  // Trial vencido o suscripción vencida (impago tras la gracia, ver
+  // `/api/mercadopago/webhook`) -- se consulta en vivo (no cacheado en la
+  // sesión) para que un pago recién confirmado desbloquee sin esperar a
+  // que se cierre sesión. Se resuelve el tenant real de la cuenta (para
+  // una secretaria, el médico que tiene activo).
+  if (session && PLAN_GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    const actor = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, activeDoctorId: true, trialEndsAt: true, planEndsAt: true },
+    });
+    if (actor) {
+      const cuenta =
+        actor.role === "DOCTOR"
+          ? actor
+          : actor.activeDoctorId
+            ? await prisma.user.findUnique({
+                where: { id: actor.activeDoctorId },
+                select: { trialEndsAt: true, planEndsAt: true },
+              })
+            : null;
+      if (cuenta && !esActivo(cuenta)) {
+        return NextResponse.redirect(new URL("/cuenta-inactiva", request.url));
+      }
+    }
+  }
+
   return NextResponse.next();
 });
 
@@ -97,6 +131,7 @@ export const config = {
     "/configuracion/:path*",
     "/onboarding",
     "/admin/:path*",
+    "/cuenta-inactiva",
     "/login",
     "/signup",
   ],

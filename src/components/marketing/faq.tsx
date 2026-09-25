@@ -20,11 +20,11 @@ const FAQS = [
   },
   {
     q: "¿Cómo funcionan los turnos?",
-    a: "Configurás tus días y horarios de atención una vez, y el sistema arma la agenda disponible sola. Los recordatorios de turno por WhatsApp se envían manualmente en el plan Básica; el envío automático está en camino para Premium.",
+    a: "Configurás tus días y horarios de atención una vez, y el sistema arma la agenda disponible sola. Los recordatorios de turno por WhatsApp se envían manualmente en el plan Básico; el envío automático está en camino para Premium.",
   },
   {
     q: "¿Qué plan necesito?",
-    a: "Básica cubre historia clínica, turnos, transcripción y recordatorios manuales. Premium suma resúmenes y autocompletado con IA, más el envío automático de recordatorios cuando esté disponible.",
+    a: "Básico cubre historia clínica, turnos, transcripción y recordatorios manuales. Premium suma resúmenes y autocompletado con IA, más el envío automático de recordatorios cuando esté disponible.",
   },
   {
     q: "¿Cómo se protege la información de mis pacientes?",

@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,8 @@ type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
 export function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planElegido = searchParams.get("plan") === "PREMIUM" ? "PREMIUM" : "BASICA";
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
@@ -81,6 +83,7 @@ export function SignupForm() {
           tituloCortesia,
           especialidad,
           password,
+          plan: planElegido,
         }),
       });
       const data = await response.json();
@@ -95,6 +98,25 @@ export function SignupForm() {
         // La cuenta se creó bien; si el auto-login falla por algún motivo,
         // que entre a mano en vez de mostrar un error confuso.
         router.replace("/login");
+        return;
+      }
+
+      if (planElegido === "PREMIUM") {
+        // Premium no tiene trial -- en vez de mandarlo al dashboard, arranca
+        // el checkout de MercadoPago de una para que empiece a pagar ya.
+        const checkoutResponse = await fetch("/api/mercadopago/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: "PREMIUM", duracion: "MENSUAL" }),
+        });
+        const checkoutData = await checkoutResponse.json();
+        if (checkoutResponse.ok && checkoutData.initPoint) {
+          window.location.href = checkoutData.initPoint;
+          return;
+        }
+        // Si el checkout falló, igual la cuenta existe -- lo mandamos a "Mi
+        // plan" para que pueda reintentar desde ahí.
+        router.replace("/configuracion");
         return;
       }
 
@@ -115,7 +137,9 @@ export function SignupForm() {
         </Link>
         <CardTitle className="text-xl">Creá tu cuenta en Semio360</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Probá el plan Básico gratis durante 3 meses, sin tarjeta.
+          {planElegido === "PREMIUM"
+            ? "Vas a empezar con el plan Premium -- después de crear la cuenta te pedimos el pago."
+            : "Probá el plan Básico gratis durante 3 meses, sin tarjeta."}
         </p>
       </CardHeader>
       <CardContent>
@@ -231,7 +255,11 @@ export function SignupForm() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={loading} className="mt-2">
-            {loading ? "Creando cuenta..." : "Crear cuenta gratis"}
+            {loading
+              ? "Creando cuenta..."
+              : planElegido === "PREMIUM"
+                ? "Crear cuenta y pagar"
+                : "Crear cuenta gratis"}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">

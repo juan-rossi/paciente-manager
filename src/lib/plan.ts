@@ -6,6 +6,16 @@ export function nuevaFechaFinTrial(desde: Date = new Date()): Date {
   return fin;
 }
 
+// Margen antes de restringir el acceso cuando falla un cobro recurrente de
+// MercadoPago -- ver `/api/mercadopago/webhook` y `pagoEnGracia` en `User`.
+export const GRACIA_DIAS = 5;
+
+export function nuevaFechaFinGracia(desde: Date = new Date()): Date {
+  const fin = new Date(desde);
+  fin.setDate(fin.getDate() + GRACIA_DIAS);
+  return fin;
+}
+
 type PlanUser = {
   plan: "BASICA" | "PREMIUM";
   trialEndsAt: Date | null;
@@ -35,7 +45,7 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
     "Agenda pública",
   ],
   PREMIUM: [
-    "Todo lo de Básica",
+    "Todo lo de Básico",
     "Transcripción de audio (dictado)",
     "Resúmenes y autocompletado de campos con IA",
     "Envío automático de recordatorios por WhatsApp",

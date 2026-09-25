@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const PLANS = [
   {
     key: "BASICA" as const,
-    name: "Básica",
+    name: "Básico",
     tagline: "Para empezar a ordenar el consultorio.",
     featured: false,
   },
@@ -71,7 +71,7 @@ export function Pricing() {
                 className="mt-auto"
                 variant={plan.featured ? "default" : "outline"}
                 nativeButton={false}
-                render={<Link href="/signup" />}
+                render={<Link href={`/signup?plan=${plan.key}`} />}
               >
                 {plan.featured ? "Empezar" : "Empezar gratis"}
               </Button>

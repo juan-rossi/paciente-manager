@@ -28,13 +28,23 @@ const navItemClass =
 const groupLabelClass =
   "px-3 pt-3 pb-1.5 text-[10px] font-bold tracking-wide text-muted-foreground/75 uppercase first:pt-1";
 
-export default async function ConfiguracionPage() {
+type Props = { searchParams: Promise<{ tab?: string }> };
+
+export default async function ConfiguracionPage({ searchParams }: Props) {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  // `?tab=` (deep link, ver /cuenta-inactiva) tiene prioridad sobre la
+  // cookie -- que sigue siendo la fuente para la navegación normal entre
+  // tabs (ver ConfiguracionTabCookieReset).
+  const { tab: tabParam } = await searchParams;
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
-  const initialTab = esConfiguracionTab(tabGuardada) ? tabGuardada : DEFAULT_CONFIGURACION_TAB;
+  const initialTab = esConfiguracionTab(tabParam)
+    ? tabParam
+    : esConfiguracionTab(tabGuardada)
+      ? tabGuardada
+      : DEFAULT_CONFIGURACION_TAB;
 
   const [blocks, secretarias, lugares] = await Promise.all([
     prisma.workScheduleBlock.findMany({
@@ -160,6 +170,11 @@ export default async function ConfiguracionPage() {
             plan={user.plan}
             trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
             diasRestantesDeTrial={diasRestantesDeTrial(user)}
+            planDuracion={user.planDuracion}
+            planEndsAt={user.planEndsAt?.toISOString() ?? null}
+            mpPreapprovalStatus={user.mpPreapprovalStatus}
+            pagoEnGracia={user.pagoEnGracia}
+            graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}
           />
         </TabsContent>
         <TabsContent value="datos" className="w-full">

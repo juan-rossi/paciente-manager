@@ -72,7 +72,7 @@ export type MedicoResumen = {
   estado: EstadoMedico;
   tier: "BASICA" | "PREMIUM";
   esTrial: boolean;
-  planLabel: string; // "Trial", "Trial vencido", "Básica · 6 meses", ...
+  planLabel: string; // "Trial", "Trial vencido", "Básico · 6 meses", ...
   vencimiento: Date | null;
   diasParaVencer: number | null; // negativo = ya venció
   pacientesCount: number;
@@ -82,7 +82,7 @@ export type MedicoResumen = {
 
 function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" | "planEndsAt" | "trialEndsAt">) {
   if (doctor.planEndsAt && doctor.planDuracion) {
-    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básica";
+    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
     return { label: `${tier} · ${PLAN_DURACION_LABEL[doctor.planDuracion]}`, esTrial: false };
   }
   const trialVencido = doctor.trialEndsAt ? doctor.trialEndsAt.getTime() <= Date.now() : false;
@@ -296,7 +296,7 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
 
   if (doctor.planEndsAt && doctor.planDuracion) {
     const inicioAprox = restarMeses(doctor.planEndsAt, MESES_POR_DURACION[doctor.planDuracion]);
-    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básica";
+    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
     historial.push({
       fecha: inicioAprox,
       titulo: "Contratación de plan pago",

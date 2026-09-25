@@ -102,13 +102,23 @@ enum Especialidad {
 
 // Duración de la suscripción paga (no aplica al trial). Cuanto más larga,
 // más barato el precio mensual equivalente -- ver PLAN_PRICING en
-// `src/lib/plan.ts`. Se completa a mano hasta integrar el cobro recurrente
-// con MercadoPago (fase futura).
+// `src/lib/plan.ts`. Todas se facturan mes a mes en MercadoPago (su
+// preapproval no soporta ciclos de 24 meses); la duración elegida solo fija
+// qué precio mensual paga, no un compromiso duro ante MercadoPago.
 enum PlanDuracion {
   MENSUAL
   SEMESTRAL
   ANUAL
   BIANUAL
+}
+
+// Estado del preapproval (suscripción) de MercadoPago, espejado desde sus
+// webhooks -- ver `src/lib/mercadopago.ts` y `/api/mercadopago/webhook`.
+enum MpPreapprovalStatus {
+  PENDING
+  AUTHORIZED
+  PAUSED
+  CANCELLED
 }
 
 // Cómo atiende el médico -- solo se pregunta cuando `perfilPublico` está
@@ -258,14 +268,28 @@ model User {
   plan           PlanTipo  @default(BASICA)
   trialEndsAt    DateTime?
 
-  // Una vez que el médico contrata un plan pago (todavía a mano, sin
-  // MercadoPago integrado) se completan estos dos campos. "Activo" en el
-  // panel de owner/admin = trial vigente (`trialEndsAt` a futuro) O
-  // suscripción paga vigente (`planEndsAt` a futuro) -- ver `esActivo()` en
-  // `src/lib/plan.ts`. `planDuracion` es solo informativo (para mostrar
-  // "Premium · 12 meses" y estimar el MRR); no dispara renovación sola.
+  // Se completan/actualizan solos vía los webhooks de MercadoPago (ver
+  // `/api/mercadopago/webhook`) cada vez que se cobra la suscripción.
+  // "Activo" en el panel de owner/admin = trial vigente (`trialEndsAt` a
+  // futuro) O suscripción paga vigente (`planEndsAt` a futuro) -- ver
+  // `esActivo()` en `src/lib/plan.ts`. `planDuracion` fija el precio
+  // mensual pactado (ver PLAN_PRICING), no un ciclo de facturación propio.
   planDuracion PlanDuracion?
   planEndsAt   DateTime?
+
+  // Suscripción (preapproval) de MercadoPago asociada a la cuenta -- ver
+  // `src/lib/mercadopago.ts`. `mpPreapprovalId` identifica la ÚLTIMA
+  // creada (elegir un plan/duración nuevo, o reintentar tras un pago
+  // rechazado, arma una preapproval nueva y reemplaza este id). Los pagos
+  // confirmados quedan en `pagosSuscripcion` para auditoría.
+  mpPreapprovalId     String?               @unique
+  mpPreapprovalStatus MpPreapprovalStatus?
+  // Si el último cobro recurrente falló, se da un margen de
+  // `GRACIA_DIAS` (ver `src/lib/plan.ts`) antes de restringir el acceso --
+  // mientras tanto se avisa en "Mi plan" (ver `plan-settings.tsx`).
+  pagoEnGracia     Boolean   @default(false)
+  graciaVenceEl    DateTime?
+  pagosSuscripcion PagoSuscripcion[]
 
   doctorAsignaciones     DoctorSecretaria[] @relation("AsignacionesComoDoctor")
   secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")
@@ -385,6 +409,23 @@ model IntentoReserva {
 
   @@index([ip, ruta, createdAt])
   @@index([slug, ruta, createdAt])
+}
+
+// Auditoría de cobros recurrentes confirmados por MercadoPago -- ver
+// `/api/mercadopago/webhook`. `mpPaymentId` único evita duplicar la fila
+// si el webhook de un mismo pago llega más de una vez.
+model PagoSuscripcion {
+  id              String   @id @default(cuid())
+  userId          String
+  mpPaymentId     String   @unique
+  mpPreapprovalId String
+  monto           Int
+  estado          String
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model WorkScheduleBlock {

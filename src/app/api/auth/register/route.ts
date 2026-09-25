@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
+  const esPremium = parsed.data.plan === "PREMIUM";
 
   await prisma.user.create({
     data: {
@@ -32,8 +33,11 @@ export async function POST(request: NextRequest) {
       especialidad: parsed.data.especialidad,
       passwordHash,
       role: "DOCTOR",
-      plan: "BASICA",
-      trialEndsAt: nuevaFechaFinTrial(),
+      // Premium no tiene período de prueba -- arranca sin trial y queda
+      // inactiva hasta que se confirme el primer pago (ver signup-form.tsx,
+      // que dispara el checkout de MercadoPago apenas se crea la cuenta).
+      plan: esPremium ? "PREMIUM" : "BASICA",
+      trialEndsAt: esPremium ? null : nuevaFechaFinTrial(),
     },
   });
 
