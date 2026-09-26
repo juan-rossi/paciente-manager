@@ -52,6 +52,10 @@ export function PlanSettings({
 
   const enTrial = diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
   const suscripcionActiva = mpPreapprovalStatus === "AUTHORIZED";
+  // Mientras se confirma un pago recién iniciado, no tiene sentido dejar
+  // arrancar OTRA suscripción en paralelo -- se espera a que el webhook
+  // resuelva esta primero (ver el aviso de "Estamos confirmando...").
+  const pendienteDeConfirmacion = mpPreapprovalStatus === "PENDING" && !pagoEnGracia;
 
   async function suscribirse(planElegido: "BASICA" | "PREMIUM") {
     setError(null);
@@ -219,7 +223,7 @@ export function PlanSettings({
               type="button"
               variant="outline"
               className="mt-1 self-start"
-              disabled={cargando !== null}
+              disabled={cargando !== null || pendienteDeConfirmacion}
               onClick={() => suscribirse("BASICA")}
             >
               {cargando === "BASICA" ? <Loader2 className="size-4 animate-spin" /> : "Suscribirme"}
@@ -243,7 +247,7 @@ export function PlanSettings({
             <Button
               type="button"
               className="mt-1 self-start"
-              disabled={cargando !== null}
+              disabled={cargando !== null || pendienteDeConfirmacion}
               onClick={() => suscribirse("PREMIUM")}
             >
               {cargando === "PREMIUM" ? (
