@@ -185,12 +185,22 @@ export function PlanSettings({
                 onClick={() => setDuracion(d)}
                 className={
                   d === duracion
-                    ? "rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                    : "rounded-full border border-border bg-card px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
+                    ? "inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-xs transition-colors"
+                    : "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 }
               >
-                {PLAN_DURACION_LABEL[d]}
-                {descuento > 0 && ` -${descuento}%`}
+                <span>{PLAN_DURACION_LABEL[d]}</span>
+                {descuento > 0 && (
+                  <span
+                    className={
+                      d === duracion
+                        ? "rounded-full bg-emerald-400/25 px-2 py-0.5 font-heading text-xs font-bold text-emerald-200 tracking-tight"
+                        : "rounded-full bg-emerald-500/10 px-2 py-0.5 font-heading text-xs font-bold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 tracking-tight"
+                    }
+                  >
+                    -{descuento}%
+                  </span>
+                )}
               </button>
             );
           })}
