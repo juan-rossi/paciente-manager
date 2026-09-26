@@ -4,17 +4,11 @@ import { useState } from "react";
 import { AlertTriangle, Check, Loader2, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SettingsSection } from "@/components/settings-section";
 import {
   PLAN_DURACION_LABEL,
   PLAN_FEATURES,
+  PLAN_PRICING,
   precioMensualEquivalente,
   type PlanDuracion,
 } from "@/lib/plan";
@@ -178,22 +172,31 @@ export function PlanSettings({
         </div>
       </SettingsSection>
 
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Duración:</span>
-        <Select value={duracion} onValueChange={(v) => setDuracion(v as PlanDuracion)}>
-          <SelectTrigger className="w-40 bg-card">
-            <SelectValue>{(v: PlanDuracion) => PLAN_DURACION_LABEL[v]}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.keys(PLAN_DURACION_LABEL) as PlanDuracion[]).map((d) => (
-              <SelectItem key={d} value={d}>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {(Object.keys(PLAN_DURACION_LABEL) as PlanDuracion[]).map((d) => {
+            const descuento = Math.round(
+              (1 - PLAN_PRICING.BASICA[d] / PLAN_PRICING.BASICA.MENSUAL) * 100
+            );
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDuracion(d)}
+                className={
+                  d === duracion
+                    ? "rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                    : "rounded-full border border-border bg-card px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
+                }
+              >
                 {PLAN_DURACION_LABEL[d]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                {descuento > 0 && ` -${descuento}%`}
+              </button>
+            );
+          })}
+        </div>
         <span className="text-xs text-muted-foreground">
-          (se factura mes a mes en MercadoPago, al precio con descuento de la duración elegida)
+          Se factura mes a mes en MercadoPago, al precio con descuento de la duración elegida.
         </span>
       </div>
 
