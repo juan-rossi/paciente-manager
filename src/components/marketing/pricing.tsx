@@ -35,7 +35,7 @@ export function Pricing() {
         <SectionHeading
           kicker="Planes"
           title="Empezá gratis, subí cuando lo necesites"
-          description="Los dos planes incluyen 3 meses de prueba gratis, sin tarjeta."
+          description="Los dos planes incluyen 60 días de prueba gratis, sin tarjeta."
           className="mb-14"
         />
 

@@ -8,7 +8,7 @@ const FAQS = [
   },
   {
     q: "¿Cómo empiezo?",
-    a: "Te registrás en un par de minutos y arrancás con 3 meses de prueba gratis, sin tarjeta de crédito.",
+    a: "Te registrás en un par de minutos y arrancás con 60 días de prueba gratis, sin tarjeta de crédito.",
   },
   {
     q: "¿Necesito instalar algo?",

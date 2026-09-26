@@ -139,7 +139,7 @@ export function SignupForm() {
         <p className="text-sm text-muted-foreground">
           {planElegido === "PREMIUM"
             ? "Vas a empezar con el plan Premium -- después de crear la cuenta te pedimos el pago."
-            : "Probá el plan Básico gratis durante 3 meses, sin tarjeta."}
+            : "Probá el plan Básico gratis durante 60 días, sin tarjeta."}
         </p>
       </CardHeader>
       <CardContent>

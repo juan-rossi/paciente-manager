@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: { absolute: "Semio360 — Tu consultorio. Más simple. Más conectado." },
   description:
-    "Gestioná turnos, pacientes e historias clínicas desde un solo lugar. Dictás la consulta y se transcribe sola. 3 meses de prueba gratis, sin tarjeta.",
+    "Gestioná turnos, pacientes e historias clínicas desde un solo lugar. Dictás la consulta y se transcribe sola. 60 días de prueba gratis, sin tarjeta.",
   alternates: { canonical: "https://semio360.com" },
   openGraph: {
     title: "Semio360 — Tu consultorio. Más simple. Más conectado.",

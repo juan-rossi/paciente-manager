@@ -1,8 +1,8 @@
-export const TRIAL_MESES = 3;
+export const TRIAL_DIAS = 60;
 
 export function nuevaFechaFinTrial(desde: Date = new Date()): Date {
   const fin = new Date(desde);
-  fin.setMonth(fin.getMonth() + TRIAL_MESES);
+  fin.setDate(fin.getDate() + TRIAL_DIAS);
   return fin;
 }
 

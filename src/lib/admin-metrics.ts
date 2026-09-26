@@ -289,7 +289,7 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       fecha: doctor.createdAt,
       titulo: "Registro autogestionado",
       descripcion: doctor.trialEndsAt
-        ? "Inicio de período de prueba (3 meses) — plan Trial."
+        ? "Inicio de período de prueba (60 días) — plan Trial."
         : "Alta de la cuenta.",
     },
   ];
