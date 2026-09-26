@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Check, Loader2, Sparkles } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +56,13 @@ export function PlanSettings({
   // arrancar OTRA suscripción en paralelo -- se espera a que el webhook
   // resuelva esta primero (ver el aviso de "Estamos confirmando...").
   const pendienteDeConfirmacion = mpPreapprovalStatus === "PENDING" && !pagoEnGracia;
+  // Tabla comparativa: todo lo de Básico (incluido también en Premium) más
+  // lo que suma Premium -- el primer item de PLAN_FEATURES.PREMIUM ("Todo
+  // lo de Básico") es solo una frase resumen, no una fila propia.
+  const filasComparacion = [
+    ...PLAN_FEATURES.BASICA.map((label) => ({ label, basica: true })),
+    ...PLAN_FEATURES.PREMIUM.slice(1).map((label) => ({ label, basica: false })),
+  ];
 
   async function suscribirse(planElegido: "BASICA" | "PREMIUM") {
     setError(null);
@@ -192,65 +199,91 @@ export function PlanSettings({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-4 sm:p-5">
-          <h3 className="text-sm font-semibold">Básico</h3>
-          <p className="text-sm text-muted-foreground">
-            ${precioMensualEquivalente("BASICA", duracion).toLocaleString("es-AR")}/mes
-          </p>
-          <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-            {PLAN_FEATURES.BASICA.map((feature) => (
-              <li key={feature} className="flex items-start gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-          {enTrial ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Ya tenés acceso gratis hasta el {trialEndsAt && formatFecha(trialEndsAt)}.
-            </p>
-          ) : (
-            !(plan === "BASICA" && suscripcionActiva) && (
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-1 self-start"
-                disabled={cargando !== null || pendienteDeConfirmacion}
-                onClick={() => suscribirse("BASICA")}
-              >
-                {cargando === "BASICA" ? <Loader2 className="size-4 animate-spin" /> : "Suscribirme"}
-              </Button>
-            )
-          )}
-        </div>
-        <div className="flex flex-col gap-3 rounded-xl border border-primary/40 bg-primary/5 p-4 sm:p-5">
-          <h3 className="text-sm font-semibold">Premium</h3>
-          <p className="text-sm text-muted-foreground">
-            ${precioMensualEquivalente("PREMIUM", duracion).toLocaleString("es-AR")}/mes
-          </p>
-          <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-            {PLAN_FEATURES.PREMIUM.map((feature) => (
-              <li key={feature} className="flex items-start gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-          {!(plan === "PREMIUM" && suscripcionActiva) && (
-            <Button
-              type="button"
-              className="mt-1 self-start"
-              disabled={cargando !== null || pendienteDeConfirmacion}
-              onClick={() => suscribirse("PREMIUM")}
+      <div className="overflow-x-auto rounded-xl border border-border/60 bg-card">
+        <div className="relative min-w-[520px] p-5 sm:p-6">
+          <div className="pointer-events-none absolute top-5 right-5 bottom-5 w-28 rounded-xl bg-primary/5 sm:top-6 sm:right-6 sm:bottom-6" />
+
+          <div className="relative grid grid-cols-[1fr_7rem_7rem] items-end gap-x-2 border-b-2 border-border/40 pb-4">
+            <div />
+            <div className="text-center">
+              <div className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                Básico
+              </div>
+              <div className="mt-1 text-xl font-extrabold">
+                ${precioMensualEquivalente("BASICA", duracion).toLocaleString("es-AR")}
+              </div>
+              <div className="text-[11px] text-muted-foreground">por mes</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs font-bold tracking-wide text-primary uppercase">Premium</div>
+              <div className="mt-1 text-xl font-extrabold">
+                ${precioMensualEquivalente("PREMIUM", duracion).toLocaleString("es-AR")}
+              </div>
+              <div className="text-[11px] text-muted-foreground">por mes</div>
+            </div>
+          </div>
+
+          {filasComparacion.map((fila) => (
+            <div
+              key={fila.label}
+              className="relative grid grid-cols-[1fr_7rem_7rem] items-center gap-x-2 border-b border-border/30 py-3 last:border-0"
             >
-              {cargando === "PREMIUM" ? (
-                <Loader2 className="size-4 animate-spin" />
+              <div className="text-sm text-foreground/80">{fila.label}</div>
+              <div className="flex justify-center">
+                {fila.basica ? (
+                  <Check className="size-4 text-primary" />
+                ) : (
+                  <X className="size-4 text-muted-foreground/25" />
+                )}
+              </div>
+              <div className="flex justify-center">
+                <Check className="size-4 text-primary" />
+              </div>
+            </div>
+          ))}
+
+          <div className="relative grid grid-cols-[1fr_7rem_7rem] items-center gap-x-2 pt-5">
+            <div />
+            <div className="flex justify-center">
+              {enTrial ? (
+                <span className="text-center text-[11px] text-muted-foreground">
+                  Incluido en tu prueba
+                </span>
               ) : (
-                "Pasar a Premium"
+                !(plan === "BASICA" && suscripcionActiva) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={cargando !== null || pendienteDeConfirmacion}
+                    onClick={() => suscribirse("BASICA")}
+                  >
+                    {cargando === "BASICA" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      "Suscribirme"
+                    )}
+                  </Button>
+                )
               )}
-            </Button>
-          )}
+            </div>
+            <div className="flex justify-center">
+              {!(plan === "PREMIUM" && suscripcionActiva) && (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={cargando !== null || pendienteDeConfirmacion}
+                  onClick={() => suscribirse("PREMIUM")}
+                >
+                  {cargando === "PREMIUM" ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Pasar a Premium"
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
