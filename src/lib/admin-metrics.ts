@@ -28,6 +28,7 @@ const MESES_POR_DURACION: Record<PlanDuracion, number> = {
   MENSUAL: 1,
   SEMESTRAL: 6,
   ANUAL: 12,
+  MESES_18: 18,
   BIANUAL: 24,
 };
 

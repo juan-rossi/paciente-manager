@@ -53,21 +53,21 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
 };
 
 
-export type PlanDuracion = "MENSUAL" | "SEMESTRAL" | "ANUAL" | "BIANUAL";
+export type PlanDuracion = "MENSUAL" | "SEMESTRAL" | "ANUAL" | "MESES_18" | "BIANUAL";
 
 export const PLAN_DURACION_LABEL: Record<PlanDuracion, string> = {
   MENSUAL: "1 mes",
   SEMESTRAL: "6 meses",
   ANUAL: "12 meses",
+  MESES_18: "18 meses",
   BIANUAL: "24 meses",
 };
 
-// Precios reales en ARS. Cuanto más larga la duración, menor el precio
-// mensual equivalente -- mismos % de descuento relativos al mensual que ya
-// existían antes de definir el precio final.
+// Precios reales en ARS. Descuento respecto al precio mensual: 6 meses 5%,
+// 12 meses 11%, 18 meses 15%, 24 meses 20%.
 export const PLAN_PRICING: Record<"BASICA" | "PREMIUM", Record<PlanDuracion, number>> = {
-  BASICA: { MENSUAL: 40000, SEMESTRAL: 35000, ANUAL: 29000, BIANUAL: 24000 },
-  PREMIUM: { MENSUAL: 75000, SEMESTRAL: 63000, ANUAL: 54000, BIANUAL: 45000 },
+  BASICA: { MENSUAL: 40000, SEMESTRAL: 38000, ANUAL: 35600, MESES_18: 34000, BIANUAL: 32000 },
+  PREMIUM: { MENSUAL: 75000, SEMESTRAL: 71250, ANUAL: 66750, MESES_18: 63750, BIANUAL: 60000 },
 };
 
 export function precioMensualEquivalente(

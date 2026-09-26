@@ -109,6 +109,7 @@ enum PlanDuracion {
   MENSUAL
   SEMESTRAL
   ANUAL
+  MESES_18
   BIANUAL
 }
 
