@@ -51,6 +51,13 @@ export async function crearPreapproval(
       back_url: `${origin}/configuracion`,
       payer_email: user.email,
       external_reference: user.id,
+      // Explícito acá en vez de depender solo de la config de "Webhooks"
+      // del panel (Tus integraciones > Webhooks) -- esa config es a nivel
+      // de aplicación entera y quedó pegada más de una vez a una URL vieja
+      // (túnel de pruebas ya caído) sin que las suscripciones creadas
+      // después se dieran cuenta. Pasándolo acá, cada preapproval apunta
+      // siempre a la URL real y actual de la propia app.
+      notification_url: `${origin}/api/mercadopago/webhook`,
     }),
   });
 
