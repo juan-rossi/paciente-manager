@@ -62,14 +62,12 @@ export const PLAN_DURACION_LABEL: Record<PlanDuracion, string> = {
   BIANUAL: "24 meses",
 };
 
-// Precios placeholder en ARS -- el pricing final de las suscripciones pagas
-// todavía no está definido. Cuanto más larga la duración, menor el precio
-// mensual equivalente (igual que se planteó en el mockup del panel admin).
-// TODO: reemplazar por precios reales antes de integrar el cobro recurrente
-// con MercadoPago.
+// Precios reales en ARS. Cuanto más larga la duración, menor el precio
+// mensual equivalente -- mismos % de descuento relativos al mensual que ya
+// existían antes de definir el precio final.
 export const PLAN_PRICING: Record<"BASICA" | "PREMIUM", Record<PlanDuracion, number>> = {
-  BASICA: { MENSUAL: 15000, SEMESTRAL: 13000, ANUAL: 11000, BIANUAL: 9000 },
-  PREMIUM: { MENSUAL: 25000, SEMESTRAL: 21000, ANUAL: 18000, BIANUAL: 15000 },
+  BASICA: { MENSUAL: 40000, SEMESTRAL: 35000, ANUAL: 29000, BIANUAL: 24000 },
+  PREMIUM: { MENSUAL: 75000, SEMESTRAL: 63000, ANUAL: 54000, BIANUAL: 45000 },
 };
 
 export function precioMensualEquivalente(

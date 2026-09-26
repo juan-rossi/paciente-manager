@@ -168,18 +168,6 @@ export function PlanSettings({
               se renueva el {formatFecha(planEndsAt)}.
             </span>
           )}
-          {suscripcionActiva && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={cancelando}
-              onClick={cancelarSuscripcion}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
-            </Button>
-          )}
         </div>
       </SettingsSection>
 
@@ -218,16 +206,22 @@ export function PlanSettings({
               </li>
             ))}
           </ul>
-          {!(plan === "BASICA" && suscripcionActiva) && (
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-1 self-start"
-              disabled={cargando !== null || pendienteDeConfirmacion}
-              onClick={() => suscribirse("BASICA")}
-            >
-              {cargando === "BASICA" ? <Loader2 className="size-4 animate-spin" /> : "Suscribirme"}
-            </Button>
+          {enTrial ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Ya tenés acceso gratis hasta el {trialEndsAt && formatFecha(trialEndsAt)}.
+            </p>
+          ) : (
+            !(plan === "BASICA" && suscripcionActiva) && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-1 self-start"
+                disabled={cargando !== null || pendienteDeConfirmacion}
+                onClick={() => suscribirse("BASICA")}
+              >
+                {cargando === "BASICA" ? <Loader2 className="size-4 animate-spin" /> : "Suscribirme"}
+              </Button>
+            )
           )}
         </div>
         <div className="flex flex-col gap-3 rounded-xl border border-primary/40 bg-primary/5 p-4 sm:p-5">
@@ -259,6 +253,19 @@ export function PlanSettings({
           )}
         </div>
       </div>
+
+      {suscripcionActiva && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={cancelando}
+          onClick={cancelarSuscripcion}
+          className="self-start text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+        >
+          {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
+        </Button>
+      )}
     </div>
   );
 }
