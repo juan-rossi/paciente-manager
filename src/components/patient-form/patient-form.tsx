@@ -254,38 +254,38 @@ export function PatientForm({
           )}
         </TabsList>
 
-        <TabsList className="grid w-full grid-cols-3 gap-2 sm:hidden">
+        <TabsList className="grid w-full grid-cols-3 gap-2 auto-rows-fr items-stretch sm:hidden">
           <TabsTrigger
             value="datos-personales"
-            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
           >
             <User className="size-[18px]" />
             Datos Personales
           </TabsTrigger>
           <TabsTrigger
             value="consulta-inicial"
-            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
           >
             <ClipboardList className="size-[18px]" />
             Consulta Inicial
           </TabsTrigger>
           <TabsTrigger
             value="antecedentes"
-            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
           >
             <History className="size-[18px]" />
-            Antecedentes Personales
+            Antecedentes
           </TabsTrigger>
           <TabsTrigger
             value="examen-fisico"
-            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
           >
             <Stethoscope className="size-[18px]" />
             Exámen Físico
           </TabsTrigger>
           <TabsTrigger
             value="diagnostico"
-            className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
           >
             <ClipboardCheck className="size-[18px]" />
             Diagnóstico
@@ -293,7 +293,7 @@ export function PatientForm({
           {mode === "edit" && (
             <TabsTrigger
               value="evolucion"
-              className="flex-col gap-1.5 rounded-xl px-2 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
             >
               <TrendingUp className="size-[18px]" />
               Evolución Clínica
