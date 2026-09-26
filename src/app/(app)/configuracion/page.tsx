@@ -85,9 +85,9 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
       <ConfiguracionTabs
         initialTab={initialTab}
         orientation="vertical"
-        className="flex-col items-stretch gap-6 md:flex-row md:items-start"
+        className="flex-col items-stretch gap-4 md:gap-6 md:flex-row md:items-start"
       >
-        <TabsList className="w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
+        <TabsList className="hidden md:flex w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
           <div className={groupLabelClass}>Consultorio</div>
           <TabsTrigger value="practica" className={navItemClass}>
             <Building2 className="size-4" />
