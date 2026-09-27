@@ -383,8 +383,15 @@ export function PlanSettings({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {/* Vista Mobile y Tablet (< lg): Cards de Planes */}
-      <div className="flex flex-col gap-4 lg:hidden">
+      {/* Con un plan pago vigente (recurrente o prepago) no hay ninguna acción
+          segura que ofrecer acá: bajar de categoría pierde lo ya pagado sin
+          reembolso, y subir de categoría requeriría prorratear el tiempo
+          restante -- ninguno de los dos existe todavía. Se oculta toda la
+          comparación hasta que el plan actual venza o se cancele. */}
+      {!planVigente && (
+        <>
+          {/* Vista Mobile y Tablet (< lg): Cards de Planes */}
+          <div className="flex flex-col gap-4 lg:hidden">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {/* Card Básico */}
           <div className="flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 shadow-xs">
@@ -547,10 +554,10 @@ export function PlanSettings({
         </div>
       </div>
 
-      {/* Vista Desktop (lg): Tabla comparativa directa */}
-      <div className="hidden lg:block">
-        {tablaComparativa}
-      </div>
+          {/* Vista Desktop (lg): Tabla comparativa directa */}
+          <div className="hidden lg:block">{tablaComparativa}</div>
+        </>
+      )}
 
       {suscripcionActiva && esRecurrente && (
         <Button
