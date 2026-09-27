@@ -424,10 +424,12 @@ model IntentoReserva {
 // `/api/mercadopago/webhook`. `mpPaymentId` único evita duplicar la fila
 // si el webhook de un mismo pago llega más de una vez.
 model PagoSuscripcion {
-  id              String   @id @default(cuid())
-  userId          String
-  mpPaymentId     String   @unique
-  mpPreapprovalId String
+  id          String @id @default(cuid())
+  userId      String
+  mpPaymentId String @unique
+  // Null para pagos únicos (Preference/Checkout Pro) -- solo aplica a
+  // cobros de una suscripción recurrente (MENSUAL).
+  mpPreapprovalId String?
   monto           Int
   estado          String
   createdAt       DateTime @default(now())

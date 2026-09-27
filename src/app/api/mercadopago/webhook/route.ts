@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { nuevaFechaFinGracia } from "@/lib/plan";
-import { obtenerPago, obtenerPreapproval, verificarFirmaWebhook } from "@/lib/mercadopago";
+import { MESES_POR_DURACION, nuevaFechaFinGracia, type PlanDuracion } from "@/lib/plan";
+import {
+  obtenerPago,
+  obtenerPagoUnico,
+  obtenerPreapproval,
+  verificarFirmaWebhook,
+} from "@/lib/mercadopago";
 
 const PREAPPROVAL_STATUS_MAP: Record<string, "PENDING" | "AUTHORIZED" | "PAUSED" | "CANCELLED"> = {
   pending: "PENDING",
@@ -10,10 +15,10 @@ const PREAPPROVAL_STATUS_MAP: Record<string, "PENDING" | "AUTHORIZED" | "PAUSED"
   cancelled: "CANCELLED",
 };
 
-function nuevoVencimiento(actual: Date | null): Date {
+function nuevoVencimiento(actual: Date | null, meses: number = 1): Date {
   const base = actual && actual.getTime() > Date.now() ? actual : new Date();
   const fin = new Date(base);
-  fin.setMonth(fin.getMonth() + 1);
+  fin.setMonth(fin.getMonth() + meses);
   return fin;
 }
 
@@ -141,6 +146,51 @@ export async function POST(request: NextRequest) {
                   user.planEndsAt && user.planEndsAt > graciaVenceEl ? user.planEndsAt : graciaVenceEl,
               },
             });
+          }
+        }
+      }
+    } else if (type === "payment") {
+      const pago = await obtenerPagoUnico(dataId);
+      // Los cobros de una suscripción recurrente también son "payments" en
+      // MercadoPago -- si en algún momento se habilita ese evento a nivel de
+      // aplicación, podrían llegar acá también. Esos ya los procesa la rama
+      // `subscription_authorized_payment` de arriba; se ignoran acá para no
+      // procesarlos dos veces por caminos distintos.
+      if (pago.operation_type === "recurring_payment") {
+        // no-op
+      } else if (pago.status === "approved" && pago.external_reference) {
+        const user = await prisma.user.findUnique({ where: { id: pago.external_reference } });
+        if (user) {
+          const mpPaymentId = String(pago.id);
+          const yaRegistrado = await prisma.pagoSuscripcion.findUnique({ where: { mpPaymentId } });
+          if (!yaRegistrado) {
+            // La duración se resuelve ANTES de limpiar `planDuracionPendiente`
+            // -- es la única forma de saber cuántos meses de acceso otorga
+            // este pago único (a diferencia del cobro recurrente, que
+            // siempre es un mes).
+            const duracion: PlanDuracion = user.planDuracionPendiente ?? user.planDuracion ?? "MENSUAL";
+            const meses = MESES_POR_DURACION[duracion];
+            await prisma.$transaction([
+              prisma.pagoSuscripcion.create({
+                data: {
+                  userId: user.id,
+                  mpPaymentId,
+                  mpPreapprovalId: null,
+                  monto: Math.round(pago.transaction_amount),
+                  estado: pago.status,
+                },
+              }),
+              prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  plan: user.planPendiente ?? user.plan,
+                  planDuracion: duracion,
+                  planPendiente: null,
+                  planDuracionPendiente: null,
+                  planEndsAt: nuevoVencimiento(user.planEndsAt, meses),
+                },
+              }),
+            ]);
           }
         }
       }

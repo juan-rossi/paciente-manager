@@ -10,6 +10,7 @@ import {
   PLAN_FEATURES,
   PLAN_PRICING,
   precioMensualEquivalente,
+  precioTotalDuracion,
   type PlanDuracion,
 } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
@@ -79,8 +80,20 @@ export function PlanSettings({
     }
   }
 
-  const enTrial = diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
+  // El período de prueba es exclusivo de Básico (Premium nunca lo tiene,
+  // ver src/lib/plan.ts) -- si ya se pasó a Premium, `trialEndsAt` puede
+  // seguir vigente en la fila (quedó de cuando era Básico) pero ya no es
+  // relevante mostrarlo.
+  const enTrial = plan === "BASICA" && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
   const suscripcionActiva = mpPreapprovalStatus === "AUTHORIZED";
+  // Duraciones != MENSUAL son un pago único por adelantado -- no hay nada
+  // que "renovar" ni "cancelar" (ya está todo pagado), a diferencia de la
+  // suscripción recurrente mensual. `planVigente` cubre ambos casos (activo
+  // = tiene acceso pagado vigente, sea recurrente o prepago); `suscripcionActiva`
+  // sigue significando específicamente "hay una suscripción de MercadoPago
+  // autorizada" -- solo tiene sentido para MENSUAL.
+  const esRecurrente = planDuracion === "MENSUAL";
+  const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
   // Tabla comparativa: todo lo de Básico (incluido también en Premium) más
   // lo que suma Premium -- el primer item de PLAN_FEATURES.PREMIUM ("Todo
   // lo de Básico") es solo una frase resumen, no una fila propia.
@@ -161,6 +174,11 @@ export function PlanSettings({
               ${precioMensualEquivalente("BASICA", duracion).toLocaleString("es-AR")}
             </div>
             <div className="text-[11px] text-muted-foreground">por mes</div>
+            {duracion !== "MENSUAL" && (
+              <div className="text-[11px] font-semibold text-foreground/70">
+                ${precioTotalDuracion("BASICA", duracion).toLocaleString("es-AR")} total, pago único
+              </div>
+            )}
           </div>
           <div className="text-center">
             <div className="text-xs font-bold tracking-wide text-primary uppercase">Premium</div>
@@ -168,6 +186,11 @@ export function PlanSettings({
               ${precioMensualEquivalente("PREMIUM", duracion).toLocaleString("es-AR")}
             </div>
             <div className="text-[11px] text-muted-foreground">por mes</div>
+            {duracion !== "MENSUAL" && (
+              <div className="text-[11px] font-semibold text-foreground/70">
+                ${precioTotalDuracion("PREMIUM", duracion).toLocaleString("es-AR")} total, pago único
+              </div>
+            )}
           </div>
         </div>
 
@@ -198,7 +221,7 @@ export function PlanSettings({
                 Incluido en tu prueba
               </span>
             ) : (
-              !(plan === "BASICA" && suscripcionActiva) && (
+              !(plan === "BASICA" && planVigente) && (
                 <Button
                   type="button"
                   variant="outline"
@@ -217,7 +240,7 @@ export function PlanSettings({
             )}
           </div>
           <div className="flex justify-center">
-            {!(plan === "PREMIUM" && suscripcionActiva) && (
+            {!(plan === "PREMIUM" && planVigente) && (
               <Button
                 type="button"
                 size="sm"
@@ -288,11 +311,7 @@ export function PlanSettings({
         </div>
       )}
 
-      <SettingsSection
-        title="Tu plan actual"
-        description="Podés cambiar de plan o de duración cuando quieras."
-        icon={Sparkles}
-      >
+      <SettingsSection title="Tu plan actual" icon={Sparkles}>
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant={plan === "PREMIUM" ? "default" : "secondary"} className="text-sm">
             {plan === "PREMIUM" ? "Premium" : "Básico"}
@@ -304,52 +323,63 @@ export function PlanSettings({
               {trialEndsAt && ` (hasta el ${formatFecha(trialEndsAt)})`}.
             </span>
           )}
-          {suscripcionActiva && planEndsAt && (
+          {planVigente && planEndsAt && (
             <span className="text-sm text-muted-foreground">
               {planDuracion && `${PLAN_DURACION_LABEL[planDuracion]} · `}
-              se renueva el {formatFecha(planEndsAt)}.
+              {esRecurrente
+                ? `se renueva el ${formatFecha(planEndsAt)}.`
+                : `vence el ${formatFecha(planEndsAt)} (pago único, sin renovación automática).`}
             </span>
           )}
         </div>
       </SettingsSection>
 
-      <div className="flex flex-col gap-2">
-        <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-          {(Object.keys(PLAN_DURACION_LABEL) as PlanDuracion[]).map((d) => {
-            const descuento = Math.round(
-              (1 - PLAN_PRICING.BASICA[d] / PLAN_PRICING.BASICA.MENSUAL) * 100
-            );
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDuracion(d)}
-                className={
-                  d === duracion
-                    ? "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-colors sm:px-4 sm:py-2 sm:text-sm"
-                    : "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:px-4 sm:py-2 sm:text-sm"
-                }
-              >
-                <span>{PLAN_DURACION_LABEL[d]}</span>
-                {descuento > 0 && (
-                  <span
-                    className={
-                      d === duracion
-                        ? "rounded-full bg-emerald-400/25 px-1.5 py-0.5 font-heading text-[10px] font-bold text-emerald-200 tracking-tight sm:text-xs"
-                        : "rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-heading text-[10px] font-bold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 tracking-tight sm:text-xs"
-                    }
-                  >
-                    -{descuento}%
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* El selector solo tiene sentido para elegir CON qué duración
+          arrancar un plan nuevo -- si ya hay uno vigente (recurrente o
+          prepago), cambiar la duración acá no tiene ningún efecto (no hay
+          botón que la aplique), así que se oculta para no sugerir una
+          acción que no existe. */}
+      {!planVigente && (
+        <div className="flex flex-col gap-2">
+          <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+            {(Object.keys(PLAN_DURACION_LABEL) as PlanDuracion[]).map((d) => {
+              const descuento = Math.round(
+                (1 - PLAN_PRICING.BASICA[d] / PLAN_PRICING.BASICA.MENSUAL) * 100
+              );
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDuracion(d)}
+                  className={
+                    d === duracion
+                      ? "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-colors sm:px-4 sm:py-2 sm:text-sm"
+                      : "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:px-4 sm:py-2 sm:text-sm"
+                  }
+                >
+                  <span>{PLAN_DURACION_LABEL[d]}</span>
+                  {descuento > 0 && (
+                    <span
+                      className={
+                        d === duracion
+                          ? "rounded-full bg-emerald-400/25 px-1.5 py-0.5 font-heading text-[10px] font-bold text-emerald-200 tracking-tight sm:text-xs"
+                          : "rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-heading text-[10px] font-bold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 tracking-tight sm:text-xs"
+                      }
+                    >
+                      -{descuento}%
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {duracion === "MENSUAL"
+              ? "Se factura mes a mes en MercadoPago, cancelás cuando quieras."
+              : "Pago único por adelantado en MercadoPago, sin renovación automática -- al vencer, se vuelve a pagar para seguir."}
+          </span>
         </div>
-        <span className="text-xs text-muted-foreground">
-          Se factura mes a mes en MercadoPago, al precio con descuento de la duración elegida.
-        </span>
-      </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -368,7 +398,7 @@ export function PlanSettings({
                     En prueba
                   </Badge>
                 )}
-                {plan === "BASICA" && suscripcionActiva && (
+                {plan === "BASICA" && planVigente && (
                   <Badge variant="secondary" className="text-[11px]">
                     Tu plan actual
                   </Badge>
@@ -383,8 +413,9 @@ export function PlanSettings({
                   <span className="text-xs text-muted-foreground">/ mes</span>
                 </div>
                 {duracion !== "MENSUAL" && (
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Facturación {PLAN_DURACION_LABEL[duracion].toLowerCase()}
+                  <p className="mt-0.5 text-[11px] font-semibold text-foreground/70">
+                    ${precioTotalDuracion("BASICA", duracion).toLocaleString("es-AR")} total, pago
+                    único · {PLAN_DURACION_LABEL[duracion].toLowerCase()}
                   </p>
                 )}
               </div>
@@ -393,7 +424,7 @@ export function PlanSettings({
                 <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
                   Incluido en tu prueba
                 </div>
-              ) : plan === "BASICA" && suscripcionActiva ? (
+              ) : plan === "BASICA" && planVigente ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 py-2 text-center text-xs font-semibold text-primary">
                   Plan actual
                 </div>
@@ -448,13 +479,14 @@ export function PlanSettings({
                   <span className="text-xs text-muted-foreground">/ mes</span>
                 </div>
                 {duracion !== "MENSUAL" && (
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Facturación {PLAN_DURACION_LABEL[duracion].toLowerCase()}
+                  <p className="mt-0.5 text-[11px] font-semibold text-foreground/70">
+                    ${precioTotalDuracion("PREMIUM", duracion).toLocaleString("es-AR")} total, pago
+                    único · {PLAN_DURACION_LABEL[duracion].toLowerCase()}
                   </p>
                 )}
               </div>
 
-              {plan === "PREMIUM" && suscripcionActiva ? (
+              {plan === "PREMIUM" && planVigente ? (
                 <div className="rounded-lg border border-primary/30 bg-primary/10 py-2 text-center text-xs font-semibold text-primary">
                   Plan actual
                 </div>
@@ -520,7 +552,7 @@ export function PlanSettings({
         {tablaComparativa}
       </div>
 
-      {suscripcionActiva && (
+      {suscripcionActiva && esRecurrente && (
         <Button
           type="button"
           variant="outline"

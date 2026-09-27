@@ -5,6 +5,7 @@ import {
   diasParaFecha,
   precioMensualEquivalente,
   PLAN_DURACION_LABEL,
+  MESES_POR_DURACION,
   type PlanDuracion,
 } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
@@ -23,14 +24,6 @@ import { TIME_ZONE } from "@/lib/timezone";
  */
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-const MESES_POR_DURACION: Record<PlanDuracion, number> = {
-  MENSUAL: 1,
-  SEMESTRAL: 6,
-  ANUAL: 12,
-  MESES_18: 18,
-  BIANUAL: 24,
-};
 
 const DOCTOR_LIST_SELECT = {
   id: true,

@@ -9,7 +9,10 @@ export async function POST() {
   const { user, response } = await requireDoctor();
   if (response) return response;
 
-  if (!user.mpPreapprovalId) {
+  // `mpPreapprovalId` nunca se limpia (solo se reemplaza), así que no basta
+  // con chequear que exista -- podría ser el id de una suscripción vieja ya
+  // cancelada o de un pago único (que no tiene nada que cancelar).
+  if (!user.mpPreapprovalId || user.mpPreapprovalStatus !== "AUTHORIZED") {
     return NextResponse.json({ error: "No tenés una suscripción activa." }, { status: 400 });
   }
 

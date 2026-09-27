@@ -1,16 +1,20 @@
-// Integración con las Suscripciones (preapproval) de MercadoPago. Usa
-// Checkout Pro -- creamos el preapproval sin datos de tarjeta y
+// Integración con MercadoPago -- dos mecanismos de cobro distintos según la
+// duración elegida (ver decisión de diseño del 2026-09-27):
+// - MENSUAL: Suscripción recurrente (preapproval), igual que siempre --
+//   cobro automático mes a mes, cancelable en cualquier momento.
+// - SEMESTRAL/ANUAL/MESES_18/BIANUAL: Pago único por adelantado (Preference/
+//   Checkout Pro normal) por el total con descuento -- sin cobro
+//   automático nunca más. Esto es lo que hace que elegir una duración larga
+//   sea un compromiso real (antes, todas las duraciones facturaban mes a
+//   mes y se podía cancelar sin penalidad apenas empezada).
+// Ambos usan Checkout Pro -- creamos el recurso sin datos de tarjeta y
 // redirigimos al `init_point` que devuelve MercadoPago, así nunca
-// manejamos ni tokenizamos una tarjeta de este lado. Todas las duraciones
-// se facturan mes a mes (`frequency: 1, frequency_type: "months"`): el
-// preapproval de MercadoPago no soporta un ciclo de 24 meses (Bianual), y
-// la duración elegida solo determina qué precio mensual paga el médico
-// (ver `precioMensualEquivalente` en `src/lib/plan.ts`), no un ciclo de
-// cobro propio.
+// manejamos ni tokenizamos una tarjeta de este lado.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   PLAN_DURACION_LABEL,
   precioMensualEquivalente,
+  precioTotalDuracion,
   type PlanDuracion,
 } from "@/lib/plan";
 
@@ -77,6 +81,68 @@ export async function crearPreapproval(
   return { initPoint, preapprovalId: data.id };
 }
 
+export type CrearPreferenciaResult = { initPoint: string; preferenceId: string };
+
+// Pago único por adelantado para duraciones != MENSUAL -- un solo `item`
+// por el total con descuento (`precioTotalDuracion`), sin `auto_recurring`.
+// `external_reference` es la ÚNICA forma en la que el webhook identifica
+// qué médico pagó (no hay un id de suscripción que guardar como con
+// `crearPreapproval`). Se excluyen medios de pago offline (`ticket`:
+// Rapipago/Pago Fácil/etc.) para que la confirmación llegue en segundos
+// como con tarjeta -- si se permitieran, un pago podría quedar "pendiente"
+// por días sin que la UI tenga ninguna forma de reflejar eso todavía.
+export async function crearPreferencia(
+  user: { id: string; email: string },
+  plan: PlanTipo,
+  duracion: PlanDuracion,
+  origin: string
+): Promise<CrearPreferenciaResult> {
+  const accessToken = requireAccessToken();
+
+  const response = await fetch(`${MP_API}/checkout/preferences`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      items: [
+        {
+          title: `Semio360 - Plan ${plan === "PREMIUM" ? "Premium" : "Básico"} (${PLAN_DURACION_LABEL[duracion]}, pago único)`,
+          quantity: 1,
+          unit_price: precioTotalDuracion(plan, duracion),
+          currency_id: "ARS",
+        },
+      ],
+      payer: { email: user.email },
+      external_reference: user.id,
+      back_urls: {
+        success: `${origin}/configuracion`,
+        failure: `${origin}/configuracion`,
+        pending: `${origin}/configuracion`,
+      },
+      auto_return: "approved",
+      notification_url: `${origin}/api/mercadopago/webhook`,
+      payment_methods: { excluded_payment_types: [{ id: "ticket" }] },
+    }),
+  });
+
+  if (!response.ok) {
+    const detalle = await response.text().catch(() => "");
+    throw new Error(`MercadoPago rechazó la creación del pago (${response.status}): ${detalle}`);
+  }
+
+  const data = (await response.json()) as {
+    id: string;
+    init_point?: string;
+    sandbox_init_point?: string;
+  };
+  const initPoint = data.init_point ?? data.sandbox_init_point;
+  if (!initPoint) throw new Error("MercadoPago no devolvió un link de checkout.");
+
+  return { initPoint, preferenceId: data.id };
+}
+
 export type MpPreapproval = {
   id: string;
   status: "pending" | "authorized" | "paused" | "cancelled";
@@ -117,6 +183,35 @@ export async function obtenerPago(id: string): Promise<MpPagoAutorizado> {
   });
   if (!response.ok) {
     throw new Error(`No se pudo obtener el pago ${id} (${response.status}).`);
+  }
+  return response.json();
+}
+
+export type MpPagoUnico = {
+  id: number;
+  status: string; // "approved" | "rejected" | "pending" | "in_process" | ...
+  status_detail?: string;
+  transaction_amount: number;
+  external_reference?: string | null;
+  // "regular_payment" = Checkout Pro normal (lo que nos interesa acá);
+  // "recurring_payment" = generado por una suscripción (preapproval) -- una
+  // vez habilitado el evento "Pagos" en el panel de MercadoPago, es posible
+  // que también notifique estos cobros recurrentes acá. Se ignoran
+  // explícitamente: esos ya los procesa `subscription_authorized_payment`
+  // más arriba, y procesarlos dos veces por dos caminos distintos sería
+  // aventurarse a una condición de carrera innecesaria.
+  operation_type?: string;
+};
+
+// Para pagos únicos (Preference/Checkout Pro), a diferencia de los cobros
+// de una suscripción -- ver `crearPreferencia`.
+export async function obtenerPagoUnico(id: string): Promise<MpPagoUnico> {
+  const accessToken = requireAccessToken();
+  const response = await fetch(`${MP_API}/v1/payments/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    throw new Error(`No se pudo obtener el pago único ${id} (${response.status}).`);
   }
   return response.json();
 }

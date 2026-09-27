@@ -77,6 +77,26 @@ export function precioMensualEquivalente(
   return PLAN_PRICING[plan][duracion];
 }
 
+// Cuántos meses de acceso otorga cada duración -- MENSUAL se sigue
+// facturando mes a mes (suscripción recurrente de MercadoPago); el resto
+// ahora es un pago único por adelantado (ver `crearPreferencia` en
+// `src/lib/mercadopago.ts`), así que esto es tanto "cuánto dura el acceso"
+// como el multiplicador para calcular el total a cobrar de una vez.
+export const MESES_POR_DURACION: Record<PlanDuracion, number> = {
+  MENSUAL: 1,
+  SEMESTRAL: 6,
+  ANUAL: 12,
+  MESES_18: 18,
+  BIANUAL: 24,
+};
+
+// Monto total del pago único para duraciones != MENSUAL (el precio con
+// descuento ya está expresado "por mes" en PLAN_PRICING; esto lo multiplica
+// por la cantidad de meses que cubre esa duración).
+export function precioTotalDuracion(plan: "BASICA" | "PREMIUM", duracion: PlanDuracion): number {
+  return precioMensualEquivalente(plan, duracion) * MESES_POR_DURACION[duracion];
+}
+
 type EstadoCuentaUser = {
   trialEndsAt: Date | null;
   planEndsAt: Date | null;
