@@ -26,19 +26,32 @@ function nuevoVencimiento(actual: Date | null): Date {
 // excepción es una firma inválida, que si se rechaza con 401.
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
-  const type: string | null = body?.type ?? request.nextUrl.searchParams.get("type");
-  const dataId: string | null = body?.data?.id ?? request.nextUrl.searchParams.get("data.id");
+  // La documentación de MercadoPago arma el manifest de la firma con el
+  // `data.id` tal cual viene en el QUERY STRING de la URL de notificación
+  // -- por eso se prioriza acá sobre el del body (que puede no venir, o
+  // representar el valor distinto, según el tipo de evento).
+  const type: string | null = request.nextUrl.searchParams.get("type") ?? body?.type ?? null;
+  const dataId: string | null =
+    request.nextUrl.searchParams.get("data.id") ?? body?.data?.id ?? null;
 
   if (!dataId) {
     return NextResponse.json({ ok: true });
   }
 
-  const firmaValida = verificarFirmaWebhook(
-    request.headers.get("x-signature"),
-    request.headers.get("x-request-id"),
-    dataId
-  );
+  const xSignature = request.headers.get("x-signature");
+  const xRequestId = request.headers.get("x-request-id");
+  const firmaValida = verificarFirmaWebhook(xSignature, xRequestId, dataId);
   if (!firmaValida) {
+    // Log temporal para diagnosticar un mismatch de firma real de
+    // MercadoPago -- sacar una vez confirmado que las notificaciones se
+    // procesan bien (ver conversación del 2026-09-27).
+    console.error("Webhook de MercadoPago rechazado por firma inválida", {
+      type,
+      dataId,
+      xSignature,
+      xRequestId,
+      query: request.nextUrl.search,
+    });
     return NextResponse.json({ error: "Firma inválida." }, { status: 401 });
   }
 
