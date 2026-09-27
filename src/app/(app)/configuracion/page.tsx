@@ -172,6 +172,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             diasRestantesDeTrial={diasRestantesDeTrial(user)}
             planDuracion={user.planDuracion}
             planEndsAt={user.planEndsAt?.toISOString() ?? null}
+            mpPreapprovalId={user.mpPreapprovalId}
             mpPreapprovalStatus={user.mpPreapprovalStatus}
             pagoEnGracia={user.pagoEnGracia}
             graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}

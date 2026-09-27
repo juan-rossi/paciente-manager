@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Loader2, Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, Check, ChevronDown, Clock, Loader2, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
@@ -21,10 +21,18 @@ type Props = {
   diasRestantesDeTrial: number | null;
   planDuracion: PlanDuracion | null;
   planEndsAt: string | null;
+  mpPreapprovalId: string | null;
   mpPreapprovalStatus: "PENDING" | "AUTHORIZED" | "PAUSED" | "CANCELLED" | null;
   pagoEnGracia: boolean;
   graciaVenceEl: string | null;
 };
+
+// Clave de localStorage bajo la que se recuerda el ID de la última preapproval
+// "pendiente" que el médico cerró a mano -- así el aviso no vuelve a
+// aparecer para ESE intento en particular, pero si arranca un checkout
+// nuevo (mpPreapprovalId distinto, ver checkout/route.ts) sí se le vuelve a
+// avisar.
+const AVISO_PENDIENTE_CERRADO_KEY = "mp_aviso_pendiente_cerrado";
 
 function formatFecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-AR", { timeZone: TIME_ZONE });
@@ -36,6 +44,7 @@ export function PlanSettings({
   diasRestantesDeTrial,
   planDuracion,
   planEndsAt,
+  mpPreapprovalId,
   mpPreapprovalStatus,
   pagoEnGracia,
   graciaVenceEl,
@@ -45,13 +54,33 @@ export function PlanSettings({
   const [cargando, setCargando] = useState<"BASICA" | "PREMIUM" | null>(null);
   const [cancelando, setCancelando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avisoPendienteCerrado, setAvisoPendienteCerrado] = useState(false);
+
+  // Se lee en un efecto (no al inicializar el state) para no desalinear el
+  // render del servidor con el del cliente en el primer paint.
+  useEffect(() => {
+    if (!mpPreapprovalId) return;
+    try {
+      if (localStorage.getItem(AVISO_PENDIENTE_CERRADO_KEY) === mpPreapprovalId) {
+        setAvisoPendienteCerrado(true);
+      }
+    } catch {
+      // Storage no disponible (modo privado, etc.) -- el aviso simplemente
+      // se puede volver a mostrar, no es crítico.
+    }
+  }, [mpPreapprovalId]);
+
+  function cerrarAvisoPendiente() {
+    setAvisoPendienteCerrado(true);
+    try {
+      if (mpPreapprovalId) localStorage.setItem(AVISO_PENDIENTE_CERRADO_KEY, mpPreapprovalId);
+    } catch {
+      // Idem -- si no se puede persistir, el cierre solo dura esta vista.
+    }
+  }
 
   const enTrial = diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
   const suscripcionActiva = mpPreapprovalStatus === "AUTHORIZED";
-  // Mientras se confirma un pago recién iniciado, no tiene sentido dejar
-  // arrancar OTRA suscripción en paralelo -- se espera a que el webhook
-  // resuelva esta primero (ver el aviso de "Estamos confirmando...").
-  const pendienteDeConfirmacion = mpPreapprovalStatus === "PENDING" && !pagoEnGracia;
   // Tabla comparativa: todo lo de Básico (incluido también en Premium) más
   // lo que suma Premium -- el primer item de PLAN_FEATURES.PREMIUM ("Todo
   // lo de Básico") es solo una frase resumen, no una fila propia.
@@ -174,7 +203,7 @@ export function PlanSettings({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null || pendienteDeConfirmacion}
+                  disabled={cargando !== null}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full max-w-[8.5rem]"
                 >
@@ -192,7 +221,7 @@ export function PlanSettings({
               <Button
                 type="button"
                 size="sm"
-                disabled={cargando !== null || pendienteDeConfirmacion}
+                disabled={cargando !== null}
                 onClick={() => suscribirse("PREMIUM")}
                 className="w-full max-w-[8.5rem] shadow-xs"
               >
@@ -234,11 +263,29 @@ export function PlanSettings({
         </div>
       )}
 
-      {mpPreapprovalStatus === "PENDING" && !pagoEnGracia && (
-        <p className="rounded-xl border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
-          Estamos confirmando tu suscripción con MercadoPago. Si ya completaste el pago, esto se
-          actualiza solo en unos segundos.
-        </p>
+      {mpPreapprovalStatus === "PENDING" && !pagoEnGracia && !avisoPendienteCerrado && (
+        <div className="relative flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/10 p-4 pr-11">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary shadow-[0_4px_10px_-3px_rgba(79,70,229,0.55)]">
+            <Clock className="size-4 text-primary-foreground" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <p className="font-heading text-sm font-bold text-primary">
+              Confirmando tu suscripción con MercadoPago
+            </p>
+            <p className="text-sm text-foreground/70">
+              Si ya completaste el pago, esto se actualiza solo en unos segundos. No hace falta
+              que hagas nada más.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            onClick={cerrarAvisoPendiente}
+            className="absolute top-3 right-3 flex size-6 items-center justify-center rounded-full text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
       )}
 
       <SettingsSection
@@ -355,7 +402,7 @@ export function PlanSettings({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null || pendienteDeConfirmacion}
+                  disabled={cargando !== null}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full"
                 >
@@ -415,7 +462,7 @@ export function PlanSettings({
                 <Button
                   type="button"
                   size="sm"
-                  disabled={cargando !== null || pendienteDeConfirmacion}
+                  disabled={cargando !== null}
                   onClick={() => suscribirse("PREMIUM")}
                   className="w-full shadow-xs"
                 >

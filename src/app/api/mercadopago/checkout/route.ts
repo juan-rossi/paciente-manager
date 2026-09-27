@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { checkoutSchema } from "@/lib/mercadopago-schema";
-import { crearPreapproval } from "@/lib/mercadopago";
+import { cancelarPreapproval, crearPreapproval } from "@/lib/mercadopago";
 
 // Arranca (o reemplaza) la suscripción de MercadoPago del médico -- lo usan
 // tanto "Mi plan" (elegir/cambiar plan) como el signup cuando se elige
@@ -26,6 +26,17 @@ export async function POST(request: NextRequest) {
   }
 
   const { plan, duracion } = parsed.data;
+
+  // Si había un intento anterior sin confirmar (el médico abandonó ese
+  // checkout de MercadoPago sin pagar), lo cancelamos antes de crear uno
+  // nuevo -- si no, queda huérfano del lado de MercadoPago y, más importante,
+  // el médico quedaría sin poder reintentar nunca (ver `pendienteDeConfirmacion`
+  // en plan-settings.tsx, que ya no bloquea el botón, pero igual conviene no
+  // dejar preapprovals viejas colgadas). Best-effort: si MercadoPago no la
+  // deja cancelar (p.ej. ya no existe), no bloqueamos el nuevo intento por eso.
+  if (user.mpPreapprovalId && user.mpPreapprovalStatus === "PENDING") {
+    await cancelarPreapproval(user.mpPreapprovalId).catch(() => {});
+  }
 
   // `request.nextUrl.origin` refleja el host real de la conexión TCP, no el
   // del proxy que la recibió -- detrás de un proxy de confianza (Vercel en
