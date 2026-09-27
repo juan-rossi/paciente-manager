@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
 import {
+  MESES_POR_DURACION,
   PLAN_DURACION_LABEL,
   PLAN_FEATURES,
   PLAN_PRICING,
@@ -94,6 +95,23 @@ export function PlanSettings({
   // autorizada" -- solo tiene sentido para MENSUAL.
   const esRecurrente = planDuracion === "MENSUAL";
   const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
+  // Fecha de inicio aproximada del pago único vigente -- no se guarda en la
+  // base (no hace falta un campo nuevo), se calcula restando la duración
+  // elegida a `planEndsAt`, mismo criterio que ya usa `admin-metrics.ts`
+  // para estimar cuándo arrancó una suscripción a partir de su vencimiento.
+  const fechaInicioPrepago =
+    planVigente && !esRecurrente && planEndsAt && planDuracion
+      ? (() => {
+          const inicio = new Date(planEndsAt);
+          inicio.setMonth(inicio.getMonth() - MESES_POR_DURACION[planDuracion]);
+          return inicio;
+        })()
+      : null;
+  // Todo lo que incluye el plan actual del médico -- Premium suma lo de
+  // Básico (el primer item de PLAN_FEATURES.PREMIUM, "Todo lo de Básico",
+  // es solo una frase resumen, no una función propia).
+  const featuresDelPlan =
+    plan === "PREMIUM" ? [...PLAN_FEATURES.BASICA, ...PLAN_FEATURES.PREMIUM.slice(1)] : PLAN_FEATURES.BASICA;
   // Tabla comparativa: todo lo de Básico (incluido también en Premium) más
   // lo que suma Premium -- el primer item de PLAN_FEATURES.PREMIUM ("Todo
   // lo de Básico") es solo una frase resumen, no una fila propia.
@@ -312,24 +330,58 @@ export function PlanSettings({
       )}
 
       <SettingsSection title="Tu plan actual" icon={Sparkles}>
-        <div className="flex flex-wrap items-center gap-3">
-          <Badge variant={plan === "PREMIUM" ? "default" : "secondary"} className="text-sm">
-            {plan === "PREMIUM" ? "Premium" : "Básico"}
-          </Badge>
-          {enTrial && (
-            <span className="text-sm text-muted-foreground">
-              Período de prueba: quedan {diasRestantesDeTrial}{" "}
-              {diasRestantesDeTrial === 1 ? "día" : "días"}
-              {trialEndsAt && ` (hasta el ${formatFecha(trialEndsAt)})`}.
-            </span>
-          )}
-          {planVigente && planEndsAt && (
-            <span className="text-sm text-muted-foreground">
-              {planDuracion && `${PLAN_DURACION_LABEL[planDuracion]} · `}
-              {esRecurrente
-                ? `se renueva el ${formatFecha(planEndsAt)}.`
-                : `vence el ${formatFecha(planEndsAt)} (pago único, sin renovación automática).`}
-            </span>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant={plan === "PREMIUM" ? "default" : "secondary"} className="text-sm">
+              {plan === "PREMIUM" ? "Premium" : "Básico"}
+            </Badge>
+            {enTrial && (
+              <span className="text-sm text-muted-foreground">
+                Período de prueba: quedan {diasRestantesDeTrial}{" "}
+                {diasRestantesDeTrial === 1 ? "día" : "días"}
+                {trialEndsAt && ` (hasta el ${formatFecha(trialEndsAt)})`}.
+              </span>
+            )}
+            {planVigente && planEndsAt && (
+              <span className="text-sm text-muted-foreground">
+                {planDuracion && `${PLAN_DURACION_LABEL[planDuracion]} · `}
+                {esRecurrente
+                  ? `se renueva el ${formatFecha(planEndsAt)}.`
+                  : `vence el ${formatFecha(planEndsAt)} (pago único, sin renovación automática).`}
+              </span>
+            )}
+          </div>
+
+          {fechaInicioPrepago && planEndsAt && (
+            <>
+              <div className="flex gap-7 rounded-xl bg-muted/40 px-4 py-3">
+                <div>
+                  <div className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    Inicio
+                  </div>
+                  <div className="mt-0.5 text-sm font-bold">{formatFecha(fechaInicioPrepago.toISOString())}</div>
+                </div>
+                <div className="w-px bg-border/60" />
+                <div>
+                  <div className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    Vence
+                  </div>
+                  <div className="mt-0.5 text-sm font-bold">{formatFecha(planEndsAt)}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2.5 text-xs font-semibold text-foreground/80">Incluye:</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {featuresDelPlan.map((f) => (
+                    <div key={f} className="flex items-start gap-2 text-sm text-foreground/80">
+                      <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
         </div>
       </SettingsSection>
