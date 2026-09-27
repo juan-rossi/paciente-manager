@@ -6,9 +6,12 @@ import { crearPreapproval } from "@/lib/mercadopago";
 
 // Arranca (o reemplaza) la suscripción de MercadoPago del médico -- lo usan
 // tanto "Mi plan" (elegir/cambiar plan) como el signup cuando se elige
-// Premium directamente (ver signup-form.tsx). Guarda `plan`/`planDuracion`
-// ya en este paso (todavía sin confirmar por pago) para no tener que
-// reconstruirlos desde el webhook más adelante.
+// Premium directamente (ver signup-form.tsx). Guarda el plan elegido en
+// `planPendiente`/`planDuracionPendiente` -- todavía NO en `plan`/
+// `planDuracion` -- porque en este paso no hay ningún pago confirmado
+// todavía (el médico puede abandonar el checkout de MercadoPago sin pagar).
+// El webhook recién promueve `planPendiente` a `plan` cuando llega un pago
+// aprobado.
 export async function POST(request: NextRequest) {
   const { user, response } = await requireDoctor();
   if (response) return response;
@@ -46,8 +49,8 @@ export async function POST(request: NextRequest) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      plan,
-      planDuracion: duracion,
+      planPendiente: plan,
+      planDuracionPendiente: duracion,
       mpPreapprovalId: resultado.preapprovalId,
       mpPreapprovalStatus: "PENDING",
     },

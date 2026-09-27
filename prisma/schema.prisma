@@ -278,6 +278,14 @@ model User {
   planDuracion PlanDuracion?
   planEndsAt   DateTime?
 
+  // Plan/duración elegidos en el checkout, todavía SIN confirmar por pago --
+  // `plan`/`planDuracion` de arriba no se tocan hasta que el webhook reciba
+  // un pago aprobado (ver `/api/mercadopago/webhook`). Evita que abandonar
+  // el checkout de MercadoPago (sin pagar) deje la cuenta mostrando un plan
+  // que nunca se pagó.
+  planPendiente          PlanTipo?
+  planDuracionPendiente  PlanDuracion?
+
   // Suscripción (preapproval) de MercadoPago asociada a la cuenta -- ver
   // `src/lib/mercadopago.ts`. `mpPreapprovalId` identifica la ÚLTIMA
   // creada (elegir un plan/duración nuevo, o reintentar tras un pago

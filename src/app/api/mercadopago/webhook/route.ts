@@ -79,6 +79,10 @@ export async function POST(request: NextRequest) {
                 prisma.user.update({
                   where: { id: user.id },
                   data: {
+                    plan: user.planPendiente ?? user.plan,
+                    planDuracion: user.planDuracionPendiente ?? user.planDuracion,
+                    planPendiente: null,
+                    planDuracionPendiente: null,
                     planEndsAt: nuevoVencimiento(user.planEndsAt),
                     mpPreapprovalStatus: "AUTHORIZED",
                     pagoEnGracia: false,
