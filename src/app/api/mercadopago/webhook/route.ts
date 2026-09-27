@@ -17,6 +17,30 @@ function nuevoVencimiento(actual: Date | null): Date {
   return fin;
 }
 
+function esperar(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// El recurso `authorized_payment` puede no estar listo todavía en el
+// instante exacto en que llega la notificación (404), o existir pero sin
+// el sub-objeto `payment` todavía poblado -- MercadoPago lo completa unos
+// segundos después de notificar. Reintenta un par de veces antes de darse
+// por vencido, en vez de asumir directamente que el pago se rechazó.
+async function obtenerPagoConReintentos(dataId: string) {
+  const intentos = [0, 1500, 3000];
+  for (let i = 0; i < intentos.length; i++) {
+    if (intentos[i] > 0) await esperar(intentos[i]);
+    try {
+      const pago = await obtenerPago(dataId);
+      if (pago.payment) return pago;
+      if (i === intentos.length - 1) return pago;
+    } catch (error) {
+      if (i === intentos.length - 1) throw error;
+    }
+  }
+  throw new Error("No se pudo obtener el pago tras reintentar.");
+}
+
 // Recibe las notificaciones de MercadoPago para preapprovals (altas/cambios
 // de estado de la suscripción) y pagos autorizados (cada cobro recurrente).
 // Nunca confía en el payload -- ante cualquier notificación vuelve a pedir
@@ -66,13 +90,15 @@ export async function POST(request: NextRequest) {
         });
       }
     } else if (type === "subscription_authorized_payment") {
-      const pago = await obtenerPago(dataId);
+      const pago = await obtenerPagoConReintentos(dataId);
       if (pago.preapproval_id) {
         const user = await prisma.user.findUnique({ where: { mpPreapprovalId: pago.preapproval_id } });
         if (user) {
           // `pago.status` es el estado del INTENTO de cobro ("processed",
           // no confundir con éxito) -- el resultado real del cobro está en
-          // `pago.payment.status`.
+          // `pago.payment.status`. Si `pago.payment` no está (ni tras
+          // reintentar), todavía no sabemos el resultado -- no se toca nada,
+          // en vez de asumir un rechazo que puede no ser real.
           if (pago.payment?.status === "approved") {
             const mpPaymentId = String(pago.payment.id);
             const yaRegistrado = await prisma.pagoSuscripcion.findUnique({
@@ -104,7 +130,7 @@ export async function POST(request: NextRequest) {
                 }),
               ]);
             }
-          } else if (!user.pagoEnGracia) {
+          } else if (pago.payment && !user.pagoEnGracia) {
             const graciaVenceEl = nuevaFechaFinGracia();
             await prisma.user.update({
               where: { id: user.id },
