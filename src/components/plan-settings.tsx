@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
 import {
+  DIAS_AVISO_TRIAL_POR_TERMINAR,
   MESES_POR_DURACION,
   PLAN_DURACION_LABEL,
   PLAN_FEATURES,
@@ -86,6 +87,10 @@ export function PlanSettings({
   // seguir vigente en la fila (quedó de cuando era Básico) pero ya no es
   // relevante mostrarlo.
   const enTrial = plan === "BASICA" && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
+  // En la última semana de trial ya se puede contratar Básico (antes de
+  // eso, el botón se reemplaza por "Incluido en tu prueba" -- ver más
+  // abajo). Antes esto era simplemente `enTrial`, sin ventana.
+  const bloqueaBasicoPorTrial = enTrial && diasRestantesDeTrial! > DIAS_AVISO_TRIAL_POR_TERMINAR;
   const suscripcionActiva = mpPreapprovalStatus === "AUTHORIZED";
   // Duraciones != MENSUAL son un pago único por adelantado -- no hay nada
   // que "renovar" ni "cancelar" (ya está todo pagado), a diferencia de la
@@ -234,7 +239,7 @@ export function PlanSettings({
         <div className="relative grid grid-cols-[1fr_10rem_10rem] items-center gap-x-4 pt-5 pb-2">
           <div />
           <div className="flex justify-center">
-            {enTrial ? (
+            {bloqueaBasicoPorTrial ? (
               <span className="text-center text-xs text-muted-foreground">
                 Incluido en tu prueba
               </span>
@@ -479,7 +484,7 @@ export function PlanSettings({
                 )}
               </div>
 
-              {enTrial ? (
+              {bloqueaBasicoPorTrial ? (
                 <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
                   Incluido en tu prueba
                 </div>

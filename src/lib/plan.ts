@@ -1,5 +1,12 @@
 export const TRIAL_DIAS = 60;
 
+// Faltando esta cantidad de días (o menos) para que se termine el trial de
+// Básico, ya se puede contratar Básico desde "Mi plan" (antes de eso, el
+// botón queda reemplazado por "Incluido en tu prueba") -- y es también la
+// ventana en la que se le avisa al médico en el home que el trial está por
+// terminar (ver `TrialPorTerminarAviso` / `diasRestantesDeTrial`).
+export const DIAS_AVISO_TRIAL_POR_TERMINAR = 7;
+
 export function nuevaFechaFinTrial(desde: Date = new Date()): Date {
   const fin = new Date(desde);
   fin.setDate(fin.getDate() + TRIAL_DIAS);

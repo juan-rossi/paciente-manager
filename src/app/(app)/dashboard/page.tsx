@@ -1,8 +1,10 @@
 import { DashboardTabs } from "@/components/dashboard-tabs";
+import { TrialPorTerminarAviso } from "@/components/trial-por-terminar-aviso";
 import { getTurnosDelDia } from "@/lib/turnos-del-dia";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { formatDateParamBA } from "@/lib/timezone";
+import { DIAS_AVISO_TRIAL_POR_TERMINAR, diasRestantesDeTrial } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
@@ -20,12 +22,28 @@ export default async function DashboardPage() {
     prisma.patient.count({ where: { doctorId: tenantId, deletedAt: null } }),
   ]);
 
+  // Solo se le avisa al médico dueño de la cuenta (no a sus secretarias --
+  // ellas no pueden pagar) y solo en la última semana del trial de Básico
+  // (Premium nunca tiene trial, ver src/lib/plan.ts).
+  const diasTrial = user.role === "DOCTOR" ? diasRestantesDeTrial(user) : null;
+  const mostrarAvisoTrial =
+    user.role === "DOCTOR" &&
+    user.plan === "BASICA" &&
+    diasTrial !== null &&
+    diasTrial > 0 &&
+    diasTrial <= DIAS_AVISO_TRIAL_POR_TERMINAR;
+
   return (
-    <DashboardTabs
-      initialDate={formatDateParamBA(hoy)}
-      initialTurnos={turnos}
-      diasConHorario={diasConHorario}
-      totalPacientes={totalPacientes}
-    />
+    <div className="flex flex-col gap-6">
+      {mostrarAvisoTrial && user.trialEndsAt && (
+        <TrialPorTerminarAviso diasRestantesDeTrial={diasTrial} trialEndsAt={user.trialEndsAt.toISOString()} />
+      )}
+      <DashboardTabs
+        initialDate={formatDateParamBA(hoy)}
+        initialTurnos={turnos}
+        diasConHorario={diasConHorario}
+        totalPacientes={totalPacientes}
+      />
+    </div>
   );
 }
