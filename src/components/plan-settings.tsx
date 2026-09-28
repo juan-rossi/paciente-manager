@@ -82,15 +82,6 @@ export function PlanSettings({
     }
   }
 
-  // El período de prueba es exclusivo de Básico (Premium nunca lo tiene,
-  // ver src/lib/plan.ts) -- si ya se pasó a Premium, `trialEndsAt` puede
-  // seguir vigente en la fila (quedó de cuando era Básico) pero ya no es
-  // relevante mostrarlo.
-  const enTrial = plan === "BASICA" && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
-  // En la última semana de trial ya se puede contratar Básico (antes de
-  // eso, el botón se reemplaza por "Incluido en tu prueba" -- ver más
-  // abajo). Antes esto era simplemente `enTrial`, sin ventana.
-  const bloqueaBasicoPorTrial = enTrial && diasRestantesDeTrial! > DIAS_AVISO_TRIAL_POR_TERMINAR;
   const suscripcionActiva = mpPreapprovalStatus === "AUTHORIZED";
   // Duraciones != MENSUAL son un pago único por adelantado -- no hay nada
   // que "renovar" ni "cancelar" (ya está todo pagado), a diferencia de la
@@ -100,6 +91,17 @@ export function PlanSettings({
   // autorizada" -- solo tiene sentido para MENSUAL.
   const esRecurrente = planDuracion === "MENSUAL";
   const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
+  // El período de prueba es exclusivo de Básico (Premium nunca lo tiene,
+  // ver src/lib/plan.ts) y deja de ser relevante en cuanto hay un plan
+  // pago vigente (recurrente o prepago) -- `trialEndsAt` puede seguir
+  // técnicamente en el futuro (nunca se limpia), pero ya no es lo que
+  // manda: `planEndsAt` lo reemplaza.
+  const enTrial =
+    plan === "BASICA" && !planVigente && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
+  // En la última semana de trial ya se puede contratar Básico (antes de
+  // eso, el botón se reemplaza por "Incluido en tu prueba" -- ver más
+  // abajo). Antes esto era simplemente `enTrial`, sin ventana.
+  const bloqueaBasicoPorTrial = enTrial && diasRestantesDeTrial! > DIAS_AVISO_TRIAL_POR_TERMINAR;
   // Fecha de inicio aproximada del pago único vigente -- no se guarda en la
   // base (no hace falta un campo nuevo), se calcula restando la duración
   // elegida a `planEndsAt`, mismo criterio que ya usa `admin-metrics.ts`
@@ -347,12 +349,18 @@ export function PlanSettings({
                 {trialEndsAt && ` (hasta el ${formatFecha(trialEndsAt)})`}.
               </span>
             )}
-            {planVigente && planEndsAt && (
+            {/* Para un pago único, la fecha ya se muestra en la franja
+                Inicio/Vence de más abajo -- repetirla acá sería
+                redundante, así que en ese caso alcanza con la duración. */}
+            {planVigente && planEndsAt && esRecurrente && (
               <span className="text-sm text-muted-foreground">
                 {planDuracion && `${PLAN_DURACION_LABEL[planDuracion]} · `}
-                {esRecurrente
-                  ? `se renueva el ${formatFecha(planEndsAt)}.`
-                  : `vence el ${formatFecha(planEndsAt)} (pago único, sin renovación automática).`}
+                se renueva el {formatFecha(planEndsAt)}.
+              </span>
+            )}
+            {planVigente && !esRecurrente && planDuracion && (
+              <span className="text-sm text-muted-foreground">
+                {PLAN_DURACION_LABEL[planDuracion]} · pago único, sin renovación automática.
               </span>
             )}
           </div>
