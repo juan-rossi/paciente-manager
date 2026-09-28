@@ -184,10 +184,10 @@ export function PlanSettings({
 
   const tablaComparativa = (
     <div className="overflow-x-auto rounded-xl border border-border/60 bg-card">
-      <div className="relative min-w-[580px] p-5 sm:p-6">
-        <div className="pointer-events-none absolute top-2.5 right-5 bottom-2.5 w-40 rounded-2xl bg-primary/5 sm:top-3 sm:right-6 sm:bottom-3" />
+      <div className="relative min-w-[620px] p-5 sm:p-6">
+        <div className="pointer-events-none absolute top-2.5 right-5 bottom-2.5 w-48 rounded-2xl bg-primary/5 sm:top-3 sm:right-6 sm:bottom-3" />
 
-        <div className="relative grid grid-cols-[1fr_10rem_10rem] items-end gap-x-4 border-b-2 border-border/40 pb-4">
+        <div className="relative grid grid-cols-[1fr_12rem_12rem] items-end gap-x-4 border-b-2 border-border/40 pb-4">
           <div />
           <div className="text-center">
             <div className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
@@ -220,7 +220,7 @@ export function PlanSettings({
         {filasComparacion.map((fila) => (
           <div
             key={fila.label}
-            className="relative grid grid-cols-[1fr_10rem_10rem] items-center gap-x-4 border-b border-border/30 py-3 last:border-0"
+            className="relative grid grid-cols-[1fr_12rem_12rem] items-center gap-x-4 border-b border-border/30 py-3 last:border-0"
           >
             <div className="text-sm text-foreground/80">{fila.label}</div>
             <div className="flex justify-center">
@@ -236,7 +236,7 @@ export function PlanSettings({
           </div>
         ))}
 
-        <div className="relative grid grid-cols-[1fr_10rem_10rem] items-center gap-x-4 pt-5 pb-2">
+        <div className="relative grid grid-cols-[1fr_12rem_12rem] items-center gap-x-4 pt-5 pb-2">
           <div />
           <div className="flex justify-center">
             {bloqueaBasicoPorTrial ? (
@@ -256,7 +256,7 @@ export function PlanSettings({
                   {cargando === "BASICA" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Suscribirme"
+                    "Contratar"
                   )}
                 </Button>
               )
@@ -504,7 +504,7 @@ export function PlanSettings({
                   {cargando === "BASICA" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Suscribirme"
+                    "Contratar"
                   )}
                 </Button>
               )}
