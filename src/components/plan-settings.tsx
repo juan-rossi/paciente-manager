@@ -366,26 +366,63 @@ export function PlanSettings({
           </div>
 
           {fechaInicioPrepago && planEndsAt && (
-            <>
-              <div className="flex gap-7 rounded-xl bg-muted/40 px-4 py-3">
-                <div>
-                  <div className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-                    Inicio
-                  </div>
-                  <div className="mt-0.5 text-sm font-bold">{formatFecha(fechaInicioPrepago.toISOString())}</div>
+            <div className="flex gap-7 rounded-xl bg-muted/40 px-4 py-3">
+              <div>
+                <div className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Inicio
                 </div>
-                <div className="w-px bg-border/60" />
-                <div>
-                  <div className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-                    Vence
-                  </div>
-                  <div className="mt-0.5 text-sm font-bold">{formatFecha(planEndsAt)}</div>
-                </div>
+                <div className="mt-0.5 text-sm font-bold">{formatFecha(fechaInicioPrepago.toISOString())}</div>
               </div>
+              <div className="w-px bg-border/60" />
+              <div>
+                <div className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                  Vence
+                </div>
+                <div className="mt-0.5 text-sm font-bold">{formatFecha(planEndsAt)}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </SettingsSection>
 
+      {/* Con un plan pago vigente, esto reemplaza al selector de duración y
+          a la tabla comparativa (ver más abajo, ocultos en ese caso): la
+          lista de lo que ya incluye el plan actual y, si es Básico, una
+          invitación a subir a Premium (a diferencia de bajar de categoría,
+          esto no tiene el problema de "perder lo ya pagado sin reembolso"). */}
+      {planVigente &&
+        (plan === "PREMIUM" ? (
+          <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card p-5 sm:p-6">
+            <div>
+              <div className="mb-2.5 text-xs font-semibold text-foreground/80">Incluye:</div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {featuresDelPlan.map((f) => (
+                  <div key={f} className="flex items-start gap-2 text-sm text-foreground/80">
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {suscripcionActiva && esRecurrente && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={cancelando}
+                onClick={cancelarSuscripcion}
+                className="self-start text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+              >
+                {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card p-5 sm:p-6">
               <div>
                 <div className="mb-2.5 text-xs font-semibold text-foreground/80">Incluye:</div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
                   {featuresDelPlan.map((f) => (
                     <div key={f} className="flex items-start gap-2 text-sm text-foreground/80">
                       <Check className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -394,10 +431,48 @@ export function PlanSettings({
                   ))}
                 </div>
               </div>
-            </>
-          )}
-        </div>
-      </SettingsSection>
+              {suscripcionActiva && esRecurrente && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={cancelando}
+                  onClick={cancelarSuscripcion}
+                  className="self-start text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                >
+                  {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
+                </Button>
+              )}
+            </div>
+
+            <div className="relative flex flex-col gap-3.5 rounded-xl border-2 border-primary/40 bg-primary/5 p-5 sm:p-6">
+              <span className="absolute -top-3 left-5 rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-primary-foreground">
+                Upgrade disponible
+              </span>
+              <div className="mt-1">
+                <div className="font-heading text-sm font-bold text-primary">Premium</div>
+                <div className="text-xs text-foreground/70">Todo lo de Básico, más:</div>
+              </div>
+              <div className="flex flex-col gap-2">
+                {PLAN_FEATURES.PREMIUM.slice(1).map((f) => (
+                  <div key={f} className="flex items-start gap-2 text-sm font-medium text-foreground">
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={cargando !== null}
+                onClick={() => suscribirse("PREMIUM")}
+                className="mt-auto shadow-xs"
+              >
+                {cargando === "PREMIUM" ? <Loader2 className="size-4 animate-spin" /> : "Pasar a Premium"}
+              </Button>
+            </div>
+          </div>
+        ))}
 
       {/* El selector solo tiene sentido para elegir CON qué duración
           arrancar un plan nuevo -- si ya hay uno vigente (recurrente o
@@ -622,19 +697,6 @@ export function PlanSettings({
           {/* Vista Desktop (lg): Tabla comparativa directa */}
           <div className="hidden lg:block">{tablaComparativa}</div>
         </>
-      )}
-
-      {suscripcionActiva && esRecurrente && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={cancelando}
-          onClick={cancelarSuscripcion}
-          className="self-start text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-        >
-          {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
-        </Button>
       )}
     </div>
   );
