@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
+import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const { user, response } = await requireDoctor();
   if (response) return response;
+
+  if (user.mpPreapprovalStatus === "PENDING" && user.mpPreapprovalId) {
+    await reconciliarPreapprovalPendiente(user.id, user.mpPreapprovalId);
+  }
 
   const [ultimoPago, cuenta] = await Promise.all([
     prisma.pagoSuscripcion.findFirst({

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { Building2, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfiguracionTabs } from "@/components/configuracion-tabs";
 import {
@@ -39,6 +40,15 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // cookie -- que sigue siendo la fuente para la navegación normal entre
   // tabs (ver ConfiguracionTabCookieReset).
   const { tab: tabParam, pago: pagoParam } = await searchParams;
+
+  // Un aviso "Confirmando tu suscripción" no debe sobrevivir a un cobro ya
+  // aprobado (ver `mp-reconciliar.ts`).
+  let mpPreapprovalStatus = user.mpPreapprovalStatus;
+  if (user.role === "DOCTOR" && mpPreapprovalStatus === "PENDING" && user.mpPreapprovalId) {
+    if (await reconciliarPreapprovalPendiente(user.id, user.mpPreapprovalId)) {
+      mpPreapprovalStatus = "AUTHORIZED";
+    }
+  }
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
   const initialTab = esConfiguracionTab(tabParam)
@@ -177,7 +187,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             planDuracion={user.planDuracion}
             planEndsAt={user.planEndsAt?.toISOString() ?? null}
             mpPreapprovalId={user.mpPreapprovalId}
-            mpPreapprovalStatus={user.mpPreapprovalStatus}
+            mpPreapprovalStatus={mpPreapprovalStatus}
             pagoEnGracia={user.pagoEnGracia}
             graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}
           />
