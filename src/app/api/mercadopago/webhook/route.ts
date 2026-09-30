@@ -92,8 +92,15 @@ export async function POST(request: NextRequest) {
       const preapproval = await obtenerPreapproval(dataId);
       const status = PREAPPROVAL_STATUS_MAP[preapproval.status];
       if (status) {
+        // MercadoPago no garantiza el orden de las notificaciones: un
+        // "pending" que llega tarde no debe pisar un AUTHORIZED que ya
+        // confirmó un cobro aprobado (dejaría el aviso "Confirmando tu
+        // suscripción" colgado con el plan ya activo).
         await prisma.user.updateMany({
-          where: { mpPreapprovalId: preapproval.id },
+          where: {
+            mpPreapprovalId: preapproval.id,
+            ...(status === "PENDING" ? { mpPreapprovalStatus: { not: "AUTHORIZED" } } : {}),
+          },
           data: { mpPreapprovalStatus: status },
         });
       }
