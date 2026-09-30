@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { cancelarPreapproval } from "@/lib/mercadopago";
+import { cancelacionSchema } from "@/lib/cancelacion-motivos";
 
 // Cancela la renovación automática -- el médico mantiene acceso hasta
 // `planEndsAt` (lo que ya pagó), esto solo corta los cobros futuros.
-export async function POST() {
+export async function POST(request: Request) {
   const { user, response } = await requireDoctor();
   if (response) return response;
+
+  // El motivo es opcional y nunca bloquea la cancelación: un body ausente o
+  // inválido se trata como "sin motivo".
+  const body = await request.json().catch(() => ({}));
+  const parsed = cancelacionSchema.safeParse(body);
+  const { motivo, detalle } = parsed.success ? parsed.data : {};
 
   // `mpPreapprovalId` nunca se limpia (solo se reemplaza), así que no basta
   // con chequear que exista -- podría ser el id de una suscripción vieja ya
@@ -27,7 +34,12 @@ export async function POST() {
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { mpPreapprovalStatus: "CANCELLED" },
+    data: {
+      mpPreapprovalStatus: "CANCELLED",
+      cancelacionMotivo: motivo ?? null,
+      cancelacionDetalle: motivo === "OTRO" && detalle ? detalle : null,
+      canceladaEl: new Date(),
+    },
   });
 
   return NextResponse.json({ ok: true });

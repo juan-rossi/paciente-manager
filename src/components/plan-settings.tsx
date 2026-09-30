@@ -5,6 +5,7 @@ import { AlertTriangle, Check, ChevronDown, Clock, Loader2, Sparkles, X } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
+import { CancelarSuscripcionButton } from "@/components/cancelar-suscripcion-button";
 import {
   DIAS_AVISO_TRIAL_POR_TERMINAR,
   MESES_POR_DURACION,
@@ -56,7 +57,6 @@ export function PlanSettings({
   const [duracion, setDuracion] = useState<PlanDuracion>(planDuracion ?? "MENSUAL");
   const [mostrarTablaMobile, setMostrarTablaMobile] = useState(false);
   const [cargando, setCargando] = useState<"BASICA" | "PREMIUM" | null>(null);
-  const [cancelando, setCancelando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avisoPendienteCerrado, setAvisoPendienteCerrado] = useState(false);
 
@@ -171,24 +171,6 @@ export function PlanSettings({
       // Sin storage el modal cae al criterio de "pago reciente" -- no es crítico.
     }
     window.location.href = data.initPoint;
-  }
-
-  async function cancelarSuscripcion() {
-    setError(null);
-    setCancelando(true);
-    try {
-      const response = await fetch("/api/mercadopago/cancelar", { method: "POST" });
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error ?? "No se pudo cancelar la suscripción.");
-        setCancelando(false);
-        return;
-      }
-      window.location.reload();
-    } catch {
-      setError("No se pudo conectar con el servidor.");
-      setCancelando(false);
-    }
   }
 
   const tablaComparativa = (
@@ -412,16 +394,9 @@ export function PlanSettings({
               </div>
             </div>
             {suscripcionActiva && esRecurrente && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={cancelando}
-                onClick={cancelarSuscripcion}
-                className="self-start text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-              >
-                {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
-              </Button>
+              <CancelarSuscripcionButton
+                fechaVencimiento={planEndsAt ? formatFecha(planEndsAt) : null}
+              />
             )}
           </div>
         ) : (
@@ -439,16 +414,9 @@ export function PlanSettings({
                 </div>
               </div>
               {suscripcionActiva && esRecurrente && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={cancelando}
-                  onClick={cancelarSuscripcion}
-                  className="self-start text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-                >
-                  {cancelando ? <Loader2 className="size-4 animate-spin" /> : "Cancelar suscripción"}
-                </Button>
+                <CancelarSuscripcionButton
+                  fechaVencimiento={planEndsAt ? formatFecha(planEndsAt) : null}
+                />
               )}
             </div>
 

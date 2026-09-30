@@ -299,6 +299,11 @@ model User {
   pagoEnGracia     Boolean   @default(false)
   graciaVenceEl    DateTime?
   pagosSuscripcion PagoSuscripcion[]
+  // Motivo (opcional) que el médico da al cancelar la suscripción -- ver
+  // `src/lib/cancelacion-motivos.ts`. Se pisa si cancela de nuevo más adelante.
+  cancelacionMotivo  String?
+  cancelacionDetalle String?
+  canceladaEl        DateTime?
 
   doctorAsignaciones     DoctorSecretaria[] @relation("AsignacionesComoDoctor")
   secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")
