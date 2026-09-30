@@ -15,7 +15,7 @@ import {
   precioTotalDuracion,
   type PlanDuracion,
 } from "@/lib/plan";
-import { PAGO_BASELINE_KEY } from "@/lib/pago-confirmado";
+import { PAGO_BASELINE_KEY, PAGO_INICIO_KEY } from "@/lib/pago-confirmado";
 import { TIME_ZONE } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
@@ -166,6 +166,7 @@ export function PlanSettings({
     }
     try {
       localStorage.setItem(PAGO_BASELINE_KEY, data.ultimoPagoId ?? "");
+      localStorage.setItem(PAGO_INICIO_KEY, String(Date.now()));
     } catch {
       // Sin storage el modal cae al criterio de "pago reciente" -- no es crítico.
     }

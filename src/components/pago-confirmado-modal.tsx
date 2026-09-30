@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import {
   PAGO_BASELINE_KEY,
   PAGO_CELEBRADO_KEY,
+  PAGO_INICIO_KEY,
   PAGO_RECIENTE_MS,
+  PAGO_RETORNO_MS,
 } from "@/lib/pago-confirmado";
 import { PLAN_DURACION_LABEL, type PlanDuracion } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
@@ -51,6 +53,16 @@ function esPagoNuevo(pago: Estado["ultimoPago"]) {
   if (leer(PAGO_CELEBRADO_KEY) === pago.id) return false;
   const baseline = leer(PAGO_BASELINE_KEY);
   return !baseline || baseline !== pago.id;
+}
+
+// Volvió del checkout si la URL lo dice (`?pago=retorno`) o, como respaldo por
+// si MercadoPago descartó los query params del `back_url`, si salió hacia el
+// checkout hace poco (`PAGO_INICIO_KEY`, que se borra al empezar a esperar la
+// confirmación, no acá: en StrictMode este chequeo corre dos veces).
+function volvioDelCheckout(retornoPorUrl: boolean) {
+  if (retornoPorUrl) return true;
+  const inicio = Number(leer(PAGO_INICIO_KEY));
+  return inicio > 0 && Date.now() - inicio < PAGO_RETORNO_MS;
 }
 
 function Confeti({ onFin }: { onFin: () => void }) {
@@ -149,15 +161,33 @@ export function PagoConfirmadoModal({ retornoDePago }: { retornoDePago: boolean 
   const router = useRouter();
   // Se captura al montar: `router.refresh()` re-evalúa la URL (ya sin
   // `pago=retorno`) y no debe desmontar el modal a la mitad de la celebración.
-  const [activo] = useState(retornoDePago);
+  const [activo, setActivo] = useState(retornoDePago);
   const [abierto, setAbierto] = useState(retornoDePago);
   const [estado, setEstado] = useState<Estado | null>(null);
   const [confeti, setConfeti] = useState(false);
+
+  // localStorage solo existe en el cliente, por eso el respaldo se evalúa acá
+  // y no en el estado inicial (evita un mismatch de hidratación).
+  useEffect(() => {
+    if (!volvioDelCheckout(retornoDePago)) return;
+    const t = setTimeout(() => {
+      setActivo(true);
+      setAbierto(true);
+    }, 0);
+    return () => clearTimeout(t);
+    // Solo al montar: `retornoDePago` cambia al limpiar la URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!activo) return;
 
     // Que recargar la página no vuelva a disparar esto.
+    try {
+      localStorage.removeItem(PAGO_INICIO_KEY);
+    } catch {
+      // Sin storage no hay respaldo; la URL ya se limpia abajo.
+    }
     const url = new URL(window.location.href);
     url.searchParams.delete("pago");
     window.history.replaceState(null, "", url.pathname + url.search);
