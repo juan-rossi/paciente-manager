@@ -103,7 +103,7 @@ export function PlanSettings({
   const mostrarPlanes = !planVigente || recontratable;
   function textoBoton(elegido: "BASICA" | "PREMIUM") {
     if (!recontratable) return elegido === "PREMIUM" ? "Pasar a Premium" : "Contratar";
-    if (duracion === "MENSUAL") return elegido === plan ? "Reactivar suscripción" : "Suscribirme";
+    if (duracion === "MENSUAL") return elegido === plan ? "Reactivar" : "Suscribirme";
     return elegido === plan ? `Renovar ${PLAN_DURACION_LABEL[duracion]}` : "Contratar";
   }
   // El período de prueba es exclusivo de Básico (Premium nunca lo tiene,
@@ -256,7 +256,7 @@ export function PlanSettings({
                   size="sm"
                   disabled={cargando !== null || basicaBloqueada}
                   onClick={() => suscribirse("BASICA")}
-                  className="w-full max-w-[8.5rem]"
+                  className="w-full max-w-[10.5rem]"
                 >
                   {cargando === "BASICA" ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -274,7 +274,7 @@ export function PlanSettings({
                 size="sm"
                 disabled={cargando !== null}
                 onClick={() => suscribirse("PREMIUM")}
-                className="w-full max-w-[8.5rem] shadow-xs"
+                className="w-full max-w-[10.5rem] shadow-xs"
               >
                 {cargando === "PREMIUM" ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -405,6 +405,7 @@ export function PlanSettings({
           invitación a subir a Premium (a diferencia de bajar de categoría,
           esto no tiene el problema de "perder lo ya pagado sin reembolso"). */}
       {planVigente &&
+        !recontratable &&
         (plan === "PREMIUM" ? (
           <div className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card p-5 sm:p-6">
             <div>
