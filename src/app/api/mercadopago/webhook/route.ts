@@ -15,6 +15,9 @@ const PREAPPROVAL_STATUS_MAP: Record<string, "PENDING" | "AUTHORIZED" | "PAUSED"
   cancelled: "CANCELLED",
 };
 
+const ESTADOS_PAGO_FALLIDO = ["rejected", "cancelled"];
+const VENTANA_PAGO_RECIENTE_MS = 24 * 60 * 60 * 1000;
+
 function nuevoVencimiento(actual: Date | null, meses: number = 1): Date {
   const base = actual && actual.getTime() > Date.now() ? actual : new Date();
   const fin = new Date(base);
@@ -135,17 +138,37 @@ export async function POST(request: NextRequest) {
                 }),
               ]);
             }
-          } else if (pago.payment && !user.pagoEnGracia) {
-            const graciaVenceEl = nuevaFechaFinGracia();
-            await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                pagoEnGracia: true,
-                graciaVenceEl,
-                planEndsAt:
-                  user.planEndsAt && user.planEndsAt > graciaVenceEl ? user.planEndsAt : graciaVenceEl,
+          } else if (
+            pago.payment &&
+            ESTADOS_PAGO_FALLIDO.includes(pago.payment.status) &&
+            !user.pagoEnGracia
+          ) {
+            // Solo un rechazo real inicia la gracia. "pending" / "in_process"
+            // son cobros todavía en curso que MercadoPago suele notificar
+            // antes de aprobar. Tampoco se abre si hace poco se registró un
+            // pago aprobado: es una notificación vieja o fuera de orden.
+            const aprobadoReciente = await prisma.pagoSuscripcion.findFirst({
+              where: {
+                userId: user.id,
+                estado: "approved",
+                createdAt: { gt: new Date(Date.now() - VENTANA_PAGO_RECIENTE_MS) },
               },
+              select: { id: true },
             });
+            if (!aprobadoReciente) {
+              const graciaVenceEl = nuevaFechaFinGracia();
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  pagoEnGracia: true,
+                  graciaVenceEl,
+                  planEndsAt:
+                    user.planEndsAt && user.planEndsAt > graciaVenceEl
+                      ? user.planEndsAt
+                      : graciaVenceEl,
+                },
+              });
+            }
           }
         }
       }
