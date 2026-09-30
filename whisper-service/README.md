@@ -45,7 +45,7 @@ personalizar sin tocar el ejemplo versionado:
 - `allowedOrigins`: dominios adicionales permitidos (CORS + validación de
   `Origin` en el WebSocket), además de `http://localhost:3000`. **No hace
   falta agregar el dominio de cada médico acá** — cualquier origen que
-  matchee `https://paciente-manager*.vercel.app` (el patrón de todos los
+  matchee `https://semio360*.vercel.app` (el patrón de todos los
   entornos dados de alta, ver `ENTORNOS.md`) **o** un subdominio de
   `malvinasoftware.com` (dominio propio de la organización) se permite
   automáticamente (`src/cors.ts`). Solo usar este campo para un dominio

@@ -28,9 +28,9 @@ Preguntá con `AskUserQuestion`: **Local** o **QA**.
   paciente-manager`, ver memoria "Local dev DB needs manual start") y
   reintentá.
 
-- **QA**: sin tocar el `.vercel/project.json` del repo principal (que
-  apunta a `paciente-manager`, el proyecto de otro médico), primero
-  guardá su contenido actual para restaurarlo después. Después:
+- **QA**: el repo principal no debe quedar linkeado a ningún proyecto de Vercel
+  (no hay `.vercel/project.json`; si aparece uno, avisale al usuario y no lo
+  pises). Linkeá solo para esta tarea y borrá el link al terminar:
 
   ```bash
   npx vercel link --yes --project semio360-qa
@@ -38,8 +38,7 @@ Preguntá con `AskUserQuestion`: **Local** o **QA**.
   ```
 
   Sacá `DATABASE_URL` de `.env.qa.tmp`. **Al terminar (siempre, incluso
-  si algo falla a mitad de camino)**: restaurá `.vercel/project.json` a
-  su contenido original y borrá `.env.qa.tmp`.
+  si algo falla a mitad de camino)**: borrá `.vercel/project.json` (dejá el repo sin link) y borrá `.env.qa.tmp`.
 
 ## 1. Listar los médicos
 

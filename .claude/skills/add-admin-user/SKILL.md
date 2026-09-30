@@ -44,18 +44,18 @@ Preguntá con `AskUserQuestion`: **Local** o **Producción**.
   Sin esto, un campo nuevo del schema (como pasó con `isAdmin`) tira
   `PrismaClientValidationError: Unknown argument` aunque la base esté bien.
 
-- **Producción**: leé `.github/environments.json` (mismo archivo que usa la
-  skill `deploy`) — cada entrada tiene `doctorName`, `vercelProject` y
-  `neonProjectId`. Si hay una sola entrada, confirmá que es esa. Si hay más
-  de una, preguntá con `AskUserQuestion` cuál médico (una opción por
-  entrada). Con el `neonProjectId` elegido, armá la connection string:
+- **QA** (`qa.semio360.com`): armá la connection string del proyecto de Neon
+  `semio360-qa-db`:
 
   ```bash
-  CONN=$(npx neonctl connection-string --project-id "<neonProjectId>" --pooled)
+  CONN=$(npx neonctl connection-string --project-id summer-king-19080970 --pooled)
   ```
 
   No hace falta `NEON_API_KEY`: usa la sesión de `neonctl` ya autenticada en
   esta máquina (si pide login, seguí el flujo OAuth que imprime).
+
+- **Producción** (`semio360.com`): idem con el proyecto de Neon `semio360`
+  (`cold-hat-82556307`). Confirmá con el usuario antes de tocar producción.
 
 ## 1. Pedir el email
 
