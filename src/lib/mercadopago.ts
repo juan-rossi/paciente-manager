@@ -34,7 +34,11 @@ export async function crearPreapproval(
   user: { id: string; email: string },
   plan: PlanTipo,
   duracion: PlanDuracion,
-  origin: string
+  origin: string,
+  // Si ya hay tiempo pagado por delante (recontratación tras cancelar), el
+  // primer cobro se difiere a esa fecha para no cobrar dos veces el mismo
+  // período.
+  inicioCobro?: Date
 ): Promise<CrearPreapprovalResult> {
   const accessToken = requireAccessToken();
 
@@ -51,6 +55,7 @@ export async function crearPreapproval(
         frequency_type: "months",
         transaction_amount: precioMensualEquivalente(plan, duracion),
         currency_id: "ARS",
+        ...(inicioCobro ? { start_date: inicioCobro.toISOString() } : {}),
       },
       // `pago=retorno` le avisa a la pantalla que el médico acaba de volver
       // del checkout, para mostrar el modal de "pago confirmado" (ver

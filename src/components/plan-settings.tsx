@@ -92,6 +92,20 @@ export function PlanSettings({
   // autorizada" -- solo tiene sentido para MENSUAL.
   const esRecurrente = planDuracion === "MENSUAL";
   const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
+  // Canceló la suscripción mensual pero sigue con acceso hasta `planEndsAt`:
+  // puede volver a contratar (la nueva compra se suma al final de lo pagado).
+  const recontratable = planVigente && esRecurrente && mpPreapprovalStatus === "CANCELLED";
+  // Lo que hay por delante sigue siendo compra bloqueada salvo al recontratar.
+  const planBloqueaCompra = planVigente && !recontratable;
+  // Con Premium pago por delante no se puede bajar a Básico sin perder lo
+  // pagado (ver checkout/route.ts).
+  const basicaBloqueada = recontratable && plan === "PREMIUM";
+  const mostrarPlanes = !planVigente || recontratable;
+  function textoBoton(elegido: "BASICA" | "PREMIUM") {
+    if (!recontratable) return elegido === "PREMIUM" ? "Pasar a Premium" : "Contratar";
+    if (duracion === "MENSUAL") return elegido === plan ? "Reactivar suscripción" : "Suscribirme";
+    return elegido === plan ? `Renovar ${PLAN_DURACION_LABEL[duracion]}` : "Contratar";
+  }
   // El período de prueba es exclusivo de Básico (Premium nunca lo tiene,
   // ver src/lib/plan.ts) y deja de ser relevante en cuanto hay un plan
   // pago vigente (recurrente o prepago) -- `trialEndsAt` puede seguir
@@ -235,26 +249,26 @@ export function PlanSettings({
                 Incluido en tu prueba
               </span>
             ) : (
-              !(plan === "BASICA" && planVigente) && (
+              !(plan === "BASICA" && planBloqueaCompra) && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null}
+                  disabled={cargando !== null || basicaBloqueada}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full max-w-[8.5rem]"
                 >
                   {cargando === "BASICA" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Contratar"
+                    textoBoton("BASICA")
                   )}
                 </Button>
               )
             )}
           </div>
           <div className="flex justify-center">
-            {!(plan === "PREMIUM" && planVigente) && (
+            {!(plan === "PREMIUM" && planBloqueaCompra) && (
               <Button
                 type="button"
                 size="sm"
@@ -265,7 +279,7 @@ export function PlanSettings({
                 {cargando === "PREMIUM" ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  "Pasar a Premium"
+                  textoBoton("PREMIUM")
                 )}
               </Button>
             )}
@@ -341,7 +355,18 @@ export function PlanSettings({
             {/* Para un pago único, la fecha ya se muestra en la franja
                 Inicio/Vence de más abajo -- repetirla acá sería
                 redundante, así que en ese caso alcanza con la duración. */}
-            {planVigente && planEndsAt && esRecurrente && (
+            {recontratable && planEndsAt && (
+              <>
+                <Badge variant="secondary" className="text-sm">
+                  Cancelado
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {planDuracion && `${PLAN_DURACION_LABEL[planDuracion]} · `}
+                  acceso hasta el {formatFecha(planEndsAt)}, sin renovación.
+                </span>
+              </>
+            )}
+            {planVigente && planEndsAt && esRecurrente && !recontratable && (
               <span className="text-sm text-muted-foreground">
                 {planDuracion && `${PLAN_DURACION_LABEL[planDuracion]} · `}
                 se renueva el {formatFecha(planEndsAt)}.
@@ -420,6 +445,7 @@ export function PlanSettings({
               )}
             </div>
 
+            {!recontratable && (
             <div className="relative flex flex-col gap-3.5 rounded-xl border-2 border-primary/40 bg-primary/5 p-5 sm:p-6">
               <span className="absolute -top-3 left-5 rounded-full bg-primary px-3 py-1 text-[11px] font-bold text-primary-foreground">
                 Upgrade disponible
@@ -446,6 +472,7 @@ export function PlanSettings({
                 {cargando === "PREMIUM" ? <Loader2 className="size-4 animate-spin" /> : "Pasar a Premium"}
               </Button>
             </div>
+            )}
           </div>
         ))}
 
@@ -454,7 +481,7 @@ export function PlanSettings({
           prepago), cambiar la duración acá no tiene ningún efecto (no hay
           botón que la aplique), así que se oculta para no sugerir una
           acción que no existe. */}
-      {!planVigente && (
+      {mostrarPlanes && (
         <div className="flex flex-col gap-2">
           <div className="no-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             {(Object.keys(PLAN_DURACION_LABEL) as PlanDuracion[]).map((d) => {
@@ -493,6 +520,18 @@ export function PlanSettings({
               ? "Se factura mes a mes en MercadoPago, cancelás cuando quieras."
               : "Pago único por adelantado en MercadoPago, sin renovación automática -- al vencer, se vuelve a pagar para seguir."}
           </span>
+          {recontratable && planEndsAt && (
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-xs text-foreground/80">
+              {basicaBloqueada
+                ? `Seguís con Premium hasta el ${formatFecha(planEndsAt)}; Básico se puede elegir después. `
+                : `Seguís con tu plan hasta el ${formatFecha(planEndsAt)}. `}
+              {duracion === "MENSUAL"
+                ? `La suscripción mensual empieza a cobrarse ese día.`
+                : plan === "PREMIUM"
+                  ? `Lo que pagues se suma a continuación del tiempo que ya tenés.`
+                  : `Si elegís Premium, empieza hoy y se suma al tiempo que ya tenés.`}
+            </span>
+          )}
         </div>
       )}
 
@@ -503,7 +542,7 @@ export function PlanSettings({
           reembolso, y subir de categoría requeriría prorratear el tiempo
           restante -- ninguno de los dos existe todavía. Se oculta toda la
           comparación hasta que el plan actual venza o se cancele. */}
-      {!planVigente && (
+      {mostrarPlanes && (
         <>
           {/* Vista Mobile y Tablet (< lg): Cards de Planes */}
           <div className="flex flex-col gap-4 lg:hidden">
@@ -546,7 +585,7 @@ export function PlanSettings({
                 <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
                   Incluido en tu prueba
                 </div>
-              ) : plan === "BASICA" && planVigente ? (
+              ) : plan === "BASICA" && planBloqueaCompra ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 py-2 text-center text-xs font-semibold text-primary">
                   Plan actual
                 </div>
@@ -555,14 +594,14 @@ export function PlanSettings({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null}
+                  disabled={cargando !== null || basicaBloqueada}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full"
                 >
                   {cargando === "BASICA" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Contratar"
+                    textoBoton("BASICA")
                   )}
                 </Button>
               )}
@@ -608,7 +647,7 @@ export function PlanSettings({
                 )}
               </div>
 
-              {plan === "PREMIUM" && planVigente ? (
+              {plan === "PREMIUM" && planBloqueaCompra ? (
                 <div className="rounded-lg border border-primary/30 bg-primary/10 py-2 text-center text-xs font-semibold text-primary">
                   Plan actual
                 </div>
@@ -623,7 +662,7 @@ export function PlanSettings({
                   {cargando === "PREMIUM" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    "Pasar a Premium"
+                    textoBoton("PREMIUM")
                   )}
                 </Button>
               )}

@@ -29,6 +29,21 @@ export async function POST(request: NextRequest) {
 
   const { plan, duracion } = parsed.data;
 
+  // Con tiempo ya pagado por delante, pasar de Premium a Básico haría perder
+  // lo pagado sin reembolso (el webhook promueve el plan apenas entra el
+  // pago) -- se habilita recién cuando el Premium vence.
+  const planEndsAt = user.planEndsAt && user.planEndsAt.getTime() > Date.now() ? user.planEndsAt : null;
+  if (planEndsAt && user.plan === "PREMIUM" && plan === "BASICA") {
+    return NextResponse.json(
+      { error: "Podés elegir Básico cuando venza tu Premium." },
+      { status: 400 }
+    );
+  }
+  // Suscripción mensual con tiempo ya pagado: el primer cobro arranca cuando
+  // ese tiempo termina. Excepción: en gracia por un pago fallido `planEndsAt`
+  // es la fecha límite de regularización y hay que cobrar ya.
+  const inicioCobro = planEndsAt && !user.pagoEnGracia ? planEndsAt : undefined;
+
   // Cualquier checkout nuevo reemplaza lo que hubiera antes -- nunca deben
   // quedar dos cobros activos en paralelo (p.ej. pasar de una suscripción
   // mensual activa a un pago único de otra duración). Si había una
@@ -70,7 +85,7 @@ export async function POST(request: NextRequest) {
   if (esRecurrente) {
     let resultado;
     try {
-      resultado = await crearPreapproval(user, plan, duracion, origin);
+      resultado = await crearPreapproval(user, plan, duracion, origin, inicioCobro);
     } catch (error) {
       console.error("Error creando la suscripción con MercadoPago:", error);
       return NextResponse.json(
