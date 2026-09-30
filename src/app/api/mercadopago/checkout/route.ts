@@ -55,6 +55,18 @@ export async function POST(request: NextRequest) {
 
   const esRecurrente = duracion === "MENSUAL";
 
+  // Último pago confirmado ANTES de este checkout -- el cliente lo guarda
+  // como referencia para que el modal "Pago confirmado" solo celebre un pago
+  // nuevo, no uno de un intento anterior (ver `pago-confirmado-modal.tsx`).
+  const ultimoPagoId =
+    (
+      await prisma.pagoSuscripcion.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      })
+    )?.id ?? null;
+
   if (esRecurrente) {
     let resultado;
     try {
@@ -77,7 +89,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ initPoint: resultado.initPoint });
+    return NextResponse.json({ initPoint: resultado.initPoint, ultimoPagoId });
   }
 
   let resultado;
@@ -98,5 +110,5 @@ export async function POST(request: NextRequest) {
     data: { planPendiente: plan, planDuracionPendiente: duracion },
   });
 
-  return NextResponse.json({ initPoint: resultado.initPoint });
+  return NextResponse.json({ initPoint: resultado.initPoint, ultimoPagoId });
 }

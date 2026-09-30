@@ -15,6 +15,7 @@ import {
   precioTotalDuracion,
   type PlanDuracion,
 } from "@/lib/plan";
+import { PAGO_BASELINE_KEY } from "@/lib/pago-confirmado";
 import { TIME_ZONE } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
@@ -146,7 +147,7 @@ export function PlanSettings({
       return;
     }
 
-    let data: { initPoint?: string; error?: string };
+    let data: { initPoint?: string; ultimoPagoId?: string | null; error?: string };
     try {
       data = await response.json();
     } catch {
@@ -162,6 +163,11 @@ export function PlanSettings({
       setError(data.error ?? "No se pudo iniciar la suscripción.");
       setCargando(null);
       return;
+    }
+    try {
+      localStorage.setItem(PAGO_BASELINE_KEY, data.ultimoPagoId ?? "");
+    } catch {
+      // Sin storage el modal cae al criterio de "pago reciente" -- no es crítico.
     }
     window.location.href = data.initPoint;
   }

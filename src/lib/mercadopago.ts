@@ -52,7 +52,11 @@ export async function crearPreapproval(
         transaction_amount: precioMensualEquivalente(plan, duracion),
         currency_id: "ARS",
       },
-      back_url: `${origin}/configuracion`,
+      // `pago=retorno` le avisa a la pantalla que el médico acaba de volver
+      // del checkout, para mostrar el modal de "pago confirmado" (ver
+      // `pago-confirmado-modal.tsx`) -- el modal igual espera la confirmación
+      // real del webhook, este parámetro solo dice "empezá a esperarla".
+      back_url: `${origin}/configuracion?tab=plan&pago=retorno`,
       payer_email: user.email,
       external_reference: user.id,
       // Explícito acá en vez de depender solo de la config de "Webhooks"
@@ -117,7 +121,7 @@ export async function crearPreferencia(
       payer: { email: user.email },
       external_reference: user.id,
       back_urls: {
-        success: `${origin}/configuracion`,
+        success: `${origin}/configuracion?tab=plan&pago=retorno`,
         failure: `${origin}/configuracion`,
         pending: `${origin}/configuracion`,
       },

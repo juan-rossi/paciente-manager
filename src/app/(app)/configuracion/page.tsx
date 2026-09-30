@@ -14,6 +14,7 @@ import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { TranscriberSettings } from "@/components/transcriber-settings";
 import { PlanSettings } from "@/components/plan-settings";
+import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
@@ -28,7 +29,7 @@ const navItemClass =
 const groupLabelClass =
   "px-3 pt-3 pb-1.5 text-[10px] font-bold tracking-wide text-muted-foreground/75 uppercase first:pt-1";
 
-type Props = { searchParams: Promise<{ tab?: string }> };
+type Props = { searchParams: Promise<{ tab?: string; pago?: string }> };
 
 export default async function ConfiguracionPage({ searchParams }: Props) {
   const user = await getCurrentUser();
@@ -37,7 +38,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // `?tab=` (deep link, ver /cuenta-inactiva) tiene prioridad sobre la
   // cookie -- que sigue siendo la fuente para la navegación normal entre
   // tabs (ver ConfiguracionTabCookieReset).
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, pago: pagoParam } = await searchParams;
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
   const initialTab = esConfiguracionTab(tabParam)
@@ -81,6 +82,9 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Configuración</h1>
+
+      {/* Solo el médico paga (ver /api/mercadopago/checkout). */}
+      <PagoConfirmadoModal retornoDePago={pagoParam === "retorno" && user.role === "DOCTOR"} />
 
       <ConfiguracionTabs
         initialTab={initialTab}
