@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
 import { CancelarSuscripcionButton } from "@/components/cancelar-suscripcion-button";
 import {
+  DIAS_AVISO_PLAN_POR_VENCER,
   DIAS_AVISO_TRIAL_POR_TERMINAR,
+  diasRestantesDePagoUnico,
   MESES_POR_DURACION,
   PLAN_DURACION_LABEL,
   PLAN_FEATURES,
@@ -94,7 +96,20 @@ export function PlanSettings({
   const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
   // Canceló la suscripción mensual pero sigue con acceso hasta `planEndsAt`:
   // puede volver a contratar (la nueva compra se suma al final de lo pagado).
-  const recontratable = planVigente && esRecurrente && mpPreapprovalStatus === "CANCELLED";
+  const canceladoConAcceso = planVigente && esRecurrente && mpPreapprovalStatus === "CANCELLED";
+  // Pago único de 6 meses o más a punto de vencer: mismo criterio que el aviso
+  // del home (`DIAS_AVISO_PLAN_POR_VENCER`). Puede contratar cualquier plan y
+  // duración; lo nuevo se suma al final de lo pagado.
+  const diasParaVencer = diasRestantesDePagoUnico({
+    planDuracion,
+    planEndsAt: planEndsAt ? new Date(planEndsAt) : null,
+  });
+  const porVencer =
+    planVigente &&
+    !esRecurrente &&
+    diasParaVencer !== null &&
+    diasParaVencer <= DIAS_AVISO_PLAN_POR_VENCER;
+  const recontratable = canceladoConAcceso || porVencer;
   // Lo que hay por delante sigue siendo compra bloqueada salvo al recontratar.
   const planBloqueaCompra = planVigente && !recontratable;
   // Con Premium pago por delante no se puede bajar a Básico sin perder lo
@@ -355,7 +370,7 @@ export function PlanSettings({
             {/* Para un pago único, la fecha ya se muestra en la franja
                 Inicio/Vence de más abajo -- repetirla acá sería
                 redundante, así que en ese caso alcanza con la duración. */}
-            {recontratable && planEndsAt && (
+            {canceladoConAcceso && planEndsAt && (
               <>
                 <Badge variant="secondary" className="text-sm">
                   Cancelado
@@ -376,6 +391,16 @@ export function PlanSettings({
               <span className="text-sm text-muted-foreground">
                 {PLAN_DURACION_LABEL[planDuracion]} · pago único, sin renovación automática.
               </span>
+            )}
+            {porVencer && diasParaVencer !== null && (
+              <Badge
+                variant="secondary"
+                className="border border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+              >
+                {diasParaVencer <= 0
+                  ? "Vence hoy"
+                  : `Vence en ${diasParaVencer} ${diasParaVencer === 1 ? "día" : "días"}`}
+              </Badge>
             )}
           </div>
 
