@@ -104,6 +104,24 @@ export function precioTotalDuracion(plan: "BASICA" | "PREMIUM", duracion: PlanDu
   return precioMensualEquivalente(plan, duracion) * MESES_POR_DURACION[duracion];
 }
 
+// Ventana en la que se le avisa en el home al médico con un pago único de
+// 6 meses o más que su acceso está por terminar (ver `PlanPorVencerAviso`),
+// y cuántos días antes del vencimiento el aviso pasa de ámbar a rojo.
+export const DIAS_AVISO_PLAN_POR_VENCER = 14;
+export const DIAS_AVISO_PLAN_URGENTE = 3;
+
+// Días que le quedan a un pago único (duración != MENSUAL, que es
+// recurrente y se renueva solo) de 6 meses o más, o `null` si no aplica.
+export function diasRestantesDePagoUnico(user: {
+  planDuracion: PlanDuracion | null;
+  planEndsAt: Date | null;
+}): number | null {
+  if (!user.planEndsAt || !user.planDuracion) return null;
+  if (MESES_POR_DURACION[user.planDuracion] < 6) return null;
+  const ms = user.planEndsAt.getTime() - Date.now();
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
 type EstadoCuentaUser = {
   trialEndsAt: Date | null;
   planEndsAt: Date | null;
