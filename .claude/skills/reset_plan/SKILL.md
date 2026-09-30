@@ -5,7 +5,7 @@ description: Resetea el plan/trial de un médico a un estado limpio (sin plan pa
 
 # Reset de plan (para pruebas)
 
-Resetea el plan de un médico a un estado de trial limpio, reusando
+Resetea el plan de un médico a un trial limpio a 5 días de vencer, reusando
 `scripts/reset-plan.ts` (no reimplementes la lógica del reset a mano: ese
 script ya sabe listar médicos y aplicar el reset). Pensada para
 desarrollo/QA -- nunca la corras contra producción real (semio360.com o
@@ -40,31 +40,32 @@ Preguntá con `AskUserQuestion`: **Local** o **QA**.
   Sacá `DATABASE_URL` de `.env.qa.tmp`. **Al terminar (siempre, incluso
   si algo falla a mitad de camino)**: borrá `.vercel/project.json` (dejá el repo sin link) y borrá `.env.qa.tmp`.
 
-## 1. Listar los médicos
+## 1. Elegir el médico
 
-Corré el script sin `DOCTOR_EMAIL` -- en ese modo solo lista, no toca nada:
+- **QA**: siempre es `test_user_7349428072332520577@testuser.com` (Carlos
+  Gonzalez). No listes ni preguntes: andá directo al paso 3 con ese email.
+- **Local**: corré el script sin `DOCTOR_EMAIL` -- en ese modo solo lista, no
+  toca nada:
 
-```bash
-DATABASE_URL="$DB_URL" npx tsx scripts/reset-plan.ts
-```
+  ```bash
+  DATABASE_URL="$DB_URL" npx tsx scripts/reset-plan.ts
+  ```
 
-Mostrale al usuario la lista (email, nombre, plan actual, `trialEndsAt`,
-`planEndsAt`) en texto plano -- no uses `AskUserQuestion` para elegir
-médico, esa herramienta limita a 4 opciones y puede haber más. Pedile
-que te diga cuál (por email o nombre).
+  Mostrale al usuario la lista (email, nombre, plan actual, `trialEndsAt`,
+  `planEndsAt`) en texto plano -- no uses `AskUserQuestion` para elegir
+  médico, esa herramienta limita a 4 opciones y puede haber más. Pedile
+  que te diga cuál (por email o nombre).
 
-## 2. Preguntar cuántos días de trial le quedan
+## 2. Días de trial
 
-Preguntá con `AskUserQuestion`: **Trial fresco (60 días)** o **A punto de
-vencer (elegís cuántos días)**. Si elige la segunda, preguntale el
-número de días (un entero positivo; 5 es un valor típico para probar el
-aviso de "trial por terminar").
+Siempre se deja al médico a **5 días** de que termine el período de prueba
+(no preguntes: sirve para probar el aviso de "trial por terminar").
 
 ## 3. Aplicar el reset
 
 ```bash
 DATABASE_URL="$DB_URL" DOCTOR_EMAIL="<email elegido>" \
-  TRIAL_DIAS_RESTANTES="<60 o el número elegido>" \
+  TRIAL_DIAS_RESTANTES=5 \
   npx tsx scripts/reset-plan.ts
 ```
 
