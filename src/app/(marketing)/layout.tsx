@@ -17,8 +17,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <span>semio360.com</span>
             <span>semio360.com.ar</span>
-            <a href="mailto:hola@semio360.com" className="hover:text-foreground">
-              hola@semio360.com
+            <a href="mailto:contacto@semio360.com" className="hover:text-foreground">
+              contacto@semio360.com
             </a>
           </div>
         </div>
