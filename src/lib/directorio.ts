@@ -122,6 +122,10 @@ export async function getDoctoresPublicos(filtros: {
       role: "DOCTOR",
       perfilPublico: true,
       publicSlug: { not: null },
+      // Sin prácticas cargadas no hay dirección ni teléfono para mostrar, así
+      // que el perfil no se publica aunque tenga el toggle activo (ver la
+      // alerta en "Información pública" de Mi perfil).
+      lugaresDeTrabajo: { some: { deletedAt: null } },
       ...(filtros.especialidad ? { especialidad: filtros.especialidad as Especialidad } : {}),
     },
     select: {

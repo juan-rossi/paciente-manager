@@ -13,7 +13,12 @@ import {
   Users,
 } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
-import { CONFIGURACION_TAB_COOKIE, type ConfiguracionTab } from "@/lib/configuracion-tabs";
+import {
+  CONFIGURACION_TAB_COOKIE,
+  CONFIGURACION_TAB_EVENT,
+  esConfiguracionTab,
+  type ConfiguracionTab,
+} from "@/lib/configuracion-tabs";
 import { cn } from "@/lib/utils";
 
 export const CONFIGURACION_SECTIONS = [
@@ -60,6 +65,18 @@ export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
     setTab(value);
     document.cookie = `${CONFIGURACION_TAB_COOKIE}=${value}; path=/; max-age=31536000; samesite=lax`;
   }
+
+  useEffect(() => {
+    function handleIrATab(e: Event) {
+      const destino = (e as CustomEvent<string>).detail;
+      if (esConfiguracionTab(destino)) {
+        setTab(destino);
+        document.cookie = `${CONFIGURACION_TAB_COOKIE}=${destino}; path=/; max-age=31536000; samesite=lax`;
+      }
+    }
+    window.addEventListener(CONFIGURACION_TAB_EVENT, handleIrATab);
+    return () => window.removeEventListener(CONFIGURACION_TAB_EVENT, handleIrATab);
+  }, []);
 
   // Cerrar al clickear afuera
   useEffect(() => {

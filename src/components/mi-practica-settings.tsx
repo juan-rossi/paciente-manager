@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarDays,
@@ -99,6 +100,7 @@ export function MiPracticaSettings({
   initialSlotDurationMinutes,
   initialSobreturnosHabilitados,
 }: Props) {
+  const router = useRouter();
   const [lugares, setLugares] = useState<LugarDeTrabajo[]>(initialLugares);
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [activeLugarId, setActiveLugarId] = useState<string | null>(initialLugares[0]?.id ?? null);
@@ -318,6 +320,8 @@ export function MiPracticaSettings({
       );
       if (!editingLugar) setActiveLugarId(data.lugar.id);
       setLugarOpen(false);
+      // Mi perfil resume las prácticas desde el server (tab "Información pública").
+      router.refresh();
     } finally {
       setSavingLugar(false);
     }
@@ -345,6 +349,7 @@ export function MiPracticaSettings({
           : null
       );
       setDeleteLugarTarget(null);
+      router.refresh();
     } finally {
       setDeletingLugar(false);
     }

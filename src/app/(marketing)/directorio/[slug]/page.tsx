@@ -74,6 +74,9 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
     doctor.tituloCortesia,
     `${doctor.nombre} ${doctor.apellido}`.trim()
   );
+  // La ciudad del perfil es un dato legado (ya no se edita en Mi perfil): si
+  // falta, sale de la primera práctica que la tenga cargada.
+  const ciudad = doctor.ciudad ?? doctor.lugaresDeTrabajo.find((l) => l.ciudad)?.ciudad ?? null;
   const iniciales = `${doctor.nombre.charAt(0)}${doctor.apellido.charAt(0)}`.toUpperCase();
 
   return (
@@ -98,16 +101,10 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
                   {ESPECIALIDAD_LABELS[doctor.especialidad]}
                 </span>
               )}
-              {doctor.ciudad && (
+              {ciudad && (
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <MapPin className="size-3.5" />
-                  {doctor.ciudad}
-                </span>
-              )}
-              {doctor.atencionTipo && (
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Building2 className="size-3.5" />
-                  {doctor.atencionTipo === "CONSULTORIO" ? "Atiende en consultorio" : "Atención particular"}
+                  {ciudad}
                 </span>
               )}
             </div>

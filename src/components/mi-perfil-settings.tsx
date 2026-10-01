@@ -2,17 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2 } from "lucide-react";
+import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2, TriangleAlert } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
-import { filterTelefono } from "@/lib/utils";
-import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -44,7 +42,14 @@ import {
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
-type AtencionTipo = "PARTICULAR" | "CONSULTORIO";
+type LugarResumen = {
+  id: string;
+  tipo: "PARTICULAR" | "CONSULTORIO";
+  nombre: string | null;
+  direccion: string;
+  telefono: string;
+  ciudad: string | null;
+};
 
 type Props = {
   email: string;
@@ -55,13 +60,10 @@ type Props = {
   initialEspecialidad: Especialidad | null;
   initialNroMatricula: string;
   initialPerfilPublico: boolean;
-  initialAtencionTipo: AtencionTipo | null;
-  initialNombreConsultorio: string | null;
-  initialTelefono: string | null;
-  initialDireccion: string | null;
-  initialCiudad: string | null;
-  initialLatitud: number | null;
-  initialLongitud: number | null;
+  // Prácticas activas del médico -- de acá salen consultorio, dirección y
+  // teléfono del perfil público. Se leen siempre de las props (no de estado
+  // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
+  lugares: LugarResumen[];
   initialBiografia: string | null;
   initialReservaPublicaHabilitada: boolean;
   initialPublicSlug: string | null;
@@ -76,13 +78,7 @@ export function MiPerfilSettings({
   initialEspecialidad,
   initialNroMatricula,
   initialPerfilPublico,
-  initialAtencionTipo,
-  initialNombreConsultorio,
-  initialTelefono,
-  initialDireccion,
-  initialCiudad,
-  initialLatitud,
-  initialLongitud,
+  lugares,
   initialBiografia,
   initialReservaPublicaHabilitada,
   initialPublicSlug,
@@ -103,36 +99,8 @@ export function MiPerfilSettings({
   const [nroMatricula, setNroMatricula] = useState(initialNroMatricula);
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
-  const [atencionTipo, setAtencionTipo] = useState<AtencionTipo | "">(initialAtencionTipo ?? "");
-  const [nombreConsultorio, setNombreConsultorio] = useState(initialNombreConsultorio ?? "");
-  const [telefono, setTelefono] = useState(initialTelefono ?? "");
-  const [direccion, setDireccion] = useState(initialDireccion ?? "");
-  const [ciudad, setCiudad] = useState(initialCiudad ?? "");
-  const [latitud, setLatitud] = useState(initialLatitud);
-  const [longitud, setLongitud] = useState(initialLongitud);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
-
-  // Escribir en el campo de dirección invalida la ciudad/coordenadas ya
-  // guardadas -- se vuelven a completar solas recién cuando el usuario elige
-  // una sugerencia real del autocompletado (ver AddressAutocomplete).
-  function handleDireccionTextChange(text: string) {
-    setDireccion(text);
-    setCiudad("");
-    setLatitud(null);
-    setLongitud(null);
-  }
-
-  function handleDireccionSelect(result: {
-    direccion: string;
-    ciudad: string | null;
-    latitud: number | null;
-    longitud: number | null;
-  }) {
-    setDireccion(result.direccion);
-    setCiudad(result.ciudad ?? "");
-    setLatitud(result.latitud);
-    setLongitud(result.longitud);
-  }
+  const sinPracticas = lugares.length === 0;
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,24 +194,6 @@ export function MiPerfilSettings({
       setError("Completá los campos obligatorios de Información personal y Datos profesionales.");
       return;
     }
-    if (perfilPublico) {
-      if (!atencionTipo) {
-        setError('Elegí cómo atendés en "Información pública".');
-        return;
-      }
-      if (atencionTipo === "CONSULTORIO" && !nombreConsultorio.trim()) {
-        setError("Completá el nombre del consultorio.");
-        return;
-      }
-      if (!telefono.trim()) {
-        setError('Completá el teléfono en "Información pública".');
-        return;
-      }
-      if (!direccion.trim() || !ciudad.trim()) {
-        setError('Elegí una dirección de la lista de sugerencias en "Información pública".');
-        return;
-      }
-    }
 
     setSaving(true);
     try {
@@ -257,13 +207,6 @@ export function MiPerfilSettings({
           especialidad,
           nroMatricula,
           perfilPublico,
-          atencionTipo: atencionTipo || null,
-          nombreConsultorio,
-          telefono,
-          direccion,
-          ciudad,
-          latitud,
-          longitud,
           biografia,
         }),
       });
@@ -532,8 +475,7 @@ export function MiPerfilSettings({
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold">Perfil público</span>
             <p className="max-w-md text-xs text-muted-foreground">
-              Aparecerá en el directorio público de Semio360. Al activarlo, completá los datos de
-              abajo.
+              Aparecerá en el directorio público de Semio360 con los datos de tus prácticas.
             </p>
           </div>
           <Switch checked={perfilPublico} onCheckedChange={setPerfilPublico} />
@@ -541,80 +483,57 @@ export function MiPerfilSettings({
 
         {perfilPublico && (
           <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>¿Cómo atendés? *</Label>
-              <RadioGroup
-                value={atencionTipo}
-                onValueChange={(v) => setAtencionTipo(v as AtencionTipo)}
-                className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2"
+            {sinPracticas ? (
+              <div
+                role="alert"
+                className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
               >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="PARTICULAR" id="atencion-particular" />
-                  <Label htmlFor="atencion-particular" className="font-normal">
-                    Particular
-                  </Label>
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <div className="flex min-w-48 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-semibold">Tu perfil todavía no es público</span>
+                  <span className="text-xs">
+                    No aparecerá en el directorio hasta que configures tus prácticas.
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="CONSULTORIO" id="atencion-consultorio" />
-                  <Label htmlFor="atencion-consultorio" className="font-normal">
-                    Consultorio
-                  </Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => irAConfiguracionTab("practica")}
+                >
+                  Configurar prácticas
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    Se toma de tus prácticas
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => irAConfiguracionTab("practica")}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Editar prácticas
+                  </button>
                 </div>
-              </RadioGroup>
-            </div>
-
-            {atencionTipo === "CONSULTORIO" && (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-consultorio">Nombre del consultorio *</Label>
-                <Input
-                  id="perfil-consultorio"
-                  value={nombreConsultorio}
-                  onChange={(e) => setNombreConsultorio(e.target.value)}
-                  className={
-                    triedSubmit && !nombreConsultorio.trim() ? "border-destructive" : undefined
-                  }
-                />
+                <ul className="flex flex-col divide-y divide-border/60">
+                  {lugares.map((lugar) => (
+                    <li key={lugar.id} className="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0">
+                      <span className="text-sm font-medium">
+                        {lugar.nombre ?? "Consulta particular"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {lugar.direccion} · {lugar.telefono}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="perfil-direccion">Dirección *</Label>
-              <AddressAutocomplete
-                id="perfil-direccion"
-                value={direccion}
-                onChangeText={handleDireccionTextChange}
-                onSelect={handleDireccionSelect}
-                className={triedSubmit && !direccion.trim() ? "border-destructive" : undefined}
-              />
-              <span className="text-xs text-muted-foreground">
-                Elegí una sugerencia de la lista para completar la ciudad automáticamente.
-              </span>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-telefono">Teléfono *</Label>
-                <Input
-                  id="perfil-telefono"
-                  inputMode="numeric"
-                  value={telefono}
-                  onChange={(e) => setTelefono(filterTelefono(e.target.value))}
-                  className={triedSubmit && !telefono.trim() ? "border-destructive" : undefined}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-ciudad">Ciudad *</Label>
-                <Input
-                  id="perfil-ciudad"
-                  value={ciudad}
-                  disabled
-                  placeholder="Se completa al elegir la dirección"
-                  className={triedSubmit && !ciudad.trim() ? "border-destructive" : undefined}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 mt-2">
               <Label htmlFor="perfil-bio">Biografía</Label>
               <Textarea
                 id="perfil-bio"

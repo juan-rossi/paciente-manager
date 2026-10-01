@@ -167,13 +167,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialEspecialidad={user.especialidad}
             initialNroMatricula={user.nroMatricula}
             initialPerfilPublico={user.perfilPublico}
-            initialAtencionTipo={user.atencionTipo}
-            initialNombreConsultorio={user.nombreConsultorio}
-            initialTelefono={user.telefono}
-            initialDireccion={user.direccion}
-            initialCiudad={user.ciudad}
-            initialLatitud={user.latitud}
-            initialLongitud={user.longitud}
+            lugares={lugares}
             initialBiografia={user.biografia}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
             initialPublicSlug={user.publicSlug}
