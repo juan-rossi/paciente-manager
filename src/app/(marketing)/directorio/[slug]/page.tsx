@@ -74,9 +74,17 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
     doctor.tituloCortesia,
     `${doctor.nombre} ${doctor.apellido}`.trim()
   );
-  // La ciudad del perfil es un dato legado (ya no se edita en Mi perfil): si
-  // falta, sale de la primera práctica que la tenga cargada.
-  const ciudad = doctor.ciudad ?? doctor.lugaresDeTrabajo.find((l) => l.ciudad)?.ciudad ?? null;
+  // La ciudad del perfil es un dato legado (ya no se edita en Mi perfil): se
+  // complementa con las ciudades de cada práctica.
+  // Si atiende en varias ciudades se listan todas (sin repetir).
+  const ciudades = [
+    ...new Set(
+      [doctor.ciudad, ...doctor.lugaresDeTrabajo.map((l) => l.ciudad)].filter(
+        (c): c is string => !!c
+      )
+    ),
+  ];
+  const ciudad = ciudades.join(" · ");
   const iniciales = `${doctor.nombre.charAt(0)}${doctor.apellido.charAt(0)}`.toUpperCase();
 
   return (
