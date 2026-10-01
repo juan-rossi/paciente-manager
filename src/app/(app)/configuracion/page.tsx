@@ -9,6 +9,7 @@ import {
   CONFIGURACION_TAB_COOKIE,
   DEFAULT_CONFIGURACION_TAB,
   esConfiguracionTab,
+  type ConfiguracionTab,
 } from "@/lib/configuracion-tabs";
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
@@ -18,7 +19,7 @@ import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
-import { diasRestantesDeTrial } from "@/lib/plan";
+import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 
 export const dynamic = "force-dynamic";
@@ -52,9 +53,14 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   }
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
-  const initialTab = esConfiguracionTab(tabParam)
+  // El Transcriptor es una función Premium: solo se muestra con el plan
+  // Premium vigente.
+  const mostrarTranscriptor = isPremium(user) && esActivo(user);
+  const tabDisponible = (t: string | undefined): t is ConfiguracionTab =>
+    esConfiguracionTab(t) && (t !== "transcriptor" || mostrarTranscriptor);
+  const initialTab = tabDisponible(tabParam)
     ? tabParam
-    : esConfiguracionTab(tabGuardada)
+    : tabDisponible(tabGuardada)
       ? tabGuardada
       : DEFAULT_CONFIGURACION_TAB;
 
@@ -120,10 +126,12 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
-          <TabsTrigger value="transcriptor" className={navItemClass}>
-            <Mic className="size-4" />
-            Transcriptor
-          </TabsTrigger>
+          {mostrarTranscriptor && (
+            <TabsTrigger value="transcriptor" className={navItemClass}>
+              <Mic className="size-4" />
+              Transcriptor
+            </TabsTrigger>
+          )}
 
           <div className={groupLabelClass}>Cuenta</div>
           <TabsTrigger value="perfil" className={navItemClass}>
@@ -159,9 +167,11 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
           />
         </TabsContent>
-        <TabsContent value="transcriptor" className="w-full">
-          <TranscriberSettings />
-        </TabsContent>
+        {mostrarTranscriptor && (
+          <TabsContent value="transcriptor" className="w-full">
+            <TranscriberSettings />
+          </TabsContent>
+        )}
         <TabsContent value="perfil" className="w-full">
           <MiPerfilSettings
             email={user.email}

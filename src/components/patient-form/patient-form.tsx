@@ -39,6 +39,7 @@ type Props = {
   initialValues?: PatientFormValues;
   initialEvoluciones?: EvolucionValue[];
   initialEvolucionesEliminadas?: EvolucionValue[];
+  transcripcionHabilitada?: boolean;
 };
 
 const REQUIRED_FIELDS = [
@@ -92,6 +93,7 @@ export function PatientForm({
   initialValues,
   initialEvoluciones,
   initialEvolucionesEliminadas,
+  transcripcionHabilitada = false,
 }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
@@ -315,6 +317,7 @@ export function PatientForm({
                 values={values}
                 onChange={handleChange}
                 invalidFields={invalidFields}
+                transcripcionHabilitada={transcripcionHabilitada}
               />
             </TabsContent>
             <TabsContent value="antecedentes">
@@ -334,6 +337,7 @@ export function PatientForm({
                   onChangeEvoluciones={setEvoluciones}
                   evolucionesEliminadas={evolucionesEliminadas}
                   onChangeEvolucionesEliminadas={setEvolucionesEliminadas}
+                  transcripcionHabilitada={transcripcionHabilitada}
                 />
               </TabsContent>
             )}

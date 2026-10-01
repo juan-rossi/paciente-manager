@@ -8,9 +8,15 @@ type Props = {
   values: PatientFormValues;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
   invalidFields: Set<string>;
+  transcripcionHabilitada?: boolean;
 };
 
-export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
+export function ConsultaInicialTab({
+  values,
+  onChange,
+  invalidFields,
+  transcripcionHabilitada,
+}: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 md:grid-cols-3">
@@ -47,6 +53,7 @@ export function ConsultaInicialTab({ values, onChange, invalidFields }: Props) {
         onChange={(v) => onChange("antecedentesEnfermedad", v)}
         rows={5}
         aiAutocomplete
+        transcripcionHabilitada={transcripcionHabilitada}
       />
 
       <div className="flex flex-col gap-2">

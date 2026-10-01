@@ -1,3 +1,5 @@
+import { getCurrentUser } from "@/lib/session";
+import { esActivo, isPremium } from "@/lib/plan";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { emptyPatientFormValues } from "@/components/patient-form/utils";
 
@@ -12,6 +14,7 @@ export default async function NewPatientPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const user = await getCurrentUser();
   const params = await searchParams;
   const initialValues = emptyPatientFormValues();
   initialValues.nombreYApellido = firstString(params.nombreYApellido) ?? "";
@@ -22,7 +25,11 @@ export default async function NewPatientPage({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Nuevo paciente</h1>
-      <PatientForm mode="create" initialValues={initialValues} />
+      <PatientForm
+        mode="create"
+        initialValues={initialValues}
+        transcripcionHabilitada={user ? isPremium(user) && esActivo(user) : false}
+      />
     </div>
   );
 }

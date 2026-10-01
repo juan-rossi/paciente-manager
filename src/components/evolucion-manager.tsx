@@ -7,9 +7,10 @@ import type { EvolucionValue } from "@/components/patient-form/types";
 type Props = {
   patientId: string;
   initialEvoluciones: EvolucionValue[];
+  transcripcionHabilitada?: boolean;
 };
 
-export function EvolucionManager({ patientId, initialEvoluciones }: Props) {
+export function EvolucionManager({ patientId, initialEvoluciones, transcripcionHabilitada }: Props) {
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones);
 
   return (
@@ -17,6 +18,7 @@ export function EvolucionManager({ patientId, initialEvoluciones }: Props) {
       patientId={patientId}
       evoluciones={evoluciones}
       onChangeEvoluciones={setEvoluciones}
+      transcripcionHabilitada={transcripcionHabilitada}
     />
   );
 }

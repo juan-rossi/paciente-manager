@@ -130,11 +130,13 @@ export function PatientSummary({
   diffs = [],
   patientValues,
   auditEntries = [],
+  transcripcionHabilitada = false,
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
   patientValues?: PatientFormValues;
   auditEntries?: AuditEntry[];
+  transcripcionHabilitada?: boolean;
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
@@ -346,7 +348,11 @@ export function PatientSummary({
 
           <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
             <div className="col-span-full">
-              <EvolucionManager patientId={patient.id} initialEvoluciones={evolucionValues} />
+              <EvolucionManager
+                patientId={patient.id}
+                initialEvoluciones={evolucionValues}
+                transcripcionHabilitada={transcripcionHabilitada}
+              />
             </div>
           </FormSection>
 

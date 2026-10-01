@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
+import { esActivo, isPremium } from "@/lib/plan";
 import { PatientSummary } from "@/components/patient-summary";
 import { patientFromApi } from "@/components/patient-form/utils";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
@@ -83,6 +84,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
       diffs={diffs}
       patientValues={patientValues}
       auditEntries={auditEntries}
+      transcripcionHabilitada={isPremium(user) && esActivo(user)}
     />
   );
 }
