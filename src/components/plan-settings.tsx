@@ -132,7 +132,17 @@ export function PlanSettings({
     ? `Disponible desde el ${formatFecha(planEndsAt)}`
     : "Disponible al vencer Premium";
   const mostrarPlanes = !planVigente || recontratable;
+  // Tuvo un plan pago, ya pasó su `planEndsAt` y no hay período de prueba ni
+  // gracia de cobro que le dé acceso: está inactivo desde esa fecha.
+  const diasDesdeVencimiento =
+    planEndsAt && !planVigente && !pagoEnGracia
+      ? Math.floor((Date.now() - new Date(planEndsAt).getTime()) / 86_400_000)
+      : null;
+  const vencido =
+    diasDesdeVencimiento !== null &&
+    !(plan === "BASICA" && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0);
   function textoBoton(elegido: "BASICA" | "PREMIUM") {
+    if (vencido && elegido === plan) return "Renovar";
     if (!recontratable) return elegido === "PREMIUM" ? "Pasar a Premium" : "Contratar";
     if (duracion === "MENSUAL") return elegido === plan ? "Reactivar" : "Suscribirme";
     return elegido === plan ? `Renovar ${PLAN_DURACION_LABEL[duracion]}` : "Contratar";
@@ -386,9 +396,46 @@ export function PlanSettings({
       <SettingsSection title="Tu plan actual" icon={Sparkles}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={plan === "PREMIUM" ? "default" : "secondary"} className="text-sm">
-              {plan === "PREMIUM" ? "Premium" : "Básico"}
-            </Badge>
+            {vencido ? (
+              <Badge
+                variant="secondary"
+                className="border border-red-300 bg-red-50 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
+              >
+                {plan === "PREMIUM" ? "Premium" : "Básico"} · Vencido
+              </Badge>
+            ) : (
+              <Badge variant={plan === "PREMIUM" ? "default" : "secondary"} className="text-sm">
+                {plan === "PREMIUM" ? "Premium" : "Básico"}
+              </Badge>
+            )}
+            {vencido && planEndsAt && diasDesdeVencimiento !== null && (
+              <div className="flex min-w-[14rem] flex-1 flex-col gap-0.5">
+                <span className="text-sm font-semibold text-foreground">
+                  Inactivo desde el {formatFecha(planEndsAt)}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {diasDesdeVencimiento <= 0
+                    ? "Venció hoy. "
+                    : `Hace ${diasDesdeVencimiento} ${diasDesdeVencimiento === 1 ? "día" : "días"}. `}
+                  Tus datos están guardados y vuelven a estar disponibles al renovar.
+                </span>
+              </div>
+            )}
+            {vencido && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={cargando !== null}
+                onClick={() => suscribirse(plan)}
+                className="shadow-xs"
+              >
+                {cargando === plan ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  `Renovar ${plan === "PREMIUM" ? "Premium" : "Básico"}`
+                )}
+              </Button>
+            )}
             {enTrial && (
               <span className="text-sm text-muted-foreground">
                 Período de prueba: quedan {diasRestantesDeTrial}{" "}
