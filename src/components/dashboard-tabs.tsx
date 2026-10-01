@@ -17,6 +17,7 @@ type Props = {
   totalPacientes: number;
   sinPracticas: boolean;
   puedeConfigurarPracticas: boolean;
+  sugerirPerfilPublico: boolean;
 };
 
 // Componente cliente separado del server component de la página únicamente
@@ -30,6 +31,7 @@ export function DashboardTabs({
   totalPacientes,
   sinPracticas,
   puedeConfigurarPracticas,
+  sugerirPerfilPublico,
 }: Props) {
   const [tab, setTab] = useState("turnos");
 
@@ -69,6 +71,7 @@ export function DashboardTabs({
           diasConHorario={diasConHorario}
           sinPracticas={sinPracticas}
           puedeConfigurarPracticas={puedeConfigurarPracticas}
+          sugerirPerfilPublico={sugerirPerfilPublico}
           onBuscarPaciente={() => setTab("buscar")}
         />
       </TabsContent>

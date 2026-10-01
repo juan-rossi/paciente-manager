@@ -65,6 +65,7 @@ export default async function DashboardPage() {
         totalPacientes={totalPacientes}
         sinPracticas={totalPracticas === 0}
         puedeConfigurarPracticas={user.role === "DOCTOR"}
+        sugerirPerfilPublico={user.role === "DOCTOR" && totalPracticas > 0 && !user.perfilPublico}
       />
     </div>
   );
