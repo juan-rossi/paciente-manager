@@ -74,6 +74,9 @@ export function TurnosPorDia({
 
   const today = new Date();
 
+  // Tiene lugares de atención pero ningún bloque horario cargado en ninguno.
+  const sinHorarios = !sinPracticas && diasConHorario.length === 0;
+
   function diaValido(date: Date) {
     return diasConHorario.includes(diaSemanaFromDate(date));
   }
@@ -171,6 +174,36 @@ export function TurnosPorDia({
 
           {!loading && turnos.length === 0 && isSameDayBA(selectedDate, today) && (
             <div className="flex flex-col gap-4 py-1">
+              {sinHorarios ? (
+                <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4">
+                  <div className="flex min-w-0 flex-1 basis-72 flex-col gap-1">
+                    <p className="text-base font-semibold">Casi listo para recibir turnos</p>
+                    <p className="text-sm text-muted-foreground">
+                      {puedeConfigurarPracticas
+                        ? "Lugares de atención listos. Falta definir los días y horarios en que atendés."
+                        : "El médico todavía no definió sus horarios, por eso no se pueden agendar turnos."}
+                    </p>
+                    {puedeConfigurarPracticas && (
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        <div className="h-1.5 w-40 max-w-full overflow-hidden rounded-full bg-border">
+                          <div className="h-full w-1/2 rounded-full bg-primary" />
+                        </div>
+                        <span className="text-xs text-muted-foreground">1 de 2 pasos completos</span>
+                      </div>
+                    )}
+                  </div>
+                  {puedeConfigurarPracticas && (
+                    <Button
+                      size="sm"
+                      nativeButton={false}
+                      render={<Link href="/configuracion?tab=practica" />}
+                    >
+                      Definir horarios
+                      <ArrowRight className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              ) : (
               <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
                 <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
                   {sinPracticas ? (
@@ -181,7 +214,7 @@ export function TurnosPorDia({
                 </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-base font-semibold">
-                    {sinPracticas ? "Configurá tus prácticas" : "Hoy no tenés turnos"}
+                    {sinPracticas ? "Definí tus lugares de atención" : "Hoy no tenés turnos"}
                   </p>
                   <p className="max-w-xs text-sm text-muted-foreground">
                     {sinPracticas
@@ -199,7 +232,7 @@ export function TurnosPorDia({
                       nativeButton={false}
                       render={<Link href="/configuracion?tab=practica" />}
                     >
-                      Configurar prácticas
+                      Configurar
                       <ArrowRight className="size-4" />
                     </Button>
                   )
@@ -209,6 +242,7 @@ export function TurnosPorDia({
                   </Button>
                 )}
               </div>
+              )}
 
               <div className="flex flex-col gap-2">
                 <span className="px-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
