@@ -13,11 +13,14 @@ export function ContactField({
   label,
   value,
   className,
+  mapQuery,
 }: {
   icon: typeof Building2;
   label: string;
   value: string;
   className?: string;
+  /** Si se pasa, agrega un link "Ver en mapa" que abre Google Maps en otra pestaña. */
+  mapQuery?: string;
 }) {
   return (
     <div className={cn("flex items-start gap-2.5", className)}>
@@ -27,6 +30,16 @@ export function ContactField({
       <div className="flex flex-col gap-0.5">
         <span className="text-[11px] font-semibold tracking-wide text-muted-foreground">{label}</span>
         <span className="text-[13.5px] font-medium">{value}</span>
+        {mapQuery && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            Ver en mapa
+          </a>
+        )}
       </div>
     </div>
   );
@@ -52,7 +65,7 @@ export function LugarCard({
         <span className="text-[13.5px] font-bold">{lugar.nombre ?? "Consulta particular"}</span>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ContactField icon={MapPin} label="Dirección" value={lugar.direccion} />
+        <ContactField icon={MapPin} label="Dirección" value={lugar.direccion} mapQuery={lugar.direccion} />
         <ContactField icon={Phone} label="Teléfono" value={lugar.telefono} />
       </div>
     </div>

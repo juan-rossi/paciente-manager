@@ -89,6 +89,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
                     icon={MapPin}
                     label="Dirección"
                     value={doctor.direccion}
+                    mapQuery={doctor.direccion}
                     className="col-span-2"
                   />
                 )}
