@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Clock, Loader2, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Check, Clock, Loader2, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
@@ -20,7 +20,6 @@ import {
 } from "@/lib/plan";
 import { PAGO_BASELINE_KEY, PAGO_INICIO_KEY } from "@/lib/pago-confirmado";
 import { TIME_ZONE } from "@/lib/timezone";
-import { cn } from "@/lib/utils";
 
 type Props = {
   plan: "BASICA" | "PREMIUM";
@@ -57,7 +56,6 @@ export function PlanSettings({
   graciaVenceEl,
 }: Props) {
   const [duracion, setDuracion] = useState<PlanDuracion>(planDuracion ?? "MENSUAL");
-  const [mostrarTablaMobile, setMostrarTablaMobile] = useState(false);
   const [cargando, setCargando] = useState<"BASICA" | "PREMIUM" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [avisoPendienteCerrado, setAvisoPendienteCerrado] = useState(false);
@@ -717,31 +715,6 @@ export function PlanSettings({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Botón para desplegar tabla completa en mobile */}
-        <div className="flex flex-col items-center gap-3 pt-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setMostrarTablaMobile((prev) => !prev)}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            {mostrarTablaMobile ? "Ocultar tabla comparativa" : "Ver tabla comparativa detallada"}
-            <ChevronDown
-              className={cn(
-                "size-3.5 transition-transform duration-200",
-                mostrarTablaMobile && "rotate-180"
-              )}
-            />
-          </Button>
-
-          {mostrarTablaMobile && (
-            <div className="w-full animate-in fade-in-50 duration-200">
-              {tablaComparativa}
-            </div>
-          )}
         </div>
       </div>
 
