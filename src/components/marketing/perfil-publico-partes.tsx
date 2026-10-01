@@ -1,4 +1,5 @@
-import { Building2, MapPin, Phone } from "lucide-react";
+import Link from "next/link";
+import { Building2, ChevronRight, MapPin, Phone } from "lucide-react";
 import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { cn } from "@/lib/utils";
@@ -79,7 +80,30 @@ export function PerfilHero({
 
   return (
     <section className="bg-gradient-to-b from-primary/[0.06] to-transparent">
-      <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 pt-14 pb-8 text-center sm:flex-row sm:items-center sm:text-left">
+      <nav
+        aria-label="Ruta"
+        className="mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pt-14 text-[13px] text-muted-foreground"
+      >
+        <Link href="/directorio" className="transition-colors hover:text-primary hover:underline">
+          Directorio
+        </Link>
+        {doctor.especialidad && (
+          <>
+            <ChevronRight className="size-3.5 opacity-60" />
+            <Link
+              href={`/directorio?especialidad=${doctor.especialidad}`}
+              className="transition-colors hover:text-primary hover:underline"
+            >
+              {ESPECIALIDAD_LABELS[doctor.especialidad]}
+            </Link>
+          </>
+        )}
+        <ChevronRight className="size-3.5 opacity-60" />
+        <span aria-current="page" className="font-semibold text-foreground">
+          {nombreCompleto}
+        </span>
+      </nav>
+      <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 pt-6 pb-8 text-center sm:flex-row sm:items-center sm:text-left">
         <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-3xl font-bold text-primary shadow-lg shadow-primary/20">
           {doctor.fotoPerfilBase64 ? (
             // eslint-disable-next-line @next/next/no-img-element
