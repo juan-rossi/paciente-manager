@@ -92,14 +92,20 @@ export function PlanSettings({
     }
   }
 
-  const suscripcionActiva = mpPreapprovalStatus === "AUTHORIZED";
   // Duraciones != MENSUAL son un pago único por adelantado -- no hay nada
   // que "renovar" ni "cancelar" (ya está todo pagado), a diferencia de la
   // suscripción recurrente mensual. `planVigente` cubre ambos casos (activo
-  // = tiene acceso pagado vigente, sea recurrente o prepago); `suscripcionActiva`
-  // sigue significando específicamente "hay una suscripción de MercadoPago
-  // autorizada" -- solo tiene sentido para MENSUAL.
+  // = tiene acceso pagado vigente, sea recurrente o prepago).
   const esRecurrente = planDuracion === "MENSUAL";
+  // Se puede cancelar mientras exista una preapproval de MercadoPago que no
+  // esté ya cancelada: no solo AUTHORIZED, sino también PAUSED / PENDING (un
+  // estado desfasado por una notificación fuera de orden no debe dejar al
+  // médico sin forma de cortar el cobro).
+  const puedeCancelar =
+    esRecurrente &&
+    Boolean(mpPreapprovalId) &&
+    mpPreapprovalStatus !== null &&
+    mpPreapprovalStatus !== "CANCELLED";
   const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
   // Canceló la suscripción mensual pero sigue con acceso hasta `planEndsAt`:
   // puede volver a contratar (la nueva compra se suma al final de lo pagado).
@@ -467,7 +473,7 @@ export function PlanSettings({
                 ))}
               </div>
             </div>
-            {suscripcionActiva && esRecurrente && (
+            {puedeCancelar && (
               <CancelarSuscripcionButton
                 fechaVencimiento={planEndsAt ? formatFecha(planEndsAt) : null}
               />
@@ -487,7 +493,7 @@ export function PlanSettings({
                   ))}
                 </div>
               </div>
-              {suscripcionActiva && esRecurrente && (
+              {puedeCancelar && (
                 <CancelarSuscripcionButton
                   fechaVencimiento={planEndsAt ? formatFecha(planEndsAt) : null}
                 />

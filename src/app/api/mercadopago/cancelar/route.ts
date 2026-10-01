@@ -18,8 +18,13 @@ export async function POST(request: Request) {
 
   // `mpPreapprovalId` nunca se limpia (solo se reemplaza), así que no basta
   // con chequear que exista -- podría ser el id de una suscripción vieja ya
-  // cancelada o de un pago único (que no tiene nada que cancelar).
-  if (!user.mpPreapprovalId || user.mpPreapprovalStatus !== "AUTHORIZED") {
+  // cancelada o de un pago único (que no tiene nada que cancelar). Se acepta
+  // cualquier estado no cancelado (AUTHORIZED / PAUSED / PENDING).
+  if (
+    !user.mpPreapprovalId ||
+    !user.mpPreapprovalStatus ||
+    user.mpPreapprovalStatus === "CANCELLED"
+  ) {
     return NextResponse.json({ error: "No tenés una suscripción activa." }, { status: 400 });
   }
 
