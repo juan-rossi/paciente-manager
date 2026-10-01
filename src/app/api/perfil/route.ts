@@ -27,19 +27,32 @@ export async function PATCH(request: NextRequest) {
       ? await generateUniquePublicSlug(parsed.data.nombre, parsed.data.apellido)
       : user.publicSlug;
 
-  const updated = await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      tituloCortesia: parsed.data.tituloCortesia,
-      nombre: parsed.data.nombre,
-      apellido: parsed.data.apellido,
-      especialidad: parsed.data.especialidad,
-      nroMatricula: parsed.data.nroMatricula,
-      perfilPublico: parsed.data.perfilPublico,
-      biografia: parsed.data.biografia,
-      publicSlug,
-    },
-  });
+  const visibles = parsed.data.lugaresVisibles;
+  const [updated] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tituloCortesia: parsed.data.tituloCortesia,
+        nombre: parsed.data.nombre,
+        apellido: parsed.data.apellido,
+        especialidad: parsed.data.especialidad,
+        nroMatricula: parsed.data.nroMatricula,
+        perfilPublico: parsed.data.perfilPublico,
+        biografia: parsed.data.biografia,
+        publicSlug,
+      },
+    }),
+    // Solo toca lugares de este médico: un id ajeno en `lugaresVisibles`
+    // simplemente no matchea nada.
+    prisma.lugarDeTrabajo.updateMany({
+      where: { userId: user.id, id: { in: visibles } },
+      data: { perfilVisible: true },
+    }),
+    prisma.lugarDeTrabajo.updateMany({
+      where: { userId: user.id, id: { notIn: visibles } },
+      data: { perfilVisible: false },
+    }),
+  ]);
 
   return NextResponse.json({
     tituloCortesia: updated.tituloCortesia,

@@ -40,6 +40,7 @@ import {
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import { cn } from "@/lib/utils";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 type LugarResumen = {
@@ -49,6 +50,9 @@ type LugarResumen = {
   direccion: string;
   telefono: string;
   ciudad: string | null;
+  perfilVisible: boolean;
+  reservaPublicaHabilitada: boolean;
+  publicSlug: string | null;
 };
 
 type Props = {
@@ -101,6 +105,25 @@ export function MiPerfilSettings({
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
   const sinPracticas = lugares.length === 0;
+  // Lugares que se muestran en el perfil público -- se guardan junto con el
+  // resto del perfil (botón "Guardar cambios"), a diferencia de la agenda.
+  const [lugaresVisibles, setLugaresVisibles] = useState<string[]>(() =>
+    lugares.filter((l) => l.perfilVisible).map((l) => l.id)
+  );
+  const sinLugaresVisibles = !sinPracticas && lugaresVisibles.length === 0;
+
+  function togglePerfilPublico(checked: boolean) {
+    setPerfilPublico(checked);
+    // Al activarlo, todos los lugares arrancan visibles.
+    if (checked) setLugaresVisibles(lugares.map((l) => l.id));
+  }
+
+  function toggleLugarVisible(id: string, checked: boolean) {
+    const next = checked ? [...lugaresVisibles, id] : lugaresVisibles.filter((x) => x !== id);
+    setLugaresVisibles(next);
+    // Sin ningún lugar visible el perfil no tiene qué mostrar: se apaga el principal.
+    if (next.length === 0) setPerfilPublico(false);
+  }
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +136,14 @@ export function MiPerfilSettings({
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
   const [agendaPublicaSaving, setAgendaPublicaSaving] = useState(false);
   const [agendaPublicaError, setAgendaPublicaError] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState(false);
+  // Qué link se acaba de copiar (`"general"` o el id de un lugar), para
+  // mostrar "¡Copiado!" solo en ese botón.
+  const [copiado, setCopiado] = useState<string | null>(null);
+  // Turnos online por lugar -- se guardan al instante, como el switch general.
+  const [reservaPorLugar, setReservaPorLugar] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(lugares.map((l) => [l.id, l.reservaPublicaHabilitada]))
+  );
+  const [lugarAgendaSaving, setLugarAgendaSaving] = useState<string | null>(null);
 
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordActual, setPasswordActual] = useState("");
@@ -208,6 +238,7 @@ export function MiPerfilSettings({
           nroMatricula,
           perfilPublico,
           biografia,
+          lugaresVisibles,
         }),
       });
       const data = await response.json();
@@ -251,6 +282,10 @@ export function MiPerfilSettings({
       }
       setReservaPublicaHabilitada(data.reservaPublicaHabilitada);
       setPublicSlug(data.publicSlug);
+      if (data.reservaPublicaHabilitada) {
+        setReservaPorLugar(Object.fromEntries(lugares.map((l) => [l.id, true])));
+        router.refresh();
+      }
     } catch {
       setReservaPublicaHabilitada(previous);
       setAgendaPublicaError("No se pudo conectar con el servidor.");
@@ -271,12 +306,43 @@ export function MiPerfilSettings({
 
   const publicLink = publicSlug ? `${origin ?? "semio360.com"}/directorio/${publicSlug}` : null;
 
-  async function handleCopiarLink() {
-    if (!publicLink) return;
+  async function handleToggleReservaLugar(lugarId: string, checked: boolean) {
+    const previous = reservaPorLugar[lugarId];
+    setReservaPorLugar((prev) => ({ ...prev, [lugarId]: checked }));
+    setLugarAgendaSaving(lugarId);
+    setAgendaPublicaError(null);
     try {
-      await navigator.clipboard.writeText(publicLink);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
+      const response = await fetch(`/api/lugares-trabajo/${lugarId}/agenda-publica`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservaPublicaHabilitada: checked }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setReservaPorLugar((prev) => ({ ...prev, [lugarId]: previous }));
+        setAgendaPublicaError(data.error ?? "No se pudo guardar el cambio.");
+        return;
+      }
+      // Sin ningún lugar con turnos online, la agenda pública no tiene sentido.
+      const quedaAlguno = lugares.some((l) =>
+        l.id === lugarId ? checked : (reservaPorLugar[l.id] ?? false)
+      );
+      if (!checked && !quedaAlguno && reservaPublicaHabilitada) {
+        await handleToggleReservaPublica(false);
+      }
+    } catch {
+      setReservaPorLugar((prev) => ({ ...prev, [lugarId]: previous }));
+      setAgendaPublicaError("No se pudo conectar con el servidor.");
+    } finally {
+      setLugarAgendaSaving(null);
+    }
+  }
+
+  async function handleCopiar(clave: string, link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiado(clave);
+      setTimeout(() => setCopiado(null), 2000);
     } catch {
       // Portapapeles no disponible (permiso denegado, contexto no seguro,
       // etc.) -- no hay mucho más para hacer que dejar el link visible para
@@ -478,7 +544,7 @@ export function MiPerfilSettings({
               Aparecerá en el directorio público de Semio360 con los datos de tus prácticas.
             </p>
           </div>
-          <Switch checked={perfilPublico} onCheckedChange={setPerfilPublico} />
+          <Switch checked={perfilPublico} onCheckedChange={togglePerfilPublico} />
         </div>
 
         {perfilPublico && (
@@ -508,7 +574,7 @@ export function MiPerfilSettings({
               <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                    Se toma de tus prácticas
+                    Lugares visibles en tu perfil
                   </span>
                   <button
                     type="button"
@@ -519,17 +585,38 @@ export function MiPerfilSettings({
                   </button>
                 </div>
                 <ul className="flex flex-col divide-y divide-border/60">
-                  {lugares.map((lugar) => (
-                    <li key={lugar.id} className="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0">
-                      <span className="text-sm font-medium">
-                        {lugar.nombre ?? "Consulta particular"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {lugar.direccion} · {lugar.telefono}
-                      </span>
-                    </li>
-                  ))}
+                  {lugares.map((lugar) => {
+                    const visible = lugaresVisibles.includes(lugar.id);
+                    return (
+                      <li
+                        key={lugar.id}
+                        className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span
+                            className={cn("text-sm font-medium", !visible && "text-muted-foreground")}
+                          >
+                            {lugar.nombre ?? "Consulta particular"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {lugar.direccion} · {lugar.telefono}
+                          </span>
+                        </div>
+                        <Switch
+                          checked={visible}
+                          onCheckedChange={(checked) => toggleLugarVisible(lugar.id, checked)}
+                          aria-label={`Mostrar ${lugar.nombre ?? "Consulta particular"} en el perfil`}
+                        />
+                      </li>
+                    );
+                  })}
                 </ul>
+                {sinLugaresVisibles && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Ningún lugar está visible: tu perfil no aparecerá en el directorio hasta que
+                    muestres al menos uno.
+                  </p>
+                )}
               </div>
             )}
 
@@ -563,13 +650,82 @@ export function MiPerfilSettings({
         </div>
         {agendaPublicaError && <p className="text-xs text-destructive">{agendaPublicaError}</p>}
 
+        {reservaPublicaHabilitada && !sinPracticas && (
+          <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+            <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+              Lugares con turnos online
+            </span>
+            <ul className="flex flex-col divide-y divide-border/60">
+              {lugares.map((lugar) => {
+                const habilitado = reservaPorLugar[lugar.id] ?? false;
+                const nombreLugar = lugar.nombre ?? "Consulta particular";
+                const linkLugar =
+                  publicSlug && lugar.publicSlug
+                    ? `${origin ?? "semio360.com"}/directorio/${publicSlug}/${lugar.publicSlug}`
+                    : null;
+                return (
+                  <li key={lugar.id} className="flex flex-col gap-2 py-2.5 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span
+                          className={cn("text-sm font-medium", !habilitado && "text-muted-foreground")}
+                        >
+                          {nombreLugar}
+                        </span>
+                        {!habilitado && (
+                          <span className="text-xs text-muted-foreground">
+                            Sin turnos online. No tiene link.
+                          </span>
+                        )}
+                      </div>
+                      <Switch
+                        checked={habilitado}
+                        onCheckedChange={(checked) => handleToggleReservaLugar(lugar.id, checked)}
+                        disabled={lugarAgendaSaving === lugar.id}
+                        aria-label={`Turnos online en ${nombreLugar}`}
+                      />
+                    </div>
+                    {habilitado && linkLugar && (
+                      <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 py-1.5 pr-1.5 pl-3">
+                        <Link2 className="size-4 shrink-0 text-primary" />
+                        <span className="flex-1 truncate font-mono text-xs text-primary">
+                          {linkLugar}
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleCopiar(lugar.id, linkLugar)}
+                        >
+                          {copiado === lugar.id ? "¡Copiado!" : "Copiar"}
+                        </Button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {reservaPublicaHabilitada && publicLink && (
-          <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-            <Link2 className="size-4 shrink-0 text-primary" />
-            <span className="flex-1 truncate font-mono text-sm text-primary">{publicLink}</span>
-            <Button type="button" size="sm" onClick={handleCopiarLink}>
-              {copiado ? "¡Copiado!" : "Copiar"}
-            </Button>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold">Link general</span>
+            <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
+              <Link2 className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex-1 truncate font-mono text-sm">{publicLink}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => handleCopiar("general", publicLink)}
+              >
+                {copiado === "general" ? "¡Copiado!" : "Copiar"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ofrece todos los lugares con turnos online y el paciente elige uno. Para evitar
+              confusiones, mandale el link del lugar.
+            </p>
           </div>
         )}
       </SettingsSection>

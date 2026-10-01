@@ -103,8 +103,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
       const dias: DisponibilidadDia[] = data.dias ?? [];
       setDias(dias);
       if (lugarActivo !== null) {
-        const relevantes = lugares.length > 1 ? filtrarPorLugar(dias, lugarActivo) : dias;
-        setFechaSeleccionada(primerDiaConHorarios(relevantes));
+        setFechaSeleccionada(primerDiaConHorarios(filtrarPorLugar(dias, lugarActivo)));
       }
     } catch {
       setLoadError("No se pudo conectar con el servidor.");
@@ -209,7 +208,9 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
     );
   }
 
-  const diasVista = lugarSeleccionado && lugares.length > 1 ? filtrarPorLugar(dias, lugarSeleccionado) : dias;
+  // Con un lugar elegido (incluso si es el único) solo se ven sus horarios:
+  // el link de un lugar puntual nunca debe ofrecer turnos de otro.
+  const diasVista = lugarSeleccionado ? filtrarPorLugar(dias, lugarSeleccionado) : dias;
   // Un día sin ningún horario cargado (nunca se configuró en "Mi práctica")
   // ni siquiera se muestra como chip deshabilitado -- no aporta nada
   // clickearlo si ya se sabe que no hay nada ahí.

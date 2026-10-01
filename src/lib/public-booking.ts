@@ -24,6 +24,17 @@ export async function getDoctorParaReserva(slug: string) {
   });
 }
 
+// Lugares donde el médico habilitó reservas online (el switch por lugar de
+// "Agenda pública" en Mi perfil). Todo slot público se filtra contra esto, del
+// lado del server -- no alcanza con ocultarlo en la UI.
+async function getLugaresReservables(doctorId: string): Promise<Set<string>> {
+  const lugares = await prisma.lugarDeTrabajo.findMany({
+    where: { userId: doctorId, deletedAt: null, reservaPublicaHabilitada: true },
+    select: { id: true },
+  });
+  return new Set(lugares.map((l) => l.id));
+}
+
 export type HorarioDisponible = {
   inicio: string;
   lugarId: string;
@@ -44,6 +55,7 @@ export async function getDisponibilidadPublica(
   horizonteDias: number = HORIZONTE_DIAS_DEFAULT
 ): Promise<DisponibilidadDia[]> {
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
+  const lugaresReservables = await getLugaresReservables(doctor.id);
 
   const hoy = startOfDayBA(new Date());
   const desde = hoy;
@@ -79,6 +91,7 @@ export async function getDisponibilidadPublica(
     const horarios: HorarioDisponible[] = slots
       .filter(
         (slot) =>
+          lugaresReservables.has(slot.lugarId) &&
           slot.inicio.getTime() > ahora &&
           !ocupados.has(slot.inicio.getTime()) &&
           !isRangoBloqueado(slot.inicio, slot.lugarId, bloqueos)
@@ -104,6 +117,7 @@ export async function buscarSlotValido(
   const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes, aperturasDelDia);
   const slot = slots.find((s) => s.inicio.getTime() === inicio.getTime());
   if (!slot) return null;
+  if (!(await getLugaresReservables(doctor.id)).has(slot.lugarId)) return null;
 
   const dayStart = startOfDayBA(inicio);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);

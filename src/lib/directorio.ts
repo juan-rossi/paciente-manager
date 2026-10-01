@@ -117,15 +117,15 @@ export async function getDoctoresPublicos(filtros: {
 }): Promise<DoctorPublico[]> {
   const buscandoPorUbicacion = filtros.lat != null && filtros.lng != null;
 
-  const doctores = await prisma.user.findMany({
+  const candidatos = await prisma.user.findMany({
     where: {
       role: "DOCTOR",
       perfilPublico: true,
       publicSlug: { not: null },
-      // Sin prácticas cargadas no hay dirección ni teléfono para mostrar, así
+      // Sin prácticas visibles no hay dirección ni teléfono para mostrar, así
       // que el perfil no se publica aunque tenga el toggle activo (ver la
       // alerta en "Información pública" de Mi perfil).
-      lugaresDeTrabajo: { some: { deletedAt: null } },
+      lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
       ...(filtros.especialidad ? { especialidad: filtros.especialidad as Especialidad } : {}),
     },
     select: {
@@ -134,10 +134,34 @@ export async function getDoctoresPublicos(filtros: {
       longitud: true,
       lugaresDeTrabajo: {
         where: { deletedAt: null },
-        select: { id: true, latitud: true, longitud: true, ciudad: true },
+        select: {
+          id: true,
+          latitud: true,
+          longitud: true,
+          ciudad: true,
+          perfilVisible: true,
+          reservaPublicaHabilitada: true,
+        },
       },
     },
     orderBy: { apellido: "asc" },
+  });
+
+  // Solo cuentan los lugares que el médico eligió mostrar: ciudades, distancia
+  // y "Reserva online" salen de ahí, nunca de un lugar oculto. La ubicación
+  // del perfil (`User.latitud`/`ciudad`, legado) se descarta si hay algún
+  // lugar oculto, porque podría ser justo la de ese lugar.
+  const doctores = candidatos.map((doctor) => {
+    const visibles = doctor.lugaresDeTrabajo.filter((l) => l.perfilVisible);
+    return {
+      ...doctor,
+      lugaresDeTrabajo: visibles,
+      ciudad: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.ciudad : null,
+      latitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.latitud : null,
+      longitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.longitud : null,
+      reservaPublicaHabilitada:
+        doctor.reservaPublicaHabilitada && visibles.some((l) => l.reservaPublicaHabilitada),
+    };
   });
 
   if (!buscandoPorUbicacion) {
@@ -220,7 +244,17 @@ export async function getDoctorPublicoPorSlug(slug: string) {
       direccion: true,
       lugaresDeTrabajo: {
         where: { deletedAt: null },
-        select: { id: true, tipo: true, nombre: true, ciudad: true, direccion: true, telefono: true },
+        select: {
+          id: true,
+          tipo: true,
+          nombre: true,
+          ciudad: true,
+          direccion: true,
+          telefono: true,
+          publicSlug: true,
+          perfilVisible: true,
+          reservaPublicaHabilitada: true,
+        },
         orderBy: { createdAt: "asc" },
       },
     },

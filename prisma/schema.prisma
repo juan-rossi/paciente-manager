@@ -543,6 +543,18 @@ model LugarDeTrabajo {
   // verdad, solo se marca acá; toda lectura (lista, dropdown de horario,
   // chequeo de "un solo particular") filtra `deletedAt: null`.
   deletedAt DateTime?
+  // Qué expone este lugar públicamente (ver "Información pública" y "Agenda
+  // pública" en Mi perfil). Se suman a los switches generales de `User`
+  // (`perfilPublico`, `reservaPublicaHabilitada`): para que algo sea público
+  // tienen que estar prendidos el general Y el del lugar. Default true para
+  // que los lugares existentes sigan visibles/reservables como hasta ahora.
+  perfilVisible            Boolean @default(true)
+  reservaPublicaHabilitada Boolean @default(true)
+  // Segmento de URL del link de agenda de este lugar
+  // (`/directorio/{User.publicSlug}/{publicSlug}`). Se genera una vez (ver
+  // `ensureLugarSlugs` en src/lib/public-slug.ts) y queda fijo para que el
+  // link ya compartido con un paciente no se rompa si se renombra el lugar.
+  publicSlug               String?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -552,6 +564,7 @@ model LugarDeTrabajo {
   bloqueosHorario       BloqueoHorario[]
   horariosExcepcionales HorarioExcepcional[]
 
+  @@unique([userId, publicSlug])
   @@index([userId])
 }
 

@@ -27,6 +27,14 @@ export async function PATCH(request: NextRequest) {
     data: { reservaPublicaHabilitada: parsed.data.reservaPublicaHabilitada, publicSlug },
   });
 
+  // Al activar la agenda pública, todos los lugares arrancan con turnos online.
+  if (parsed.data.reservaPublicaHabilitada) {
+    await prisma.lugarDeTrabajo.updateMany({
+      where: { userId: user.id, deletedAt: null },
+      data: { reservaPublicaHabilitada: true },
+    });
+  }
+
   return NextResponse.json({
     reservaPublicaHabilitada: updated.reservaPublicaHabilitada,
     publicSlug: updated.publicSlug,

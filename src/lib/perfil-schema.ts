@@ -28,9 +28,16 @@ export const perfilSchema = z.object({
   nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
   perfilPublico: z.boolean(),
   biografia: optionalString,
+  // Ids de los lugares que se muestran en el perfil público; el resto queda
+  // oculto (`LugarDeTrabajo.perfilVisible`).
+  lugaresVisibles: z.array(z.string()),
 });
 
 export const agendaPublicaSchema = z.object({
+  reservaPublicaHabilitada: z.boolean(),
+});
+
+export const lugarAgendaPublicaSchema = z.object({
   reservaPublicaHabilitada: z.boolean(),
 });
 

@@ -19,6 +19,7 @@ import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
+import { ensureLugarSlugs } from "@/lib/public-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
     : esConfiguracionTab(tabGuardada)
       ? tabGuardada
       : DEFAULT_CONFIGURACION_TAB;
+
+  // Los lugares cargados antes del link por lugar no tienen `publicSlug` --
+  // se completa acá, antes de leerlos, para que Mi perfil pueda mostrarlo.
+  if (user.role === "DOCTOR") await ensureLugarSlugs(user.id);
 
   const [blocks, secretarias, lugares] = await Promise.all([
     prisma.workScheduleBlock.findMany({

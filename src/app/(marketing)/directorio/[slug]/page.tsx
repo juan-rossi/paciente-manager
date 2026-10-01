@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { Building2, MapPin, Phone } from "lucide-react";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
-import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
-import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
-import { cn } from "@/lib/utils";
+import {
+  ContactField,
+  LugarCard,
+  PerfilHero,
+} from "@/components/marketing/perfil-publico-partes";
 
 export const dynamic = "force-dynamic";
 
@@ -13,112 +15,44 @@ type Props = {
   searchParams: Promise<{ lugar?: string }>;
 };
 
-function ContactField({
-  icon: Icon,
-  label,
-  value,
-  className,
-}: {
-  icon: typeof Building2;
-  label: string;
-  value: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn("flex items-start gap-2.5", className)}>
-      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Icon className="size-3.5" />
-      </span>
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[11px] font-semibold tracking-wide text-muted-foreground">{label}</span>
-        <span className="text-[13.5px] font-medium">{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function LugarCard({
-  lugar,
-}: {
-  lugar: { id: string; tipo: "PARTICULAR" | "CONSULTORIO"; nombre: string | null; direccion: string; telefono: string };
-}) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-card p-4">
-      <div className="flex items-center gap-2">
-        <span
-          className={
-            lugar.tipo === "PARTICULAR"
-              ? "rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
-              : "rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
-          }
-        >
-          {lugar.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
-        </span>
-        <span className="text-[13.5px] font-bold">{lugar.nombre ?? "Consulta particular"}</span>
-      </div>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ContactField icon={MapPin} label="Dirección" value={lugar.direccion} />
-        <ContactField icon={Phone} label="Teléfono" value={lugar.telefono} />
-      </div>
-    </div>
-  );
-}
-
 export default async function PerfilPublicoPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { lugar: lugarDestacado } = await searchParams;
   const doctor = await getDoctorPublicoPorSlug(slug);
   if (!doctor) notFound();
 
-  const nombreCompleto = formatNombreConTitulo(
-    doctor.tituloCortesia,
-    `${doctor.nombre} ${doctor.apellido}`.trim()
+  const todos = doctor.lugaresDeTrabajo;
+  // Qué lugares se muestran: con perfil público, los que el médico dejó
+  // visibles; si solo compartió su agenda (sin perfil), los que tienen
+  // reservas online. Y el calendario solo ofrece lugares con reservas
+  // habilitadas (el server filtra igual los horarios, ver public-booking.ts).
+  const lugaresVisibles = todos.filter((l) =>
+    doctor.perfilPublico ? l.perfilVisible : l.reservaPublicaHabilitada
   );
+  const lugaresReservables = doctor.reservaPublicaHabilitada
+    ? todos.filter((l) => l.reservaPublicaHabilitada)
+    : [];
+  if (todos.length > 0 && lugaresVisibles.length === 0 && lugaresReservables.length === 0) {
+    notFound();
+  }
+
   // La ciudad del perfil es un dato legado (ya no se edita en Mi perfil): se
-  // complementa con las ciudades de cada práctica.
+  // complementa con las ciudades de cada práctica visible, y solo se usa si
+  // no hay ningún lugar oculto (podría ser la de ese lugar).
   // Si atiende en varias ciudades se listan todas (sin repetir).
   const ciudades = [
     ...new Set(
-      [doctor.ciudad, ...doctor.lugaresDeTrabajo.map((l) => l.ciudad)].filter(
-        (c): c is string => !!c
-      )
+      [
+        lugaresVisibles.length === todos.length ? doctor.ciudad : null,
+        ...lugaresVisibles.map((l) => l.ciudad),
+      ].filter((c): c is string => !!c)
     ),
   ];
   const ciudad = ciudades.join(" · ");
-  const iniciales = `${doctor.nombre.charAt(0)}${doctor.apellido.charAt(0)}`.toUpperCase();
 
   return (
     <>
-      <section className="bg-gradient-to-b from-primary/[0.06] to-transparent">
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 pt-14 pb-8 text-center sm:flex-row sm:items-center sm:text-left">
-          <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-3xl font-bold text-primary shadow-lg shadow-primary/20">
-            {doctor.fotoPerfilBase64 ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={doctor.fotoPerfilBase64} alt="" className="size-full object-cover" />
-            ) : (
-              iniciales
-            )}
-          </div>
-          <div>
-            <h1 className="font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">
-              {nombreCompleto}
-            </h1>
-            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-              {doctor.especialidad && (
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                  {ESPECIALIDAD_LABELS[doctor.especialidad]}
-                </span>
-              )}
-              {ciudad && (
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="size-3.5" />
-                  {ciudad}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+      <PerfilHero doctor={doctor} ciudad={ciudad} />
 
       <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-4 pb-12">
         {doctor.perfilPublico && doctor.biografia && (
@@ -135,16 +69,17 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
             teléfono, así que va en su propia tarjeta en vez de mezclarse en
             un solo bloque de "información de contacto" (eso hacía parecer
             que el médico atiende en un único lugar). */}
-        {doctor.lugaresDeTrabajo.length > 0 ? (
+        {lugaresVisibles.length > 0 ? (
           <div>
             <h2 className="font-heading mb-3 text-sm font-bold">Dónde atiende</h2>
             <div className="flex flex-col gap-3">
-              {doctor.lugaresDeTrabajo.map((lugar) => (
+              {lugaresVisibles.map((lugar) => (
                 <LugarCard key={lugar.id} lugar={lugar} />
               ))}
             </div>
           </div>
         ) : (
+          todos.length === 0 &&
           (doctor.nombreConsultorio || doctor.direccion || doctor.telefono) && (
             <div className="rounded-2xl border border-border/60 bg-card p-6">
               <h2 className="font-heading mb-3 text-sm font-bold">Información de contacto</h2>
@@ -168,10 +103,10 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
           )
         )}
 
-        {doctor.reservaPublicaHabilitada && doctor.publicSlug && (
+        {doctor.reservaPublicaHabilitada && doctor.publicSlug && lugaresReservables.length > 0 && (
           <PublicBookingCalendar
             slug={doctor.publicSlug}
-            lugares={doctor.lugaresDeTrabajo}
+            lugares={lugaresReservables}
             lugarDestacado={lugarDestacado}
           />
         )}
