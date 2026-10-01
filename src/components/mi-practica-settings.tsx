@@ -688,7 +688,7 @@ export function MiPracticaSettings({
             </div>
 
             {tipo === "CONSULTORIO" && (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 mt-2">
                 <Label htmlFor="lugar-nombre">Nombre del consultorio *</Label>
                 <Input
                   id="lugar-nombre"
@@ -699,7 +699,7 @@ export function MiPracticaSettings({
               </div>
             )}
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 mt-2">
               <Label htmlFor="lugar-direccion">Dirección *</Label>
               <AddressAutocomplete
                 id="lugar-direccion"
@@ -710,7 +710,7 @@ export function MiPracticaSettings({
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 mt-2">
               <Label htmlFor="lugar-telefono">Teléfono *</Label>
               <Input
                 id="lugar-telefono"
