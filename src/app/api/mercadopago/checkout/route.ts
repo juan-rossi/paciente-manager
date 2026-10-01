@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { checkoutSchema } from "@/lib/mercadopago-schema";
 import { cancelarPreapproval, crearPreapproval, crearPreferencia } from "@/lib/mercadopago";
+import { calcularUpgradePremium } from "@/lib/plan";
 
 // Arranca (o reemplaza) el cobro de MercadoPago del médico -- lo usan tanto
 // "Mi plan" (elegir/cambiar plan) como el signup cuando se elige Premium
@@ -27,7 +28,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { plan, duracion } = parsed.data;
+  const { plan, duracion, upgrade } = parsed.data;
+
+  // Upgrade de Básico a Premium sobre un pago único vigente: se cobra solo la
+  // diferencia por el tiempo que queda y el vencimiento no cambia (ver el
+  // webhook). El monto sale de acá, nunca del cliente.
+  const calculoUpgrade = upgrade
+    ? calcularUpgradePremium({ planDuracion: user.planDuracion, planEndsAt: user.planEndsAt })
+    : null;
+  if (upgrade && (plan !== "PREMIUM" || user.plan !== "BASICA" || !calculoUpgrade)) {
+    return NextResponse.json(
+      { error: "Tu plan actual no permite pasar a Premium de esta forma." },
+      { status: 400 }
+    );
+  }
 
   // Con tiempo ya pagado por delante, pasar de Premium a Básico haría perder
   // lo pagado sin reembolso (el webhook promueve el plan apenas entra el
@@ -81,6 +95,28 @@ export async function POST(request: NextRequest) {
         select: { id: true },
       })
     )?.id ?? null;
+
+  if (calculoUpgrade && user.planEndsAt) {
+    let resultado;
+    try {
+      resultado = await crearPreferencia(user, "PREMIUM", duracion, origin, {
+        monto: calculoUpgrade.aPagar,
+        hasta: user.planEndsAt,
+      });
+    } catch (error) {
+      console.error("Error creando el pago del upgrade con MercadoPago:", error);
+      return NextResponse.json(
+        { error: "No pudimos iniciar el pago con MercadoPago. Probá de nuevo en unos minutos." },
+        { status: 502 }
+      );
+    }
+    // Solo `planPendiente`: la duración queda la vigente (el webhook no la toca).
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { planPendiente: "PREMIUM", planDuracionPendiente: null },
+    });
+    return NextResponse.json({ initPoint: resultado.initPoint, ultimoPagoId });
+  }
 
   if (esRecurrente) {
     let resultado;

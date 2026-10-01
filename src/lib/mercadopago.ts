@@ -104,7 +104,10 @@ export async function crearPreferencia(
   user: { id: string; email: string },
   plan: PlanTipo,
   duracion: PlanDuracion,
-  origin: string
+  origin: string,
+  // Upgrade de Básico a Premium: se cobra solo la diferencia (`monto`) y el
+  // webhook lo reconoce por `metadata.tipo` para NO extender el vencimiento.
+  upgrade?: { monto: number; hasta: Date }
 ): Promise<CrearPreferenciaResult> {
   const accessToken = requireAccessToken();
 
@@ -117,14 +120,17 @@ export async function crearPreferencia(
     body: JSON.stringify({
       items: [
         {
-          title: `Semio360 - Plan ${plan === "PREMIUM" ? "Premium" : "Básico"} (${PLAN_DURACION_LABEL[duracion]}, pago único)`,
+          title: upgrade
+            ? `Semio360 - Upgrade a Premium (hasta el ${upgrade.hasta.toLocaleDateString("es-AR")})`
+            : `Semio360 - Plan ${plan === "PREMIUM" ? "Premium" : "Básico"} (${PLAN_DURACION_LABEL[duracion]}, pago único)`,
           quantity: 1,
-          unit_price: precioTotalDuracion(plan, duracion),
+          unit_price: upgrade ? upgrade.monto : precioTotalDuracion(plan, duracion),
           currency_id: "ARS",
         },
       ],
       payer: { email: user.email },
       external_reference: user.id,
+      ...(upgrade ? { metadata: { tipo: "upgrade" } } : {}),
       back_urls: {
         success: `${origin}/configuracion?tab=plan&pago=retorno`,
         failure: `${origin}/configuracion`,
@@ -210,6 +216,8 @@ export type MpPagoUnico = {
   // más arriba, y procesarlos dos veces por dos caminos distintos sería
   // aventurarse a una condición de carrera innecesaria.
   operation_type?: string;
+  // Lo que se mandó en `metadata` al crear la preferencia (ver `crearPreferencia`).
+  metadata?: { tipo?: string } | null;
 };
 
 // Para pagos únicos (Preference/Checkout Pro), a diferencia de los cobros

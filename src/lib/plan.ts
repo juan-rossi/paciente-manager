@@ -122,6 +122,39 @@ export function diasRestantesDePagoUnico(user: {
   return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
+export type CalculoUpgradePremium = {
+  diasRestantes: number;
+  mesesRestantes: number;
+  // Premium por el tiempo que queda, al precio mensual de la duración vigente.
+  totalPremium: number;
+  // Lo que ese mismo tiempo de Básico ya está pago (se descuenta).
+  creditoBasico: number;
+  aPagar: number;
+};
+
+const DIAS_POR_MES = 30.4375;
+
+// Upgrade de Básico a Premium sobre un pago único vigente: Premium arranca ya
+// y termina en el mismo `planEndsAt`, así que se cobra solo la diferencia de
+// precio por el tiempo que queda. Devuelve `null` si no hay nada que mejorar
+// (recurrente, sin tiempo por delante, o duración sin precio). Lo calcula el
+// servidor para cobrar y el cliente para mostrar -- misma función en ambos.
+export function calcularUpgradePremium(
+  user: { planDuracion: PlanDuracion | null; planEndsAt: Date | null },
+  ahora: Date = new Date()
+): CalculoUpgradePremium | null {
+  const { planDuracion, planEndsAt } = user;
+  if (!planDuracion || planDuracion === "MENSUAL" || !planEndsAt) return null;
+  const diasRestantes = Math.ceil((planEndsAt.getTime() - ahora.getTime()) / (24 * 60 * 60 * 1000));
+  if (diasRestantes <= 0) return null;
+  const mesesRestantes = diasRestantes / DIAS_POR_MES;
+  const totalPremium = Math.round(precioMensualEquivalente("PREMIUM", planDuracion) * mesesRestantes);
+  const creditoBasico = Math.round(precioMensualEquivalente("BASICA", planDuracion) * mesesRestantes);
+  const aPagar = totalPremium - creditoBasico;
+  if (aPagar <= 0) return null;
+  return { diasRestantes, mesesRestantes, totalPremium, creditoBasico, aPagar };
+}
+
 type EstadoCuentaUser = {
   trialEndsAt: Date | null;
   planEndsAt: Date | null;

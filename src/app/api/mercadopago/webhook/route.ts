@@ -198,6 +198,9 @@ export async function POST(request: NextRequest) {
             // -- es la única forma de saber cuántos meses de acceso otorga
             // este pago único (a diferencia del cobro recurrente, que
             // siempre es un mes).
+            const esUpgrade =
+              pago.metadata?.tipo === "upgrade" &&
+              Boolean(user.planEndsAt && user.planEndsAt.getTime() > Date.now());
             const duracion: PlanDuracion = user.planDuracionPendiente ?? user.planDuracion ?? "MENSUAL";
             const meses = MESES_POR_DURACION[duracion];
             await prisma.$transaction([
@@ -212,13 +215,22 @@ export async function POST(request: NextRequest) {
               }),
               prisma.user.update({
                 where: { id: user.id },
-                data: {
-                  plan: user.planPendiente ?? user.plan,
-                  planDuracion: duracion,
-                  planPendiente: null,
-                  planDuracionPendiente: null,
-                  planEndsAt: nuevoVencimiento(user.planEndsAt, meses),
-                },
+                data: esUpgrade
+                  ? {
+                      // Upgrade: sube a Premium ya y conserva el vencimiento
+                      // y la duración que ya tenía -- lo pagado es solo la
+                      // diferencia, no tiempo nuevo.
+                      plan: "PREMIUM",
+                      planPendiente: null,
+                      planDuracionPendiente: null,
+                    }
+                  : {
+                      plan: user.planPendiente ?? user.plan,
+                      planDuracion: duracion,
+                      planPendiente: null,
+                      planDuracionPendiente: null,
+                      planEndsAt: nuevoVencimiento(user.planEndsAt, meses),
+                    },
               }),
             ]);
           }

@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings-section";
 import { CancelarSuscripcionButton } from "@/components/cancelar-suscripcion-button";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  calcularUpgradePremium,
   DIAS_AVISO_PLAN_POR_VENCER,
   DIAS_AVISO_TRIAL_POR_TERMINAR,
   diasRestantesDePagoUnico,
@@ -59,6 +67,7 @@ export function PlanSettings({
   const [cargando, setCargando] = useState<"BASICA" | "PREMIUM" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [avisoPendienteCerrado, setAvisoPendienteCerrado] = useState(false);
+  const [upgradeAbierto, setUpgradeAbierto] = useState(false);
 
   // Se lee en un efecto (no al inicializar el state) para no desalinear el
   // render del servidor con el del cliente en el primer paint.
@@ -158,7 +167,14 @@ export function PlanSettings({
     ...PLAN_FEATURES.PREMIUM.slice(1).map((label) => ({ label, basica: false })),
   ];
 
-  async function suscribirse(planElegido: "BASICA" | "PREMIUM") {
+  // Básico pago único vigente -> Premium hasta el mismo vencimiento, pagando
+  // solo la diferencia (ver `calcularUpgradePremium` y checkout/route.ts).
+  const upgrade =
+    plan === "BASICA" && planVigente && !recontratable && planDuracion && planEndsAt
+      ? calcularUpgradePremium({ planDuracion, planEndsAt: new Date(planEndsAt) })
+      : null;
+
+  async function suscribirse(planElegido: "BASICA" | "PREMIUM", esUpgrade = false) {
     setError(null);
     setCargando(planElegido);
 
@@ -167,7 +183,7 @@ export function PlanSettings({
       response = await fetch("/api/mercadopago/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planElegido, duracion }),
+        body: JSON.stringify({ plan: planElegido, duracion, ...(esUpgrade ? { upgrade: true } : {}) }),
       });
     } catch {
       // El fetch en sí no llegó a completarse -- caída de red real, no un
@@ -493,15 +509,44 @@ export function PlanSettings({
                   </div>
                 ))}
               </div>
+              {upgrade && planEndsAt && (
+                <div className="flex flex-col gap-0.5 rounded-lg border border-primary/30 bg-card px-3.5 py-3">
+                  <span className="text-xs text-muted-foreground">
+                    Premium hasta el {formatFecha(planEndsAt)}
+                  </span>
+                  <span className="flex items-baseline gap-2">
+                    <span className="font-heading text-xl font-extrabold tabular-nums">
+                      ${upgrade.aPagar.toLocaleString("es-AR")}
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums line-through">
+                      ${upgrade.totalPremium.toLocaleString("es-AR")}
+                    </span>
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    Ya descontamos lo que pagaste de Básico
+                  </span>
+                </div>
+              )}
               <Button
                 type="button"
                 size="sm"
                 disabled={cargando !== null}
-                onClick={() => suscribirse("PREMIUM")}
+                onClick={() => (upgrade ? setUpgradeAbierto(true) : suscribirse("PREMIUM"))}
                 className="mt-auto shadow-xs"
               >
-                {cargando === "PREMIUM" ? <Loader2 className="size-4 animate-spin" /> : "Pasar a Premium"}
+                {cargando === "PREMIUM" ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : upgrade ? (
+                  `Pasar a Premium · pagás $${upgrade.aPagar.toLocaleString("es-AR")}`
+                ) : (
+                  "Pasar a Premium"
+                )}
               </Button>
+              {upgrade && (
+                <p className="-mt-1.5 text-center text-xs text-muted-foreground">
+                  Tu fecha de vencimiento no cambia.
+                </p>
+              )}
             </div>
             )}
           </div>
@@ -567,6 +612,62 @@ export function PlanSettings({
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {upgrade && planEndsAt && (
+        <Dialog open={upgradeAbierto} onOpenChange={(abierto) => cargando === null && setUpgradeAbierto(abierto)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pasar a Premium</DialogTitle>
+            </DialogHeader>
+
+            <p className="text-sm text-muted-foreground">
+              Premium queda activo desde hoy hasta el mismo vencimiento que ya tenés:{" "}
+              <strong className="text-foreground">{formatFecha(planEndsAt)}</strong>.
+            </p>
+
+            <div className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 text-sm tabular-nums">
+              <div className="flex justify-between gap-3 px-3.5 py-2.5">
+                <span>Premium por el tiempo que te queda</span>
+                <span>${upgrade.totalPremium.toLocaleString("es-AR")}</span>
+              </div>
+              <div className="flex justify-between gap-3 px-3.5 py-2.5">
+                <span>Crédito por tu Básico sin usar</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  − ${upgrade.creditoBasico.toLocaleString("es-AR")}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3 rounded-b-xl bg-muted/40 px-3.5 py-2.5 text-base font-bold">
+                <span>Pagás hoy</span>
+                <span>${upgrade.aPagar.toLocaleString("es-AR")}</span>
+              </div>
+            </div>
+
+            <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+              <li>Pago único. No se renueva solo.</li>
+              <li>Al vencer el {formatFecha(planEndsAt)} podés renovar Premium.</li>
+              <li>Las funciones de IA y el WhatsApp automático se activan al confirmarse el pago.</li>
+            </ul>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setUpgradeAbierto(false)}
+                disabled={cargando !== null}
+              >
+                Volver
+              </Button>
+              <Button type="button" disabled={cargando !== null} onClick={() => suscribirse("PREMIUM", true)}>
+                {cargando === "PREMIUM" ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  `Pagar $${upgrade.aPagar.toLocaleString("es-AR")} con MercadoPago`
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Con un plan pago vigente (recurrente o prepago) no hay ninguna acción
           segura que ofrecer acá: bajar de categoría pierde lo ya pagado sin
