@@ -14,7 +14,10 @@ export async function GET() {
   const { user, response } = await requireDoctor();
   if (response) return response;
 
-  if (user.mpPreapprovalStatus === "PENDING" && user.mpPreapprovalId) {
+  if (
+    user.mpPreapprovalId &&
+    (user.mpPreapprovalStatus === "PENDING" || user.pagoEnGracia)
+  ) {
     await reconciliarPreapprovalPendiente(user.id, user.mpPreapprovalId);
   }
 

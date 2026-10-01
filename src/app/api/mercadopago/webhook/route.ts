@@ -230,6 +230,10 @@ export async function POST(request: NextRequest) {
                       planPendiente: null,
                       planDuracionPendiente: null,
                       planEndsAt: nuevoVencimiento(user.planEndsAt, meses),
+                      // Un pago aprobado regulariza el cobro fallido: sin esto
+                      // el aviso "Reintentar pago" quedaría pegado.
+                      pagoEnGracia: false,
+                      graciaVenceEl: null,
                     },
               }),
             ]);

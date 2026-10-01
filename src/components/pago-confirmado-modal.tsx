@@ -253,7 +253,15 @@ export function PagoConfirmadoModal({ retornoDePago }: { retornoDePago: boolean 
 
   return (
     <>
-      <Dialog open={abierto} onOpenChange={setAbierto}>
+      <Dialog
+        open={abierto}
+        onOpenChange={(open) => {
+          setAbierto(open);
+          // Al cerrar la celebración se re-lee el plan: asegura que avisos
+          // como "Reintentar pago" desaparezcan con el estado ya actualizado.
+          if (!open && estado) router.refresh();
+        }}
+      >
         <DialogContent showCloseButton={false} className="items-center gap-3 p-6 text-center sm:max-w-sm">
           {!estado ? (
             <>
