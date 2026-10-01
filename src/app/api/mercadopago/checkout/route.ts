@@ -55,8 +55,14 @@ export async function POST(request: NextRequest) {
   }
   // Suscripción mensual con tiempo ya pagado: el primer cobro arranca cuando
   // ese tiempo termina. Excepción: en gracia por un pago fallido `planEndsAt`
-  // es la fecha límite de regularización y hay que cobrar ya.
-  const inicioCobro = planEndsAt && !user.pagoEnGracia ? planEndsAt : undefined;
+  // es la fecha límite de regularización y hay que cobrar ya. Tampoco se
+  // difiere al subir de Básico a Premium: el webhook recién promueve el plan
+  // cuando entra un cobro, así que con el primer cobro a futuro el médico
+  // quedaría en Básico (y el modal "Confirmando tu pago…" colgado) hasta el
+  // vencimiento. El tiempo restante de Básico se conserva: el webhook suma el
+  // mes nuevo sobre `planEndsAt`.
+  const esSubidaAPremium = user.plan === "BASICA" && plan === "PREMIUM";
+  const inicioCobro = planEndsAt && !user.pagoEnGracia && !esSubidaAPremium ? planEndsAt : undefined;
 
   // Cualquier checkout nuevo reemplaza lo que hubiera antes -- nunca deben
   // quedar dos cobros activos en paralelo (p.ej. pasar de una suscripción
