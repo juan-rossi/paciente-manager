@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarClock, ChevronLeft, ChevronRight, Search, UserPlus } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Stethoscope,
+  UserPlus,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +43,11 @@ type Props = {
   initialDate: string;
   initialTurnos: TurnoDelDia[];
   diasConHorario: DiaSemana[];
+  // Sin prácticas (lugares de trabajo) configuradas no se pueden agendar
+  // turnos: el estado vacío de "hoy" manda a configurarlas. Solo el médico
+  // puede hacerlo; a la secretaria se le avisa sin botón.
+  sinPracticas?: boolean;
+  puedeConfigurarPracticas?: boolean;
   // Cambia a la pestaña "Buscar paciente" -- la maneja el padre porque las
   // pestañas viven en `DashboardTabs`, un nivel arriba de este componente.
   onBuscarPaciente?: () => void;
@@ -44,6 +57,8 @@ export function TurnosPorDia({
   initialDate,
   initialTurnos,
   diasConHorario,
+  sinPracticas = false,
+  puedeConfigurarPracticas = false,
   onBuscarPaciente,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -153,17 +168,41 @@ export function TurnosPorDia({
             <div className="flex flex-col gap-4 py-1">
               <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-6 text-center">
                 <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
-                  <CalendarClock className="size-6 text-primary" />
+                  {sinPracticas ? (
+                    <Stethoscope className="size-6 text-primary" />
+                  ) : (
+                    <CalendarClock className="size-6 text-primary" />
+                  )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-base font-semibold">Hoy no tenés turnos</p>
+                  <p className="text-base font-semibold">
+                    {sinPracticas ? "Configurá tus prácticas" : "Hoy no tenés turnos"}
+                  </p>
                   <p className="max-w-xs text-sm text-muted-foreground">
-                    Podés agregar un turno o revisar la agenda de los próximos días.
+                    {sinPracticas
+                      ? puedeConfigurarPracticas
+                        ? "Antes de recibir turnos, definí qué prácticas ofrecés, cuánto duran y cuánto cuestan."
+                        : "El médico todavía no configuró sus prácticas, por eso no se pueden agendar turnos."
+                      : "Podés agregar un turno o revisar la agenda de los próximos días."}
                   </p>
                 </div>
-                <Button size="sm" className="mt-1" nativeButton={false} render={<Link href="/turnos" />}>
-                  Ver próxima disponibilidad
-                </Button>
+                {sinPracticas ? (
+                  puedeConfigurarPracticas && (
+                    <Button
+                      size="sm"
+                      className="mt-1"
+                      nativeButton={false}
+                      render={<Link href="/configuracion?tab=practica" />}
+                    >
+                      Configurar prácticas
+                      <ArrowRight className="size-4" />
+                    </Button>
+                  )
+                ) : (
+                  <Button size="sm" className="mt-1" nativeButton={false} render={<Link href="/turnos" />}>
+                    Ver próxima disponibilidad
+                  </Button>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">

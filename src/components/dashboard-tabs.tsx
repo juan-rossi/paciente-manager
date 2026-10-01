@@ -15,13 +15,22 @@ type Props = {
   initialTurnos: TurnoDelDia[];
   diasConHorario: DiaSemana[];
   totalPacientes: number;
+  sinPracticas: boolean;
+  puedeConfigurarPracticas: boolean;
 };
 
 // Componente cliente separado del server component de la página únicamente
 // porque el estado vacío de "Por turnos" necesita cambiar a la pestaña
 // "Buscar paciente" mediante código (el acceso rápido "Buscar paciente"),
 // algo que un <Tabs defaultValue> sin controlar no permite.
-export function DashboardTabs({ initialDate, initialTurnos, diasConHorario, totalPacientes }: Props) {
+export function DashboardTabs({
+  initialDate,
+  initialTurnos,
+  diasConHorario,
+  totalPacientes,
+  sinPracticas,
+  puedeConfigurarPracticas,
+}: Props) {
   const [tab, setTab] = useState("turnos");
 
   return (
@@ -58,6 +67,8 @@ export function DashboardTabs({ initialDate, initialTurnos, diasConHorario, tota
           initialDate={initialDate}
           initialTurnos={initialTurnos}
           diasConHorario={diasConHorario}
+          sinPracticas={sinPracticas}
+          puedeConfigurarPracticas={puedeConfigurarPracticas}
           onBuscarPaciente={() => setTab("buscar")}
         />
       </TabsContent>

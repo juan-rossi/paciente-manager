@@ -23,9 +23,10 @@ export default async function DashboardPage() {
 
   const hoy = new Date();
   const tenantId = getTenantId(user);
-  const [{ turnos, diasConHorario }, totalPacientes] = await Promise.all([
+  const [{ turnos, diasConHorario }, totalPacientes, totalPracticas] = await Promise.all([
     getTurnosDelDia(hoy, tenantId),
     prisma.patient.count({ where: { doctorId: tenantId, deletedAt: null } }),
+    prisma.lugarDeTrabajo.count({ where: { userId: tenantId, deletedAt: null } }),
   ]);
 
   // Solo se le avisa al médico dueño de la cuenta (no a sus secretarias --
@@ -62,6 +63,8 @@ export default async function DashboardPage() {
         initialTurnos={turnos}
         diasConHorario={diasConHorario}
         totalPacientes={totalPacientes}
+        sinPracticas={totalPracticas === 0}
+        puedeConfigurarPracticas={user.role === "DOCTOR"}
       />
     </div>
   );
