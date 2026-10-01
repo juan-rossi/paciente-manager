@@ -195,6 +195,13 @@ model User {
   // Todo lo de acá abajo se edita desde "Mi perfil" (Configuración). Se
   // guarda como base64 en la fila (sin storage externo todavía) -- si en el
   // futuro se conecta Vercel Blob, esto pasa a ser una URL en su lugar.
+  // Constancia de aceptación de los Términos y condiciones (ver
+  // `TERMINOS_VERSION` en src/lib/terminos.ts) y de la declaración de
+  // matrícula/responsabilidad profesional. Null en las cuentas anteriores a
+  // que existieran los términos.
+  terminosVersion          String?
+  terminosAceptadosAt      DateTime?
+  declaracionProfesionalAt DateTime?
   fotoPerfilBase64         String?         @db.Text
   biografia                String?         @db.Text
   // Solo tiene sentido cuando `perfilPublico` está habilitado -- ver

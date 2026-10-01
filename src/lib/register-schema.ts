@@ -22,6 +22,12 @@ export const registerSchema = z.object({
   // signup-form dispara el checkout de MercadoPago apenas se crea la
   // cuenta. Default "BASICA" para no romper el flujo normal con trial.
   plan: z.enum(["BASICA", "PREMIUM"]).default("BASICA"),
+  // Las dos casillas del registro (Términos y declaración profesional) --
+  // se validan acá y no solo deshabilitando el botón en el cliente.
+  aceptaTerminos: z.literal(true, { message: "Tenés que aceptar los Términos y condiciones." }),
+  declaracionProfesional: z.literal(true, {
+    message: "Tenés que confirmar la declaración profesional.",
+  }),
 });
 
 export const completeProfileSchema = z.object({

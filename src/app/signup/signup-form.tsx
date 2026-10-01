@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -33,6 +41,12 @@ import {
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import { TerminosContenido } from "@/components/legal/terminos-contenido";
+import {
+  TERMINOS_COOKIE,
+  TERMINOS_COOKIE_MAX_AGE_SECONDS,
+  TERMINOS_VERSION,
+} from "@/lib/terminos";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
@@ -47,17 +61,34 @@ export function SignupForm() {
   const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">("");
   const [especialidad, setEspecialidad] = useState<Especialidad | "">("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [declaracionProfesional, setDeclaracionProfesional] = useState(false);
+  const [terminosAbiertos, setTerminosAbiertos] = useState(false);
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error") === "terminos"
+      ? "Para crear una cuenta nueva aceptá los Términos y condiciones."
+      : null
+  );
   const [loading, setLoading] = useState(false);
+  const aceptado = aceptaTerminos && declaracionProfesional;
 
   function handleGoogleSignUp() {
     setError(null);
+    if (!aceptado) return;
+    // Google salta este formulario: el callback de auth lee esta cookie para
+    // exigir y registrar la aceptación al crear la cuenta (ver src/auth.ts).
+    document.cookie = `${TERMINOS_COOKIE}=${TERMINOS_VERSION}; path=/; max-age=${TERMINOS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
     void signIn("google", { redirectTo: "/dashboard" });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!aceptado) {
+      setError("Aceptá los Términos y condiciones y la declaración profesional.");
+      return;
+    }
 
     if (!tituloCortesia) {
       setError("Elegí un título.");
@@ -84,6 +115,8 @@ export function SignupForm() {
           especialidad,
           password,
           plan: planElegido,
+          aceptaTerminos,
+          declaracionProfesional,
         }),
       });
       const data = await response.json();
@@ -143,8 +176,44 @@ export function SignupForm() {
         </p>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-start gap-2.5">
+            <Checkbox
+              id="aceptaTerminos"
+              checked={aceptaTerminos}
+              onCheckedChange={(checked) => setAceptaTerminos(checked === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="aceptaTerminos" className="block text-xs leading-snug font-normal">
+              Leí y acepto los{" "}
+              <button
+                type="button"
+                onClick={() => setTerminosAbiertos(true)}
+                className="font-medium text-primary underline underline-offset-2"
+              >
+                Términos y condiciones
+              </button>
+              .
+            </Label>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <Checkbox
+              id="declaracionProfesional"
+              checked={declaracionProfesional}
+              onCheckedChange={(checked) => setDeclaracionProfesional(checked === true)}
+              className="mt-0.5"
+            />
+            <Label
+              htmlFor="declaracionProfesional"
+              className="block text-xs leading-snug font-normal"
+            >
+              Declaro ser profesional de la salud matriculado y asumo la responsabilidad clínica y
+              legal sobre los datos y decisiones en mi consultorio.
+            </Label>
+          </div>
+        </div>
         <div className="flex flex-col gap-2">
-          <Button type="button" variant="outline" onClick={handleGoogleSignUp}>
+          <Button type="button" variant="outline" onClick={handleGoogleSignUp} disabled={!aceptado}>
             <GoogleIcon />
             Continuar con Google
           </Button>
@@ -254,7 +323,7 @@ export function SignupForm() {
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={loading} className="mt-2">
+          <Button type="submit" disabled={loading || !aceptado} className="mt-2">
             {loading
               ? "Creando cuenta..."
               : planElegido === "PREMIUM"
@@ -269,6 +338,18 @@ export function SignupForm() {
           </Link>
         </p>
       </CardContent>
+
+      <Dialog open={terminosAbiertos} onOpenChange={setTerminosAbiertos}>
+        <DialogContent className="max-h-[85dvh] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Términos y condiciones</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto pr-1">
+            <TerminosContenido />
+          </div>
+          <DialogFooter showCloseButton />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

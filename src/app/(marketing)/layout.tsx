@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Semio360Mark } from "@/components/brand/logo";
 import { SiteHeader } from "@/components/marketing/site-header";
 
@@ -17,6 +18,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <span>semio360.com</span>
             <span>semio360.com.ar</span>
+            <Link href="/terminos" className="hover:text-foreground">
+              Términos y condiciones
+            </Link>
             <a href="mailto:contacto@semio360.com" className="hover:text-foreground">
               contacto@semio360.com
             </a>

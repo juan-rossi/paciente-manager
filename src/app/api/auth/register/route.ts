@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { registerSchema } from "@/lib/register-schema";
 import { nuevaFechaFinTrial } from "@/lib/plan";
+import { TERMINOS_VERSION } from "@/lib/terminos";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
 
   const passwordHash = await hashPassword(parsed.data.password);
   const esPremium = parsed.data.plan === "PREMIUM";
+  const ahora = new Date();
 
   await prisma.user.create({
     data: {
@@ -32,6 +34,9 @@ export async function POST(request: NextRequest) {
       tituloCortesia: parsed.data.tituloCortesia,
       especialidad: parsed.data.especialidad,
       passwordHash,
+      terminosVersion: TERMINOS_VERSION,
+      terminosAceptadosAt: ahora,
+      declaracionProfesionalAt: ahora,
       role: "DOCTOR",
       // Premium no tiene período de prueba -- arranca sin trial y queda
       // inactiva hasta que se confirme el primer pago (ver signup-form.tsx,

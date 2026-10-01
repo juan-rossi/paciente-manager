@@ -18,5 +18,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: "https://semio360.com/terminos",
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
   ];
 }
