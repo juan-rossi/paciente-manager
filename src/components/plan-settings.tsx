@@ -115,6 +115,9 @@ export function PlanSettings({
   // Con Premium pago por delante no se puede bajar a Básico sin perder lo
   // pagado (ver checkout/route.ts).
   const basicaBloqueada = recontratable && plan === "PREMIUM";
+  const textoBasicaBloqueada = planEndsAt
+    ? `Disponible desde el ${formatFecha(planEndsAt)}`
+    : "Disponible al vencer Premium";
   const mostrarPlanes = !planVigente || recontratable;
   function textoBoton(elegido: "BASICA" | "PREMIUM") {
     if (!recontratable) return elegido === "PREMIUM" ? "Pasar a Premium" : "Contratar";
@@ -263,13 +266,17 @@ export function PlanSettings({
               <span className="text-center text-xs text-muted-foreground">
                 Incluido en tu prueba
               </span>
+            ) : basicaBloqueada ? (
+              <span className="text-center text-xs text-muted-foreground">
+                {textoBasicaBloqueada}
+              </span>
             ) : (
               !(plan === "BASICA" && planBloqueaCompra) && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null || basicaBloqueada}
+                  disabled={cargando !== null}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full max-w-[10.5rem]"
                 >
@@ -611,6 +618,10 @@ export function PlanSettings({
                 <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
                   Incluido en tu prueba
                 </div>
+              ) : basicaBloqueada ? (
+                <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
+                  {textoBasicaBloqueada}
+                </div>
               ) : plan === "BASICA" && planBloqueaCompra ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 py-2 text-center text-xs font-semibold text-primary">
                   Plan actual
@@ -620,7 +631,7 @@ export function PlanSettings({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null || basicaBloqueada}
+                  disabled={cargando !== null}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full"
                 >
