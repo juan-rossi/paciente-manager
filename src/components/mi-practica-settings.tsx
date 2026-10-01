@@ -525,7 +525,7 @@ export function MiPracticaSettings({
               className="flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <Plus className="size-3.5" />
-              Agregar lugar
+              Agregar lugar de atención
             </button>
           </div>
         )}
@@ -534,7 +534,7 @@ export function MiPracticaSettings({
           <div>
             <Button type="button" onClick={openCreateLugar}>
               <Plus className="size-4" />
-              Agregar lugar
+              Agregar lugar de atención
             </Button>
           </div>
         )}

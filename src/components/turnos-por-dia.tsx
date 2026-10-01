@@ -181,7 +181,7 @@ export function TurnosPorDia({
                   <p className="max-w-xs text-sm text-muted-foreground">
                     {sinPracticas
                       ? puedeConfigurarPracticas
-                        ? "Antes de recibir turnos, definí qué prácticas ofrecés, cuánto duran y cuánto cuestan."
+                        ? "Antes de recibir turnos, definí tus lugares de atención, y los días y horarios en los que atiendes."
                         : "El médico todavía no configuró sus prácticas, por eso no se pueden agendar turnos."
                       : "Podés agregar un turno o revisar la agenda de los próximos días."}
                   </p>
