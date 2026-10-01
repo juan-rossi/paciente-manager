@@ -244,7 +244,10 @@ export async function cancelarPreapproval(id: string): Promise<void> {
     body: JSON.stringify({ status: "cancelled" }),
   });
   if (!response.ok) {
-    throw new Error(`No se pudo cancelar el preapproval ${id} (${response.status}).`);
+    const detalle = await response.text().catch(() => "");
+    throw new Error(
+      `No se pudo cancelar el preapproval ${id} (${response.status}): ${detalle.slice(0, 300)}`
+    );
   }
 }
 

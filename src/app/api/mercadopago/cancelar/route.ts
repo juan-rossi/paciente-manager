@@ -30,7 +30,8 @@ export async function POST(request: Request) {
 
   try {
     await cancelarPreapproval(user.mpPreapprovalId);
-  } catch {
+  } catch (error) {
+    console.error("[mercadopago/cancelar]", error);
     return NextResponse.json(
       { error: "No pudimos cancelar la suscripción con MercadoPago. Probá de nuevo en unos minutos." },
       { status: 502 }
