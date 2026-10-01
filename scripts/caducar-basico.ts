@@ -48,6 +48,12 @@ async function main() {
     throw new Error("ESCENARIO tiene que ser UNICO o SUSCRIPCION");
   }
 
+  // `PLAN` es opcional (default BASICA); la skill `finish_premium` usa PREMIUM.
+  const plan = (process.env.PLAN?.trim().toUpperCase() || "BASICA") as "BASICA" | "PREMIUM";
+  if (plan !== "BASICA" && plan !== "PREMIUM") {
+    throw new Error("PLAN tiene que ser BASICA o PREMIUM");
+  }
+
   const user = await prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true } });
   const ahora = Date.now();
   const trialEndsAt = new Date(ahora - 30 * DIA_MS);
@@ -66,7 +72,7 @@ async function main() {
   } as const;
 
   const base = {
-    plan: "BASICA" as const,
+    plan,
     trialEndsAt,
     planPendiente: null,
     planDuracionPendiente: null,
@@ -76,7 +82,7 @@ async function main() {
   };
 
   if (escenario === "UNICO") {
-    const monto = precioTotalDuracion("BASICA", "SEMESTRAL");
+    const monto = precioTotalDuracion(plan, "SEMESTRAL");
     const [, actualizado] = await prisma.$transaction([
       prisma.pagoSuscripcion.create({
         data: {
@@ -104,7 +110,7 @@ async function main() {
     ]);
     console.log(JSON.stringify({ escenario, ...actualizado, monto }, null, 2));
   } else {
-    const monto = precioMensualEquivalente("BASICA", "MENSUAL");
+    const monto = precioMensualEquivalente(plan, "MENSUAL");
     const graciaVenceEl = new Date(ahora - DIA_MS);
     const preapprovalId = `local-test-preapproval-${ahora}`;
     const [, , actualizado] = await prisma.$transaction([
