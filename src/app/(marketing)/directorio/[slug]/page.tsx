@@ -108,6 +108,9 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
             slug={doctor.publicSlug}
             lugares={lugaresReservables}
             lugarDestacado={lugarDestacado}
+            lugaresSinReserva={lugaresVisibles
+              .filter((l) => !lugaresReservables.some((r) => r.id === l.id))
+              .map((l) => l.nombre ?? "Consulta particular")}
           />
         )}
       </div>

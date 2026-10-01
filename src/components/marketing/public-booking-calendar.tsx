@@ -24,6 +24,7 @@ type LugarOption = {
   tipo: "PARTICULAR" | "CONSULTORIO";
   nombre: string | null;
   ciudad: string | null;
+  direccion?: string | null;
 };
 
 function lugarLabel(lugar: LugarOption | undefined): string {
@@ -64,9 +65,12 @@ type Props = {
   slug: string;
   lugares: LugarOption[];
   lugarDestacado?: string;
+  // Nombres de lugares visibles en el perfil que no ofrecen turnos online:
+  // se aclara para que el paciente no suponga que la reserva los incluye.
+  lugaresSinReserva?: string[];
 };
 
-export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) {
+export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSinReserva = [] }: Props) {
   // Con más de un lugar, primero hay que elegir a cuál asistir -- si viene
   // de una búsqueda por ciudad que ya matcheó un lugar puntual, arranca ahí
   // directo sin preguntar. Con uno solo (o ninguno, caso legado) no hay
@@ -76,6 +80,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
     return lugarDestacado && lugares.some((l) => l.id === lugarDestacado) ? lugarDestacado : null;
   });
   const debeElegirLugar = lugares.length > 1 && lugarSeleccionado === null;
+  const lugarElegido = lugares.find((l) => l.id === lugarSeleccionado);
 
   const [dias, setDias] = useState<DisponibilidadDia[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -191,6 +196,12 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
           Tu turno quedó confirmado para el <strong>{formatDiaCompleto(confirmado.fecha)}</strong> a
           las <strong>{confirmado.hora}hs</strong>.
         </p>
+        {lugarElegido && (
+          <p className="text-sm text-muted-foreground">
+            Lugar: <strong>{lugarLabel(lugarElegido)}</strong>
+            {lugarElegido.direccion && ` · ${lugarElegido.direccion}`}
+          </p>
+        )}
       </div>
     );
   }
@@ -216,6 +227,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
   // clickearlo si ya se sabe que no hay nada ahí.
   const diasConTurnos = diasVista.filter((d) => d.horarios.length > 0);
   const diaActivo = diasConTurnos.find((d) => d.fecha === fechaSeleccionada) ?? null;
+  const lugarUnico = lugares.length === 1 ? lugares[0] : undefined;
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6">
@@ -223,7 +235,14 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-accent text-white">
           <CalendarDays className="size-4.5" />
         </span>
-        <span className="font-heading text-[15px] font-bold">Reservar turno online</span>
+        <div className="min-w-0">
+          <span className="font-heading block text-[15px] font-bold">
+            {lugarUnico ? `Reservar turno en ${lugarLabel(lugarUnico)}` : "Reservar turno online"}
+          </span>
+          {lugarUnico?.direccion && (
+            <span className="block text-xs text-muted-foreground">{lugarUnico.direccion}</span>
+          )}
+        </div>
       </div>
 
       {debeElegirLugar ? (
@@ -336,6 +355,13 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
               </p>
             )}
           </div>
+
+          {lugaresSinReserva.length > 0 && (
+            <p className="mt-4 text-xs text-muted-foreground">
+              {lugaresSinReserva.join(" y ")} no {lugaresSinReserva.length > 1 ? "tienen" : "tiene"} turnos
+              online.
+            </p>
+          )}
         </>
       )}
 
@@ -345,6 +371,15 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado }: Props) 
             <DialogTitle>Reservar turno</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
+            {lugarElegido && (
+              <div className="flex flex-col gap-1">
+                <Label>Lugar</Label>
+                <strong className="text-sm">{lugarLabel(lugarElegido)}</strong>
+                {lugarElegido.direccion && (
+                  <span className="text-xs text-muted-foreground">{lugarElegido.direccion}</span>
+                )}
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
                 <Label>Día</Label>
