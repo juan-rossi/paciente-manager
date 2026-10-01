@@ -16,5 +16,9 @@ export const PAGO_RECIENTE_MS = 30 * 60 * 1000;
 // respaldo de `?pago=retorno`: si MercadoPago no conserva los query params del
 // `back_url`, igual se sabe que la persona acaba de volver de un checkout.
 export const PAGO_INICIO_KEY = "mp_pago_inicio";
+// DIFERIDO: "1" si el checkout fue una suscripción mensual con el primer cobro
+// a futuro (recontratación con tiempo ya pagado). No hay pago que esperar: el
+// modal confirma cuando la suscripción queda AUTHORIZED.
+export const PAGO_DIFERIDO_KEY = "mp_pago_diferido";
 // Ventana en la que volver a /configuracion cuenta como "retorno del checkout".
 export const PAGO_RETORNO_MS = 30 * 60 * 1000;

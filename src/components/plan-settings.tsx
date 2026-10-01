@@ -26,7 +26,7 @@ import {
   precioTotalDuracion,
   type PlanDuracion,
 } from "@/lib/plan";
-import { PAGO_BASELINE_KEY, PAGO_INICIO_KEY } from "@/lib/pago-confirmado";
+import { PAGO_BASELINE_KEY, PAGO_DIFERIDO_KEY, PAGO_INICIO_KEY } from "@/lib/pago-confirmado";
 import { TIME_ZONE } from "@/lib/timezone";
 
 type Props = {
@@ -193,7 +193,7 @@ export function PlanSettings({
       return;
     }
 
-    let data: { initPoint?: string; ultimoPagoId?: string | null; error?: string };
+    let data: { initPoint?: string; ultimoPagoId?: string | null; cobroDiferido?: boolean; error?: string };
     try {
       data = await response.json();
     } catch {
@@ -213,6 +213,8 @@ export function PlanSettings({
     try {
       localStorage.setItem(PAGO_BASELINE_KEY, data.ultimoPagoId ?? "");
       localStorage.setItem(PAGO_INICIO_KEY, String(Date.now()));
+      if (data.cobroDiferido) localStorage.setItem(PAGO_DIFERIDO_KEY, "1");
+      else localStorage.removeItem(PAGO_DIFERIDO_KEY);
     } catch {
       // Sin storage el modal cae al criterio de "pago reciente" -- no es crítico.
     }

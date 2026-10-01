@@ -146,7 +146,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ initPoint: resultado.initPoint, ultimoPagoId });
+    // Con el primer cobro diferido no entra ningún pago al volver del checkout:
+    // el cliente confirma por el alta de la suscripción, no por un pago nuevo.
+    return NextResponse.json({ initPoint: resultado.initPoint, ultimoPagoId, cobroDiferido: Boolean(inicioCobro) });
   }
 
   let resultado;

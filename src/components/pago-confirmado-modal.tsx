@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   PAGO_BASELINE_KEY,
   PAGO_CELEBRADO_KEY,
+  PAGO_DIFERIDO_KEY,
   PAGO_INICIO_KEY,
   PAGO_RECIENTE_MS,
   PAGO_RETORNO_MS,
@@ -20,6 +21,7 @@ type Estado = {
   plan: "BASICA" | "PREMIUM" | null;
   planDuracion: PlanDuracion | null;
   planEndsAt: string | null;
+  mpPreapprovalStatus: "PENDING" | "AUTHORIZED" | "PAUSED" | "CANCELLED" | null;
 };
 
 const INTERVALO_MS = 2500;
@@ -165,6 +167,7 @@ export function PagoConfirmadoModal({ retornoDePago }: { retornoDePago: boolean 
   const [abierto, setAbierto] = useState(retornoDePago);
   const [estado, setEstado] = useState<Estado | null>(null);
   const [confeti, setConfeti] = useState(false);
+  const [diferidoConfirmado, setDiferidoConfirmado] = useState(false);
 
   // localStorage solo existe en el cliente, por eso el respaldo se evalúa acá
   // y no en el estado inicial (evita un mismatch de hidratación).
@@ -192,6 +195,9 @@ export function PagoConfirmadoModal({ retornoDePago }: { retornoDePago: boolean 
     url.searchParams.delete("pago");
     window.history.replaceState(null, "", url.pathname + url.search);
 
+    // Recontratación con el primer cobro a futuro: no entra ningún pago ahora,
+    // así que se confirma por el alta de la suscripción (AUTHORIZED).
+    const diferido = leer(PAGO_DIFERIDO_KEY) === "1";
     let cancelado = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const inicio = Date.now();
@@ -202,7 +208,19 @@ export function PagoConfirmadoModal({ retornoDePago }: { retornoDePago: boolean 
         if (res.ok) {
           const data = (await res.json()) as Estado;
           if (cancelado) return;
-          if (esPagoNuevo(data.ultimoPago)) {
+          if (diferido && data.mpPreapprovalStatus === "AUTHORIZED") {
+            try {
+              localStorage.removeItem(PAGO_DIFERIDO_KEY);
+            } catch {
+              // Sin storage, a lo sumo se reevalúa en el próximo retorno.
+            }
+            setDiferidoConfirmado(true);
+            setEstado(data);
+            setConfeti(true);
+            router.refresh();
+            return;
+          }
+          if (!diferido && esPagoNuevo(data.ultimoPago)) {
             guardar(PAGO_CELEBRADO_KEY, data.ultimoPago!.id);
             setEstado(data);
             setConfeti(true);
@@ -256,8 +274,14 @@ export function PagoConfirmadoModal({ retornoDePago }: { retornoDePago: boolean 
               <div className="mx-auto">
                 <CheckAnimado />
               </div>
-              <DialogTitle className="text-lg font-bold">¡Pago confirmado!</DialogTitle>
-              <DialogDescription>Tu plan ya está activo.</DialogDescription>
+              <DialogTitle className="text-lg font-bold">
+                {diferidoConfirmado ? "¡Suscripción reactivada!" : "¡Pago confirmado!"}
+              </DialogTitle>
+              <DialogDescription>
+                {diferidoConfirmado
+                  ? "No se cobra nada hoy: el primer cobro es cuando termina tu período actual."
+                  : "Tu plan ya está activo."}
+              </DialogDescription>
               <dl className="flex w-full flex-col gap-1.5 rounded-xl bg-muted p-3 text-left text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-muted-foreground">Plan</dt>

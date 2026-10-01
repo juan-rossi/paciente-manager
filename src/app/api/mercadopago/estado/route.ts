@@ -26,7 +26,7 @@ export async function GET() {
     }),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { plan: true, planDuracion: true, planEndsAt: true },
+      select: { plan: true, planDuracion: true, planEndsAt: true, mpPreapprovalStatus: true },
     }),
   ]);
 
@@ -37,5 +37,6 @@ export async function GET() {
     plan: cuenta?.plan ?? null,
     planDuracion: cuenta?.planDuracion ?? null,
     planEndsAt: cuenta?.planEndsAt?.toISOString() ?? null,
+    mpPreapprovalStatus: cuenta?.mpPreapprovalStatus ?? null,
   });
 }
