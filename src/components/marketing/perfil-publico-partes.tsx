@@ -3,6 +3,7 @@ import { Building2, ChevronRight, MapPin, Phone } from "lucide-react";
 import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { cn } from "@/lib/utils";
+import { BiografiaPerfil } from "./biografia-perfil";
 
 // Piezas compartidas entre el perfil público del médico
 // (/directorio/[slug]) y la agenda de un lugar puntual
@@ -156,12 +157,7 @@ export function PerfilShell({
             </div>
           </div>
 
-          {biografia && (
-            <div>
-              <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{biografia}</p>
-            </div>
-          )}
+          {biografia && <BiografiaPerfil biografia={biografia} titulo={nombreCompleto} />}
 
           {prepagas && prepagas.length > 0 && (
             <div>
