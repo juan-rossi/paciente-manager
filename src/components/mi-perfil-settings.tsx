@@ -427,7 +427,7 @@ export function MiPerfilSettings({
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <input
         ref={fileInputRef}
         type="file"
