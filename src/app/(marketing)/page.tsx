@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/session";
 import { Hero } from "@/components/marketing/hero";
 import { ScrollToHash } from "@/components/marketing/scroll-to-hash";
 import { DirectorioBanner } from "@/components/marketing/directorio-banner";
-import { SocialProof } from "@/components/marketing/social-proof";
 import { ConceptOrbit } from "@/components/marketing/concept-orbit";
 import { ScrollStory } from "@/components/marketing/scroll-story";
 import { Features } from "@/components/marketing/features";
@@ -49,7 +48,6 @@ export default async function MarketingHomePage() {
     <>
       <ScrollToHash />
       <Hero />
-      <SocialProof />
       <ConceptOrbit />
       <ScrollStory />
       <Features />

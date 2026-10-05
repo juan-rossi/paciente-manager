@@ -3,7 +3,7 @@ import { OrbitDiagram } from "./orbit-diagram";
 
 export function ConceptOrbit() {
   return (
-    <section id="producto" className="overflow-x-hidden border-t border-border/60 py-20 sm:py-28">
+    <section id="producto" className="overflow-x-clip border-t border-border/60 py-20 sm:py-28">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-14 px-4">
         <SectionHeading
           kicker="El concepto"
