@@ -1,5 +1,6 @@
 "use client";
 
+import { ObraSocialSelect } from "@/components/obra-social-select";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { es } from "date-fns/locale";
@@ -699,6 +700,9 @@ type Props = {
   initialSobreturnosHabilitados: boolean;
   initialLugares: LugarInfo[];
   initialBloqueosDelDia: BloqueoDelDia[];
+  // Nombres de las prepagas con las que trabaja el médico (opciones del
+  // desplegable de Obra Social).
+  prepagas: string[];
 };
 
 export function TurnosCalendar({
@@ -715,6 +719,7 @@ export function TurnosCalendar({
   initialSobreturnosHabilitados,
   initialLugares,
   initialBloqueosDelDia,
+  prepagas,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -1576,7 +1581,7 @@ export function TurnosCalendar({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Obra Social</Label>
-              <Input value={obraSocial} onChange={(e) => setObraSocial(e.target.value)} />
+              <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagas} />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
@@ -1771,9 +1776,10 @@ export function TurnosCalendar({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Obra Social</Label>
-              <Input
+              <ObraSocialSelect
                 value={sobreturnoObraSocial}
-                onChange={(e) => setSobreturnoObraSocial(e.target.value)}
+                onChange={setSobreturnoObraSocial}
+                prepagas={prepagas}
               />
             </div>
             {sobreturnoError && <p className="text-sm text-destructive">{sobreturnoError}</p>}

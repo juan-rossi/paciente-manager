@@ -242,6 +242,10 @@ export async function getDoctorPublicoPorSlug(slug: string) {
       nombreConsultorio: true,
       telefono: true,
       direccion: true,
+      prepagas: {
+        select: { prepaga: { select: { id: true, nombre: true, nombreCompleto: true } } },
+        orderBy: { prepaga: { nombre: "asc" } },
+      },
       lugaresDeTrabajo: {
         where: { deletedAt: null },
         select: {

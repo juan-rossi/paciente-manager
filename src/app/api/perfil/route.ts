@@ -28,6 +28,13 @@ export async function PATCH(request: NextRequest) {
       : user.publicSlug;
 
   const visibles = parsed.data.lugaresVisibles;
+  // Un id que no está en el catálogo simplemente se descarta.
+  const prepagaIds = (
+    await prisma.prepaga.findMany({
+      where: { id: { in: parsed.data.prepagaIds } },
+      select: { id: true },
+    })
+  ).map((p) => p.id);
   const [updated] = await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
@@ -51,6 +58,13 @@ export async function PATCH(request: NextRequest) {
     prisma.lugarDeTrabajo.updateMany({
       where: { userId: user.id, id: { notIn: visibles } },
       data: { perfilVisible: false },
+    }),
+    prisma.doctorPrepaga.deleteMany({
+      where: { doctorId: user.id, prepagaId: { notIn: prepagaIds } },
+    }),
+    prisma.doctorPrepaga.createMany({
+      data: prepagaIds.map((prepagaId) => ({ doctorId: user.id, prepagaId })),
+      skipDuplicates: true,
     }),
   ]);
 

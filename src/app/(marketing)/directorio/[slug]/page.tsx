@@ -64,6 +64,27 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
           </div>
         )}
 
+        {doctor.perfilPublico && doctor.prepagas.length > 0 && (
+          <div className="rounded-2xl border border-border/60 bg-card p-6">
+            <h2 className="font-heading text-sm font-bold">Coberturas</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Prepagas y obras sociales con las que trabaja
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {doctor.prepagas.map(({ prepaga }) => (
+                <li
+                  key={prepaga.id}
+                  className="rounded-full border border-border/60 bg-background px-3 py-1 text-[12.5px] font-semibold"
+                >
+                  {prepaga.nombreCompleto && prepaga.nombreCompleto !== prepaga.nombre
+                    ? `${prepaga.nombre} (${prepaga.nombreCompleto})`
+                    : prepaga.nombre}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Un médico puede atender en más de un lugar (potencialmente en
             ciudades distintas) -- cada uno tiene su propia dirección y
             teléfono, así que va en su propia tarjeta en vez de mezclarse en
@@ -109,6 +130,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
             slug={doctor.publicSlug}
             lugares={lugaresReservables}
             lugarDestacado={lugarDestacado}
+            prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
             lugaresSinReserva={lugaresVisibles
               .filter((l) => !lugaresReservables.some((r) => r.id === l.id))
               .map((l) => l.nombre ?? "Consulta particular")}

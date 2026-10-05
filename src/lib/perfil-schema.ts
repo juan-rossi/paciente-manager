@@ -31,6 +31,8 @@ export const perfilSchema = z.object({
   // Ids de los lugares que se muestran en el perfil público; el resto queda
   // oculto (`LugarDeTrabajo.perfilVisible`).
   lugaresVisibles: z.array(z.string()),
+  // Ids del catálogo `Prepaga` con las que trabaja el médico.
+  prepagaIds: z.array(z.string()).max(500),
 });
 
 export const agendaPublicaSchema = z.object({

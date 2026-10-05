@@ -68,7 +68,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // se completa acá, antes de leerlos, para que Mi perfil pueda mostrarlo.
   if (user.role === "DOCTOR") await ensureLugarSlugs(user.id);
 
-  const [blocks, secretarias, lugares] = await Promise.all([
+  const [blocks, secretarias, lugares, prepagas, prepagasDelDoctor] = await Promise.all([
     prisma.workScheduleBlock.findMany({
       where: { userId: user.id },
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
@@ -91,6 +91,8 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
       where: { userId: user.id, deletedAt: null },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.prepaga.findMany({ select: { id: true, nombre: true, nombreCompleto: true }, orderBy: { nombre: "asc" } }),
+    prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
   ]);
 
   const initialSecretarias = secretarias.map(({ secretariaAsignaciones, ...s }) => ({
@@ -183,6 +185,8 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialNroMatricula={user.nroMatricula}
             initialPerfilPublico={user.perfilPublico}
             lugares={lugares}
+            prepagas={prepagas}
+            initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
             initialBiografia={user.biografia}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
             initialPublicSlug={user.publicSlug}

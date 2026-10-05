@@ -23,10 +23,11 @@ export default async function DashboardPage() {
 
   const hoy = new Date();
   const tenantId = getTenantId(user);
-  const [{ turnos, diasConHorario }, totalPacientes, totalPracticas] = await Promise.all([
+  const [{ turnos, diasConHorario }, totalPacientes, totalPracticas, totalPrepagas] = await Promise.all([
     getTurnosDelDia(hoy, tenantId),
     prisma.patient.count({ where: { doctorId: tenantId, deletedAt: null } }),
     prisma.lugarDeTrabajo.count({ where: { userId: tenantId, deletedAt: null } }),
+    user.role === "DOCTOR" ? prisma.doctorPrepaga.count({ where: { doctorId: user.id } }) : Promise.resolve(0),
   ]);
 
   // Solo se le avisa al médico dueño de la cuenta (no a sus secretarias --
@@ -66,6 +67,7 @@ export default async function DashboardPage() {
         sinPracticas={totalPracticas === 0}
         puedeConfigurarPracticas={user.role === "DOCTOR"}
         sugerirPerfilPublico={user.role === "DOCTOR" && totalPracticas > 0 && !user.perfilPublico}
+        sugerirCargarPrepagas={user.role === "DOCTOR" && totalPrepagas === 0}
       />
     </div>
   );

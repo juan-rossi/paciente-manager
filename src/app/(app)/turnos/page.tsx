@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getDaySlots } from "@/lib/get-day-slots";
 import { getTenantId, resolveActiveLugarId, resolvePuedeBloquearHorarios } from "@/lib/tenant";
 import { formatDateParamBA } from "@/lib/timezone";
+import { prisma } from "@/lib/prisma";
 import { TurnosCalendar } from "@/components/turnos-calendar";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,14 @@ export default async function TurnosPage() {
     bloqueosDelDia,
   } = await getDaySlots(today, user.role, tenantId, activeLugarId);
 
+  const prepagas = (
+    await prisma.doctorPrepaga.findMany({
+      where: { doctorId: tenantId },
+      select: { prepaga: { select: { nombre: true } } },
+      orderBy: { prepaga: { nombre: "asc" } },
+    })
+  ).map((d) => d.prepaga.nombre);
+
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
       <TurnosCalendar
@@ -41,6 +50,7 @@ export default async function TurnosPage() {
         initialSobreturnosHabilitados={sobreturnosHabilitados}
         initialLugares={lugares}
         initialBloqueosDelDia={bloqueosDelDia}
+        prepagas={prepagas}
       />
     </div>
   );

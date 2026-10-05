@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays, ChevronRight, Loader2, MapPin } from "lucide-react";
+import { ObraSocialSelect } from "@/components/obra-social-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,9 +69,11 @@ type Props = {
   // Nombres de lugares visibles en el perfil que no ofrecen turnos online:
   // se aclara para que el paciente no suponga que la reserva los incluye.
   lugaresSinReserva?: string[];
+  // Prepagas con las que trabaja el médico (opciones de Obra Social).
+  prepagas?: string[];
 };
 
-export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSinReserva = [] }: Props) {
+export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSinReserva = [], prepagas = [] }: Props) {
   // Con más de un lugar, primero hay que elegir a cuál asistir -- si viene
   // de una búsqueda por ciudad que ya matcheó un lugar puntual, arranca ahí
   // directo sin preguntar. Con uno solo (o ninguno, caso legado) no hay
@@ -426,7 +429,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSi
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Obra Social</Label>
-              <Input value={obraSocial} onChange={(e) => setObraSocial(e.target.value)} />
+              <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagas} />
             </div>
             <TurnstileWidget onToken={setTurnstileToken} />
             {error && <p className="text-sm text-destructive">{error}</p>}

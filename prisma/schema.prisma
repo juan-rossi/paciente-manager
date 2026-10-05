@@ -290,40 +290,41 @@ model User {
   // un pago aprobado (ver `/api/mercadopago/webhook`). Evita que abandonar
   // el checkout de MercadoPago (sin pagar) deje la cuenta mostrando un plan
   // que nunca se pagó.
-  planPendiente          PlanTipo?
-  planDuracionPendiente  PlanDuracion?
+  planPendiente         PlanTipo?
+  planDuracionPendiente PlanDuracion?
 
   // Suscripción (preapproval) de MercadoPago asociada a la cuenta -- ver
   // `src/lib/mercadopago.ts`. `mpPreapprovalId` identifica la ÚLTIMA
   // creada (elegir un plan/duración nuevo, o reintentar tras un pago
   // rechazado, arma una preapproval nueva y reemplaza este id). Los pagos
   // confirmados quedan en `pagosSuscripcion` para auditoría.
-  mpPreapprovalId     String?               @unique
+  mpPreapprovalId     String?              @unique
   mpPreapprovalStatus MpPreapprovalStatus?
   // Si el último cobro recurrente falló, se da un margen de
   // `GRACIA_DIAS` (ver `src/lib/plan.ts`) antes de restringir el acceso --
   // mientras tanto se avisa en "Mi plan" (ver `plan-settings.tsx`).
-  pagoEnGracia     Boolean   @default(false)
-  graciaVenceEl    DateTime?
-  pagosSuscripcion PagoSuscripcion[]
+  pagoEnGracia        Boolean              @default(false)
+  graciaVenceEl       DateTime?
+  pagosSuscripcion    PagoSuscripcion[]
   // Motivo (opcional) que el médico da al cancelar la suscripción -- ver
   // `src/lib/cancelacion-motivos.ts`. Se pisa si cancela de nuevo más adelante.
-  cancelacionMotivo  String?
-  cancelacionDetalle String?
-  canceladaEl        DateTime?
+  cancelacionMotivo   String?
+  cancelacionDetalle  String?
+  canceladaEl         DateTime?
 
   doctorAsignaciones     DoctorSecretaria[] @relation("AsignacionesComoDoctor")
   secretariaAsignaciones DoctorSecretaria[] @relation("AsignacionesComoSecretaria")
 
-  workScheduleBlocks     WorkScheduleBlock[]
-  lugaresDeTrabajo       LugarDeTrabajo[]
-  bloqueosHorario        BloqueoHorario[]
-  horariosExcepcionales  HorarioExcepcional[]
-  turnosCreados      Turno[]             @relation("TurnoCreadoPor")
-  pacientes          Patient[]           @relation("PatientDoctor")
-  turnosDelDoctor    Turno[]             @relation("TurnoDoctor")
-  auditLogsDelTenant AuditLog[]          @relation("AuditDoctor")
-  auditLogsComoActor AuditLog[]          @relation("AuditActor")
+  workScheduleBlocks    WorkScheduleBlock[]
+  lugaresDeTrabajo      LugarDeTrabajo[]
+  prepagas              DoctorPrepaga[]
+  bloqueosHorario       BloqueoHorario[]
+  horariosExcepcionales HorarioExcepcional[]
+  turnosCreados         Turno[]              @relation("TurnoCreadoPor")
+  pacientes             Patient[]            @relation("PatientDoctor")
+  turnosDelDoctor       Turno[]              @relation("TurnoDoctor")
+  auditLogsDelTenant    AuditLog[]           @relation("AuditDoctor")
+  auditLogsComoActor    AuditLog[]           @relation("AuditActor")
 }
 
 // Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,
@@ -436,9 +437,9 @@ model IntentoReserva {
 // `/api/mercadopago/webhook`. `mpPaymentId` único evita duplicar la fila
 // si el webhook de un mismo pago llega más de una vez.
 model PagoSuscripcion {
-  id          String @id @default(cuid())
-  userId      String
-  mpPaymentId String @unique
+  id              String   @id @default(cuid())
+  userId          String
+  mpPaymentId     String   @unique
   // Null para pagos únicos (Preference/Checkout Pro) -- solo aplica a
   // cobros de una suscripción recurrente (MENSUAL).
   mpPreapprovalId String?
@@ -452,9 +453,9 @@ model PagoSuscripcion {
 }
 
 model WorkScheduleBlock {
-  id         String          @id @default(cuid())
+  id         String         @id @default(cuid())
   userId     String
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   // Obligatorio -- todo horario tiene que pertenecer a un lugar (ver la
   // migración que backfillea los bloques que quedaron en null de antes de
   // "Mi práctica").
@@ -473,9 +474,9 @@ model WorkScheduleBlock {
 // esto es una excepción anclada a un día calendario concreto, por eso usa
 // `inicio`/`fin` absolutos igual que `Turno`, no `diaSemana` + "HH:mm".
 model BloqueoHorario {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id      String          @id @default(cuid())
+  userId  String
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   // `null` = aplica a todos los lugares en ese rango horario ("Día
   // completo" para un médico). Con `lugarId`, el bloqueo es específico de
   // ese lugar (bloques puntuales, o "Día completo" de una secretaria
@@ -522,41 +523,41 @@ enum LugarTrabajoTipo {
 // solo puede haber uno de tipo PARTICULAR, chequeado a nivel aplicación en
 // /api/lugares-trabajo (ver esa ruta), no como constraint de DB.
 model LugarDeTrabajo {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tipo      LugarTrabajoTipo
+  id                       String           @id @default(cuid())
+  userId                   String
+  user                     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo                     LugarTrabajoTipo
   // Solo aplica (y es obligatorio a nivel app) cuando tipo = CONSULTORIO.
-  nombre    String?
-  direccion String
+  nombre                   String?
+  direccion                String
   // Sale del mismo autocompletado de Google Places que geocodea `direccion`
   // (ver AddressAutocomplete) -- se usa para que el directorio público
   // pueda filtrar por cercanía considerando TODOS los lugares del médico,
   // no solo la dirección de su perfil (`User.ciudad`). Puede ser null en
   // lugares cargados antes de este campo, o si el geocoding falló.
-  ciudad    String?
-  latitud   Float?
-  longitud  Float?
-  telefono  String
+  ciudad                   String?
+  latitud                  Float?
+  longitud                 Float?
+  telefono                 String
   // Baja lógica -- ver DELETE /api/lugares-trabajo/[id]. Un lugar que
   // alguna vez tuvo un turno asociado (Turno.lugarId) nunca se borra de
   // verdad, solo se marca acá; toda lectura (lista, dropdown de horario,
   // chequeo de "un solo particular") filtra `deletedAt: null`.
-  deletedAt DateTime?
+  deletedAt                DateTime?
   // Qué expone este lugar públicamente (ver "Información pública" y "Agenda
   // pública" en Mi perfil). Se suman a los switches generales de `User`
   // (`perfilPublico`, `reservaPublicaHabilitada`): para que algo sea público
   // tienen que estar prendidos el general Y el del lugar. Default true para
   // que los lugares existentes sigan visibles/reservables como hasta ahora.
-  perfilVisible            Boolean @default(true)
-  reservaPublicaHabilitada Boolean @default(true)
+  perfilVisible            Boolean          @default(true)
+  reservaPublicaHabilitada Boolean          @default(true)
   // Segmento de URL del link de agenda de este lugar
   // (`/directorio/{User.publicSlug}/{publicSlug}`). Se genera una vez (ver
   // `ensureLugarSlugs` en src/lib/public-slug.ts) y queda fijo para que el
   // link ya compartido con un paciente no se rompa si se renombra el lugar.
   publicSlug               String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 
   bloques               WorkScheduleBlock[]
   turnos                Turno[]
@@ -609,8 +610,8 @@ model Turno {
   // resolución de conflictos de "Bloquear horarios" (nunca por el
   // "Cancelar turno" común) -- hasta que alguien lo marque como notificado,
   // aparece en la sección "Pendientes de notificar" de Recordatorios.
-  avisoPendiente       Boolean                    @default(false)
-  avisoPendienteMotivo TurnoAvisoPendienteMotivo?
+  avisoPendiente              Boolean                    @default(false)
+  avisoPendienteMotivo        TurnoAvisoPendienteMotivo?
   // Solo se completa para APLAZADO -- `inicio` ya se pisó con la fecha
   // nueva, así que sin esto se pierde contra qué fecha vieja armar el
   // mensaje ({fecha} = esta, {nueva_fecha} = el `inicio` actual).
@@ -824,4 +825,29 @@ model Gasto {
   createdAt   DateTime @default(now())
 
   @@index([fecha])
+}
+
+// Catálogo de coberturas (prepagas, obras sociales, "Particular") para elegir
+// en la ficha del paciente. Se carga desde la columna "Sigla / Alias" de
+// src/semio360_obras_sociales_prepagas_argentina.xlsx.
+model Prepaga {
+  id             String   @id @default(cuid())
+  nombre         String   @unique
+  // Razón social / nombre completo (columna "Nombre" del xlsx).
+  nombreCompleto String?
+  createdAt      DateTime @default(now())
+
+  doctores DoctorPrepaga[]
+}
+
+// Con qué coberturas del catálogo trabaja un médico (Configuración > Mi perfil).
+model DoctorPrepaga {
+  doctorId  String
+  doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  prepagaId String
+  prepaga   Prepaga  @relation(fields: [prepagaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([doctorId, prepagaId])
+  @@index([prepagaId])
 }

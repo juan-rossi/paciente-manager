@@ -34,7 +34,9 @@ export default async function AgendaLugarPage({ params }: Props) {
         <LugarCard lugar={lugar} />
 
         {disponible ? (
-          <PublicBookingCalendar slug={doctor.publicSlug!} lugares={[lugar]} />
+          <PublicBookingCalendar slug={doctor.publicSlug!} lugares={[lugar]}
+            prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
+          />
         ) : (
           <div className="rounded-2xl border border-border/60 bg-card p-6">
             <h2 className="font-heading text-sm font-bold">

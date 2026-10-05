@@ -2,7 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2, TriangleAlert } from "lucide-react";
+import {
+  Briefcase,
+  IdCard,
+  Lock,
+  Globe2,
+  CalendarDays,
+  Link2,
+  ShieldCheck,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { Button } from "@/components/ui/button";
@@ -68,6 +78,9 @@ type Props = {
   // teléfono del perfil público. Se leen siempre de las props (no de estado
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
   lugares: LugarResumen[];
+  // Catálogo completo de coberturas y las que ya eligió el médico.
+  prepagas: { id: string; nombre: string; nombreCompleto: string | null }[];
+  initialPrepagaIds: string[];
   initialBiografia: string | null;
   initialReservaPublicaHabilitada: boolean;
   initialPublicSlug: string | null;
@@ -83,6 +96,8 @@ export function MiPerfilSettings({
   initialNroMatricula,
   initialPerfilPublico,
   lugares,
+  prepagas,
+  initialPrepagaIds,
   initialBiografia,
   initialReservaPublicaHabilitada,
   initialPublicSlug,
@@ -101,6 +116,23 @@ export function MiPerfilSettings({
   const [apellido, setApellido] = useState(initialApellido);
   const [especialidad, setEspecialidad] = useState<Especialidad | "">(initialEspecialidad ?? "");
   const [nroMatricula, setNroMatricula] = useState(initialNroMatricula);
+
+  // Coberturas con las que trabaja -- se guardan con "Guardar cambios".
+  const [prepagaIds, setPrepagaIds] = useState<string[]>(initialPrepagaIds);
+  const [prepagaBusqueda, setPrepagaBusqueda] = useState("");
+  const prepagaOptions = prepagas
+    .filter((p) => !prepagaIds.includes(p.id))
+    .map((p) => ({
+      value: p.id,
+      label:
+        p.nombreCompleto && p.nombreCompleto !== p.nombre
+          ? `${p.nombre} (${p.nombreCompleto})`
+          : p.nombre,
+    }));
+  const prepagasElegidas = prepagaIds
+    .map((id) => prepagas.find((p) => p.id === id))
+    .filter((p): p is (typeof prepagas)[number] => !!p)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
@@ -239,6 +271,7 @@ export function MiPerfilSettings({
           perfilPublico,
           biografia,
           lugaresVisibles,
+          prepagaIds,
         }),
       });
       const data = await response.json();
@@ -518,6 +551,61 @@ export function MiPerfilSettings({
             />
           </div>
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="Coberturas" icon={ShieldCheck}>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="perfil-prepagas">Prepagas y obras sociales con las que trabajás</Label>
+          <Combobox
+            items={prepagaOptions}
+            value={null}
+            inputValue={prepagaBusqueda}
+            onInputValueChange={setPrepagaBusqueda}
+            onValueChange={(item) => {
+              const id = (item as { value: string } | null)?.value;
+              if (id) setPrepagaIds((prev) => [...prev, id]);
+              setPrepagaBusqueda("");
+            }}
+          >
+            <ComboboxInputGroup>
+              <ComboboxInput id="perfil-prepagas" placeholder="Buscar cobertura..." />
+              <ComboboxTrigger aria-label="Abrir coberturas" />
+            </ComboboxInputGroup>
+            <ComboboxContent>
+              {(option: (typeof prepagaOptions)[number]) => (
+                <ComboboxItem key={option.value} value={option}>
+                  {option.label}
+                </ComboboxItem>
+              )}
+            </ComboboxContent>
+          </Combobox>
+        </div>
+        {prepagasElegidas.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+            Todavía no cargaste ninguna. Buscá arriba para empezar.
+          </p>
+        ) : (
+          <ul className="flex flex-wrap gap-1.5" aria-label="Coberturas elegidas">
+            {prepagasElegidas.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  aria-label={`Quitar ${p.nombre}`}
+                  onClick={() => setPrepagaIds((prev) => prev.filter((id) => id !== p.id))}
+                  className="group inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-1.5 pl-3 text-[12.5px] font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {p.nombre}
+                  <span className="flex size-[18px] items-center justify-center rounded-full group-hover:bg-primary group-hover:text-primary-foreground">
+                    <X className="size-3" />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}
+        </p>
       </SettingsSection>
 
       <SettingsSection title="Seguridad" icon={Lock}>

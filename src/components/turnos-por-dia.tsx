@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  HeartHandshake,
   Search,
   Stethoscope,
   UserPlus,
@@ -52,6 +53,8 @@ type Props = {
   // Médico con prácticas configuradas pero perfil no público: se suma un
   // acceso rápido que lo invita a publicarlo (Mi perfil).
   sugerirPerfilPublico?: boolean;
+  // Médico sin ninguna prepaga/obra social cargada: acceso rápido a Mi perfil.
+  sugerirCargarPrepagas?: boolean;
   // Cambia a la pestaña "Buscar paciente" -- la maneja el padre porque las
   // pestañas viven en `DashboardTabs`, un nivel arriba de este componente.
   onBuscarPaciente?: () => void;
@@ -64,6 +67,7 @@ export function TurnosPorDia({
   sinPracticas = false,
   puedeConfigurarPracticas = false,
   sugerirPerfilPublico = false,
+  sugerirCargarPrepagas = false,
   onBuscarPaciente,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -290,6 +294,23 @@ export function TurnosPorDia({
                       <span className="text-sm font-semibold">Publicá tu perfil</span>
                       <span className="text-xs text-muted-foreground">
                         Que los pacientes te encuentren y reserven turno online
+                      </span>
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                )}
+                {sugerirCargarPrepagas && (
+                  <Link
+                    href="/configuracion?tab=perfil"
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent/40"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                      <HeartHandshake className="size-4 text-primary" />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-sm font-semibold">Cargá tus prepagas</span>
+                      <span className="text-xs text-muted-foreground">
+                        Indicá con qué obras sociales y prepagas trabajás
                       </span>
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
