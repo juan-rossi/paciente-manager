@@ -72,18 +72,30 @@ export function LugarCard({
   );
 }
 
-export function PerfilHero({
+type PerfilDoctor = {
+  tituloCortesia: TituloCortesia | null;
+  nombre: string;
+  apellido: string;
+  especialidad: Especialidad | null;
+  fotoPerfilBase64: string | null;
+};
+
+// Contenedor del perfil: misma anchura y gutter que el header (max-w-6xl
+// px-4) para que el contenido quede alineado con el logo y con el botón de
+// la derecha. En escritorio, el perfil queda fijo a la izquierda mientras el
+// paciente elige turno a la derecha.
+export function PerfilShell({
   doctor,
   ciudad,
+  biografia,
+  prepagas,
+  children,
 }: {
-  doctor: {
-    tituloCortesia: TituloCortesia | null;
-    nombre: string;
-    apellido: string;
-    especialidad: Especialidad | null;
-    fotoPerfilBase64: string | null;
-  };
+  doctor: PerfilDoctor;
   ciudad: string;
+  biografia?: string | null;
+  prepagas?: string[];
+  children: React.ReactNode;
 }) {
   const nombreCompleto = formatNombreConTitulo(
     doctor.tituloCortesia,
@@ -92,10 +104,10 @@ export function PerfilHero({
   const iniciales = `${doctor.nombre.charAt(0)}${doctor.apellido.charAt(0)}`.toUpperCase();
 
   return (
-    <section className="bg-gradient-to-b from-primary/[0.06] to-transparent">
+    <div className="mx-auto max-w-6xl px-4 pb-12">
       <nav
         aria-label="Ruta"
-        className="mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pt-14 text-[13px] text-muted-foreground"
+        className="flex flex-wrap items-center gap-1.5 pt-6 pb-5 text-[13px] text-muted-foreground"
       >
         <Link href="/directorio" className="transition-colors hover:text-primary hover:underline">
           Directorio
@@ -116,34 +128,60 @@ export function PerfilHero({
           {nombreCompleto}
         </span>
       </nav>
-      <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 pt-6 pb-8 text-center sm:flex-row sm:items-center sm:text-left">
-        <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-3xl font-bold text-primary shadow-lg shadow-primary/20">
-          {doctor.fotoPerfilBase64 ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={doctor.fotoPerfilBase64} alt="" className="size-full object-cover" />
-          ) : (
-            iniciales
-          )}
-        </div>
-        <div>
-          <h1 className="font-heading text-2xl font-extrabold tracking-tight sm:text-3xl">
-            {nombreCompleto}
-          </h1>
-          <div className="mt-2.5 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-            {doctor.especialidad && (
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                {ESPECIALIDAD_LABELS[doctor.especialidad]}
-              </span>
-            )}
-            {ciudad && (
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="size-3.5" />
-                {ciudad}
-              </span>
-            )}
+
+      <div className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <aside className="flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6 lg:sticky lg:top-20">
+          <div className="flex items-center gap-4">
+            <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-2xl font-bold text-primary shadow-lg shadow-primary/20">
+              {doctor.fotoPerfilBase64 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={doctor.fotoPerfilBase64} alt="" className="size-full object-cover" />
+              ) : (
+                iniciales
+              )}
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-heading text-xl font-extrabold tracking-tight">{nombreCompleto}</h1>
+              {doctor.especialidad && (
+                <span className="mt-2 inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                  {ESPECIALIDAD_LABELS[doctor.especialidad]}
+                </span>
+              )}
+              {ciudad && (
+                <span className="mt-2 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                  <MapPin className="size-3.5 shrink-0" />
+                  {ciudad}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+
+          {biografia && (
+            <div>
+              <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{biografia}</p>
+            </div>
+          )}
+
+          {prepagas && prepagas.length > 0 && (
+            <div>
+              <h2 className="font-heading text-sm font-bold">Coberturas</h2>
+              <ul className="mt-2 flex flex-wrap gap-1.5">
+                {prepagas.map((nombre) => (
+                  <li
+                    key={nombre}
+                    className="rounded-full border border-border/60 bg-background px-2.5 py-0.5 text-xs font-semibold"
+                  >
+                    {nombre}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+
+        <div className="flex min-w-0 flex-col gap-6">{children}</div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
-import { LugarCard, PerfilHero } from "@/components/marketing/perfil-publico-partes";
+import { LugarCard, PerfilShell } from "@/components/marketing/perfil-publico-partes";
 
 export const dynamic = "force-dynamic";
 
@@ -27,17 +27,27 @@ export default async function AgendaLugarPage({ params }: Props) {
     : [];
 
   return (
-    <>
-      <PerfilHero doctor={doctor} ciudad={lugar.ciudad ?? ""} />
-
-      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-4 pb-12">
-        <LugarCard lugar={lugar} />
-
+    <PerfilShell
+      doctor={doctor}
+      ciudad={lugar.ciudad ?? ""}
+      biografia={doctor.perfilPublico ? doctor.biografia : null}
+      prepagas={
+        doctor.perfilPublico
+          ? doctor.prepagas.map(({ prepaga }) =>
+              prepaga.nombreCompleto && prepaga.nombreCompleto !== prepaga.nombre
+                ? `${prepaga.nombre} (${prepaga.nombreCompleto})`
+                : prepaga.nombre
+            )
+          : []
+      }
+    >
         {disponible ? (
           <PublicBookingCalendar slug={doctor.publicSlug!} lugares={[lugar]}
             prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
           />
         ) : (
+          <>
+          <LugarCard lugar={lugar} />
           <div className="rounded-2xl border border-border/60 bg-card p-6">
             <h2 className="font-heading text-sm font-bold">
               Este lugar no tiene turnos online por ahora
@@ -61,8 +71,8 @@ export default async function AgendaLugarPage({ params }: Props) {
               </div>
             )}
           </div>
+          </>
         )}
-      </div>
-    </>
+    </PerfilShell>
   );
 }

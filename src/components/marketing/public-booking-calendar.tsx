@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, ChevronRight, Loader2, MapPin } from "lucide-react";
+import { CalendarDays, Loader2, MapPin, Phone } from "lucide-react";
 import { ObraSocialSelect } from "@/components/obra-social-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ type LugarOption = {
   nombre: string | null;
   ciudad: string | null;
   direccion?: string | null;
+  telefono?: string | null;
 };
 
 function lugarLabel(lugar: LugarOption | undefined): string {
@@ -66,23 +67,17 @@ type Props = {
   slug: string;
   lugares: LugarOption[];
   lugarDestacado?: string;
-  // Nombres de lugares visibles en el perfil que no ofrecen turnos online:
-  // se aclara para que el paciente no suponga que la reserva los incluye.
-  lugaresSinReserva?: string[];
   // Prepagas con las que trabaja el médico (opciones de Obra Social).
   prepagas?: string[];
 };
 
-export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSinReserva = [], prepagas = [] }: Props) {
-  // Con más de un lugar, primero hay que elegir a cuál asistir -- si viene
-  // de una búsqueda por ciudad que ya matcheó un lugar puntual, arranca ahí
-  // directo sin preguntar. Con uno solo (o ninguno, caso legado) no hay
-  // nada que elegir: se ve todo sin filtrar, como siempre.
-  const [lugarSeleccionado, setLugarSeleccionado] = useState<string | null>(() => {
-    if (lugares.length <= 1) return lugares[0]?.id ?? null;
-    return lugarDestacado && lugares.some((l) => l.id === lugarDestacado) ? lugarDestacado : null;
-  });
-  const debeElegirLugar = lugares.length > 1 && lugarSeleccionado === null;
+export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas = [] }: Props) {
+  // Con más de un lugar se elige con pestañas. Arranca en el lugar que ya
+  // matcheó la búsqueda por ciudad (lugarDestacado) o, si no hay, en el
+  // primero con turnos disponibles una vez cargada la disponibilidad.
+  const [lugarSeleccionado, setLugarSeleccionado] = useState<string | null>(() =>
+    lugarDestacado && lugares.some((l) => l.id === lugarDestacado) ? lugarDestacado : (lugares[0]?.id ?? null)
+  );
   const lugarElegido = lugares.find((l) => l.id === lugarSeleccionado);
 
   const [dias, setDias] = useState<DisponibilidadDia[] | null>(null);
@@ -100,7 +95,7 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSi
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
 
-  async function cargarDisponibilidad(lugarActivo: string | null) {
+  async function cargarDisponibilidad(lugarInicial: string | null) {
     try {
       const response = await fetch(`/api/directorio/${slug}/disponibilidad`);
       if (!response.ok) {
@@ -110,7 +105,14 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSi
       const data = await response.json();
       const dias: DisponibilidadDia[] = data.dias ?? [];
       setDias(dias);
+      let lugarActivo = lugarInicial;
+      const destacado = !!lugarDestacado && lugares.some((l) => l.id === lugarDestacado);
+      if (!destacado && lugarActivo !== null && lugares.length > 1) {
+        const conTurnos = lugares.find((l) => dias.some((d) => d.horarios.some((h) => h.lugarId === l.id)));
+        if (conTurnos) lugarActivo = conTurnos.id;
+      }
       if (lugarActivo !== null) {
+        setLugarSeleccionado(lugarActivo);
         setFechaSeleccionada(primerDiaConHorarios(filtrarPorLugar(dias, lugarActivo)));
       }
     } catch {
@@ -230,7 +232,6 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSi
   // clickearlo si ya se sabe que no hay nada ahí.
   const diasConTurnos = diasVista.filter((d) => d.horarios.length > 0);
   const diaActivo = diasConTurnos.find((d) => d.fecha === fechaSeleccionada) ?? null;
-  const lugarUnico = lugares.length === 1 ? lugares[0] : undefined;
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-6">
@@ -238,75 +239,72 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSi
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-accent text-white">
           <CalendarDays className="size-4.5" />
         </span>
-        <div className="min-w-0">
-          <span className="font-heading block text-[15px] font-bold">
-            {lugarUnico ? `Reservar turno en ${lugarLabel(lugarUnico)}` : "Reservar turno online"}
-          </span>
-          {lugarUnico?.direccion && (
-            <span className="block text-xs text-muted-foreground">{lugarUnico.direccion}</span>
-          )}
-        </div>
+        <span className="font-heading block text-[15px] font-bold">Reservar turno online</span>
       </div>
 
-      {debeElegirLugar ? (
-        <>
-          <p className="mt-4 text-sm font-semibold text-foreground">¿A qué práctica querés asistir?</p>
-          <div className="mt-3 flex flex-col gap-2.5">
-            {lugares.map((lugar) => {
-              const tieneDisponibilidad = dias.some((d) => d.horarios.some((h) => h.lugarId === lugar.id));
-              return (
-                <button
-                  key={lugar.id}
-                  type="button"
-                  onClick={() => elegirLugar(lugar.id)}
-                  disabled={!tieneDisponibilidad}
-                  className="flex w-full items-center justify-between rounded-xl border border-border/60 p-3.5 text-left transition-colors enabled:hover:border-primary/40 enabled:hover:bg-primary/5 disabled:opacity-40"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13.5px] font-bold text-foreground">{lugarLabel(lugar)}</span>
-                      <span
-                        className={
-                          lugar.tipo === "PARTICULAR"
-                            ? "rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground"
-                            : "rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary"
-                        }
-                      >
-                        {lugar.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
-                      </span>
-                    </div>
-                    {lugar.ciudad && (
-                      <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="size-3" />
-                        {lugar.ciudad}
-                        {!tieneDisponibilidad && " · sin turnos disponibles"}
-                      </span>
-                    )}
-                  </div>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                </button>
-              );
-            })}
-          </div>
-        </>
-      ) : (
-        <>
-          {lugares.length > 1 && lugarSeleccionado && (
-            <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2">
-              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground">
-                <MapPin className="size-3.5 text-primary" />
-                {lugarLabel(lugares.find((l) => l.id === lugarSeleccionado))}
-              </span>
+      {lugares.length > 1 && (
+        <div role="tablist" aria-label="Lugar de atención" className="mt-4 flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/40 p-1">
+          {lugares.map((lugar) => {
+            const activo = lugar.id === lugarSeleccionado;
+            const tieneDisponibilidad = dias.some((d) => d.horarios.some((h) => h.lugarId === lugar.id));
+            return (
               <button
+                key={lugar.id}
                 type="button"
-                onClick={() => setLugarSeleccionado(null)}
-                className="text-xs font-semibold text-primary hover:underline"
+                role="tab"
+                aria-selected={activo}
+                onClick={() => elegirLugar(lugar.id)}
+                className={
+                  activo
+                    ? "min-w-0 flex-1 rounded-lg bg-card px-3 py-2 text-left shadow-sm"
+                    : "min-w-0 flex-1 rounded-lg px-3 py-2 text-left transition-colors hover:bg-card/60"
+                }
               >
-                Cambiar de lugar
+                <span className={`block truncate text-[13px] font-bold ${activo ? "text-primary" : "text-foreground"}`}>
+                  {lugarLabel(lugar)}
+                </span>
+                <span className="block truncate text-[11.5px] text-muted-foreground">
+                  {lugar.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
+                  {lugar.ciudad && ` · ${lugar.ciudad}`}
+                  {!tieneDisponibilidad && " · sin turnos"}
+                </span>
               </button>
-            </div>
-          )}
+            );
+          })}
+        </div>
+      )}
 
+      {lugarElegido && (
+        <div className="mt-4 flex flex-col gap-1.5 text-[13px]">
+          {lugares.length === 1 && <span className="font-bold">{lugarLabel(lugarElegido)}</span>}
+          {lugarElegido.direccion && (
+            <span className="flex items-start gap-2">
+              <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              <span>
+                {lugarElegido.direccion}
+                {" · "}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lugarElegido.direccion)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Ver en mapa
+                </a>
+              </span>
+            </span>
+          )}
+          {lugarElegido.telefono && (
+            <span className="flex items-center gap-2">
+              <Phone className="size-3.5 shrink-0 text-primary" />
+              {lugarElegido.telefono}
+            </span>
+          )}
+        </div>
+      )}
+
+      {(
+        <>
           <span className="mt-4 block text-sm font-semibold text-muted-foreground">Elegí un día</span>
           {diasConTurnos.length > 0 ? (
             <div className="mt-2 flex items-center gap-2 overflow-x-auto pb-1">
@@ -359,12 +357,6 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, lugaresSi
             )}
           </div>
 
-          {lugaresSinReserva.length > 0 && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              {lugaresSinReserva.join(" y ")} no {lugaresSinReserva.length > 1 ? "tienen" : "tiene"} turnos
-              online.
-            </p>
-          )}
         </>
       )}
 
