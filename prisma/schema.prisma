@@ -306,6 +306,9 @@ model User {
   pagoEnGracia        Boolean              @default(false)
   graciaVenceEl       DateTime?
   pagosSuscripcion    PagoSuscripcion[]
+  // Solo existe si el admin ya publicó su placa de bienvenida en redes (ver
+  // /admin/marketing/bienvenidas).
+  marketingBienvenida MarketingBienvenida?
   // Motivo (opcional) que el médico da al cancelar la suscripción -- ver
   // `src/lib/cancelacion-motivos.ts`. Se pisa si cancela de nuevo más adelante.
   cancelacionMotivo   String?
@@ -812,6 +815,20 @@ model ConsentimientoInformado {
   deletedAt DateTime?
 
   @@index([patientId])
+}
+
+// Placa de bienvenida de un médico ya publicada en las redes de Semio 360. La
+// fila solo existe una vez publicada (sin fila = pendiente), así que borrarla
+// lo devuelve a pendientes. `genero` queda guardado para saber con qué forma
+// ("Bienvenido"/"Bienvenida") salió la placa: el perfil del médico no guarda
+// el sexo, solo el título (Dr./Dra./Lic.…).
+model MarketingBienvenida {
+  id             String   @id @default(cuid())
+  doctorId       String   @unique
+  doctor         User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  genero         Sexo
+  publicadaPorId String?
+  publicadaAt    DateTime @default(now())
 }
 
 // Gastos operativos de Semio 360 (la plataforma, no de un médico puntual) --
