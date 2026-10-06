@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Especialidad } from "@/lib/especialidad";
 import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
+import { esActivo } from "@/lib/plan";
 
 const doctorPublicoSelect = {
   id: true,
@@ -15,6 +16,11 @@ const doctorPublicoSelect = {
   fotoPerfilBase64: true,
   reservaPublicaHabilitada: true,
 } as const;
+
+// La reserva online solo se ofrece si el médico tiene la cuenta activa (trial
+// o plan vigente, ver `esActivo`), aunque su agenda esté configurada como
+// pública. Se calcula en cada consulta, nunca se guarda.
+const cuentaSelect = { trialEndsAt: true, planEndsAt: true } as const;
 
 function pickDoctorPublico(row: {
   id: string;
@@ -130,6 +136,7 @@ export async function getDoctoresPublicos(filtros: {
     },
     select: {
       ...doctorPublicoSelect,
+      ...cuentaSelect,
       latitud: true,
       longitud: true,
       lugaresDeTrabajo: {
@@ -160,7 +167,9 @@ export async function getDoctoresPublicos(filtros: {
       latitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.latitud : null,
       longitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.longitud : null,
       reservaPublicaHabilitada:
-        doctor.reservaPublicaHabilitada && visibles.some((l) => l.reservaPublicaHabilitada),
+        esActivo(doctor) &&
+        doctor.reservaPublicaHabilitada &&
+        visibles.some((l) => l.reservaPublicaHabilitada),
     };
   });
 
@@ -229,7 +238,7 @@ export async function getDoctoresPublicos(filtros: {
 // tiene que seguir funcionando. El componente oculta la sección "Sobre mí"
 // en ese caso -- ver `doctor.perfilPublico` en la página.
 export async function getDoctorPublicoPorSlug(slug: string) {
-  return prisma.user.findFirst({
+  const doctor = await prisma.user.findFirst({
     where: {
       role: "DOCTOR",
       publicSlug: slug,
@@ -237,6 +246,7 @@ export async function getDoctorPublicoPorSlug(slug: string) {
     },
     select: {
       ...doctorPublicoSelect,
+      ...cuentaSelect,
       perfilPublico: true,
       atencionTipo: true,
       nombreConsultorio: true,
@@ -263,4 +273,12 @@ export async function getDoctorPublicoPorSlug(slug: string) {
       },
     },
   });
+  if (!doctor) return null;
+
+  const { trialEndsAt, planEndsAt, ...resto } = doctor;
+  const activo = esActivo({ trialEndsAt, planEndsAt });
+  // Sin plan activo y sin perfil público, el link directo a la agenda deja de
+  // ser un motivo para exponer la página.
+  if (!activo && !resto.perfilPublico) return null;
+  return { ...resto, reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo };
 }

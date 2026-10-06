@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LayoutDashboard, Settings } from "lucide-react";
+import { ArrowLeft, ChevronDown, LayoutDashboard, Settings } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LogoutButton } from "@/components/logout-button";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ type Props = {
   fotoPerfilBase64: string | null;
   configHref?: string;
   adminHref?: string;
+  homeHref?: string;
   className?: string;
 };
 
@@ -22,6 +23,7 @@ export function UserChip({
   fotoPerfilBase64,
   configHref,
   adminHref,
+  homeHref,
   className,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -46,8 +48,18 @@ export function UserChip({
         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
       <PopoverContent align="end" className="w-52 p-1.5">
-        {(configHref || adminHref) && (
+        {(configHref || adminHref || homeHref) && (
           <>
+            {homeHref && (
+              <Link
+                href={homeHref}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                <ArrowLeft className="size-4 text-muted-foreground" />
+                Volver a mi cuenta
+              </Link>
+            )}
             {configHref && (
               <Link
                 href={configHref}

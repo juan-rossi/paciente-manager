@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { LogoutButton } from "@/components/logout-button";
+import { UserChip } from "@/components/user-chip";
 import { NavLinks } from "@/components/nav-links";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
@@ -42,25 +42,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 menú mobile aparte para dos links. */}
             <NavLinks links={ADMIN_NAV_LINKS} className="flex flex-wrap gap-4" />
           </div>
-          <div className="flex items-center gap-4">
-            {homeDelUsuario && (
-              <a
-                href={homeDelUsuario}
-                className="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline"
-              >
-                Volver a mi cuenta
-              </a>
-            )}
-            <div className="hidden flex-col leading-tight sm:flex">
-              <span className="text-sm font-medium">
-                {user.nombre} {user.apellido}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {user.role === "ADMIN" ? "Owner" : "Acceso admin"}
-              </span>
-            </div>
-            <LogoutButton />
-          </div>
+          <UserChip
+            nombreConTitulo={`${user.nombre} ${user.apellido}`.trim()}
+            iniciales={`${user.nombre.charAt(0)}${user.apellido.charAt(0)}`.toUpperCase()}
+            fotoPerfilBase64={user.fotoPerfilBase64}
+            homeHref={homeDelUsuario ?? undefined}
+          />
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">{children}</main>

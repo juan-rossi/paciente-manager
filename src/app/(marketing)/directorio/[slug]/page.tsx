@@ -73,6 +73,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       ciudad={ciudad}
       biografia={doctor.perfilPublico ? doctor.biografia : null}
       prepagas={prepagas}
+      apilado={!hayCalendario}
     >
       {hayCalendario && (
         <PublicBookingCalendar

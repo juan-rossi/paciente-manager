@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { esActivo } from "@/lib/plan";
 import { generarSlots } from "@/lib/slots";
 import { startOfDayBA, formatDateParamBA } from "@/lib/timezone";
 import { isRangoBloqueado } from "@/lib/bloqueo-horario";
@@ -19,9 +20,12 @@ function addDays(date: Date, amount: number): Date {
 // `perfilPublico` por la misma razón que `getDoctorPublicoPorSlug` no lo
 // exige para la página del perfil.
 export async function getDoctorParaReserva(slug: string) {
-  return prisma.user.findFirst({
+  const doctor = await prisma.user.findFirst({
     where: { role: "DOCTOR", reservaPublicaHabilitada: true, publicSlug: slug },
   });
+  // Sin plan activo (trial o suscripción vigente) no se puede reservar online,
+  // aunque la agenda esté configurada como pública.
+  return doctor && esActivo(doctor) ? doctor : null;
 }
 
 // Lugares donde el médico habilitó reservas online (el switch por lugar de

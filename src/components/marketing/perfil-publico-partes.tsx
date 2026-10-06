@@ -90,12 +90,16 @@ export function PerfilShell({
   ciudad,
   biografia,
   prepagas,
+  apilado = false,
   children,
 }: {
   doctor: PerfilDoctor;
   ciudad: string;
   biografia?: string | null;
   prepagas?: string[];
+  // Sin calendario (cuenta inactiva o sin reservas online) no hay nada que
+  // poner al lado del perfil: se apilan las secciones en una sola columna.
+  apilado?: boolean;
   children: React.ReactNode;
 }) {
   const nombreCompleto = formatNombreConTitulo(
@@ -130,8 +134,14 @@ export function PerfilShell({
         </span>
       </nav>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6 lg:sticky lg:top-20">
+      <div
+        className={
+          apilado
+            ? "flex flex-col gap-6"
+            : "grid items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)]"
+        }
+      >
+        <aside className={`flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6 ${apilado ? "" : "lg:sticky lg:top-20"}`}>
           <div className="flex items-center gap-4">
             <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-2xl font-bold text-primary shadow-lg shadow-primary/20">
               {doctor.fotoPerfilBase64 ? (
