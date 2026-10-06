@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Building2, MapPin, Phone } from "lucide-react";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
+import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
 import {
   ContactField,
@@ -14,6 +16,29 @@ type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ lugar?: string }>;
 };
+
+export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
+  const { slug } = await params;
+  const doctor = await getDoctorPublicoPorSlug(slug);
+  if (!doctor) return {};
+
+  const title = `${formatNombreConTitulo(
+    doctor.tituloCortesia,
+    `${doctor.nombre} ${doctor.apellido}`.trim()
+  )} - Semio360`;
+  const description = "Reserva tu turno online ahora";
+  // Sin foto cargada no se pasa `images`: sigue el logo de Semio360.
+  const images = doctor.fotoPerfilBase64
+    ? [`/api/directorio/${encodeURIComponent(slug)}/foto`]
+    : undefined;
+
+  return {
+    title: { absolute: title },
+    description,
+    openGraph: { title, description, siteName: "Semio360", locale: "es_AR", type: "website", images },
+    twitter: { card: images ? "summary_large_image" : "summary", title, description, images },
+  };
+}
 
 export default async function PerfilPublicoPage({ params, searchParams }: Props) {
   const { slug } = await params;
