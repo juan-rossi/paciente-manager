@@ -41,6 +41,7 @@ import { cn, filterTelefono } from "@/lib/utils";
 import type { UserRole } from "@/lib/auth";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { CompartirAgendaButton } from "@/components/compartir-agenda-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -703,6 +704,9 @@ type Props = {
   // Nombres de las prepagas con las que trabaja el médico (opciones del
   // desplegable de Obra Social).
   prepagas: string[];
+  // Link público de reserva para compartir; null si la agenda pública no
+  // está habilitada.
+  compartir: { url: string; nombreMedico: string; lugarNombre: string | null } | null;
 };
 
 export function TurnosCalendar({
@@ -720,6 +724,7 @@ export function TurnosCalendar({
   initialLugares,
   initialBloqueosDelDia,
   prepagas,
+  compartir,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -1372,6 +1377,13 @@ export function TurnosCalendar({
                 <Lock className="size-4" />
                 Bloquear<span className="hidden lg:inline"> horarios</span>
               </Button>
+            )}
+            {compartir && (
+              <CompartirAgendaButton
+                {...compartir}
+                size="default"
+                className="col-span-5 bg-card shadow-sm lg:w-full"
+              />
             )}
           </div>
         </div>

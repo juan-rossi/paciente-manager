@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
+import { CompartirAgendaButton } from "@/components/compartir-agenda-button";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -337,6 +338,9 @@ export function MiPerfilSettings({
     setOrigin(window.location.origin);
   }, []);
 
+  const nombreMedico = [initialTituloCortesia, initialNombre, initialApellido]
+    .filter(Boolean)
+    .join(" ");
   const publicLink = publicSlug ? `${origin ?? "semio360.com"}/directorio/${publicSlug}` : null;
 
   async function handleToggleReservaLugar(lugarId: string, checked: boolean) {
@@ -786,6 +790,12 @@ export function MiPerfilSettings({
                         >
                           {copiado === lugar.id ? "¡Copiado!" : "Copiar"}
                         </Button>
+                        <CompartirAgendaButton
+                          url={linkLugar}
+                          nombreMedico={nombreMedico}
+                          lugarNombre={lugar.nombre}
+                          variant="outline"
+                        />
                       </div>
                     )}
                   </li>
@@ -809,6 +819,8 @@ export function MiPerfilSettings({
               >
                 {copiado === "general" ? "¡Copiado!" : "Copiar"}
               </Button>
+              <CompartirAgendaButton url={publicLink} nombreMedico={nombreMedico} />
+
             </div>
             <p className="text-xs text-muted-foreground">
               Ofrece todos los lugares con turnos online y el paciente elige uno. Para evitar

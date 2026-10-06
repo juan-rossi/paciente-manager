@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
+import { nombreDoctor } from "@/lib/seo";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
 import { LugarCard, PerfilShell } from "@/components/marketing/perfil-publico-partes";
 
@@ -12,10 +13,23 @@ type Props = { params: Promise<{ slug: string; lugarSlug: string }> };
 // Es una vista de reserva del mismo médico: no se indexa y su canonical es el
 // perfil, para no competir con él ni duplicar contenido.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug, lugarSlug } = await params;
+  const doctor = await getDoctorPublicoPorSlug(slug);
+  const lugar = doctor?.lugaresDeTrabajo.find((l) => l.publicSlug === lugarSlug);
+  const nombre = doctor ? nombreDoctor(doctor) : null;
+  const nombreLugar = lugar?.nombre ?? "Consulta particular";
+  // Título y texto para el preview del link al compartirlo (WhatsApp, etc.).
+  const title = nombre ? `Sacá turno online con ${nombre} – ${nombreLugar}` : undefined;
+  const description = lugar?.direccion
+    ? `Reservá tu turno en ${nombreLugar}, ${lugar.direccion}.`
+    : "Reservá tu turno online.";
   return {
+    ...(title ? { title } : {}),
+    description,
     alternates: { canonical: `/directorio/${encodeURIComponent(slug)}` },
     robots: { index: false, follow: true },
+    openGraph: { title, description, siteName: "Semio360", locale: "es_AR", type: "website" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

@@ -58,6 +58,11 @@ export function buildMensajeCambioTurno(
   return mensaje;
 }
 
+// Link de WhatsApp sin destinatario: el usuario elige el chat al abrirlo.
+export function buildWhatsAppShareHref(mensaje: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+}
+
 export function buildWhatsAppHref(telefono: string, mensaje: string): string {
   let digits = telefono.replace(/\D/g, "");
   // Un teléfono cargado sin código de país (10 dígitos: código de área +
