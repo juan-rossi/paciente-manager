@@ -71,9 +71,11 @@ type Props = {
   lugarDestacado?: string;
   // Prepagas con las que trabaja el médico (opciones de Obra Social).
   prepagas?: string[];
+  // En mobile abre el wizard de turnos apenas carga la página.
+  abrirWizardEnMobile?: boolean;
 };
 
-export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas = [] }: Props) {
+export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas = [], abrirWizardEnMobile = false }: Props) {
   // Con más de un lugar se elige con pestañas. Arranca en el lugar que ya
   // matcheó la búsqueda por ciudad (lugarDestacado) o, si no hay, en el
   // primero con turnos disponibles una vez cargada la disponibilidad.
@@ -147,6 +149,15 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
     cargarDisponibilidad(lugarSeleccionado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  // Link de un lugar puntual en mobile: el wizard arranca abierto, con ese
+  // lugar ya elegido. Se evalúa una sola vez al montar.
+  useEffect(() => {
+    if (abrirWizardEnMobile && window.matchMedia("(max-width: 767px)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMovilAbierto(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function elegirLugar(lugarId: string) {
     setLugarSeleccionado(lugarId);

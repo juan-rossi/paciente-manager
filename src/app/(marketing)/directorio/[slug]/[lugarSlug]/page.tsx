@@ -42,7 +42,7 @@ export default async function AgendaLugarPage({ params }: Props) {
       }
     >
         {disponible ? (
-          <PublicBookingCalendar slug={doctor.publicSlug!} lugares={[lugar]}
+          <PublicBookingCalendar slug={doctor.publicSlug!} lugares={[lugar]} abrirWizardEnMobile
             prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
           />
         ) : (
