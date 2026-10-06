@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { registerSchema } from "@/lib/register-schema";
 import { nuevaFechaFinTrial } from "@/lib/plan";
+import { TERMINOS_VERSION } from "@/lib/terminos";
+import { PAGOS_HABILITADOS } from "@/lib/pagos";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -15,27 +17,42 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  if (existing) {
-    return NextResponse.json({ error: "Ya existe una cuenta con ese email." }, { status: 409 });
+  try {
+    const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    if (existing) {
+      return NextResponse.json({ error: "Ya existe una cuenta con ese email." }, { status: 409 });
+    }
+
+    const passwordHash = await hashPassword(parsed.data.password);
+    // Sin pagos habilitados no se puede crear una cuenta Premium (quedaría
+    // inactiva sin forma de pagar): se registra siempre como Básico con trial.
+    const esPremium = PAGOS_HABILITADOS && parsed.data.plan === "PREMIUM";
+    const ahora = new Date();
+
+    await prisma.user.create({
+      data: {
+        email: parsed.data.email,
+        nombre: parsed.data.nombre,
+        apellido: parsed.data.apellido,
+        nroMatricula: parsed.data.nroMatricula,
+        tituloCortesia: parsed.data.tituloCortesia,
+        especialidad: parsed.data.especialidad,
+        passwordHash,
+        terminosVersion: TERMINOS_VERSION,
+        terminosAceptadosAt: ahora,
+        declaracionProfesionalAt: ahora,
+        role: "DOCTOR",
+        // Premium no tiene período de prueba -- arranca sin trial y queda
+        // inactiva hasta que se confirme el primer pago (ver signup-form.tsx,
+        // que dispara el checkout de MercadoPago apenas se crea la cuenta).
+        plan: esPremium ? "PREMIUM" : "BASICA",
+        trialEndsAt: esPremium ? null : nuevaFechaFinTrial(),
+      },
+    });
+
+    return NextResponse.json({ ok: true }, { status: 201 });
+  } catch (error) {
+    console.error("Error al registrar usuario:", error);
+    return NextResponse.json({ error: "No se pudo crear la cuenta." }, { status: 500 });
   }
-
-  const passwordHash = await hashPassword(parsed.data.password);
-
-  await prisma.user.create({
-    data: {
-      email: parsed.data.email,
-      nombre: parsed.data.nombre,
-      apellido: parsed.data.apellido,
-      nroMatricula: parsed.data.nroMatricula,
-      tituloCortesia: parsed.data.tituloCortesia,
-      especialidad: parsed.data.especialidad,
-      passwordHash,
-      role: "DOCTOR",
-      plan: "BASICA",
-      trialEndsAt: nuevaFechaFinTrial(),
-    },
-  });
-
-  return NextResponse.json({ ok: true }, { status: 201 });
 }

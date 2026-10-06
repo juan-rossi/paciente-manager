@@ -18,6 +18,16 @@ export const registerSchema = z.object({
   tituloCortesia: tituloCortesiaSchema,
   especialidad: especialidadSchema,
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+  // Premium no tiene trial (ver src/lib/plan.ts) -- si se elige acá, el
+  // signup-form dispara el checkout de MercadoPago apenas se crea la
+  // cuenta. Default "BASICA" para no romper el flujo normal con trial.
+  plan: z.enum(["BASICA", "PREMIUM"]).default("BASICA"),
+  // Las dos casillas del registro (Términos y declaración profesional) --
+  // se validan acá y no solo deshabilitando el botón en el cliente.
+  aceptaTerminos: z.literal(true, { message: "Tenés que aceptar los Términos y condiciones." }),
+  declaracionProfesional: z.literal(true, {
+    message: "Tenés que confirmar la declaración profesional.",
+  }),
 });
 
 export const completeProfileSchema = z.object({

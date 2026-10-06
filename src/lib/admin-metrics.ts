@@ -5,6 +5,7 @@ import {
   diasParaFecha,
   precioMensualEquivalente,
   PLAN_DURACION_LABEL,
+  MESES_POR_DURACION,
   type PlanDuracion,
 } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
@@ -23,13 +24,6 @@ import { TIME_ZONE } from "@/lib/timezone";
  */
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-const MESES_POR_DURACION: Record<PlanDuracion, number> = {
-  MENSUAL: 1,
-  SEMESTRAL: 6,
-  ANUAL: 12,
-  BIANUAL: 24,
-};
 
 const DOCTOR_LIST_SELECT = {
   id: true,
@@ -72,7 +66,7 @@ export type MedicoResumen = {
   estado: EstadoMedico;
   tier: "BASICA" | "PREMIUM";
   esTrial: boolean;
-  planLabel: string; // "Trial", "Trial vencido", "Básica · 6 meses", ...
+  planLabel: string; // "Trial", "Trial vencido", "Básico · 6 meses", ...
   vencimiento: Date | null;
   diasParaVencer: number | null; // negativo = ya venció
   pacientesCount: number;
@@ -82,7 +76,7 @@ export type MedicoResumen = {
 
 function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" | "planEndsAt" | "trialEndsAt">) {
   if (doctor.planEndsAt && doctor.planDuracion) {
-    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básica";
+    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
     return { label: `${tier} · ${PLAN_DURACION_LABEL[doctor.planDuracion]}`, esTrial: false };
   }
   const trialVencido = doctor.trialEndsAt ? doctor.trialEndsAt.getTime() <= Date.now() : false;
@@ -289,14 +283,14 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       fecha: doctor.createdAt,
       titulo: "Registro autogestionado",
       descripcion: doctor.trialEndsAt
-        ? "Inicio de período de prueba (3 meses) — plan Trial."
+        ? "Inicio de período de prueba (60 días) — plan Trial."
         : "Alta de la cuenta.",
     },
   ];
 
   if (doctor.planEndsAt && doctor.planDuracion) {
     const inicioAprox = restarMeses(doctor.planEndsAt, MESES_POR_DURACION[doctor.planDuracion]);
-    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básica";
+    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
     historial.push({
       fecha: inicioAprox,
       titulo: "Contratación de plan pago",

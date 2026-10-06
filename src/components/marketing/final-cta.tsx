@@ -54,6 +54,15 @@ export function FinalCTA() {
       ctx = gsap.context(() => {
         gsap.set(headlineRef.current, { opacity: 0, y: 16 });
 
+        // Los offsets están pensados para desktop (hasta ±260px); en mobile
+        // dejaban los módulos fuera de pantalla. Se comprime el eje X al ancho
+        // disponible para que arranquen visibles.
+        const halfWidth = (sectionRef.current?.clientWidth ?? 0) / 2;
+        const kx = Math.min(1, Math.max(0.3, (halfWidth - 56) / 260));
+        moduleRefs.current.forEach((el, i) => {
+          if (el) gsap.set(el, { x: MODULES[i].x * kx, y: MODULES[i].y });
+        });
+
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: sectionRef.current,

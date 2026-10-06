@@ -12,7 +12,7 @@ const ESTADOS = [
 const PLANES = [
   { value: "", label: "Plan: todos" },
   { value: "TRIAL", label: "Trial" },
-  { value: "BASICA", label: "Básica" },
+  { value: "BASICA", label: "Básico" },
   { value: "PREMIUM", label: "Premium" },
 ];
 const VENCIMIENTOS = [

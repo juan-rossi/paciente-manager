@@ -45,6 +45,9 @@ type Props = {
   onChangeEvoluciones: (next: EvolucionValue[]) => void;
   evolucionesEliminadas?: EvolucionValue[];
   onChangeEvolucionesEliminadas?: (next: EvolucionValue[]) => void;
+  // La transcripción es una función Premium: sin plan Premium vigente no se
+  // muestra ningún control de dictado.
+  transcripcionHabilitada?: boolean;
 };
 
 export function EvolucionTab({
@@ -53,6 +56,7 @@ export function EvolucionTab({
   onChangeEvoluciones,
   evolucionesEliminadas = [],
   onChangeEvolucionesEliminadas,
+  transcripcionHabilitada = false,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
@@ -340,7 +344,7 @@ export function EvolucionTab({
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-3">
                   <Label>Observación</Label>
-                  {!isEditing && transcription.connectionStatus === "disponible" && (
+                  {transcripcionHabilitada && !isEditing && transcription.connectionStatus === "disponible" && (
                     <div className="flex items-center gap-2">
                       {transcription.recordingStatus === "grabando" ||
                       transcription.recordingStatus === "conectando" ? (
@@ -407,11 +411,15 @@ export function EvolucionTab({
                     className="min-h-[15rem]"
                     value={contenido}
                     onChange={(e) => setContenido(e.target.value)}
-                    placeholder="Escribí la evolución del paciente o presioná «Iniciar transcripción»..."
+                    placeholder={
+                      transcripcionHabilitada
+                        ? "Escribí la evolución del paciente o presioná «Iniciar transcripción»..."
+                        : "Escribí la evolución del paciente..."
+                    }
                   />
                 )}
               </div>
-              {!isEditing && transcription.connectionStatus === "no_disponible" && (
+              {transcripcionHabilitada && !isEditing && transcription.connectionStatus === "no_disponible" && (
                 <p className="text-sm text-muted-foreground">
                   El transcriptor local no está disponible. Si ya lo instalaste y está corriendo,
                   puede que el navegador te haya pedido permiso para acceder a la red local (un aviso

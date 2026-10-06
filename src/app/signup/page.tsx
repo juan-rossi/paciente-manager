@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SignupForm } from "./signup-form";
 
 export default function SignupPage() {
@@ -10,7 +11,9 @@ export default function SignupPage() {
             "radial-gradient(60% 50% at 50% 0%, color-mix(in oklch, var(--primary) 12%, transparent), transparent)",
         }}
       />
-      <SignupForm />
+      <Suspense>
+        <SignupForm />
+      </Suspense>
     </div>
   );
 }

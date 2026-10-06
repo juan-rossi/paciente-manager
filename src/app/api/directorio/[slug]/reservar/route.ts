@@ -5,6 +5,11 @@ import { getDoctorParaReserva, buscarSlotValido } from "@/lib/public-booking";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import {
+  generarTokenCancelacion,
+  nombreCookieTurno,
+  opcionesCookieTurno,
+} from "@/lib/turno-cancelacion-publica";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -106,8 +111,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
     : null;
 
+  const { token, hash } = generarTokenCancelacion();
   const turno = await prisma.turno.create({
     data: {
+      cancelTokenHash: hash,
       inicio,
       fin,
       nombreYApellido: parsed.data.nombreYApellido,
@@ -124,8 +131,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  return NextResponse.json(
+  const res = NextResponse.json(
     { ok: true, inicio: turno.inicio.toISOString(), fin: turno.fin.toISOString() },
     { status: 201 }
   );
+  res.cookies.set(nombreCookieTurno(slug), token, opcionesCookieTurno(turno.fin));
+  return res;
 }

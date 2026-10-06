@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarDays,
@@ -99,6 +100,7 @@ export function MiPracticaSettings({
   initialSlotDurationMinutes,
   initialSobreturnosHabilitados,
 }: Props) {
+  const router = useRouter();
   const [lugares, setLugares] = useState<LugarDeTrabajo[]>(initialLugares);
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
   const [activeLugarId, setActiveLugarId] = useState<string | null>(initialLugares[0]?.id ?? null);
@@ -318,6 +320,8 @@ export function MiPracticaSettings({
       );
       if (!editingLugar) setActiveLugarId(data.lugar.id);
       setLugarOpen(false);
+      // Mi perfil resume las prácticas desde el server (tab "Información pública").
+      router.refresh();
     } finally {
       setSavingLugar(false);
     }
@@ -345,6 +349,7 @@ export function MiPracticaSettings({
           : null
       );
       setDeleteLugarTarget(null);
+      router.refresh();
     } finally {
       setDeletingLugar(false);
     }
@@ -520,7 +525,7 @@ export function MiPracticaSettings({
               className="flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
               <Plus className="size-3.5" />
-              Agregar lugar
+              Agregar lugar de atención
             </button>
           </div>
         )}
@@ -529,7 +534,7 @@ export function MiPracticaSettings({
           <div>
             <Button type="button" onClick={openCreateLugar}>
               <Plus className="size-4" />
-              Agregar lugar
+              Agregar lugar de atención
             </Button>
           </div>
         )}
@@ -683,7 +688,7 @@ export function MiPracticaSettings({
             </div>
 
             {tipo === "CONSULTORIO" && (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 mt-2">
                 <Label htmlFor="lugar-nombre">Nombre del consultorio *</Label>
                 <Input
                   id="lugar-nombre"
@@ -694,7 +699,7 @@ export function MiPracticaSettings({
               </div>
             )}
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 mt-2">
               <Label htmlFor="lugar-direccion">Dirección *</Label>
               <AddressAutocomplete
                 id="lugar-direccion"
@@ -705,7 +710,7 @@ export function MiPracticaSettings({
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 mt-2">
               <Label htmlFor="lugar-telefono">Teléfono *</Label>
               <Input
                 id="lugar-telefono"

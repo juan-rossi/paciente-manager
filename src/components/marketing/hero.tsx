@@ -29,7 +29,7 @@ export function Hero() {
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand-accent" />
-            3 meses de prueba gratis, sin tarjeta
+            60 días de prueba gratis, sin tarjeta
           </span>
           <h1 className="max-w-xl font-heading text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]">
             Tu consultorio.

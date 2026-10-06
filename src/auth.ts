@@ -1,9 +1,11 @@
+import { cookies } from "next/headers";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { verifyPassword, type UserRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nuevaFechaFinTrial } from "@/lib/plan";
+import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
 
 // Google solo da un nombre completo -- lo partimos como mejor se puede en
 // nombre/apellido (el médico puede corregirlo después en /onboarding, donde
@@ -58,6 +60,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Primer login con Google y el email no existe todavía: se autoregistra
       // como médico en período de prueba. La matrícula (que Google no da)
       // se completa en /onboarding antes de poder usar el resto de la app.
+      // Google salta el formulario de /signup, así que la aceptación de los
+      // términos viaja en una cookie que el cliente setea antes del redirect;
+      // sin ella (p.ej. "Continuar con Google" desde /login con un email
+      // nuevo) no se crea la cuenta y se lo manda a /signup a aceptar.
+      const cookieStore = await cookies();
+      if (cookieStore.get(TERMINOS_COOKIE)?.value !== TERMINOS_VERSION) {
+        return "/signup?error=terminos";
+      }
+      const ahora = new Date();
       const { nombre, apellido } = splitNombre(
         typeof user.name === "string" ? user.name : ""
       );
@@ -67,6 +78,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           nombre,
           apellido,
           passwordHash: "",
+          terminosVersion: TERMINOS_VERSION,
+          terminosAceptadosAt: ahora,
+          declaracionProfesionalAt: ahora,
           role: "DOCTOR",
           plan: "BASICA",
           trialEndsAt: nuevaFechaFinTrial(),

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import type { Especialidad } from "@/lib/especialidad";
 import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
+import { esActivo } from "@/lib/plan";
+import { fotoDoctorPath } from "@/lib/site-url";
 
 const doctorPublicoSelect = {
   id: true,
@@ -15,6 +17,17 @@ const doctorPublicoSelect = {
   fotoPerfilBase64: true,
   reservaPublicaHabilitada: true,
 } as const;
+
+// La reserva online solo se ofrece si el médico tiene la cuenta activa (trial
+// o plan vigente, ver `esActivo`), aunque su agenda esté configurada como
+// pública. Se calcula en cada consulta, nunca se guarda.
+const cuentaSelect = { trialEndsAt: true, planEndsAt: true } as const;
+
+// La foto se guarda como data URL en la fila; hacia afuera solo sale la ruta
+// que la sirve como imagen real (cacheable e indexable), nunca el base64.
+function fotoUrlDe(slug: string | null, base64: string | null): string | null {
+  return slug && base64 ? fotoDoctorPath(slug) : null;
+}
 
 function pickDoctorPublico(row: {
   id: string;
@@ -37,7 +50,7 @@ function pickDoctorPublico(row: {
     especialidad: row.especialidad,
     ciudad: row.ciudad,
     biografia: row.biografia,
-    fotoPerfilBase64: row.fotoPerfilBase64,
+    fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPerfilBase64),
     reservaPublicaHabilitada: row.reservaPublicaHabilitada,
   };
 }
@@ -58,7 +71,7 @@ export type DoctorPublico = {
   // atiende en más de una ciudad no parezca que solo atiende en una.
   ciudades: string[];
   biografia: string | null;
-  fotoPerfilBase64: string | null;
+  fotoUrl: string | null;
   reservaPublicaHabilitada: boolean;
   distanciaKm: number | null;
   // El `LugarDeTrabajo` que matcheó la búsqueda por ubicación (`null` si
@@ -117,23 +130,54 @@ export async function getDoctoresPublicos(filtros: {
 }): Promise<DoctorPublico[]> {
   const buscandoPorUbicacion = filtros.lat != null && filtros.lng != null;
 
-  const doctores = await prisma.user.findMany({
+  const candidatos = await prisma.user.findMany({
     where: {
       role: "DOCTOR",
       perfilPublico: true,
       publicSlug: { not: null },
+      // Sin prácticas visibles no hay dirección ni teléfono para mostrar, así
+      // que el perfil no se publica aunque tenga el toggle activo (ver la
+      // alerta en "Información pública" de Mi perfil).
+      lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
       ...(filtros.especialidad ? { especialidad: filtros.especialidad as Especialidad } : {}),
     },
     select: {
       ...doctorPublicoSelect,
+      ...cuentaSelect,
       latitud: true,
       longitud: true,
       lugaresDeTrabajo: {
         where: { deletedAt: null },
-        select: { id: true, latitud: true, longitud: true, ciudad: true },
+        select: {
+          id: true,
+          latitud: true,
+          longitud: true,
+          ciudad: true,
+          perfilVisible: true,
+          reservaPublicaHabilitada: true,
+        },
       },
     },
     orderBy: { apellido: "asc" },
+  });
+
+  // Solo cuentan los lugares que el médico eligió mostrar: ciudades, distancia
+  // y "Reserva online" salen de ahí, nunca de un lugar oculto. La ubicación
+  // del perfil (`User.latitud`/`ciudad`, legado) se descarta si hay algún
+  // lugar oculto, porque podría ser justo la de ese lugar.
+  const doctores = candidatos.map((doctor) => {
+    const visibles = doctor.lugaresDeTrabajo.filter((l) => l.perfilVisible);
+    return {
+      ...doctor,
+      lugaresDeTrabajo: visibles,
+      ciudad: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.ciudad : null,
+      latitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.latitud : null,
+      longitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.longitud : null,
+      reservaPublicaHabilitada:
+        esActivo(doctor) &&
+        doctor.reservaPublicaHabilitada &&
+        visibles.some((l) => l.reservaPublicaHabilitada),
+    };
   });
 
   if (!buscandoPorUbicacion) {
@@ -201,7 +245,7 @@ export async function getDoctoresPublicos(filtros: {
 // tiene que seguir funcionando. El componente oculta la sección "Sobre mí"
 // en ese caso -- ver `doctor.perfilPublico` en la página.
 export async function getDoctorPublicoPorSlug(slug: string) {
-  return prisma.user.findFirst({
+  const doctor = await prisma.user.findFirst({
     where: {
       role: "DOCTOR",
       publicSlug: slug,
@@ -209,16 +253,59 @@ export async function getDoctorPublicoPorSlug(slug: string) {
     },
     select: {
       ...doctorPublicoSelect,
+      ...cuentaSelect,
       perfilPublico: true,
       atencionTipo: true,
       nombreConsultorio: true,
       telefono: true,
       direccion: true,
+      prepagas: {
+        select: { prepaga: { select: { id: true, nombre: true, nombreCompleto: true } } },
+        orderBy: { prepaga: { nombre: "asc" } },
+      },
       lugaresDeTrabajo: {
         where: { deletedAt: null },
-        select: { id: true, tipo: true, nombre: true, ciudad: true, direccion: true, telefono: true },
+        select: {
+          id: true,
+          tipo: true,
+          nombre: true,
+          ciudad: true,
+          direccion: true,
+          telefono: true,
+          publicSlug: true,
+          perfilVisible: true,
+          reservaPublicaHabilitada: true,
+        },
         orderBy: { createdAt: "asc" },
       },
     },
   });
+  if (!doctor) return null;
+
+  const { trialEndsAt, planEndsAt, fotoPerfilBase64, ...resto } = doctor;
+  const activo = esActivo({ trialEndsAt, planEndsAt });
+  // Sin plan activo y sin perfil público, el link directo a la agenda deja de
+  // ser un motivo para exponer la página.
+  if (!activo && !resto.perfilPublico) return null;
+  return {
+    ...resto,
+    fotoUrl: fotoUrlDe(resto.publicSlug, fotoPerfilBase64),
+    reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo,
+  };
+}
+
+// Slugs de los perfiles que se publican en el sitemap: los mismos que lista
+// `getDoctoresPublicos` (perfil público activado y al menos un lugar visible).
+export async function getSlugsPerfilesPublicos(): Promise<string[]> {
+  const rows = await prisma.user.findMany({
+    where: {
+      role: "DOCTOR",
+      perfilPublico: true,
+      publicSlug: { not: null },
+      lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
+    },
+    select: { publicSlug: true },
+    orderBy: { apellido: "asc" },
+  });
+  return rows.map((r) => r.publicSlug!);
 }

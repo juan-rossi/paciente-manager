@@ -24,6 +24,9 @@ type Props = {
   required?: boolean;
   invalid?: boolean;
   aiAutocomplete?: boolean;
+  // Función Premium: sin plan Premium vigente no se muestran los botones de
+  // mic ni de IA.
+  transcripcionHabilitada?: boolean;
 };
 
 // Como en `EvolucionTab`, pero para un campo de texto suelto del formulario en
@@ -40,6 +43,7 @@ export function TranscribableTextAreaField({
   required,
   invalid,
   aiAutocomplete,
+  transcripcionHabilitada = false,
 }: Props) {
   const transcription = useTranscription();
 
@@ -73,6 +77,7 @@ export function TranscribableTextAreaField({
       {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
 
       <div className="relative">
+        {transcripcionHabilitada && (
         <Button
           type="button"
           variant="outline"
@@ -97,7 +102,8 @@ export function TranscribableTextAreaField({
             <Mic className="size-3.5" />
           )}
         </Button>
-        {aiAutocomplete && (
+        )}
+        {transcripcionHabilitada && aiAutocomplete && (
           <Button
             type="button"
             variant="outline"
@@ -155,7 +161,7 @@ export function TranscribableTextAreaField({
             rows={rows}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={cn("pr-10", invalid ? "border-destructive" : undefined)}
+            className={cn(transcripcionHabilitada && "pr-10", invalid ? "border-destructive" : undefined)}
             style={{ minHeight }}
           />
         )}

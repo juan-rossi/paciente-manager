@@ -2,17 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, IdCard, Lock, Globe2, CalendarDays, Link2 } from "lucide-react";
+import {
+  Briefcase,
+  IdCard,
+  Lock,
+  Globe2,
+  CalendarDays,
+  Link2,
+  ShieldCheck,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
-import { filterTelefono } from "@/lib/utils";
-import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { CompartirAgendaButton } from "@/components/compartir-agenda-button";
+import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -42,9 +51,20 @@ import {
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import { cn } from "@/lib/utils";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
-type AtencionTipo = "PARTICULAR" | "CONSULTORIO";
+type LugarResumen = {
+  id: string;
+  tipo: "PARTICULAR" | "CONSULTORIO";
+  nombre: string | null;
+  direccion: string;
+  telefono: string;
+  ciudad: string | null;
+  perfilVisible: boolean;
+  reservaPublicaHabilitada: boolean;
+  publicSlug: string | null;
+};
 
 type Props = {
   email: string;
@@ -55,13 +75,13 @@ type Props = {
   initialEspecialidad: Especialidad | null;
   initialNroMatricula: string;
   initialPerfilPublico: boolean;
-  initialAtencionTipo: AtencionTipo | null;
-  initialNombreConsultorio: string | null;
-  initialTelefono: string | null;
-  initialDireccion: string | null;
-  initialCiudad: string | null;
-  initialLatitud: number | null;
-  initialLongitud: number | null;
+  // Prácticas activas del médico -- de acá salen consultorio, dirección y
+  // teléfono del perfil público. Se leen siempre de las props (no de estado
+  // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
+  lugares: LugarResumen[];
+  // Catálogo completo de coberturas y las que ya eligió el médico.
+  prepagas: { id: string; nombre: string; nombreCompleto: string | null }[];
+  initialPrepagaIds: string[];
   initialBiografia: string | null;
   initialReservaPublicaHabilitada: boolean;
   initialPublicSlug: string | null;
@@ -76,13 +96,9 @@ export function MiPerfilSettings({
   initialEspecialidad,
   initialNroMatricula,
   initialPerfilPublico,
-  initialAtencionTipo,
-  initialNombreConsultorio,
-  initialTelefono,
-  initialDireccion,
-  initialCiudad,
-  initialLatitud,
-  initialLongitud,
+  lugares,
+  prepagas,
+  initialPrepagaIds,
   initialBiografia,
   initialReservaPublicaHabilitada,
   initialPublicSlug,
@@ -102,36 +118,44 @@ export function MiPerfilSettings({
   const [especialidad, setEspecialidad] = useState<Especialidad | "">(initialEspecialidad ?? "");
   const [nroMatricula, setNroMatricula] = useState(initialNroMatricula);
 
-  const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
-  const [atencionTipo, setAtencionTipo] = useState<AtencionTipo | "">(initialAtencionTipo ?? "");
-  const [nombreConsultorio, setNombreConsultorio] = useState(initialNombreConsultorio ?? "");
-  const [telefono, setTelefono] = useState(initialTelefono ?? "");
-  const [direccion, setDireccion] = useState(initialDireccion ?? "");
-  const [ciudad, setCiudad] = useState(initialCiudad ?? "");
-  const [latitud, setLatitud] = useState(initialLatitud);
-  const [longitud, setLongitud] = useState(initialLongitud);
-  const [biografia, setBiografia] = useState(initialBiografia ?? "");
+  // Coberturas con las que trabaja -- se guardan con "Guardar cambios".
+  const [prepagaIds, setPrepagaIds] = useState<string[]>(initialPrepagaIds);
+  const [prepagaBusqueda, setPrepagaBusqueda] = useState("");
+  const prepagaOptions = prepagas
+    .filter((p) => !prepagaIds.includes(p.id))
+    .map((p) => ({
+      value: p.id,
+      label:
+        p.nombreCompleto && p.nombreCompleto !== p.nombre
+          ? `${p.nombre} (${p.nombreCompleto})`
+          : p.nombre,
+    }));
+  const prepagasElegidas = prepagaIds
+    .map((id) => prepagas.find((p) => p.id === id))
+    .filter((p): p is (typeof prepagas)[number] => !!p)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
-  // Escribir en el campo de dirección invalida la ciudad/coordenadas ya
-  // guardadas -- se vuelven a completar solas recién cuando el usuario elige
-  // una sugerencia real del autocompletado (ver AddressAutocomplete).
-  function handleDireccionTextChange(text: string) {
-    setDireccion(text);
-    setCiudad("");
-    setLatitud(null);
-    setLongitud(null);
+  const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
+  const [biografia, setBiografia] = useState(initialBiografia ?? "");
+  const sinPracticas = lugares.length === 0;
+  // Lugares que se muestran en el perfil público -- se guardan junto con el
+  // resto del perfil (botón "Guardar cambios"), a diferencia de la agenda.
+  const [lugaresVisibles, setLugaresVisibles] = useState<string[]>(() =>
+    lugares.filter((l) => l.perfilVisible).map((l) => l.id)
+  );
+  const sinLugaresVisibles = !sinPracticas && lugaresVisibles.length === 0;
+
+  function togglePerfilPublico(checked: boolean) {
+    setPerfilPublico(checked);
+    // Al activarlo, todos los lugares arrancan visibles.
+    if (checked) setLugaresVisibles(lugares.map((l) => l.id));
   }
 
-  function handleDireccionSelect(result: {
-    direccion: string;
-    ciudad: string | null;
-    latitud: number | null;
-    longitud: number | null;
-  }) {
-    setDireccion(result.direccion);
-    setCiudad(result.ciudad ?? "");
-    setLatitud(result.latitud);
-    setLongitud(result.longitud);
+  function toggleLugarVisible(id: string, checked: boolean) {
+    const next = checked ? [...lugaresVisibles, id] : lugaresVisibles.filter((x) => x !== id);
+    setLugaresVisibles(next);
+    // Sin ningún lugar visible el perfil no tiene qué mostrar: se apaga el principal.
+    if (next.length === 0) setPerfilPublico(false);
   }
 
   const [saving, setSaving] = useState(false);
@@ -145,7 +169,14 @@ export function MiPerfilSettings({
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
   const [agendaPublicaSaving, setAgendaPublicaSaving] = useState(false);
   const [agendaPublicaError, setAgendaPublicaError] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState(false);
+  // Qué link se acaba de copiar (`"general"` o el id de un lugar), para
+  // mostrar "¡Copiado!" solo en ese botón.
+  const [copiado, setCopiado] = useState<string | null>(null);
+  // Turnos online por lugar -- se guardan al instante, como el switch general.
+  const [reservaPorLugar, setReservaPorLugar] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(lugares.map((l) => [l.id, l.reservaPublicaHabilitada]))
+  );
+  const [lugarAgendaSaving, setLugarAgendaSaving] = useState<string | null>(null);
 
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordActual, setPasswordActual] = useState("");
@@ -226,24 +257,6 @@ export function MiPerfilSettings({
       setError("Completá los campos obligatorios de Información personal y Datos profesionales.");
       return;
     }
-    if (perfilPublico) {
-      if (!atencionTipo) {
-        setError('Elegí cómo atendés en "Información pública".');
-        return;
-      }
-      if (atencionTipo === "CONSULTORIO" && !nombreConsultorio.trim()) {
-        setError("Completá el nombre del consultorio.");
-        return;
-      }
-      if (!telefono.trim()) {
-        setError('Completá el teléfono en "Información pública".');
-        return;
-      }
-      if (!direccion.trim() || !ciudad.trim()) {
-        setError('Elegí una dirección de la lista de sugerencias en "Información pública".');
-        return;
-      }
-    }
 
     setSaving(true);
     try {
@@ -257,14 +270,9 @@ export function MiPerfilSettings({
           especialidad,
           nroMatricula,
           perfilPublico,
-          atencionTipo: atencionTipo || null,
-          nombreConsultorio,
-          telefono,
-          direccion,
-          ciudad,
-          latitud,
-          longitud,
           biografia,
+          lugaresVisibles,
+          prepagaIds,
         }),
       });
       const data = await response.json();
@@ -308,6 +316,10 @@ export function MiPerfilSettings({
       }
       setReservaPublicaHabilitada(data.reservaPublicaHabilitada);
       setPublicSlug(data.publicSlug);
+      if (data.reservaPublicaHabilitada) {
+        setReservaPorLugar(Object.fromEntries(lugares.map((l) => [l.id, true])));
+        router.refresh();
+      }
     } catch {
       setReservaPublicaHabilitada(previous);
       setAgendaPublicaError("No se pudo conectar con el servidor.");
@@ -326,14 +338,48 @@ export function MiPerfilSettings({
     setOrigin(window.location.origin);
   }, []);
 
+  const nombreMedico = [initialTituloCortesia, initialNombre, initialApellido]
+    .filter(Boolean)
+    .join(" ");
   const publicLink = publicSlug ? `${origin ?? "semio360.com"}/directorio/${publicSlug}` : null;
 
-  async function handleCopiarLink() {
-    if (!publicLink) return;
+  async function handleToggleReservaLugar(lugarId: string, checked: boolean) {
+    const previous = reservaPorLugar[lugarId];
+    setReservaPorLugar((prev) => ({ ...prev, [lugarId]: checked }));
+    setLugarAgendaSaving(lugarId);
+    setAgendaPublicaError(null);
     try {
-      await navigator.clipboard.writeText(publicLink);
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
+      const response = await fetch(`/api/lugares-trabajo/${lugarId}/agenda-publica`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservaPublicaHabilitada: checked }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setReservaPorLugar((prev) => ({ ...prev, [lugarId]: previous }));
+        setAgendaPublicaError(data.error ?? "No se pudo guardar el cambio.");
+        return;
+      }
+      // Sin ningún lugar con turnos online, la agenda pública no tiene sentido.
+      const quedaAlguno = lugares.some((l) =>
+        l.id === lugarId ? checked : (reservaPorLugar[l.id] ?? false)
+      );
+      if (!checked && !quedaAlguno && reservaPublicaHabilitada) {
+        await handleToggleReservaPublica(false);
+      }
+    } catch {
+      setReservaPorLugar((prev) => ({ ...prev, [lugarId]: previous }));
+      setAgendaPublicaError("No se pudo conectar con el servidor.");
+    } finally {
+      setLugarAgendaSaving(null);
+    }
+  }
+
+  async function handleCopiar(clave: string, link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiado(clave);
+      setTimeout(() => setCopiado(null), 2000);
     } catch {
       // Portapapeles no disponible (permiso denegado, contexto no seguro,
       // etc.) -- no hay mucho más para hacer que dejar el link visible para
@@ -385,7 +431,7 @@ export function MiPerfilSettings({
   }
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <input
         ref={fileInputRef}
         type="file"
@@ -511,6 +557,61 @@ export function MiPerfilSettings({
         </div>
       </SettingsSection>
 
+      <SettingsSection title="Coberturas" icon={ShieldCheck}>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="perfil-prepagas">Prepagas y obras sociales con las que trabajás</Label>
+          <Combobox
+            items={prepagaOptions}
+            value={null}
+            inputValue={prepagaBusqueda}
+            onInputValueChange={setPrepagaBusqueda}
+            onValueChange={(item) => {
+              const id = (item as { value: string } | null)?.value;
+              if (id) setPrepagaIds((prev) => [...prev, id]);
+              setPrepagaBusqueda("");
+            }}
+          >
+            <ComboboxInputGroup>
+              <ComboboxInput id="perfil-prepagas" placeholder="Buscar cobertura..." />
+              <ComboboxTrigger aria-label="Abrir coberturas" />
+            </ComboboxInputGroup>
+            <ComboboxContent>
+              {(option: (typeof prepagaOptions)[number]) => (
+                <ComboboxItem key={option.value} value={option}>
+                  {option.label}
+                </ComboboxItem>
+              )}
+            </ComboboxContent>
+          </Combobox>
+        </div>
+        {prepagasElegidas.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+            Todavía no cargaste ninguna. Buscá arriba para empezar.
+          </p>
+        ) : (
+          <ul className="flex flex-wrap gap-1.5" aria-label="Coberturas elegidas">
+            {prepagasElegidas.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  aria-label={`Quitar ${p.nombre}`}
+                  onClick={() => setPrepagaIds((prev) => prev.filter((id) => id !== p.id))}
+                  className="group inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-1.5 pl-3 text-[12.5px] font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  {p.nombre}
+                  <span className="flex size-[18px] items-center justify-center rounded-full group-hover:bg-primary group-hover:text-primary-foreground">
+                    <X className="size-3" />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}
+        </p>
+      </SettingsSection>
+
       <SettingsSection title="Seguridad" icon={Lock}>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="perfil-email">Email</Label>
@@ -532,89 +633,86 @@ export function MiPerfilSettings({
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold">Perfil público</span>
             <p className="max-w-md text-xs text-muted-foreground">
-              Aparecerá en el directorio público de Semio360. Al activarlo, completá los datos de
-              abajo.
+              Aparecerá en el directorio público de Semio360 con los datos de tus prácticas.
             </p>
           </div>
-          <Switch checked={perfilPublico} onCheckedChange={setPerfilPublico} />
+          <Switch checked={perfilPublico} onCheckedChange={togglePerfilPublico} />
         </div>
 
         {perfilPublico && (
           <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>¿Cómo atendés? *</Label>
-              <RadioGroup
-                value={atencionTipo}
-                onValueChange={(v) => setAtencionTipo(v as AtencionTipo)}
-                className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2"
+            {sinPracticas ? (
+              <div
+                role="alert"
+                className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
               >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="PARTICULAR" id="atencion-particular" />
-                  <Label htmlFor="atencion-particular" className="font-normal">
-                    Particular
-                  </Label>
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <div className="flex min-w-48 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-semibold">Tu perfil todavía no es público</span>
+                  <span className="text-xs">
+                    No aparecerá en el directorio hasta que configures tus prácticas.
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="CONSULTORIO" id="atencion-consultorio" />
-                  <Label htmlFor="atencion-consultorio" className="font-normal">
-                    Consultorio
-                  </Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => irAConfiguracionTab("practica")}
+                >
+                  Configurar prácticas
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    Lugares visibles en tu perfil
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => irAConfiguracionTab("practica")}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Editar prácticas
+                  </button>
                 </div>
-              </RadioGroup>
-            </div>
-
-            {atencionTipo === "CONSULTORIO" && (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-consultorio">Nombre del consultorio *</Label>
-                <Input
-                  id="perfil-consultorio"
-                  value={nombreConsultorio}
-                  onChange={(e) => setNombreConsultorio(e.target.value)}
-                  className={
-                    triedSubmit && !nombreConsultorio.trim() ? "border-destructive" : undefined
-                  }
-                />
+                <ul className="flex flex-col divide-y divide-border/60">
+                  {lugares.map((lugar) => {
+                    const visible = lugaresVisibles.includes(lugar.id);
+                    return (
+                      <li
+                        key={lugar.id}
+                        className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span
+                            className={cn("text-sm font-medium", !visible && "text-muted-foreground")}
+                          >
+                            {lugar.nombre ?? "Consulta particular"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {lugar.direccion} · {lugar.telefono}
+                          </span>
+                        </div>
+                        <Switch
+                          checked={visible}
+                          onCheckedChange={(checked) => toggleLugarVisible(lugar.id, checked)}
+                          aria-label={`Mostrar ${lugar.nombre ?? "Consulta particular"} en el perfil`}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+                {sinLugaresVisibles && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Ningún lugar está visible: tu perfil no aparecerá en el directorio hasta que
+                    muestres al menos uno.
+                  </p>
+                )}
               </div>
             )}
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="perfil-direccion">Dirección *</Label>
-              <AddressAutocomplete
-                id="perfil-direccion"
-                value={direccion}
-                onChangeText={handleDireccionTextChange}
-                onSelect={handleDireccionSelect}
-                className={triedSubmit && !direccion.trim() ? "border-destructive" : undefined}
-              />
-              <span className="text-xs text-muted-foreground">
-                Elegí una sugerencia de la lista para completar la ciudad automáticamente.
-              </span>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-telefono">Teléfono *</Label>
-                <Input
-                  id="perfil-telefono"
-                  inputMode="numeric"
-                  value={telefono}
-                  onChange={(e) => setTelefono(filterTelefono(e.target.value))}
-                  className={triedSubmit && !telefono.trim() ? "border-destructive" : undefined}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="perfil-ciudad">Ciudad *</Label>
-                <Input
-                  id="perfil-ciudad"
-                  value={ciudad}
-                  disabled
-                  placeholder="Se completa al elegir la dirección"
-                  className={triedSubmit && !ciudad.trim() ? "border-destructive" : undefined}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 mt-2">
               <Label htmlFor="perfil-bio">Biografía</Label>
               <Textarea
                 id="perfil-bio"
@@ -644,13 +742,90 @@ export function MiPerfilSettings({
         </div>
         {agendaPublicaError && <p className="text-xs text-destructive">{agendaPublicaError}</p>}
 
+        {reservaPublicaHabilitada && !sinPracticas && (
+          <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+            <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+              Lugares con turnos online
+            </span>
+            <ul className="flex flex-col divide-y divide-border/60">
+              {lugares.map((lugar) => {
+                const habilitado = reservaPorLugar[lugar.id] ?? false;
+                const nombreLugar = lugar.nombre ?? "Consulta particular";
+                const linkLugar =
+                  publicSlug && lugar.publicSlug
+                    ? `${origin ?? "semio360.com"}/directorio/${publicSlug}/${lugar.publicSlug}`
+                    : null;
+                return (
+                  <li key={lugar.id} className="flex flex-col gap-2 py-2.5 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span
+                          className={cn("text-sm font-medium", !habilitado && "text-muted-foreground")}
+                        >
+                          {nombreLugar}
+                        </span>
+                        {!habilitado && (
+                          <span className="text-xs text-muted-foreground">
+                            Sin turnos online. No tiene link.
+                          </span>
+                        )}
+                      </div>
+                      <Switch
+                        checked={habilitado}
+                        onCheckedChange={(checked) => handleToggleReservaLugar(lugar.id, checked)}
+                        disabled={lugarAgendaSaving === lugar.id}
+                        aria-label={`Turnos online en ${nombreLugar}`}
+                      />
+                    </div>
+                    {habilitado && linkLugar && (
+                      <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 py-1.5 pr-1.5 pl-3">
+                        <Link2 className="size-4 shrink-0 text-primary" />
+                        <span className="flex-1 truncate font-mono text-xs text-primary">
+                          {linkLugar}
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => handleCopiar(lugar.id, linkLugar)}
+                        >
+                          {copiado === lugar.id ? "¡Copiado!" : "Copiar"}
+                        </Button>
+                        <CompartirAgendaButton
+                          url={linkLugar}
+                          nombreMedico={nombreMedico}
+                          lugarNombre={lugar.nombre}
+                          variant="outline"
+                        />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {reservaPublicaHabilitada && publicLink && (
-          <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
-            <Link2 className="size-4 shrink-0 text-primary" />
-            <span className="flex-1 truncate font-mono text-sm text-primary">{publicLink}</span>
-            <Button type="button" size="sm" onClick={handleCopiarLink}>
-              {copiado ? "¡Copiado!" : "Copiar"}
-            </Button>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold">Link general</span>
+            <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
+              <Link2 className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex-1 truncate font-mono text-sm">{publicLink}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => handleCopiar("general", publicLink)}
+              >
+                {copiado === "general" ? "¡Copiado!" : "Copiar"}
+              </Button>
+              <CompartirAgendaButton url={publicLink} nombreMedico={nombreMedico} />
+
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ofrece todos los lugares con turnos online y el paciente elige uno. Para evitar
+              confusiones, mandale el link del lugar.
+            </p>
           </div>
         )}
       </SettingsSection>

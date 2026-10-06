@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
+import { slugParaLugarNuevo } from "@/lib/public-slug";
 
 export async function GET() {
   const { tenantId, response } = await requireDoctor();
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
       latitud: parsed.data.latitud ?? null,
       longitud: parsed.data.longitud ?? null,
       ciudad: parsed.data.ciudad ?? null,
+      publicSlug: await slugParaLugarNuevo(tenantId, parsed.data.nombre ?? null),
     },
   });
 

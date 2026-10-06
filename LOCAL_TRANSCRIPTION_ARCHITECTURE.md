@@ -8,7 +8,7 @@ audio salga de la máquina. Se integra en el modal "Nueva evolución" de
 ## Arquitectura
 
 ```
-Browser (paciente-manager, Next.js)
+Browser (Semio360, Next.js)
    │
    │ 1. GET http://127.0.0.1:7891/health          (detección de disponibilidad)
    │
@@ -115,7 +115,7 @@ de `config.json` (modelo, idioma, puerto, `allowedOrigins`). Resumen:
 ```
 
 `allowedOrigins` no necesita el dominio de cada médico: cualquier origen
-que matchee `https://paciente-manager*.vercel.app` (todos los entornos
+que matchee `https://semio360*.vercel.app` (todos los entornos
 dados de alta, ver `ENTORNOS.md`) **o** un subdominio de
 `malvinasoftware.com` (dominio propio de la organización, usado por los
 médicos que tienen su propia URL en vez de la de Vercel) se permite
@@ -244,7 +244,7 @@ un modelo mediano sin GPU. Si la latencia sigue siendo un problema:
   requieren un permiso explícito del usuario (similar al de
   cámara/micrófono) para que un sitio público HTTPS — como cualquier
   `*.vercel.app` — pueda conectarse a `127.0.0.1`/red local. Se confirmó en
-  la práctica contra `https://paciente-manager.vercel.app`: sin ese
+  la práctica contra `https://qa.semio360.com`: sin ese
   permiso, tanto `fetch("/health")` como el WebSocket a `/transcribe` son
   bloqueados por el navegador (`net::ERR_BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS`).
   El navegador debería mostrar un diálogo nativo pidiendo el permiso la

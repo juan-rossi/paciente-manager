@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-type Ruta = "reservar" | "disponibilidad";
+type Ruta = "reservar" | "disponibilidad" | "cancelar";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -10,6 +10,7 @@ type Ruta = "reservar" | "disponibilidad";
 const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: number }> = {
   reservar: { porIp: 5, porSlug: 20, ventanaMinutos: 15 },
   disponibilidad: { porIp: 60, porSlug: 300, ventanaMinutos: 15 },
+  cancelar: { porIp: 10, porSlug: 60, ventanaMinutos: 15 },
 };
 
 // Rate limiting de la reserva pública del directorio, sobre Postgres (ver

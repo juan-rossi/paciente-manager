@@ -70,7 +70,12 @@ export function TurnstileWidget({ onToken }: Props) {
     return () => {
       cancelled = true;
       if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // El widget ya no existe en el DOM (p. ej. el paso se desmontó).
+        }
+        widgetIdRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

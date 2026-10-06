@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
+import { esActivo, isPremium } from "@/lib/plan";
 import { Button } from "@/components/ui/button";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { patientFromApi } from "@/components/patient-form/utils";
@@ -52,6 +53,7 @@ export default async function EditPatientPage({ params }: Props) {
         initialValues={values}
         initialEvoluciones={evoluciones}
         initialEvolucionesEliminadas={evolucionesEliminadas}
+        transcripcionHabilitada={isPremium(user) && esActivo(user)}
       />
     </div>
   );

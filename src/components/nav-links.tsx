@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   LayoutDashboard,
+  Megaphone,
   MessageCircle,
   Settings,
   Stethoscope,
@@ -22,6 +23,7 @@ const ICONS = {
   LayoutDashboard,
   Stethoscope,
   Wallet,
+  Megaphone,
 } satisfies Record<string, LucideIcon>;
 
 type NavLink = {

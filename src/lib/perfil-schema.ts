@@ -16,51 +16,30 @@ const optionalString = z
   .optional()
   .transform((v) => (v && v.length > 0 ? v : null));
 
-// Los campos de "Información pública" (atencionTipo, teléfono, dirección y
-// -- si atiende en consultorio -- el nombre del consultorio) solo son
-// obligatorios cuando `perfilPublico` está habilitado. La biografía nunca es
-// obligatoria.
-export const perfilSchema = z
-  .object({
-    tituloCortesia: tituloCortesiaSchema,
-    nombre: z.string().trim().min(1, "El nombre es obligatorio."),
-    apellido: z.string().trim().min(1, "El apellido es obligatorio."),
-    especialidad: especialidadSchema,
-    nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
-    perfilPublico: z.boolean(),
-    atencionTipo: z.enum(["PARTICULAR", "CONSULTORIO"]).nullable().optional(),
-    nombreConsultorio: optionalString,
-    telefono: optionalString,
-    direccion: optionalString,
-    ciudad: optionalString,
-    latitud: z.number().nullable().optional(),
-    longitud: z.number().nullable().optional(),
-    biografia: optionalString,
-  })
-  .superRefine((data, ctx) => {
-    if (!data.perfilPublico) return;
-    if (!data.atencionTipo) {
-      ctx.addIssue({ code: "custom", path: ["atencionTipo"], message: "Elegí cómo atendés." });
-    }
-    if (data.atencionTipo === "CONSULTORIO" && !data.nombreConsultorio) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["nombreConsultorio"],
-        message: "El nombre del consultorio es obligatorio.",
-      });
-    }
-    if (!data.telefono) {
-      ctx.addIssue({ code: "custom", path: ["telefono"], message: "El teléfono es obligatorio." });
-    }
-    if (!data.direccion) {
-      ctx.addIssue({ code: "custom", path: ["direccion"], message: "La dirección es obligatoria." });
-    }
-    if (!data.ciudad) {
-      ctx.addIssue({ code: "custom", path: ["ciudad"], message: "La ciudad es obligatoria." });
-    }
-  });
+// Lo único que se edita en "Información pública" es la biografía: el resto
+// (consultorio, dirección, teléfono, ciudad) se toma de las prácticas
+// (`LugarDeTrabajo`) del médico. Los campos equivalentes de `User` quedan como
+// legado y ya no se escriben desde acá.
+export const perfilSchema = z.object({
+  tituloCortesia: tituloCortesiaSchema,
+  nombre: z.string().trim().min(1, "El nombre es obligatorio."),
+  apellido: z.string().trim().min(1, "El apellido es obligatorio."),
+  especialidad: especialidadSchema,
+  nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
+  perfilPublico: z.boolean(),
+  biografia: optionalString,
+  // Ids de los lugares que se muestran en el perfil público; el resto queda
+  // oculto (`LugarDeTrabajo.perfilVisible`).
+  lugaresVisibles: z.array(z.string()),
+  // Ids del catálogo `Prepaga` con las que trabaja el médico.
+  prepagaIds: z.array(z.string()).max(500),
+});
 
 export const agendaPublicaSchema = z.object({
+  reservaPublicaHabilitada: z.boolean(),
+});
+
+export const lugarAgendaPublicaSchema = z.object({
   reservaPublicaHabilitada: z.boolean(),
 });
 

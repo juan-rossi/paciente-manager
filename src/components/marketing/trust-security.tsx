@@ -83,7 +83,7 @@ export function TrustSecurity() {
 
         <div className="mt-10 flex justify-center">
           <a
-            href="mailto:hola@semio360.com?subject=Preguntas sobre seguridad y compliance"
+            href="mailto:contacto@semio360.com?subject=Preguntas sobre seguridad y compliance"
             className="text-sm font-semibold text-primary hover:underline"
           >
             Conocer más sobre seguridad y compliance →

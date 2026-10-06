@@ -130,11 +130,13 @@ export function PatientSummary({
   diffs = [],
   patientValues,
   auditEntries = [],
+  transcripcionHabilitada = false,
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
   patientValues?: PatientFormValues;
   auditEntries?: AuditEntry[];
+  transcripcionHabilitada?: boolean;
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
@@ -166,7 +168,7 @@ export function PatientSummary({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky top-0 z-20 -mx-4 -mt-6 flex flex-col gap-4 bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between print:static">
         <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <DeletePatientButton patientId={patient.id} patientName={patient.nombreYApellido} />
@@ -187,7 +189,7 @@ export function PatientSummary({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="contents lg:flex lg:flex-col lg:gap-6">
+        <div className="contents lg:sticky lg:top-20 lg:-m-1 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col lg:gap-6 lg:self-start lg:overflow-y-auto lg:p-1">
           <FormSection title="Información del Paciente" icon={IdCard} contentClassName="bg-card">
             <div className="col-span-full grid grid-cols-1 gap-4 sm:grid-cols-12">
               <InfoField
@@ -346,7 +348,11 @@ export function PatientSummary({
 
           <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
             <div className="col-span-full">
-              <EvolucionManager patientId={patient.id} initialEvoluciones={evolucionValues} />
+              <EvolucionManager
+                patientId={patient.id}
+                initialEvoluciones={evolucionValues}
+                transcripcionHabilitada={transcripcionHabilitada}
+              />
             </div>
           </FormSection>
 

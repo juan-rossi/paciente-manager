@@ -27,26 +27,46 @@ export async function PATCH(request: NextRequest) {
       ? await generateUniquePublicSlug(parsed.data.nombre, parsed.data.apellido)
       : user.publicSlug;
 
-  const updated = await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      tituloCortesia: parsed.data.tituloCortesia,
-      nombre: parsed.data.nombre,
-      apellido: parsed.data.apellido,
-      especialidad: parsed.data.especialidad,
-      nroMatricula: parsed.data.nroMatricula,
-      perfilPublico: parsed.data.perfilPublico,
-      atencionTipo: parsed.data.atencionTipo ?? null,
-      nombreConsultorio: parsed.data.nombreConsultorio,
-      telefono: parsed.data.telefono,
-      direccion: parsed.data.direccion,
-      ciudad: parsed.data.ciudad,
-      latitud: parsed.data.latitud ?? null,
-      longitud: parsed.data.longitud ?? null,
-      biografia: parsed.data.biografia,
-      publicSlug,
-    },
-  });
+  const visibles = parsed.data.lugaresVisibles;
+  // Un id que no está en el catálogo simplemente se descarta.
+  const prepagaIds = (
+    await prisma.prepaga.findMany({
+      where: { id: { in: parsed.data.prepagaIds } },
+      select: { id: true },
+    })
+  ).map((p) => p.id);
+  const [updated] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tituloCortesia: parsed.data.tituloCortesia,
+        nombre: parsed.data.nombre,
+        apellido: parsed.data.apellido,
+        especialidad: parsed.data.especialidad,
+        nroMatricula: parsed.data.nroMatricula,
+        perfilPublico: parsed.data.perfilPublico,
+        biografia: parsed.data.biografia,
+        publicSlug,
+      },
+    }),
+    // Solo toca lugares de este médico: un id ajeno en `lugaresVisibles`
+    // simplemente no matchea nada.
+    prisma.lugarDeTrabajo.updateMany({
+      where: { userId: user.id, id: { in: visibles } },
+      data: { perfilVisible: true },
+    }),
+    prisma.lugarDeTrabajo.updateMany({
+      where: { userId: user.id, id: { notIn: visibles } },
+      data: { perfilVisible: false },
+    }),
+    prisma.doctorPrepaga.deleteMany({
+      where: { doctorId: user.id, prepagaId: { notIn: prepagaIds } },
+    }),
+    prisma.doctorPrepaga.createMany({
+      data: prepagaIds.map((prepagaId) => ({ doctorId: user.id, prepagaId })),
+      skipDuplicates: true,
+    }),
+  ]);
 
   return NextResponse.json({
     tituloCortesia: updated.tituloCortesia,
@@ -55,13 +75,6 @@ export async function PATCH(request: NextRequest) {
     especialidad: updated.especialidad,
     nroMatricula: updated.nroMatricula,
     perfilPublico: updated.perfilPublico,
-    atencionTipo: updated.atencionTipo,
-    nombreConsultorio: updated.nombreConsultorio,
-    telefono: updated.telefono,
-    direccion: updated.direccion,
-    ciudad: updated.ciudad,
-    latitud: updated.latitud,
-    longitud: updated.longitud,
     biografia: updated.biografia,
     publicSlug: updated.publicSlug,
   });

@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/lib/session";
 import { Hero } from "@/components/marketing/hero";
 import { ScrollToHash } from "@/components/marketing/scroll-to-hash";
 import { DirectorioBanner } from "@/components/marketing/directorio-banner";
-import { SocialProof } from "@/components/marketing/social-proof";
 import { ConceptOrbit } from "@/components/marketing/concept-orbit";
 import { ScrollStory } from "@/components/marketing/scroll-story";
 import { Features } from "@/components/marketing/features";
@@ -15,25 +14,39 @@ import { Testimonials } from "@/components/marketing/testimonials";
 import { Pricing } from "@/components/marketing/pricing";
 import { FAQ } from "@/components/marketing/faq";
 import { FinalCTA } from "@/components/marketing/final-cta";
+import { JsonLd } from "@/components/seo/json-ld";
+import { homeJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: "Semio360 — Tu consultorio. Más simple. Más conectado." },
+  title: {
+    absolute: "Semio360 — Software para consultorios médicos: turnos e historia clínica",
+  },
   description:
-    "Gestioná turnos, pacientes e historias clínicas desde un solo lugar. Dictás la consulta y se transcribe sola. 3 meses de prueba gratis, sin tarjeta.",
-  alternates: { canonical: "https://semio360.com" },
+    "Software para médicos en Argentina: agenda de turnos, historia clínica electrónica y dictado de la consulta con transcripción. Ley 26.529. 60 días gratis, sin tarjeta.",
+  keywords: [
+    "software para consultorio médico",
+    "historia clínica electrónica",
+    "sistema de turnos para médicos",
+    "gestión de pacientes",
+    "Ley 26.529",
+    "transcripción de consultas",
+  ],
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Semio360 — Tu consultorio. Más simple. Más conectado.",
     description:
       "Gestioná turnos, pacientes e historias clínicas desde un solo lugar, con dictado por voz y cumplimiento de la Ley 26.529.",
-    url: "https://semio360.com",
+    url: "/",
     siteName: "Semio360",
     locale: "es_AR",
     type: "website",
+    images: ["/opengraph-image"],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
+    images: ["/opengraph-image"],
     title: "Semio360 — Tu consultorio. Más simple. Más conectado.",
     description: "Gestioná turnos, pacientes e historias clínicas desde un solo lugar.",
   },
@@ -47,9 +60,9 @@ export default async function MarketingHomePage() {
 
   return (
     <>
+      <JsonLd data={homeJsonLd()} />
       <ScrollToHash />
       <Hero />
-      <SocialProof />
       <ConceptOrbit />
       <ScrollStory />
       <Features />

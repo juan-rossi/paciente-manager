@@ -29,9 +29,17 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
     >
       <div className="flex items-center gap-3">
         <div className="flex size-13 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 font-heading text-lg font-bold text-primary">
-          {doctor.fotoPerfilBase64 ? (
+          {doctor.fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={doctor.fotoPerfilBase64} alt="" className="size-full object-cover" />
+            <img
+              src={doctor.fotoUrl}
+              alt={`Foto de ${nombreCompleto}${doctor.especialidad ? `, ${ESPECIALIDAD_LABELS[doctor.especialidad]}` : ""}`}
+              width={52}
+              height={52}
+              loading="lazy"
+              decoding="async"
+              className="size-full object-cover"
+            />
           ) : (
             iniciales
           )}

@@ -2,21 +2,25 @@ import { cookies } from "next/headers";
 import { Building2, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfiguracionTabs } from "@/components/configuracion-tabs";
 import {
   CONFIGURACION_TAB_COOKIE,
   DEFAULT_CONFIGURACION_TAB,
   esConfiguracionTab,
+  type ConfiguracionTab,
 } from "@/lib/configuracion-tabs";
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { TranscriberSettings } from "@/components/transcriber-settings";
 import { PlanSettings } from "@/components/plan-settings";
+import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
-import { diasRestantesDeTrial } from "@/lib/plan";
+import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
+import { ensureLugarSlugs } from "@/lib/public-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -28,15 +32,43 @@ const navItemClass =
 const groupLabelClass =
   "px-3 pt-3 pb-1.5 text-[10px] font-bold tracking-wide text-muted-foreground/75 uppercase first:pt-1";
 
-export default async function ConfiguracionPage() {
+type Props = { searchParams: Promise<{ tab?: string; pago?: string }> };
+
+export default async function ConfiguracionPage({ searchParams }: Props) {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  // `?tab=` (deep link, ver /cuenta-inactiva) tiene prioridad sobre la
+  // cookie -- que sigue siendo la fuente para la navegación normal entre
+  // tabs (ver ConfiguracionTabCookieReset).
+  const { tab: tabParam, pago: pagoParam } = await searchParams;
+
+  // Un aviso "Confirmando tu suscripción" no debe sobrevivir a un cobro ya
+  // aprobado (ver `mp-reconciliar.ts`).
+  let mpPreapprovalStatus = user.mpPreapprovalStatus;
+  if (user.role === "DOCTOR" && mpPreapprovalStatus === "PENDING" && user.mpPreapprovalId) {
+    if (await reconciliarPreapprovalPendiente(user.id, user.mpPreapprovalId)) {
+      mpPreapprovalStatus = "AUTHORIZED";
+    }
+  }
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
-  const initialTab = esConfiguracionTab(tabGuardada) ? tabGuardada : DEFAULT_CONFIGURACION_TAB;
+  // El Transcriptor es una función Premium: solo se muestra con el plan
+  // Premium vigente.
+  const mostrarTranscriptor = isPremium(user) && esActivo(user);
+  const tabDisponible = (t: string | undefined): t is ConfiguracionTab =>
+    esConfiguracionTab(t) && (t !== "transcriptor" || mostrarTranscriptor);
+  const initialTab = tabDisponible(tabParam)
+    ? tabParam
+    : tabDisponible(tabGuardada)
+      ? tabGuardada
+      : DEFAULT_CONFIGURACION_TAB;
 
-  const [blocks, secretarias, lugares] = await Promise.all([
+  // Los lugares cargados antes del link por lugar no tienen `publicSlug` --
+  // se completa acá, antes de leerlos, para que Mi perfil pueda mostrarlo.
+  if (user.role === "DOCTOR") await ensureLugarSlugs(user.id);
+
+  const [blocks, secretarias, lugares, prepagas, prepagasDelDoctor] = await Promise.all([
     prisma.workScheduleBlock.findMany({
       where: { userId: user.id },
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
@@ -59,6 +91,8 @@ export default async function ConfiguracionPage() {
       where: { userId: user.id, deletedAt: null },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.prepaga.findMany({ select: { id: true, nombre: true, nombreCompleto: true }, orderBy: { nombre: "asc" } }),
+    prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
   ]);
 
   const initialSecretarias = secretarias.map(({ secretariaAsignaciones, ...s }) => ({
@@ -72,12 +106,15 @@ export default async function ConfiguracionPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Configuración</h1>
 
+      {/* Solo el médico paga (ver /api/mercadopago/checkout). */}
+      <PagoConfirmadoModal retornoDePago={pagoParam === "retorno" && user.role === "DOCTOR"} />
+
       <ConfiguracionTabs
         initialTab={initialTab}
         orientation="vertical"
-        className="flex-col items-stretch gap-6 md:flex-row md:items-start"
+        className="flex-col items-stretch gap-4 md:gap-6 md:flex-row md:items-start"
       >
-        <TabsList className="w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
+        <TabsList className="hidden md:flex w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
           <div className={groupLabelClass}>Consultorio</div>
           <TabsTrigger value="practica" className={navItemClass}>
             <Building2 className="size-4" />
@@ -91,10 +128,12 @@ export default async function ConfiguracionPage() {
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
-          <TabsTrigger value="transcriptor" className={navItemClass}>
-            <Mic className="size-4" />
-            Transcriptor
-          </TabsTrigger>
+          {mostrarTranscriptor && (
+            <TabsTrigger value="transcriptor" className={navItemClass}>
+              <Mic className="size-4" />
+              Transcriptor
+            </TabsTrigger>
+          )}
 
           <div className={groupLabelClass}>Cuenta</div>
           <TabsTrigger value="perfil" className={navItemClass}>
@@ -130,9 +169,11 @@ export default async function ConfiguracionPage() {
             initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
           />
         </TabsContent>
-        <TabsContent value="transcriptor" className="w-full">
-          <TranscriberSettings />
-        </TabsContent>
+        {mostrarTranscriptor && (
+          <TabsContent value="transcriptor" className="w-full">
+            <TranscriberSettings />
+          </TabsContent>
+        )}
         <TabsContent value="perfil" className="w-full">
           <MiPerfilSettings
             email={user.email}
@@ -143,13 +184,9 @@ export default async function ConfiguracionPage() {
             initialEspecialidad={user.especialidad}
             initialNroMatricula={user.nroMatricula}
             initialPerfilPublico={user.perfilPublico}
-            initialAtencionTipo={user.atencionTipo}
-            initialNombreConsultorio={user.nombreConsultorio}
-            initialTelefono={user.telefono}
-            initialDireccion={user.direccion}
-            initialCiudad={user.ciudad}
-            initialLatitud={user.latitud}
-            initialLongitud={user.longitud}
+            lugares={lugares}
+            prepagas={prepagas}
+            initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
             initialBiografia={user.biografia}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
             initialPublicSlug={user.publicSlug}
@@ -160,6 +197,12 @@ export default async function ConfiguracionPage() {
             plan={user.plan}
             trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
             diasRestantesDeTrial={diasRestantesDeTrial(user)}
+            planDuracion={user.planDuracion}
+            planEndsAt={user.planEndsAt?.toISOString() ?? null}
+            mpPreapprovalId={user.mpPreapprovalId}
+            mpPreapprovalStatus={mpPreapprovalStatus}
+            pagoEnGracia={user.pagoEnGracia}
+            graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}
           />
         </TabsContent>
         <TabsContent value="datos" className="w-full">
