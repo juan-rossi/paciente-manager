@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { Building2, MapPin, Phone } from "lucide-react";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
 import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
@@ -28,9 +29,17 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
   )} - Semio360`;
   const description = "Reserva tu turno online ahora";
   // Sin foto cargada no se pasa `images`: sigue el logo de Semio360.
-  const images = doctor.fotoPerfilBase64
-    ? [`/api/directorio/${encodeURIComponent(slug)}/foto`]
-    : undefined;
+  // `metadataBase` apunta a semio360.com, así que una ruta relativa en QA
+  // resolvería a prod (donde el médico no existe → 404). Se arma absoluta con
+  // el host del request.
+  let images: string[] | undefined;
+  if (doctor.fotoPerfilBase64) {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    const path = `/api/directorio/${encodeURIComponent(slug)}/foto`;
+    images = [host ? `${proto}://${host}${path}` : path];
+  }
 
   return {
     title: { absolute: title },
