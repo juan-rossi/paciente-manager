@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Building2, MapPin, Phone } from "lucide-react";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
+import { getTurnoVigenteParaPerfil } from "@/lib/turno-cancelacion-publica";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { descripcionPerfil, nombreDoctor, perfilJsonLd } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -105,6 +106,8 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
     ? lugaresVisibles.filter((l) => !lugaresReservables.some((r) => r.id === l.id))
     : lugaresVisibles;
 
+  const turnoActivo = hayCalendario ? await getTurnoVigenteParaPerfil(doctor.id, doctor.publicSlug!) : null;
+
   const jsonLd = doctor.perfilPublico
     ? perfilJsonLd({
         slug,
@@ -136,6 +139,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       {hayCalendario && (
         <PublicBookingCalendar
           slug={doctor.publicSlug!}
+          turnoActivo={turnoActivo}
           lugares={lugaresReservables}
           lugarDestacado={lugarDestacado}
           prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}

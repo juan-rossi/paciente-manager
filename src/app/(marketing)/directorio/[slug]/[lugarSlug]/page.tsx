@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
+import { getTurnoVigenteParaPerfil } from "@/lib/turno-cancelacion-publica";
 import { nombreDoctor } from "@/lib/seo";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
 import { LugarCard, PerfilShell } from "@/components/marketing/perfil-publico-partes";
@@ -51,6 +52,8 @@ export default async function AgendaLugarPage({ params }: Props) {
     ? doctor.lugaresDeTrabajo.filter((l) => l.reservaPublicaHabilitada && !!l.publicSlug && l.id !== lugar.id)
     : [];
 
+  const turnoActivo = disponible ? await getTurnoVigenteParaPerfil(doctor.id, doctor.publicSlug!) : null;
+
   return (
     <PerfilShell
       doctor={doctor}
@@ -67,7 +70,7 @@ export default async function AgendaLugarPage({ params }: Props) {
       }
     >
         {disponible ? (
-          <PublicBookingCalendar slug={doctor.publicSlug!} lugares={[lugar]} abrirWizardEnMobile
+          <PublicBookingCalendar slug={doctor.publicSlug!} turnoActivo={turnoActivo} lugares={[lugar]} abrirWizardEnMobile
             prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
           />
         ) : (

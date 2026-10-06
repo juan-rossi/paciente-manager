@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
+import { formatDateParamBA, formatHoraBA, TIME_ZONE } from "@/lib/timezone";
+import { CANCELACION_ANTELACION_MINUTOS, puedeCancelarOnline } from "@/lib/turno-cancelacion-reglas";
 import { filterTelefono } from "@/lib/utils";
 import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
 import { TurnstileWidget } from "./turnstile-widget";
@@ -65,8 +66,18 @@ function formatDiaCompleto(fecha: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+// Turno vigente del visitante (el de la cookie). `lugarNombre`/`direccion`
+// son para mostrar; la regla de cancelación se revalida en el server.
+export type TurnoVigente = {
+  inicio: string;
+  lugarNombre: string | null;
+  direccion: string | null;
+};
+
 type Props = {
   slug: string;
+  // Turno que el visitante ya tenía reservado al cargar la página.
+  turnoActivo?: TurnoVigente | null;
   lugares: LugarOption[];
   lugarDestacado?: string;
   // Prepagas con las que trabaja el médico (opciones de Obra Social).
@@ -75,7 +86,7 @@ type Props = {
   abrirWizardEnMobile?: boolean;
 };
 
-export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas = [], abrirWizardEnMobile = false }: Props) {
+export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugarDestacado, prepagas = [], abrirWizardEnMobile = false }: Props) {
   // Con más de un lugar se elige con pestañas. Arranca en el lugar que ya
   // matcheó la búsqueda por ciudad (lugarDestacado) o, si no hay, en el
   // primero con turnos disponibles una vez cargada la disponibilidad.
@@ -88,8 +99,12 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string | null>(null);
   const [horarioElegido, setHorarioElegido] = useState<string | null>(null);
-  const [confirmado, setConfirmado] = useState<{ fecha: string; hora: string } | null>(null);
+  const [turno, setTurno] = useState<TurnoVigente | null>(turnoActivo);
   const [exitoAbierto, setExitoAbierto] = useState(false);
+  const [confirmarCancelAbierto, setConfirmarCancelAbierto] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelado, setCancelado] = useState(false);
 
   const [nombreYApellido, setNombreYApellido] = useState("");
   const [dni, setDni] = useState("");
@@ -145,6 +160,8 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
   }
 
   useEffect(() => {
+    // Con un turno vigente no se ofrece calendario: se carga recién si lo cancela.
+    if (turnoActivo) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarDisponibilidad(lugarSeleccionado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -238,11 +255,14 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
         }
         return;
       }
-      const fecha = fechaSeleccionada ?? "";
-      const hora = formatHoraBA(new Date(horarioElegido));
+      setTurno({
+        inicio: horarioElegido,
+        lugarNombre: lugarElegido ? lugarLabel(lugarElegido) : null,
+        direccion: lugarElegido?.direccion ?? null,
+      });
+      setCancelado(false);
       setHorarioElegido(null);
       setMovilAbierto(false);
-      setConfirmado({ fecha, hora });
       setExitoAbierto(true);
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -251,19 +271,46 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
     }
   }
 
+  async function handleCancelarTurno() {
+    setCancelando(true);
+    setCancelError(null);
+    try {
+      const response = await fetch(`/api/directorio/${slug}/turno`, { method: "DELETE" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok && response.status !== 404) {
+        setCancelError(data?.error ?? "No se pudo cancelar el turno.");
+        return;
+      }
+      // 404: el turno ya no existía (vencido o cancelado en otra pestaña);
+      // en ambos casos se vuelve al calendario.
+      setConfirmarCancelAbierto(false);
+      setExitoAbierto(false);
+      setTurno(null);
+      setCancelado(response.ok);
+      setDias(null);
+      await cargarDisponibilidad(lugarSeleccionado);
+    } catch {
+      setCancelError("No se pudo conectar con el servidor.");
+    } finally {
+      setCancelando(false);
+    }
+  }
+
   // Reservado: el éxito se muestra en un modal y, al cerrarlo, queda la
   // tarjeta inline. Sin calendario ni botón fijo de "Solicitar turno".
-  if (confirmado) {
+  if (turno) {
+    const inicio = new Date(turno.inicio);
+    const puedeCancelar = puedeCancelarOnline(inicio);
     const detalle = (
       <>
         <p className="text-sm text-muted-foreground">
-          Tu turno quedó confirmado para el <strong>{formatDiaCompleto(confirmado.fecha)}</strong> a
-          las <strong>{confirmado.hora}hs</strong>.
+          Tu turno está confirmado para el <strong>{formatDiaCompleto(formatDateParamBA(inicio))}</strong> a
+          las <strong>{formatHoraBA(inicio)}hs</strong>.
         </p>
-        {lugarElegido && (
+        {turno.lugarNombre && (
           <p className="text-sm text-muted-foreground">
-            Lugar: <strong>{lugarLabel(lugarElegido)}</strong>
-            {lugarElegido.direccion && ` · ${lugarElegido.direccion}`}
+            Lugar: <strong>{turno.lugarNombre}</strong>
+            {turno.direccion && ` · ${turno.direccion}`}
           </p>
         )}
       </>
@@ -274,8 +321,26 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
           <span className="flex size-12 items-center justify-center rounded-full bg-brand-accent text-white">
             <CalendarDays className="size-6" />
           </span>
-          <h2 className="font-heading text-lg font-bold">¡Turno reservado!</h2>
+          <h2 className="font-heading text-lg font-bold">Tenés un turno reservado</h2>
           {detalle}
+          {puedeCancelar ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 border-destructive/40 text-destructive hover:bg-destructive/5"
+              onClick={() => {
+                setCancelError(null);
+                setConfirmarCancelAbierto(true);
+              }}
+            >
+              Cancelar turno
+            </Button>
+          ) : (
+            <p className="mt-2 max-w-sm text-xs text-muted-foreground">
+              Faltan menos de {CANCELACION_ANTELACION_MINUTOS / 60} hora para tu turno, por eso ya no se puede
+              cancelar online. Si no podés asistir, contactá al médico directamente.
+            </p>
+          )}
         </div>
         <Dialog open={exitoAbierto} onOpenChange={setExitoAbierto}>
           <DialogContent className="items-center text-center">
@@ -285,10 +350,34 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
               </span>
               <DialogTitle className="text-lg font-bold">¡Turno reservado!</DialogTitle>
               {detalle}
+              <p className="text-xs text-muted-foreground">
+                Si tenés un inconveniente, podés cancelarlo desde esta misma página hasta{" "}
+                {CANCELACION_ANTELACION_MINUTOS / 60} hora antes.
+              </p>
             </div>
             <Button type="button" onClick={() => setExitoAbierto(false)}>
               Entendido
             </Button>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={confirmarCancelAbierto} onOpenChange={(open) => !cancelando && setConfirmarCancelAbierto(open)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>¿Cancelar tu turno?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Se libera el horario del {formatDiaCompleto(formatDateParamBA(inicio))} a las{" "}
+              {formatHoraBA(inicio)}hs. Después vas a poder reservar otro.
+            </p>
+            {cancelError && <p className="text-sm text-destructive">{cancelError}</p>}
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={cancelando} onClick={() => setConfirmarCancelAbierto(false)}>
+                Mantener turno
+              </Button>
+              <Button type="button" variant="destructive" disabled={cancelando} onClick={handleCancelarTurno}>
+                {cancelando ? "Cancelando..." : "Sí, cancelar"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </>
@@ -491,6 +580,11 @@ export function PublicBookingCalendar({ slug, lugares, lugarDestacado, prepagas 
 
   return (
     <>
+      {cancelado && (
+        <p className="mb-3 rounded-xl border border-brand-accent/30 bg-brand-accent/5 px-4 py-3 text-sm">
+          Cancelamos tu turno. Si querés, podés reservar otro.
+        </p>
+      )}
       <div className="hidden rounded-2xl border border-border/60 bg-card p-6 md:block">
         <div className="flex items-center gap-2.5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-accent text-white">

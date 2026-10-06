@@ -4,6 +4,8 @@ import { getTenantId, resolveActiveLugarId, resolvePuedeBloquearHorarios } from 
 import { formatDateParamBA } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
 import { TurnosCalendar } from "@/components/turnos-calendar";
+import { TurnosCanceladosOnline } from "@/components/turnos-cancelados-online";
+import { getTurnosCanceladosPorPacientes } from "@/lib/turnos-cancelados-por-pacientes";
 import { nombreDoctor } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
 
@@ -72,6 +74,8 @@ export default async function TurnosPage() {
     }
   }
 
+  const canceladosPorPacientes = await getTurnosCanceladosPorPacientes(tenantId, activeLugarId);
+
   return (
     <div className="flex flex-1 min-h-0 flex-col gap-4">
       <TurnosCalendar
@@ -91,6 +95,7 @@ export default async function TurnosPage() {
         prepagas={prepagas}
         compartir={compartir}
       />
+      <TurnosCanceladosOnline turnos={canceladosPorPacientes} />
     </div>
   );
 }

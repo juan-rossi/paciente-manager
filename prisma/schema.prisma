@@ -627,10 +627,19 @@ model Turno {
   // se le avisó ese día sin tener que acordarse.
   recordatorioEnviado Boolean @default(false)
 
+  // Reserva online: sha256 del token que viaja en la cookie `turno_<slug>`
+  // del visitante y le permite cancelar su turno desde el perfil. Se borra
+  // al cancelar (el token deja de servir). Nunca se guarda el token en claro.
+  cancelTokenHash String? @unique
+  // Se completa cuando el propio paciente canceló desde el perfil público
+  // (no cuando canceló el médico). Alimenta "Cancelados por pacientes".
+  canceladoPorPacienteAt DateTime?
+
   @@index([inicio])
   @@index([doctorId])
   @@index([lugarId])
   @@index([doctorId, avisoPendiente])
+  @@index([doctorId, canceladoPorPacienteAt])
 }
 
 model Patient {
