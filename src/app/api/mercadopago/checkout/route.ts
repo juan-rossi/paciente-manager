@@ -4,6 +4,7 @@ import { requireDoctor } from "@/lib/api-auth";
 import { checkoutSchema } from "@/lib/mercadopago-schema";
 import { cancelarPreapproval, crearPreapproval, crearPreferencia } from "@/lib/mercadopago";
 import { calcularUpgradePremium } from "@/lib/plan";
+import { PAGOS_HABILITADOS } from "@/lib/pagos";
 
 // Arranca (o reemplaza) el cobro de MercadoPago del médico -- lo usan tanto
 // "Mi plan" (elegir/cambiar plan) como el signup cuando se elige Premium
@@ -18,6 +19,10 @@ import { calcularUpgradePremium } from "@/lib/plan";
 export async function POST(request: NextRequest) {
   const { user, response } = await requireDoctor();
   if (response) return response;
+
+  if (!PAGOS_HABILITADOS) {
+    return NextResponse.json({ error: "Los pagos no están disponibles por el momento." }, { status: 503 });
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = checkoutSchema.safeParse(body);

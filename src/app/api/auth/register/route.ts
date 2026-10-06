@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth";
 import { registerSchema } from "@/lib/register-schema";
 import { nuevaFechaFinTrial } from "@/lib/plan";
 import { TERMINOS_VERSION } from "@/lib/terminos";
+import { PAGOS_HABILITADOS } from "@/lib/pagos";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(parsed.data.password);
-    const esPremium = parsed.data.plan === "PREMIUM";
+    // Sin pagos habilitados no se puede crear una cuenta Premium (quedaría
+    // inactiva sin forma de pagar): se registra siempre como Básico con trial.
+    const esPremium = PAGOS_HABILITADOS && parsed.data.plan === "PREMIUM";
     const ahora = new Date();
 
     await prisma.user.create({

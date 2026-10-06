@@ -28,6 +28,7 @@ import {
 } from "@/lib/plan";
 import { PAGO_BASELINE_KEY, PAGO_DIFERIDO_KEY, PAGO_INICIO_KEY } from "@/lib/pago-confirmado";
 import { TIME_ZONE } from "@/lib/timezone";
+import { PAGOS_HABILITADOS, PAGOS_LABEL_DESHABILITADO } from "@/lib/pagos";
 
 type Props = {
   plan: "BASICA" | "PREMIUM";
@@ -141,7 +142,9 @@ export function PlanSettings({
   const vencido =
     diasDesdeVencimiento !== null &&
     !(plan === "BASICA" && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0);
+  const sinPagos = !PAGOS_HABILITADOS;
   function textoBoton(elegido: "BASICA" | "PREMIUM") {
+    if (sinPagos) return PAGOS_LABEL_DESHABILITADO;
     if (vencido && elegido === plan) return "Renovar";
     if (!recontratable) return elegido === "PREMIUM" ? "Pasar a Premium" : "Contratar";
     if (duracion === "MENSUAL") return elegido === plan ? "Reactivar" : "Suscribirme";
@@ -191,6 +194,7 @@ export function PlanSettings({
       : null;
 
   async function suscribirse(planElegido: "BASICA" | "PREMIUM", esUpgrade = false) {
+    if (sinPagos) return;
     setError(null);
     setCargando(planElegido);
 
@@ -308,7 +312,7 @@ export function PlanSettings({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null}
+                  disabled={sinPagos || cargando !== null}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full max-w-[10.5rem]"
                 >
@@ -326,7 +330,7 @@ export function PlanSettings({
               <Button
                 type="button"
                 size="sm"
-                disabled={cargando !== null}
+                disabled={sinPagos || cargando !== null}
                 onClick={() => suscribirse("PREMIUM")}
                 className="w-full max-w-[10.5rem] shadow-xs"
               >
@@ -359,11 +363,17 @@ export function PlanSettings({
             type="button"
             size="sm"
             variant="outline"
-            disabled={cargando !== null}
+            disabled={sinPagos || cargando !== null}
             onClick={() => suscribirse(plan)}
             className="shrink-0 border-amber-400 bg-transparent text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-950"
           >
-            {cargando === plan ? <Loader2 className="size-4 animate-spin" /> : "Reintentar pago"}
+            {cargando === plan ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : sinPagos ? (
+              PAGOS_LABEL_DESHABILITADO
+            ) : (
+              "Reintentar pago"
+            )}
           </Button>
         </div>
       )}
@@ -425,12 +435,14 @@ export function PlanSettings({
               <Button
                 type="button"
                 size="sm"
-                disabled={cargando !== null}
+                disabled={sinPagos || cargando !== null}
                 onClick={() => suscribirse(plan)}
                 className="shadow-xs"
               >
                 {cargando === plan ? (
                   <Loader2 className="size-4 animate-spin" />
+                ) : sinPagos ? (
+                  PAGOS_LABEL_DESHABILITADO
                 ) : (
                   `Renovar ${plan === "PREMIUM" ? "Premium" : "Básico"}`
                 )}
@@ -585,12 +597,14 @@ export function PlanSettings({
               <Button
                 type="button"
                 size="sm"
-                disabled={cargando !== null}
+                disabled={sinPagos || cargando !== null}
                 onClick={() => (upgrade ? setUpgradeAbierto(true) : suscribirse("PREMIUM"))}
                 className="mt-auto shadow-xs"
               >
                 {cargando === "PREMIUM" ? (
                   <Loader2 className="size-4 animate-spin" />
+                ) : sinPagos ? (
+                  PAGOS_LABEL_DESHABILITADO
                 ) : upgrade ? (
                   `Pasar a Premium · pagás $${upgrade.aPagar.toLocaleString("es-AR")}`
                 ) : (
@@ -712,7 +726,7 @@ export function PlanSettings({
               >
                 Volver
               </Button>
-              <Button type="button" disabled={cargando !== null} onClick={() => suscribirse("PREMIUM", true)}>
+              <Button type="button" disabled={sinPagos || cargando !== null} onClick={() => suscribirse("PREMIUM", true)}>
                 {cargando === "PREMIUM" ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
@@ -785,7 +799,7 @@ export function PlanSettings({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={cargando !== null}
+                  disabled={sinPagos || cargando !== null}
                   onClick={() => suscribirse("BASICA")}
                   className="w-full"
                 >
@@ -846,7 +860,7 @@ export function PlanSettings({
                 <Button
                   type="button"
                   size="sm"
-                  disabled={cargando !== null}
+                  disabled={sinPagos || cargando !== null}
                   onClick={() => suscribirse("PREMIUM")}
                   className="w-full shadow-xs"
                 >

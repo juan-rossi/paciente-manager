@@ -41,6 +41,7 @@ import {
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import { PAGOS_HABILITADOS } from "@/lib/pagos";
 import { TerminosContenido } from "@/components/legal/terminos-contenido";
 import {
   TERMINOS_COOKIE,
@@ -53,8 +54,9 @@ type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 export function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Sin pagos habilitados Premium no se puede contratar: se ignora ?plan=PREMIUM.
   const planElegido =
-    searchParams.get("plan") === "PREMIUM" ? "PREMIUM" : "BASICA";
+    PAGOS_HABILITADOS && searchParams.get("plan") === "PREMIUM" ? "PREMIUM" : "BASICA";
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");

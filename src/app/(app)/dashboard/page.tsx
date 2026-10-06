@@ -12,6 +12,7 @@ import {
   diasRestantesDeTrial,
 } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
+import { PAGOS_HABILITADOS } from "@/lib/pagos";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
 // lista de "últimos pacientes" en vez de consultarla en cada request.
@@ -36,7 +37,9 @@ export default async function DashboardPage() {
   // suscripción paga vigente (`planEndsAt`), el trial en papel ya no importa.
   const diasTrial = user.role === "DOCTOR" ? diasRestantesDeTrial(user) : null;
   const tienePlanPagoVigente = Boolean(user.planEndsAt && user.planEndsAt.getTime() > Date.now());
+  // Ambos avisos empujan a contratar/renovar: sin pagos habilitados se ocultan.
   const mostrarAvisoTrial =
+    PAGOS_HABILITADOS &&
     user.role === "DOCTOR" &&
     user.plan === "BASICA" &&
     !tienePlanPagoVigente &&
@@ -49,7 +52,7 @@ export default async function DashboardPage() {
   // terminar. Solo al médico dueño, por el mismo motivo que el trial.
   const diasPlan = user.role === "DOCTOR" ? diasRestantesDePagoUnico(user) : null;
   const mostrarAvisoPlan =
-    diasPlan !== null && diasPlan > 0 && diasPlan <= DIAS_AVISO_PLAN_POR_VENCER;
+    PAGOS_HABILITADOS && diasPlan !== null && diasPlan > 0 && diasPlan <= DIAS_AVISO_PLAN_POR_VENCER;
 
   return (
     <div className="flex flex-col gap-6">

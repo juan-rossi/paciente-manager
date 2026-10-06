@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLAN_FEATURES } from "@/lib/plan";
+import { PAGOS_HABILITADOS, PAGOS_LABEL_DESHABILITADO } from "@/lib/pagos";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +36,11 @@ export function Pricing() {
         <SectionHeading
           kicker="Planes"
           title="Empezá gratis, subí cuando lo necesites"
-          description="Los dos planes incluyen 60 días de prueba gratis, sin tarjeta."
+          description={
+            PAGOS_HABILITADOS
+              ? "Los dos planes incluyen 60 días de prueba gratis, sin tarjeta."
+              : "El plan Básico incluye 60 días de prueba gratis, sin tarjeta."
+          }
           className="mb-14"
         />
 
@@ -67,14 +72,20 @@ export function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Button
-                className="mt-auto"
-                variant={plan.featured ? "default" : "outline"}
-                nativeButton={false}
-                render={<Link href={`/signup?plan=${plan.key}`} />}
-              >
-                {plan.featured ? "Empezar" : "Empezar gratis"}
-              </Button>
+              {plan.featured && !PAGOS_HABILITADOS ? (
+                <Button className="mt-auto" disabled>
+                  {PAGOS_LABEL_DESHABILITADO}
+                </Button>
+              ) : (
+                <Button
+                  className="mt-auto"
+                  variant={plan.featured ? "default" : "outline"}
+                  nativeButton={false}
+                  render={<Link href={`/signup?plan=${plan.key}`} />}
+                >
+                  {plan.featured ? "Empezar" : "Empezar gratis"}
+                </Button>
+              )}
             </motion.div>
           ))}
         </div>
