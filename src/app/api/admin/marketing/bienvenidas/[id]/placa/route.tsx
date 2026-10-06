@@ -22,13 +22,14 @@ const [sora700, sora800, inter500, inter600, logo] = await Promise.all([
   readFile(join(fontDir, "sora-latin-800-normal.woff")),
   readFile(join(fontDir, "inter-latin-500-normal.woff")),
   readFile(join(fontDir, "inter-latin-600-normal.woff")),
-  readFile(join(process.cwd(), "src/assets/logo_placa.png")),
+  readFile(join(process.cwd(), "src/assets/logo_placa_oscuro.png")),
 ]);
 const LOGO_SRC = `data:image/png;base64,${logo.toString("base64")}`;
 
-// Pieza 1080x1080 para redes (variante "banda de marca"): fondo azul noche,
-// foto circular, nombre, especialidad, ciudades y el logo completo sobre una
-// banda blanca. La misma maqueta que se aprobó en el diseño, en píxeles.
+// Pieza 1080x1080 para redes: fondo azul noche, foto circular, nombre,
+// especialidad, ciudades y un pie con línea divisoria, el logo completo (versión
+// para fondo oscuro) a la izquierda y la llamada a la acción a la derecha.
+// Maqueta en píxeles de la variación A2 aprobada en el diseño.
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { response } = await requireAdmin();
   if (response) return response;
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           >
             {fotoValida ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoValida} alt="" width={267} height={267} style={{ objectFit: "cover" }} />
+              <img src={fotoValida} alt="" width={267} height={267} style={{ objectFit: "cover", borderRadius: 9999 }} />
             ) : (
               iniciales
             )}
@@ -207,30 +208,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               {ciudadesTexto}
             </div>
           )}
-          <div
-            style={{
-              display: "flex",
-              marginTop: 22,
-              fontFamily: "Inter",
-              fontWeight: 600,
-              fontSize: 37,
-              color: "#7fd6ff",
-            }}
-          >
-            {agendaVirtual ? "Reservá turno online" : "Encontralo en el directorio"}
-          </div>
         </div>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            height: 205,
-            background: "white",
+            justifyContent: "space-between",
+            margin: "0 76px 65px",
+            paddingTop: 39,
+            borderTop: "3px solid rgba(255,255,255,0.22)",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_SRC} alt="" width={475} height={127} />
+          <img src={LOGO_SRC} alt="" width={389} height={104} />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              textAlign: "right",
+              maxWidth: 324,
+              fontFamily: "Inter",
+              fontWeight: 600,
+              fontSize: 33,
+              lineHeight: 1.3,
+              color: "#7fd6ff",
+            }}
+          >
+            {agendaVirtual ? "Reservá turno online" : "Encontralo en el directorio"}
+          </div>
         </div>
       </div>
     ),
