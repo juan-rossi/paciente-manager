@@ -12,12 +12,17 @@ export function BiografiaPerfil({ biografia, titulo }: { biografia: string; titu
   const [abierto, setAbierto] = useState(false);
   const palabras = biografia.trim().split(/\s+/);
   const larga = palabras.length > MAX_PALABRAS;
-  const resumen = larga ? `${palabras.slice(0, MAX_PALABRAS).join(" ")}…` : biografia;
 
   return (
     <div>
       <h2 className="font-heading text-sm font-bold">Sobre mí</h2>
-      <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{resumen}</p>
+      {/* El texto completo va siempre en el HTML (buscadores y motores IA lo
+          leen); el recorte es solo visual, con CSS. */}
+      <p
+        className={`mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground${larga ? " line-clamp-6" : ""}`}
+      >
+        {biografia}
+      </p>
       {larga && (
         <>
           <button

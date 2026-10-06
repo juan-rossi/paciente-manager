@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import { Building2, MapPin, Phone } from "lucide-react";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
-import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
+import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
+import { descripcionPerfil, nombreDoctor, perfilJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
 import {
   ContactField,
@@ -18,58 +19,20 @@ type Props = {
   searchParams: Promise<{ lugar?: string }>;
 };
 
-export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
-  const { slug } = await params;
-  const doctor = await getDoctorPublicoPorSlug(slug);
-  if (!doctor) return {};
+type DoctorPerfil = NonNullable<Awaited<ReturnType<typeof getDoctorPublicoPorSlug>>>;
 
-  const title = `${formatNombreConTitulo(
-    doctor.tituloCortesia,
-    `${doctor.nombre} ${doctor.apellido}`.trim()
-  )} - Semio360`;
-  const description = "Reserva tu turno online ahora";
-  // Sin foto cargada no se pasa `images`: sigue el logo de Semio360.
-  // `metadataBase` apunta a semio360.com, así que una ruta relativa en QA
-  // resolvería a prod (donde el médico no existe → 404). Se arma absoluta con
-  // el host del request.
-  let images: string[] | undefined;
-  if (doctor.fotoPerfilBase64) {
-    const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host");
-    const proto = h.get("x-forwarded-proto") ?? "https";
-    const path = `/api/directorio/${encodeURIComponent(slug)}/foto`;
-    images = [host ? `${proto}://${host}${path}` : path];
-  }
-
-  return {
-    title: { absolute: title },
-    description,
-    openGraph: { title, description, siteName: "Semio360", locale: "es_AR", type: "website", images },
-    twitter: { card: images ? "summary_large_image" : "summary", title, description, images },
-  };
-}
-
-export default async function PerfilPublicoPage({ params, searchParams }: Props) {
-  const { slug } = await params;
-  const { lugar: lugarDestacado } = await searchParams;
-  const doctor = await getDoctorPublicoPorSlug(slug);
-  if (!doctor) notFound();
-
+// Qué lugares se muestran: con perfil público, los que el médico dejó
+// visibles; si solo compartió su agenda (sin perfil), los que tienen
+// reservas online. Y el calendario solo ofrece lugares con reservas
+// habilitadas (el server filtra igual los horarios, ver public-booking.ts).
+function datosPerfil(doctor: DoctorPerfil) {
   const todos = doctor.lugaresDeTrabajo;
-  // Qué lugares se muestran: con perfil público, los que el médico dejó
-  // visibles; si solo compartió su agenda (sin perfil), los que tienen
-  // reservas online. Y el calendario solo ofrece lugares con reservas
-  // habilitadas (el server filtra igual los horarios, ver public-booking.ts).
   const lugaresVisibles = todos.filter((l) =>
     doctor.perfilPublico ? l.perfilVisible : l.reservaPublicaHabilitada
   );
   const lugaresReservables = doctor.reservaPublicaHabilitada
     ? todos.filter((l) => l.reservaPublicaHabilitada)
     : [];
-  if (todos.length > 0 && lugaresVisibles.length === 0 && lugaresReservables.length === 0) {
-    notFound();
-  }
-
   // La ciudad del perfil es un dato legado (ya no se edita en Mi perfil): se
   // complementa con las ciudades de cada práctica visible, y solo se usa si
   // no hay ningún lugar oculto (podría ser la de ese lugar).
@@ -82,7 +45,56 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       ].filter((c): c is string => !!c)
     ),
   ];
-  const ciudad = ciudades.join(" · ");
+  const prepagas = doctor.perfilPublico
+    ? doctor.prepagas.map(({ prepaga }) =>
+        prepaga.nombreCompleto && prepaga.nombreCompleto !== prepaga.nombre
+          ? `${prepaga.nombre} (${prepaga.nombreCompleto})`
+          : prepaga.nombre
+      )
+    : [];
+  return { todos, lugaresVisibles, lugaresReservables, ciudad: ciudades.join(" · "), prepagas };
+}
+
+export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
+  const { slug } = await params;
+  const doctor = await getDoctorPublicoPorSlug(slug);
+  if (!doctor) return {};
+
+  const nombre = nombreDoctor(doctor);
+  const { ciudad, prepagas, lugaresReservables } = datosPerfil(doctor);
+  const esp = doctor.especialidad ? ESPECIALIDAD_LABELS[doctor.especialidad] : null;
+  const title = `${nombre}${esp ? ` – ${esp}` : ""}${ciudad ? ` en ${ciudad}` : ""}`;
+  const description = descripcionPerfil({
+    ...doctor,
+    ciudad,
+    prepagas,
+    biografia: doctor.perfilPublico ? doctor.biografia : null,
+    reservaOnline: doctor.reservaPublicaHabilitada && lugaresReservables.length > 0,
+  });
+  const path = `/directorio/${encodeURIComponent(slug)}`;
+  // La imagen la aporta `opengraph-image.tsx` (foto del médico o tarjeta con
+  // su nombre y especialidad), así que acá no se pasa `images`.
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    // Un médico que solo compartió su agenda (sin perfil público) no se indexa.
+    ...(doctor.perfilPublico ? {} : { robots: { index: false, follow: false } }),
+    openGraph: { title, description, url: path, siteName: "Semio360", locale: "es_AR", type: "profile" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
+export default async function PerfilPublicoPage({ params, searchParams }: Props) {
+  const { slug } = await params;
+  const { lugar: lugarDestacado } = await searchParams;
+  const doctor = await getDoctorPublicoPorSlug(slug);
+  if (!doctor) notFound();
+
+  const { todos, lugaresVisibles, lugaresReservables, ciudad, prepagas } = datosPerfil(doctor);
+  if (todos.length > 0 && lugaresVisibles.length === 0 && lugaresReservables.length === 0) {
+    notFound();
+  }
 
   // Los lugares con reserva online se muestran dentro del calendario (una
   // sola vez: pestaña + dirección + teléfono). Acá quedan solo los que el
@@ -93,15 +105,27 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
     ? lugaresVisibles.filter((l) => !lugaresReservables.some((r) => r.id === l.id))
     : lugaresVisibles;
 
-  const prepagas = doctor.perfilPublico
-    ? doctor.prepagas.map(({ prepaga }) =>
-        prepaga.nombreCompleto && prepaga.nombreCompleto !== prepaga.nombre
-          ? `${prepaga.nombre} (${prepaga.nombreCompleto})`
-          : prepaga.nombre
-      )
-    : [];
+  const jsonLd = doctor.perfilPublico
+    ? perfilJsonLd({
+        slug,
+        nombre: nombreDoctor(doctor),
+        especialidad: doctor.especialidad,
+        descripcion: descripcionPerfil({
+          ...doctor,
+          ciudad,
+          prepagas,
+          biografia: doctor.biografia,
+          reservaOnline: hayCalendario,
+        }),
+        fotoUrl: doctor.fotoUrl,
+        prepagas,
+        lugares: lugaresVisibles,
+      })
+    : null;
 
   return (
+    <>
+    {jsonLd && <JsonLd data={jsonLd} />}
     <PerfilShell
       doctor={doctor}
       ciudad={ciudad}
@@ -158,5 +182,6 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
         )
       )}
     </PerfilShell>
+    </>
   );
 }

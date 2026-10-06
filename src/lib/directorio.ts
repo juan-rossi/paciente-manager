@@ -3,6 +3,7 @@ import type { Especialidad } from "@/lib/especialidad";
 import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
 import { esActivo } from "@/lib/plan";
+import { fotoDoctorPath } from "@/lib/site-url";
 
 const doctorPublicoSelect = {
   id: true,
@@ -21,6 +22,12 @@ const doctorPublicoSelect = {
 // o plan vigente, ver `esActivo`), aunque su agenda esté configurada como
 // pública. Se calcula en cada consulta, nunca se guarda.
 const cuentaSelect = { trialEndsAt: true, planEndsAt: true } as const;
+
+// La foto se guarda como data URL en la fila; hacia afuera solo sale la ruta
+// que la sirve como imagen real (cacheable e indexable), nunca el base64.
+function fotoUrlDe(slug: string | null, base64: string | null): string | null {
+  return slug && base64 ? fotoDoctorPath(slug) : null;
+}
 
 function pickDoctorPublico(row: {
   id: string;
@@ -43,7 +50,7 @@ function pickDoctorPublico(row: {
     especialidad: row.especialidad,
     ciudad: row.ciudad,
     biografia: row.biografia,
-    fotoPerfilBase64: row.fotoPerfilBase64,
+    fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPerfilBase64),
     reservaPublicaHabilitada: row.reservaPublicaHabilitada,
   };
 }
@@ -64,7 +71,7 @@ export type DoctorPublico = {
   // atiende en más de una ciudad no parezca que solo atiende en una.
   ciudades: string[];
   biografia: string | null;
-  fotoPerfilBase64: string | null;
+  fotoUrl: string | null;
   reservaPublicaHabilitada: boolean;
   distanciaKm: number | null;
   // El `LugarDeTrabajo` que matcheó la búsqueda por ubicación (`null` si
@@ -275,10 +282,30 @@ export async function getDoctorPublicoPorSlug(slug: string) {
   });
   if (!doctor) return null;
 
-  const { trialEndsAt, planEndsAt, ...resto } = doctor;
+  const { trialEndsAt, planEndsAt, fotoPerfilBase64, ...resto } = doctor;
   const activo = esActivo({ trialEndsAt, planEndsAt });
   // Sin plan activo y sin perfil público, el link directo a la agenda deja de
   // ser un motivo para exponer la página.
   if (!activo && !resto.perfilPublico) return null;
-  return { ...resto, reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo };
+  return {
+    ...resto,
+    fotoUrl: fotoUrlDe(resto.publicSlug, fotoPerfilBase64),
+    reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo,
+  };
+}
+
+// Slugs de los perfiles que se publican en el sitemap: los mismos que lista
+// `getDoctoresPublicos` (perfil público activado y al menos un lugar visible).
+export async function getSlugsPerfilesPublicos(): Promise<string[]> {
+  const rows = await prisma.user.findMany({
+    where: {
+      role: "DOCTOR",
+      perfilPublico: true,
+      publicSlug: { not: null },
+      lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
+    },
+    select: { publicSlug: true },
+    orderBy: { apellido: "asc" },
+  });
+  return rows.map((r) => r.publicSlug!);
 }

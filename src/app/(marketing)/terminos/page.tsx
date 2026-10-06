@@ -4,7 +4,7 @@ import { TerminosContenido } from "@/components/legal/terminos-contenido";
 export const metadata: Metadata = {
   title: "Términos y condiciones",
   description: "Términos y condiciones de uso de Semio360.",
-  alternates: { canonical: "https://semio360.com/terminos" },
+  alternates: { canonical: "/terminos" },
 };
 
 export default function TerminosPage() {

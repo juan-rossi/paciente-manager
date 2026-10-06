@@ -9,9 +9,11 @@ type Props = {
   description?: string;
   align?: "center" | "left";
   className?: string;
+  // Página sin otro <h1> (p. ej. /directorio): el título pasa a ser el h1.
+  as?: "h1" | "h2";
 };
 
-export function SectionHeading({ kicker, title, description, align = "center", className }: Props) {
+export function SectionHeading({ kicker, title, description, align = "center", className, as: Heading = "h2" }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -25,9 +27,9 @@ export function SectionHeading({ kicker, title, description, align = "center", c
       )}
     >
       <p className="text-sm font-bold tracking-wide text-primary uppercase">{kicker}</p>
-      <h2 className="max-w-2xl font-heading text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+      <Heading className="max-w-2xl font-heading text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
         {title}
-      </h2>
+      </Heading>
       {description && (
         <p className="max-w-xl text-balance text-muted-foreground">{description}</p>
       )}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Sora } from "next/font/google";
 import { AuthSessionProvider } from "@/components/session-provider";
+import { esProduccion, getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,7 +22,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://semio360.com"),
+  metadataBase: new URL(getSiteUrl()),
+  applicationName: "Semio360",
+  // QA y previews nunca se indexan (ver también robots.ts).
+  ...(esProduccion() ? {} : { robots: { index: false, follow: false } }),
   title: {
     default: "Semio360",
     template: "%s · Semio360",

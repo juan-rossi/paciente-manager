@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoctorPublicoPorSlug } from "@/lib/directorio";
@@ -7,6 +8,16 @@ import { LugarCard, PerfilShell } from "@/components/marketing/perfil-publico-pa
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ slug: string; lugarSlug: string }> };
+
+// Es una vista de reserva del mismo médico: no se indexa y su canonical es el
+// perfil, para no competir con él ni duplicar contenido.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  return {
+    alternates: { canonical: `/directorio/${encodeURIComponent(slug)}` },
+    robots: { index: false, follow: true },
+  };
+}
 
 // Agenda de un lugar de atención puntual: el link que el médico le pasa a un
 // paciente para que reserve ahí y no en otro lugar. Solo ofrece horarios de

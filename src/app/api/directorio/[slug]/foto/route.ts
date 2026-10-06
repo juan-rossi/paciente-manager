@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   return new Response(Buffer.from(match[2], "base64"), {
     headers: {
       "Content-Type": match[1],
-      "Cache-Control": "public, max-age=300, s-maxage=300",
+      "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
     },
   });
 }

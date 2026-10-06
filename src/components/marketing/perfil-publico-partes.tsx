@@ -78,7 +78,7 @@ type PerfilDoctor = {
   nombre: string;
   apellido: string;
   especialidad: Especialidad | null;
-  fotoPerfilBase64: string | null;
+  fotoUrl: string | null;
 };
 
 // Contenedor del perfil: misma anchura y gutter que el header (max-w-6xl
@@ -144,9 +144,16 @@ export function PerfilShell({
         <aside className={`flex flex-col gap-5 rounded-2xl border border-border/60 bg-card p-6 ${apilado ? "" : "lg:sticky lg:top-20"}`}>
           <div className="flex items-center gap-4">
             <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary/10 font-heading text-2xl font-bold text-primary shadow-lg shadow-primary/20">
-              {doctor.fotoPerfilBase64 ? (
+              {doctor.fotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={doctor.fotoPerfilBase64} alt="" className="size-full object-cover" />
+                <img
+                  src={doctor.fotoUrl}
+                  alt={`Foto de ${nombreCompleto}${doctor.especialidad ? `, ${ESPECIALIDAD_LABELS[doctor.especialidad]}` : ""}`}
+                  width={80}
+                  height={80}
+                  decoding="async"
+                  className="size-full object-cover"
+                />
               ) : (
                 iniciales
               )}
