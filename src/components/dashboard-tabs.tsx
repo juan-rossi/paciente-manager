@@ -51,10 +51,15 @@ export function DashboardTabs({
           </TabsTrigger>
         </TabsList>
         <div className="flex items-center justify-end gap-3">
-          <div className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 sm:flex">
+          <button
+            type="button"
+            onClick={() => setTab("buscar")}
+            title="Buscar paciente"
+            className="hidden cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex"
+          >
             <span className="text-sm font-bold text-foreground">{totalPacientes}</span>
             <span className="text-sm text-muted-foreground">pacientes</span>
-          </div>
+          </button>
           <Button
             nativeButton={false}
             className="h-7 px-2 text-xs sm:h-auto sm:px-2.5 sm:py-1.5 sm:text-sm"

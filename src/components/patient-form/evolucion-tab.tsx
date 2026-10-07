@@ -150,9 +150,9 @@ export function EvolucionTab({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado }),
           });
-          const data = await response.json();
+          const data = await response.json().catch(() => null);
           if (!response.ok) {
-            setError(data.error ?? "No se pudo editar la evolución.");
+            setError(data?.error ?? "No se pudo editar la evolución.");
             return;
           }
           onChangeEvoluciones(
@@ -189,9 +189,9 @@ export function EvolucionTab({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado }),
         });
-        const data = await response.json();
+        const data = await response.json().catch(() => null);
         if (!response.ok) {
-          setError(data.error ?? "No se pudo agregar la evolución.");
+          setError(data?.error ?? "No se pudo agregar la evolución.");
           return;
         }
         onChangeEvoluciones(
