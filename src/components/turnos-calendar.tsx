@@ -1394,7 +1394,7 @@ export function TurnosCalendar({
               type="button"
               variant="outline"
               size="sm"
-              className="bg-card shadow-sm"
+              className="shadow-sm"
               onClick={() =>
                 handleSelectDate(nextDiaConHorario(selectedDate, -1, diasConHorario, diasEspeciales))
               }
@@ -1416,7 +1416,7 @@ export function TurnosCalendar({
               type="button"
               variant="outline"
               size="sm"
-              className="bg-card shadow-sm"
+              className="shadow-sm"
               onClick={() =>
                 handleSelectDate(nextDiaConHorario(selectedDate, 1, diasConHorario, diasEspeciales))
               }
