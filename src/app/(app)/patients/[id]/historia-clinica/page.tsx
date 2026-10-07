@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { calcularEdad } from "@/components/patient-form/utils";
+import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import { ANTECEDENTES_ORDEN, ESTADO_CIVIL_OPTIONS } from "@/components/patient-form/constants";
 import { TIME_ZONE } from "@/lib/timezone";
 import { PrintButton } from "@/components/print-button";
@@ -166,7 +167,13 @@ export default async function HistoriaClinicaPage({ params }: Props) {
               .join(", ") || null,
           },
         ]}
-      />
+      >
+        {patient.antecedentesEnfermedadDictado?.trim() && (
+          <div className="mt-3 print:hidden">
+            <DictadoCompleto dictado={patient.antecedentesEnfermedadDictado} />
+          </div>
+        )}
+      </Seccion>
 
       {patient.antecedentes.length > 0 && (
         <Seccion titulo="Antecedentes personales">
@@ -264,6 +271,9 @@ export default async function HistoriaClinicaPage({ params }: Props) {
               <div key={e.id} className="break-inside-avoid">
                 <p className="text-xs font-semibold text-muted-foreground">{formatFecha(e.fecha)}</p>
                 <p className="whitespace-pre-wrap">{e.contenido}</p>
+                <div className="mt-1 print:hidden">
+                  <DictadoCompleto dictado={e.contenidoDictado} />
+                </div>
               </div>
             ))}
           </div>

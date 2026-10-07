@@ -52,7 +52,9 @@ export function ConsultaInicialTab({
         value={values.antecedentesEnfermedad}
         onChange={(v) => onChange("antecedentesEnfermedad", v)}
         rows={5}
-        aiAutocomplete
+        tipoResumen="antecedentes"
+        dictado={values.antecedentesEnfermedadDictado}
+        onDictadoChange={(v) => onChange("antecedentesEnfermedadDictado", v)}
         transcripcionHabilitada={transcripcionHabilitada}
       />
 

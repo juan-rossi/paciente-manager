@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, Clock, DollarSign, Mail, MinusCircle, TrendingUp } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, DollarSign, Mail, MinusCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardData, formatDiasParaVencer, formatMoneyARS } from "@/lib/admin-metrics";
+import { formatNumero, formatUsd, getResumenCostoIAMes, labelMes } from "@/lib/admin-costos-ia";
 
 // El estado de cada médico depende de la hora actual (trial/plan vencido o
 // no) -- sin esto Next.js podría cachear la página y mostrar "activo" a un
@@ -11,10 +12,11 @@ import { getDashboardData, formatDiasParaVencer, formatMoneyARS } from "@/lib/ad
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const data = await getDashboardData();
+  const [data, costoIA] = await Promise.all([getDashboardData(), getResumenCostoIAMes()]);
   const maxAltas = Math.max(1, ...data.altasPorMes.map((m) => m.cantidad));
   const totalFinalizados = data.conversion.convirtieron + data.conversion.vencieronSinConvertir;
   const pctConvertidos = totalFinalizados > 0 ? (data.conversion.convirtieron / totalFinalizados) * 100 : 0;
+  const costoIAArs = costoIA.cotizacion ? costoIA.costoUsd * costoIA.cotizacion.arsPorUsd : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,7 +25,7 @@ export default async function AdminDashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">Resumen del negocio · Semio 360</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <KpiCard
           icon={CheckCircle2}
           label="Activos"
@@ -61,6 +63,20 @@ export default async function AdminDashboardPage() {
           value={formatMoneyARS(data.mrrEstimado)}
           sub={`ARS · ${data.medicosEnPlanPago} médico${data.medicosEnPlanPago === 1 ? "" : "s"} en plan pago`}
         />
+        <Link href="/admin/costos-ia" className="rounded-xl transition-shadow hover:shadow-md [&>*]:h-full">
+          <KpiCard
+            icon={Sparkles}
+            label={`Costo IA · ${labelMes(costoIA.mes).split(" ")[0].toLowerCase()}`}
+            value={formatUsd(costoIA.costoUsd)}
+            sub={
+              costoIAArs === null
+                ? "sin cotización del dólar"
+                : data.mrrEstimado > 0
+                  ? `${formatNumero((costoIAArs / data.mrrEstimado) * 100, 1)} % del MRR`
+                  : `≈ ${formatMoneyARS(costoIAArs)} ARS`
+            }
+          />
+        </Link>
       </div>
 
       <div className="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">

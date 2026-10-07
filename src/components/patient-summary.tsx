@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/patient-form/fields";
 import { ANTECEDENTES_ORDEN } from "@/components/patient-form/constants";
 import { calcularEdad } from "@/components/patient-form/utils";
+import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
@@ -81,11 +82,13 @@ const CAMPO_LABELS: Record<string, string> = {
   obraSocialNro: "Nro Obra Social",
   motivoConsulta: "Motivo de Consulta",
   antecedentesEnfermedad: "Antecedentes de la enfermedad actual",
+  antecedentesEnfermedadDictado: "Dictado de antecedentes de la enfermedad actual",
   diagnosticoPresuntivo: "Diagnóstico Presuntivo",
   metodosComplementarios: "Métodos Complementarios",
   tratamiento: "Tratamiento",
   fecha: "Fecha",
   contenido: "Contenido",
+  contenidoDictado: "Dictado",
   revocadoEn: "Fecha de revocación",
   revocadoMotivo: "Motivo de revocación",
 };
@@ -151,6 +154,7 @@ export function PatientSummary({
     id: e.id,
     fecha: e.fecha.toISOString().slice(0, 10),
     contenido: e.contenido,
+    contenidoDictado: e.contenidoDictado,
   }));
 
   const consentimientoValues: ConsentimientoValue[] = patient.consentimientos.map((c) => ({
@@ -341,6 +345,7 @@ export function PatientSummary({
                     Antecedentes de la enfermedad actual
                   </span>
                   <p className="whitespace-pre-wrap text-sm">{patient.antecedentesEnfermedad}</p>
+                  <DictadoCompleto dictado={patient.antecedentesEnfermedadDictado} />
                 </div>
               )}
             </FormSection>

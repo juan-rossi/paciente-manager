@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
           create: evoluciones.map((e) => ({
             fecha: new Date(e.fecha),
             contenido: e.contenido,
+            contenidoDictado: e.contenidoDictado,
           })),
         },
       },

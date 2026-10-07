@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock,
   Mail,
+  Sparkles,
   Stethoscope,
   Users,
 } from "lucide-react";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getMedicoDetalle, formatDiasParaVencer, formatFechaCorta } from "@/lib/admin-metrics";
+import { formatNumero, formatUsd, getUsoIAMedico, MESES_PROMEDIO } from "@/lib/admin-costos-ia";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function AdminMedicoDetallePage({ params }: Props) {
   const { id } = await params;
-  const medico = await getMedicoDetalle(id);
+  const [medico, usoIA] = await Promise.all([getMedicoDetalle(id), getUsoIAMedico(id)]);
   if (!medico) notFound();
 
   const urgente = medico.estado === "ACTIVO" && medico.diasParaVencer !== null && medico.diasParaVencer <= 7;
@@ -112,6 +114,47 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
         />
       </div>
 
+      {usoIA && (
+        <Card>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="flex items-center gap-1.5 font-heading text-sm font-semibold">
+                <Sparkles className="size-3.5 text-primary" />
+                Uso de IA
+              </h2>
+              <Link href="/admin/costos-ia" className="text-xs font-medium text-primary hover:underline">
+                Ver costos IA
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <UsoIADato
+                label="Minutos de dictado / mes"
+                value={usoIA.promedio ? formatNumero(usoIA.promedio.minutos) : "—"}
+              />
+              <UsoIADato
+                label="Resúmenes / mes"
+                value={usoIA.promedio ? formatNumero(usoIA.promedio.resumenes) : "—"}
+              />
+              <UsoIADato
+                label="Costo / mes"
+                value={usoIA.promedio ? formatUsd(usoIA.promedio.costoUsd) : "—"}
+                sub={usoIA.porcentajePlan !== null ? `${formatNumero(usoIA.porcentajePlan, 1)} % de su plan` : undefined}
+              />
+              <UsoIADato
+                label="Este mes"
+                value={formatUsd(usoIA.mesActual.costoUsd)}
+                sub={`${formatNumero(usoIA.mesActual.minutos)} min · ${usoIA.mesActual.resumenes} resúmenes`}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {usoIA.promedio
+                ? `Promedio de ${usoIA.promedio.mesesConsiderados === 1 ? "el último mes cerrado" : `los últimos ${usoIA.promedio.mesesConsiderados} meses cerrados`} (máximo ${MESES_PROMEDIO}), desde su primer uso.`
+                : "Todavía no tiene un mes cerrado con uso de IA para calcular el promedio."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <CardContent className="flex flex-col gap-1">
@@ -166,6 +209,16 @@ function iniciales(nombreCompleto: string): string {
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+function UsoIADato({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="font-heading text-lg font-semibold tabular-nums">{value}</span>
+      {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+    </div>
+  );
 }
 
 function StatCard({
