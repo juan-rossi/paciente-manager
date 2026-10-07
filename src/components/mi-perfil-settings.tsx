@@ -64,6 +64,8 @@ type LugarResumen = {
   perfilVisible: boolean;
   reservaPublicaHabilitada: boolean;
   publicSlug: string | null;
+  // Si tiene al menos un bloque de horario cargado en "Mi práctica".
+  tieneHorarios: boolean;
 };
 
 type Props = {
@@ -177,6 +179,8 @@ export function MiPerfilSettings({
     Object.fromEntries(lugares.map((l) => [l.id, l.reservaPublicaHabilitada]))
   );
   const [lugarAgendaSaving, setLugarAgendaSaving] = useState<string | null>(null);
+  // Sin ningún lugar con horarios no hay turnos que ofrecer: los links no sirven.
+  const sinLugaresConHorarios = !lugares.some((l) => l.tieneHorarios);
 
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordActual, setPasswordActual] = useState("");
@@ -742,7 +746,31 @@ export function MiPerfilSettings({
         </div>
         {agendaPublicaError && <p className="text-xs text-destructive">{agendaPublicaError}</p>}
 
-        {reservaPublicaHabilitada && !sinPracticas && (
+        {reservaPublicaHabilitada && sinLugaresConHorarios && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+          >
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+            <div className="flex min-w-48 flex-1 flex-col gap-0.5">
+              <span className="text-sm font-semibold">Tu agenda todavía no está disponible</span>
+              <span className="text-xs">
+                Nadie podrá reservar turnos hasta que configures al menos un lugar de atención con
+                horarios.
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => irAConfiguracionTab("practica")}
+            >
+              Configurar lugares
+            </Button>
+          </div>
+        )}
+
+        {reservaPublicaHabilitada && !sinLugaresConHorarios && (
           <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
             <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
               Lugares con turnos online
@@ -805,7 +833,7 @@ export function MiPerfilSettings({
           </div>
         )}
 
-        {reservaPublicaHabilitada && publicLink && (
+        {reservaPublicaHabilitada && !sinLugaresConHorarios && publicLink && (
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold">Link general</span>
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
