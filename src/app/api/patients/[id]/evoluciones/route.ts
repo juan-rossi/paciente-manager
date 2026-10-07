@@ -9,6 +9,14 @@ type RouteParams = { params: Promise<{ id: string }> };
 const evolucionInput = z.object({
   fecha: z.string().trim().min(1, "La fecha es obligatoria."),
   contenido: z.string().trim().min(1, "El contenido es obligatorio."),
+  // Dictado original cuando `contenido` es un resumen de IA. Sin el campo, no
+  // se toca; vacío, se borra.
+  contenidoDictado: z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? null : value))
+    .nullable()
+    .optional(),
 });
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -40,6 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       patientId: id,
       fecha: new Date(parsed.data.fecha),
       contenido: parsed.data.contenido,
+      contenidoDictado: parsed.data.contenidoDictado ?? null,
     },
   });
 

@@ -35,18 +35,20 @@ export default async function EditPatientPage({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={`/patients/${patient.id}`} />}
-        >
-          <ArrowLeft className="size-4" />
-          Volver a detalle
-        </Button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/patients/${patient.id}`} />}
+          >
+            <ArrowLeft className="size-4" />
+            Volver a detalle
+          </Button>
+        </div>
       </div>
-      <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
       <PatientForm
         mode="edit"
         patientId={patient.id}

@@ -33,6 +33,8 @@ export type PatientFormValues = {
   dependiente: string;
   motivoConsulta: string;
   antecedentesEnfermedad: string;
+  // Texto original dictado cuando `antecedentesEnfermedad` es un resumen de IA.
+  antecedentesEnfermedadDictado: string;
   habitoAlcohol: boolean;
   habitoCigarrillos: boolean;
   habitoDrogas: boolean;
@@ -112,5 +114,7 @@ export type EvolucionValue = {
   id?: string;
   fecha: string;
   contenido: string;
+  // Texto original dictado cuando `contenido` es un resumen de IA.
+  contenidoDictado?: string | null;
   deletedAt?: string | null;
 };

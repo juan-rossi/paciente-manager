@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronDown, Loader2, Mic, MicOff, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Mic, MicOff, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
 import { formatFechaCorta, formatFechaRelativa } from "./utils";
-import { useTranscription } from "./use-transcription";
+import { useCloudTranscription } from "./use-cloud-transcription";
+import { useResumenIA } from "./use-resumen-ia";
+import { DictadoCompleto } from "./dictado-completo";
+import { anexarTexto, formatElapsed, mensajeErrorDictado } from "./dictado-utils";
 import { DateInput } from "./date-input";
 import { formatDateParamBA } from "@/lib/timezone";
 
@@ -24,10 +27,15 @@ function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
-function formatElapsed(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+// Lo que devuelve la API para una evolución -> el valor que usa el formulario.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function evolucionFromApi(e: any): EvolucionValue {
+  return {
+    id: e.id,
+    fecha: e.fecha.slice(0, 10),
+    contenido: e.contenido,
+    contenidoDictado: e.contenidoDictado ?? null,
+  };
 }
 
 // `new Date().toISOString()` da la fecha en UTC, y los componentes LOCALES
@@ -63,6 +71,8 @@ export function EvolucionTab({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [fecha, setFecha] = useState(todayLocal());
   const [contenido, setContenido] = useState("");
+  // Texto original dictado, cuando `contenido` pasó a ser un resumen de IA.
+  const [dictado, setDictado] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,24 +80,49 @@ export function EvolucionTab({
   const [deleting, setDeleting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
-  const transcription = useTranscription();
+  const transcription = useCloudTranscription();
+  const resumen = useResumenIA("evolucion");
 
   const isEditing = editingIndex !== null;
+  const isRecording =
+    transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
+  const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
+  const errorDictado = mensajeErrorDictado(transcription.error);
 
   function resetForm() {
     setFecha(todayLocal());
     setContenido("");
+    setDictado("");
     setError(null);
+    resumen.limpiarError();
     setEditingIndex(null);
   }
 
   function handleTextoFinal(texto: string) {
-    setContenido((prev) => (prev.trim() ? `${prev.trim()}\n${texto}` : texto));
+    setContenido((prev) => anexarTexto(prev, texto));
+    // Si ya se resumió, el dictado original sigue siendo el registro
+    // completo: lo nuevo se suma también ahí.
+    setDictado((prev) => (prev.trim() ? anexarTexto(prev, texto) : prev));
+  }
+
+  async function handleResumir() {
+    // Una vez resumido, se vuelve a resumir siempre desde el dictado
+    // completo, no desde un resumen previo.
+    const fuente = dictado.trim() ? dictado : contenido;
+    if (!fuente.trim()) return;
+    const texto = await resumen.resumir(fuente);
+    if (texto === null) return;
+    setDictado(fuente);
+    setContenido(texto);
+  }
+
+  function handleRestaurarDictado() {
+    setContenido(dictado);
+    setDictado("");
   }
 
   function openAddDialog() {
     resetForm();
-    void transcription.reintentarConexion();
     setOpen(true);
   }
 
@@ -95,7 +130,9 @@ export function EvolucionTab({
     setEditingIndex(index);
     setFecha(entry.fecha);
     setContenido(entry.contenido);
+    setDictado(entry.contenidoDictado ?? "");
     setError(null);
+    resumen.limpiarError();
     setOpen(true);
   }
 
@@ -111,19 +148,17 @@ export function EvolucionTab({
           const response = await fetch(`/api/patients/${patientId}/evoluciones/${entry.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fecha, contenido }),
+            body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado }),
           });
-          const data = await response.json();
+          const data = await response.json().catch(() => null);
           if (!response.ok) {
-            setError(data.error ?? "No se pudo editar la evolución.");
+            setError(data?.error ?? "No se pudo editar la evolución.");
             return;
           }
           onChangeEvoluciones(
             sortByFechaAsc(
               evoluciones.map((e, i) =>
-                i === editingIndex
-                  ? { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido }
-                  : e
+                i === editingIndex ? evolucionFromApi(data.evolucion) : e
               )
             )
           );
@@ -134,7 +169,11 @@ export function EvolucionTab({
         }
       } else {
         onChangeEvoluciones(
-          sortByFechaAsc(evoluciones.map((e, i) => (i === editingIndex ? { ...e, fecha, contenido } : e)))
+          sortByFechaAsc(
+            evoluciones.map((e, i) =>
+              i === editingIndex ? { ...e, fecha, contenido, contenidoDictado: dictado || null } : e
+            )
+          )
         );
         setOpen(false);
         resetForm();
@@ -148,17 +187,17 @@ export function EvolucionTab({
         const response = await fetch(`/api/patients/${patientId}/evoluciones`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fecha, contenido }),
+          body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado }),
         });
-        const data = await response.json();
+        const data = await response.json().catch(() => null);
         if (!response.ok) {
-          setError(data.error ?? "No se pudo agregar la evolución.");
+          setError(data?.error ?? "No se pudo agregar la evolución.");
           return;
         }
         onChangeEvoluciones(
           sortByFechaAsc([
             ...evoluciones,
-            { id: data.evolucion.id, fecha: data.evolucion.fecha.slice(0, 10), contenido: data.evolucion.contenido },
+            evolucionFromApi(data.evolucion),
           ])
         );
         setOpen(false);
@@ -167,7 +206,9 @@ export function EvolucionTab({
         setSaving(false);
       }
     } else {
-      onChangeEvoluciones(sortByFechaAsc([...evoluciones, { fecha, contenido }]));
+      onChangeEvoluciones(
+        sortByFechaAsc([...evoluciones, { fecha, contenido, contenidoDictado: dictado || null }])
+      );
       setOpen(false);
       resetForm();
     }
@@ -192,12 +233,7 @@ export function EvolucionTab({
         // eliminadas para poder restaurarla, no desaparece sin dejar rastro.
         onChangeEvolucionesEliminadas?.([
           ...evolucionesEliminadas,
-          {
-            id: data.evolucion.id,
-            fecha: data.evolucion.fecha.slice(0, 10),
-            contenido: data.evolucion.contenido,
-            deletedAt: data.evolucion.deletedAt,
-          },
+          { ...evolucionFromApi(data.evolucion), deletedAt: data.evolucion.deletedAt },
         ]);
       } finally {
         setDeleting(false);
@@ -225,11 +261,7 @@ export function EvolucionTab({
       onChangeEvoluciones(
         sortByFechaAsc([
           ...evoluciones,
-          {
-            id: data.evolucion.id,
-            fecha: data.evolucion.fecha.slice(0, 10),
-            contenido: data.evolucion.contenido,
-          },
+          evolucionFromApi(data.evolucion),
         ])
       );
     } finally {
@@ -273,6 +305,7 @@ export function EvolucionTab({
                 </div>
               </div>
               <p className="whitespace-pre-wrap text-sm">{entry.contenido}</p>
+              <DictadoCompleto dictado={entry.contenidoDictado} />
             </CardContent>
           </Card>
         ))}
@@ -322,7 +355,7 @@ export function EvolucionTab({
           open={open}
           onOpenChange={(next) => {
             if (!next) {
-              transcription.detener();
+              transcription.detener({ descartar: true });
               resetForm();
             }
             setOpen(next);
@@ -342,12 +375,11 @@ export function EvolucionTab({
                 <DateInput value={fecha} onChange={setFecha} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <Label>Observación</Label>
-                  {transcripcionHabilitada && !isEditing && transcription.connectionStatus === "disponible" && (
+                  {transcripcionHabilitada && (
                     <div className="flex items-center gap-2">
-                      {transcription.recordingStatus === "grabando" ||
-                      transcription.recordingStatus === "conectando" ? (
+                      {isRecording ? (
                         <Button
                           type="button"
                           variant="outline"
@@ -355,30 +387,44 @@ export function EvolucionTab({
                           onClick={() => transcription.detener()}
                         >
                           <MicOff className="size-3.5" />
-                          Detener transcripción
+                          Detener dictado
                         </Button>
                       ) : (
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          disabled={transcription.recordingStatus === "finalizando"}
+                          disabled={ocupado}
                           onClick={() => void transcription.iniciar(handleTextoFinal)}
                         >
                           <Mic className="size-3.5" />
-                          Iniciar transcripción
+                          Dictar
                         </Button>
                       )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isRecording || ocupado || !(dictado.trim() || contenido.trim())}
+                        onClick={() => void handleResumir()}
+                      >
+                        {resumen.resumiendo ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="size-3.5" />
+                        )}
+                        {resumen.resumiendo ? "Resumiendo…" : "Resumir con IA"}
+                      </Button>
                     </div>
                   )}
                 </div>
-                {!isEditing && transcription.recordingStatus === "conectando" && (
+                {transcription.recordingStatus === "conectando" && (
                   <div className="flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-md border p-6 text-center">
                     <Loader2 className="size-6 animate-spin text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Conectando con el micrófono…</p>
                   </div>
                 )}
-                {!isEditing && transcription.recordingStatus === "grabando" && (
+                {transcription.recordingStatus === "grabando" && (
                   <div className="flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-md border p-6 text-center">
                     <Badge variant="destructive">
                       <span className="size-1.5 animate-pulse rounded-full bg-current" />
@@ -387,23 +433,22 @@ export function EvolucionTab({
                     <span className="font-mono text-3xl tabular-nums">
                       {formatElapsed(transcription.elapsedSeconds)}
                     </span>
-                    {transcription.partialText && (
-                      <p className="text-sm text-muted-foreground italic">{transcription.partialText}</p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      El texto aparece al detener. Máximo {transcription.maxSeconds / 60} minutos.
+                    </p>
                   </div>
                 )}
-                {!isEditing && transcription.recordingStatus === "finalizando" && (
+                {transcription.recordingStatus === "finalizando" && (
                   <div className="flex min-h-[15rem] flex-col items-center justify-center gap-3 rounded-md border p-6 text-center">
                     <Loader2 className="size-6 animate-spin text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
-                      <strong>Terminando de transcribir</strong> 
-                      <br></br>
+                      <strong>Transcribiendo…</strong>
+                      <br />
                       El resultado va a aparecer acá en unos segundos.
                     </p>
                   </div>
                 )}
-                {(isEditing ||
-                  transcription.recordingStatus === "idle" ||
+                {(transcription.recordingStatus === "idle" ||
                   transcription.recordingStatus === "error") && (
                   <Textarea
                     ref={textareaRef}
@@ -411,43 +456,24 @@ export function EvolucionTab({
                     className="min-h-[15rem]"
                     value={contenido}
                     onChange={(e) => setContenido(e.target.value)}
+                    disabled={resumen.resumiendo}
                     placeholder={
                       transcripcionHabilitada
-                        ? "Escribí la evolución del paciente o presioná «Iniciar transcripción»..."
+                        ? "Escribí la evolución del paciente o presioná «Dictar»..."
                         : "Escribí la evolución del paciente..."
                     }
                   />
                 )}
               </div>
-              {transcripcionHabilitada && !isEditing && transcription.connectionStatus === "no_disponible" && (
-                <p className="text-sm text-muted-foreground">
-                  El transcriptor local no está disponible. Si ya lo instalaste y está corriendo,
-                  puede que el navegador te haya pedido permiso para acceder a la red local (un aviso
-                  como el del micrófono) — si lo rechazaste o nunca lo viste, revisá los permisos del
-                  sitio en la configuración del navegador. Para instalarlo o ver su estado, entrá a{" "}
-                  <strong>Configuración → Transcriptor</strong>.
-                </p>
+              {transcripcionHabilitada && (
+                <DictadoCompleto dictado={dictado} onRestaurar={handleRestaurarDictado} />
               )}
-              {transcription.error === "mic_denegado" && (
-                <p className="text-sm text-destructive">
-                  No se pudo acceder al micrófono. Revisá los permisos del navegador para este sitio.
-                </p>
-              )}
-              {transcription.error === "servicio_no_disponible" && (
-                <p className="text-sm text-destructive">
-                  No se pudo conectar con el transcriptor local. Confirmá que esté corriendo, o que el
-                  navegador no haya bloqueado el acceso a la red local para este sitio.
-                </p>
-              )}
-              {transcription.error === "conexion_perdida" && (
-                <p className="text-sm text-destructive">
-                  Se perdió la conexión con el transcriptor. Podés reintentar.
-                </p>
-              )}
+              {errorDictado && <p className="text-sm text-destructive">{errorDictado}</p>}
+              {resumen.error && <p className="text-sm text-destructive">{resumen.error}</p>}
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>
-              <Button type="button" onClick={handleGuardar} disabled={saving || !contenido.trim()}>
+              <Button type="button" onClick={handleGuardar} disabled={saving || isRecording || ocupado || !contenido.trim()}>
                 {saving ? "Guardando..." : isEditing ? "Guardar" : "Agregar"}
               </Button>
             </DialogFooter>

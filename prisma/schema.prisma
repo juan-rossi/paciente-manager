@@ -328,6 +328,7 @@ model User {
   turnosDelDoctor       Turno[]              @relation("TurnoDoctor")
   auditLogsDelTenant    AuditLog[]           @relation("AuditDoctor")
   auditLogsComoActor    AuditLog[]           @relation("AuditActor")
+  usosIA                UsoIA[]
 }
 
 // Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,
@@ -630,7 +631,7 @@ model Turno {
   // Reserva online: sha256 del token que viaja en la cookie `turno_<slug>`
   // del visitante y le permite cancelar su turno desde el perfil. Se borra
   // al cancelar (el token deja de servir). Nunca se guarda el token en claro.
-  cancelTokenHash String? @unique
+  cancelTokenHash        String?   @unique
   // Se completa cuando el propio paciente canceló desde el perfil público
   // (no cuando canceló el médico). Alimenta "Cancelados por pacientes".
   canceladoPorPacienteAt DateTime?
@@ -661,14 +662,16 @@ model Patient {
   telefonoEmergencia String?
 
   // Consulta inicial
-  autoValidoTotal        String?
-  autoValidoParcial      String?
-  dependiente            String?
-  motivoConsulta         String?
-  antecedentesEnfermedad String?
-  habitoAlcohol          Boolean @default(false)
-  habitoCigarrillos      Boolean @default(false)
-  habitoDrogas           Boolean @default(false)
+  autoValidoTotal               String?
+  autoValidoParcial             String?
+  dependiente                   String?
+  motivoConsulta                String?
+  antecedentesEnfermedad        String?
+  // Dictado original cuando `antecedentesEnfermedad` es un resumen de IA.
+  antecedentesEnfermedadDictado String?
+  habitoAlcohol                 Boolean @default(false)
+  habitoCigarrillos             Boolean @default(false)
+  habitoDrogas                  Boolean @default(false)
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?
@@ -774,14 +777,16 @@ model PatientAntecedente {
 }
 
 model PatientEvolucion {
-  id        String    @id @default(cuid())
-  patientId String
-  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  fecha     DateTime
-  contenido String
+  id               String    @id @default(cuid())
+  patientId        String
+  patient          Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fecha            DateTime
+  contenido        String
+  // Dictado original cuando `contenido` es un resumen de IA.
+  contenidoDictado String?
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
   // se borra físicamente, se oculta.
-  deletedAt DateTime?
+  deletedAt        DateTime?
 }
 
 enum ConsentimientoTipo {
@@ -851,6 +856,44 @@ model Gasto {
   createdAt   DateTime @default(now())
 
   @@index([fecha])
+}
+
+// Uso de las funciones de IA del plan Premium (dictado con Groq, resumen con
+// Claude Haiku): una fila por cada pedido exitoso a `/api/ia/*`. Los
+// promedios y totales del panel admin (/admin/costos-ia) se calculan desde
+// acá. El costo se congela con los precios vigentes al momento del uso (ver
+// `src/lib/ia-costos.ts`), así un cambio de precio no reescribe meses viejos.
+enum UsoIATipo {
+  DICTADO
+  RESUMEN
+}
+
+model UsoIA {
+  id            String    @id @default(cuid())
+  doctorId      String
+  tipo          UsoIATipo
+  // DICTADO: duración real del audio que devuelve Groq.
+  segundosAudio Int?
+  // RESUMEN: `message.usage` de la respuesta de Anthropic.
+  tokensEntrada Int?
+  tokensSalida  Int?
+  // Estimado en dólares -- Float alcanza para montos de fracciones de centavo.
+  costoUsd      Float
+  createdAt     DateTime  @default(now())
+
+  doctor User @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, createdAt])
+  @@index([createdAt])
+}
+
+// Cotización del dólar (ARS por USD) que usa el panel admin para pasar a
+// pesos los costos de IA. Una por mes ("2026-10", hora de Argentina): un mes
+// sin cotización propia usa la del último mes anterior que tenga.
+model CotizacionDolar {
+  mes       String   @id
+  arsPorUsd Int
+  updatedAt DateTime @updatedAt
 }
 
 // Catálogo de coberturas (prepagas, obras sociales, "Particular") para elegir

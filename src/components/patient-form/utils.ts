@@ -18,6 +18,7 @@ const TEXT_FIELDS = [
   "dependiente",
   "motivoConsulta",
   "antecedentesEnfermedad",
+  "antecedentesEnfermedadDictado",
   "frecuenciaCardiaca",
   "pulsoRadial",
   "ritmo",
@@ -158,6 +159,7 @@ export function patientFromApi(patient: any): {
       id: e.id,
       fecha: toDateInputValue(e.fecha),
       contenido: e.contenido ?? "",
+      contenidoDictado: e.contenidoDictado ?? null,
       deletedAt: e.deletedAt ?? null,
     })
   );

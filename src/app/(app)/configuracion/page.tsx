@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Building2, Database, Mic, MessageSquare, Sparkles, User, Users } from "lucide-react";
+import { Building2, Database, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
@@ -9,17 +9,15 @@ import {
   CONFIGURACION_TAB_COOKIE,
   DEFAULT_CONFIGURACION_TAB,
   esConfiguracionTab,
-  type ConfiguracionTab,
 } from "@/lib/configuracion-tabs";
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
-import { TranscriberSettings } from "@/components/transcriber-settings";
 import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
-import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
+import { diasRestantesDeTrial } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 
 export const dynamic = "force-dynamic";
@@ -53,14 +51,9 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   }
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
-  // El Transcriptor es una función Premium: solo se muestra con el plan
-  // Premium vigente.
-  const mostrarTranscriptor = isPremium(user) && esActivo(user);
-  const tabDisponible = (t: string | undefined): t is ConfiguracionTab =>
-    esConfiguracionTab(t) && (t !== "transcriptor" || mostrarTranscriptor);
-  const initialTab = tabDisponible(tabParam)
+  const initialTab = esConfiguracionTab(tabParam)
     ? tabParam
-    : tabDisponible(tabGuardada)
+    : esConfiguracionTab(tabGuardada)
       ? tabGuardada
       : DEFAULT_CONFIGURACION_TAB;
 
@@ -128,12 +121,6 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
-          {mostrarTranscriptor && (
-            <TabsTrigger value="transcriptor" className={navItemClass}>
-              <Mic className="size-4" />
-              Transcriptor
-            </TabsTrigger>
-          )}
 
           <div className={groupLabelClass}>Cuenta</div>
           <TabsTrigger value="perfil" className={navItemClass}>
@@ -169,11 +156,6 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
           />
         </TabsContent>
-        {mostrarTranscriptor && (
-          <TabsContent value="transcriptor" className="w-full">
-            <TranscriberSettings />
-          </TabsContent>
-        )}
         <TabsContent value="perfil" className="w-full">
           <MiPerfilSettings
             email={user.email}

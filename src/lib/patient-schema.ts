@@ -51,6 +51,7 @@ const antecedenteSchema = z.object({
 const evolucionSchema = z.object({
   fecha: z.string().trim().min(1, "La fecha es obligatoria."),
   contenido: z.string().trim().min(1, "El contenido es obligatorio."),
+  contenidoDictado: optionalString,
 });
 
 export const patientSchema = z.object({
@@ -91,6 +92,7 @@ export const patientSchema = z.object({
   dependiente: optionalString,
   motivoConsulta: z.string().trim().min(1, "El motivo de consulta es obligatorio."),
   antecedentesEnfermedad: optionalString,
+  antecedentesEnfermedadDictado: optionalString,
   habitoAlcohol: z.boolean().default(false),
   habitoCigarrillos: z.boolean().default(false),
   habitoDrogas: z.boolean().default(false),
