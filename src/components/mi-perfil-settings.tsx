@@ -52,6 +52,7 @@ import {
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
 import { cn } from "@/lib/utils";
+import { RESERVA_PUBLICA_SEMANAS_OPCIONES } from "@/lib/perfil-schema";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 type LugarResumen = {
@@ -86,6 +87,7 @@ type Props = {
   initialPrepagaIds: string[];
   initialBiografia: string | null;
   initialReservaPublicaHabilitada: boolean;
+  initialReservaPublicaSemanas: number;
   initialPublicSlug: string | null;
 };
 
@@ -103,6 +105,7 @@ export function MiPerfilSettings({
   initialPrepagaIds,
   initialBiografia,
   initialReservaPublicaHabilitada,
+  initialReservaPublicaSemanas,
   initialPublicSlug,
 }: Props) {
   const router = useRouter();
@@ -165,9 +168,26 @@ export function MiPerfilSettings({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [triedSubmit, setTriedSubmit] = useState(false);
 
+  // Solo estos campos dependen de "Guardar cambios" (el resto se guarda al
+  // instante). El botón se habilita únicamente si alguno difiere de lo guardado.
+  const perfilSnapshot = JSON.stringify({
+    tituloCortesia,
+    nombre,
+    apellido,
+    especialidad,
+    nroMatricula,
+    perfilPublico,
+    biografia,
+    lugaresVisibles: [...lugaresVisibles].sort(),
+    prepagaIds: [...prepagaIds].sort(),
+  });
+  const [perfilGuardado, setPerfilGuardado] = useState(perfilSnapshot);
+  const hayCambios = perfilSnapshot !== perfilGuardado;
+
   const [reservaPublicaHabilitada, setReservaPublicaHabilitada] = useState(
     initialReservaPublicaHabilitada
   );
+  const [reservaPublicaSemanas, setReservaPublicaSemanas] = useState(initialReservaPublicaSemanas);
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
   const [agendaPublicaSaving, setAgendaPublicaSaving] = useState(false);
   const [agendaPublicaError, setAgendaPublicaError] = useState<string | null>(null);
@@ -181,6 +201,8 @@ export function MiPerfilSettings({
   const [lugarAgendaSaving, setLugarAgendaSaving] = useState<string | null>(null);
   // Sin ningún lugar con horarios no hay turnos que ofrecer: los links no sirven.
   const sinLugaresConHorarios = !lugares.some((l) => l.tieneHorarios);
+  // Con un solo lugar no hay nada que elegir: alcanza con el link general.
+  const variosLugares = lugares.length > 1;
 
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordActual, setPasswordActual] = useState("");
@@ -292,6 +314,7 @@ export function MiPerfilSettings({
         return;
       }
       setTriedSubmit(false);
+      setPerfilGuardado(perfilSnapshot);
       setPublicSlug(data.publicSlug);
       router.refresh();
     } catch {
@@ -331,6 +354,45 @@ export function MiPerfilSettings({
       setAgendaPublicaSaving(false);
     }
   }
+
+  async function handleCambiarSemanas(semanas: number) {
+    const previous = reservaPublicaSemanas;
+    if (semanas === previous) return;
+    setReservaPublicaSemanas(semanas);
+    setAgendaPublicaSaving(true);
+    setAgendaPublicaError(null);
+    try {
+      const response = await fetch("/api/perfil/agenda-publica", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservaPublicaSemanas: semanas }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setReservaPublicaSemanas(previous);
+        setAgendaPublicaError(data.error ?? "No se pudo guardar el cambio.");
+        return;
+      }
+      setReservaPublicaSemanas(data.reservaPublicaSemanas);
+    } catch {
+      setReservaPublicaSemanas(previous);
+      setAgendaPublicaError("No se pudo conectar con el servidor.");
+    } finally {
+      setAgendaPublicaSaving(false);
+    }
+  }
+
+  // Último día que ve el paciente (hoy + N semanas - 1), en hora de Buenos
+  // Aires para que server y cliente rendericen lo mismo.
+  const [hoy] = useState(() => Date.now());
+  const fechaLimiteReserva = new Date(
+    hoy + (reservaPublicaSemanas * 7 - 1) * 24 * 60 * 60 * 1000
+  ).toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
 
   // El server no conoce `window.location.origin` -- arranca mostrando el
   // dominio de producción (igual en server y cliente, sin mismatch de
@@ -770,7 +832,7 @@ export function MiPerfilSettings({
           </div>
         )}
 
-        {reservaPublicaHabilitada && !sinLugaresConHorarios && (
+        {reservaPublicaHabilitada && !sinLugaresConHorarios && variosLugares && (
           <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
             <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
               Lugares con turnos online
@@ -833,6 +895,48 @@ export function MiPerfilSettings({
           </div>
         )}
 
+        {reservaPublicaHabilitada && !sinLugaresConHorarios && (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold">
+                Cuánto tiempo hacia adelante se puede reservar
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Los pacientes solo verán turnos libres dentro de este período.
+              </p>
+            </div>
+            <div
+              role="group"
+              aria-label="Semanas visibles en la agenda pública"
+              className="inline-flex w-fit flex-wrap gap-0.5 rounded-lg border border-border bg-muted p-[3px]"
+            >
+              {RESERVA_PUBLICA_SEMANAS_OPCIONES.map((semanas) => {
+                const activo = semanas === reservaPublicaSemanas;
+                return (
+                  <button
+                    key={semanas}
+                    type="button"
+                    aria-pressed={activo}
+                    disabled={agendaPublicaSaving}
+                    onClick={() => handleCambiarSemanas(semanas)}
+                    className={cn(
+                      "rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-default",
+                      activo
+                        ? "border-border bg-card font-semibold text-foreground shadow"
+                        : "border-transparent font-medium text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {semanas === 1 ? "1 semana" : `${semanas} semanas`}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+              Hoy podrían reservar hasta el {fechaLimiteReserva}.
+            </p>
+          </div>
+        )}
+
         {reservaPublicaHabilitada && !sinLugaresConHorarios && publicLink && (
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold">Link general</span>
@@ -848,11 +952,11 @@ export function MiPerfilSettings({
                 {copiado === "general" ? "¡Copiado!" : "Copiar"}
               </Button>
               <CompartirAgendaButton url={publicLink} nombreMedico={nombreMedico} />
-
             </div>
             <p className="text-xs text-muted-foreground">
-              Ofrece todos los lugares con turnos online y el paciente elige uno. Para evitar
-              confusiones, mandale el link del lugar.
+              {variosLugares
+                ? "Ofrece todos los lugares con turnos online y el paciente elige uno. Para evitar confusiones, mandale el link del lugar."
+                : "Compartilo con tus pacientes para que reserven un turno."}
             </p>
           </div>
         )}
@@ -867,7 +971,7 @@ export function MiPerfilSettings({
         </ul>
       )}
       <div className="flex justify-end">
-        <Button type="button" onClick={handleGuardar} disabled={saving}>
+        <Button type="button" onClick={handleGuardar} disabled={saving || !hayCambios}>
           {saving ? "Guardando..." : "Guardar cambios"}
         </Button>
       </div>

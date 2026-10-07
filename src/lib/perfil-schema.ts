@@ -35,9 +35,20 @@ export const perfilSchema = z.object({
   prepagaIds: z.array(z.string()).max(500),
 });
 
-export const agendaPublicaSchema = z.object({
-  reservaPublicaHabilitada: z.boolean(),
-});
+// Valores fijos (no un número libre) para el horizonte de la agenda pública.
+export const RESERVA_PUBLICA_SEMANAS_OPCIONES = [1, 2, 4, 8, 12] as const;
+
+// Cada campo se guarda por separado (switch y selector de semanas son
+// controles instantáneos distintos), pero al menos uno tiene que venir.
+export const agendaPublicaSchema = z
+  .object({
+    reservaPublicaHabilitada: z.boolean().optional(),
+    reservaPublicaSemanas: z
+      .number()
+      .refine((n) => (RESERVA_PUBLICA_SEMANAS_OPCIONES as readonly number[]).includes(n))
+      .optional(),
+  })
+  .refine((d) => d.reservaPublicaHabilitada !== undefined || d.reservaPublicaSemanas !== undefined);
 
 export const lugarAgendaPublicaSchema = z.object({
   reservaPublicaHabilitada: z.boolean(),

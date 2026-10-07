@@ -174,6 +174,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
             initialBiografia={user.biografia}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
+            initialReservaPublicaSemanas={user.reservaPublicaSemanas}
             initialPublicSlug={user.publicSlug}
           />
         </TabsContent>
