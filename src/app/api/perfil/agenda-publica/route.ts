@@ -17,18 +17,20 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
   }
 
+  const { reservaPublicaHabilitada, reservaPublicaSemanas } = parsed.data;
+
   let publicSlug = user.publicSlug;
-  if (parsed.data.reservaPublicaHabilitada && !publicSlug) {
+  if (reservaPublicaHabilitada && !publicSlug) {
     publicSlug = await generateUniquePublicSlug(user.nombre, user.apellido);
   }
 
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { reservaPublicaHabilitada: parsed.data.reservaPublicaHabilitada, publicSlug },
+    data: { reservaPublicaHabilitada, reservaPublicaSemanas, publicSlug },
   });
 
   // Al activar la agenda pública, todos los lugares arrancan con turnos online.
-  if (parsed.data.reservaPublicaHabilitada) {
+  if (reservaPublicaHabilitada) {
     await prisma.lugarDeTrabajo.updateMany({
       where: { userId: user.id, deletedAt: null },
       data: { reservaPublicaHabilitada: true },
@@ -37,6 +39,7 @@ export async function PATCH(request: NextRequest) {
 
   return NextResponse.json({
     reservaPublicaHabilitada: updated.reservaPublicaHabilitada,
+    reservaPublicaSemanas: updated.reservaPublicaSemanas,
     publicSlug: updated.publicSlug,
   });
 }

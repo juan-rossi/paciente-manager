@@ -5,8 +5,6 @@ import { startOfDayBA, formatDateParamBA } from "@/lib/timezone";
 import { isRangoBloqueado } from "@/lib/bloqueo-horario";
 import { getAperturasDelDia, getAperturasDelHorizonte } from "@/lib/horario-excepcional";
 
-const HORIZONTE_DIAS_DEFAULT = 14;
-
 function addDays(date: Date, amount: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + amount);
@@ -54,10 +52,11 @@ export type DisponibilidadDia = {
 // arma la disponibilidad de cada día en memoria a partir de la grilla real
 // generada por `generarSlots`. No expone nada de los turnos existentes más
 // que su horario -- ni nombre, ni teléfono, ni DNI.
+// El horizonte lo elige el médico en "Agenda pública" (Mi perfil).
 export async function getDisponibilidadPublica(
-  doctor: { id: string; slotDurationMinutes: number },
-  horizonteDias: number = HORIZONTE_DIAS_DEFAULT
+  doctor: { id: string; slotDurationMinutes: number; reservaPublicaSemanas: number }
 ): Promise<DisponibilidadDia[]> {
+  const horizonteDias = doctor.reservaPublicaSemanas * 7;
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
   const lugaresReservables = await getLugaresReservables(doctor.id);
 
@@ -113,9 +112,14 @@ export async function getDisponibilidadPublica(
 // usa para completar el `lugarId` del turno del lado del server, nunca
 // confiando en lo que mande el cliente.
 export async function buscarSlotValido(
-  doctor: { id: string; slotDurationMinutes: number },
+  doctor: { id: string; slotDurationMinutes: number; reservaPublicaSemanas: number },
   inicio: Date
 ): Promise<{ inicio: Date; fin: Date; lugarId: string } | null> {
+  // Fuera del horizonte que ve el paciente tampoco se puede reservar (mismo
+  // límite que `getDisponibilidadPublica`, del lado del server).
+  const hasta = addDays(startOfDayBA(new Date()), doctor.reservaPublicaSemanas * 7);
+  if (inicio.getTime() >= hasta.getTime()) return null;
+
   const blocks = await prisma.workScheduleBlock.findMany({ where: { userId: doctor.id } });
   const aperturasDelDia = await getAperturasDelDia(doctor.id, inicio);
   const slots = generarSlots(startOfDayBA(inicio), blocks, doctor.slotDurationMinutes, aperturasDelDia);
