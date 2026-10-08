@@ -55,11 +55,14 @@ export function VisibilidadSettings({
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
   const sinPracticas = lugares.length === 0;
+  // Con un solo lugar no hay nada que elegir: ni el listado de lugares visibles
+  // ni un link por lugar.
+  const variosLugares = lugares.length > 1;
   // Lugares que se muestran en el perfil público -- se guardan junto con el
   // resto de la información pública (botón "Guardar cambios"), a diferencia
   // de la agenda.
   const [lugaresVisibles, setLugaresVisibles] = useState<string[]>(() =>
-    lugares.filter((l) => l.perfilVisible).map((l) => l.id)
+    lugares.filter((l) => l.perfilVisible).map((l) => l.id),
   );
   const sinLugaresVisibles = !sinPracticas && lugaresVisibles.length === 0;
 
@@ -70,7 +73,9 @@ export function VisibilidadSettings({
   }
 
   function toggleLugarVisible(id: string, checked: boolean) {
-    const next = checked ? [...lugaresVisibles, id] : lugaresVisibles.filter((x) => x !== id);
+    const next = checked
+      ? [...lugaresVisibles, id]
+      : lugaresVisibles.filter((x) => x !== id);
     setLugaresVisibles(next);
     // Sin ningún lugar visible el perfil no tiene qué mostrar: se apaga el principal.
     if (next.length === 0) setPerfilPublico(false);
@@ -87,28 +92,35 @@ export function VisibilidadSettings({
     biografia,
     lugaresVisibles: [...lugaresVisibles].sort(),
   });
-  const [visibilidadGuardada, setVisibilidadGuardada] = useState(visibilidadSnapshot);
+  const [visibilidadGuardada, setVisibilidadGuardada] =
+    useState(visibilidadSnapshot);
   const hayCambios = visibilidadSnapshot !== visibilidadGuardada;
 
   const [reservaPublicaHabilitada, setReservaPublicaHabilitada] = useState(
-    initialReservaPublicaHabilitada
+    initialReservaPublicaHabilitada,
   );
-  const [reservaPublicaSemanas, setReservaPublicaSemanas] = useState(initialReservaPublicaSemanas);
+  const [reservaPublicaSemanas, setReservaPublicaSemanas] = useState(
+    initialReservaPublicaSemanas,
+  );
   const [publicSlug, setPublicSlug] = useState(initialPublicSlug);
   const [agendaPublicaSaving, setAgendaPublicaSaving] = useState(false);
-  const [agendaPublicaError, setAgendaPublicaError] = useState<string | null>(null);
+  const [agendaPublicaError, setAgendaPublicaError] = useState<string | null>(
+    null,
+  );
   // Qué link se acaba de copiar (`"general"` o el id de un lugar), para
   // mostrar "¡Copiado!" solo en ese botón.
   const [copiado, setCopiado] = useState<string | null>(null);
   // Turnos online por lugar -- se guardan al instante, como el switch general.
-  const [reservaPorLugar, setReservaPorLugar] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(lugares.map((l) => [l.id, l.reservaPublicaHabilitada]))
+  const [reservaPorLugar, setReservaPorLugar] = useState<
+    Record<string, boolean>
+  >(() =>
+    Object.fromEntries(lugares.map((l) => [l.id, l.reservaPublicaHabilitada])),
   );
-  const [lugarAgendaSaving, setLugarAgendaSaving] = useState<string | null>(null);
+  const [lugarAgendaSaving, setLugarAgendaSaving] = useState<string | null>(
+    null,
+  );
   // Sin ningún lugar con horarios no hay turnos que ofrecer: los links no sirven.
   const sinLugaresConHorarios = !lugares.some((l) => l.tieneHorarios);
-  // Con un solo lugar no hay nada que elegir: alcanza con el link general.
-  const variosLugares = lugares.length > 1;
 
   async function handleGuardar() {
     setError(null);
@@ -154,7 +166,9 @@ export function VisibilidadSettings({
       setReservaPublicaHabilitada(data.reservaPublicaHabilitada);
       setPublicSlug(data.publicSlug);
       if (data.reservaPublicaHabilitada) {
-        setReservaPorLugar(Object.fromEntries(lugares.map((l) => [l.id, true])));
+        setReservaPorLugar(
+          Object.fromEntries(lugares.map((l) => [l.id, true])),
+        );
         router.refresh();
       }
     } catch {
@@ -196,7 +210,7 @@ export function VisibilidadSettings({
   // Aires para que server y cliente rendericen lo mismo.
   const [hoy] = useState(() => Date.now());
   const fechaLimiteReserva = new Date(
-    hoy + (reservaPublicaSemanas * 7 - 1) * 24 * 60 * 60 * 1000
+    hoy + (reservaPublicaSemanas * 7 - 1) * 24 * 60 * 60 * 1000,
   ).toLocaleDateString("es-AR", {
     weekday: "long",
     day: "numeric",
@@ -214,7 +228,9 @@ export function VisibilidadSettings({
     setOrigin(window.location.origin);
   }, []);
 
-  const publicLink = publicSlug ? `${origin ?? "semio360.com"}/directorio/${publicSlug}` : null;
+  const publicLink = publicSlug
+    ? `${origin ?? "semio360.com"}/directorio/${publicSlug}`
+    : null;
 
   async function handleToggleReservaLugar(lugarId: string, checked: boolean) {
     const previous = reservaPorLugar[lugarId];
@@ -222,11 +238,14 @@ export function VisibilidadSettings({
     setLugarAgendaSaving(lugarId);
     setAgendaPublicaError(null);
     try {
-      const response = await fetch(`/api/lugares-trabajo/${lugarId}/agenda-publica`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reservaPublicaHabilitada: checked }),
-      });
+      const response = await fetch(
+        `/api/lugares-trabajo/${lugarId}/agenda-publica`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservaPublicaHabilitada: checked }),
+        },
+      );
       const data = await response.json();
       if (!response.ok) {
         setReservaPorLugar((prev) => ({ ...prev, [lugarId]: previous }));
@@ -235,7 +254,7 @@ export function VisibilidadSettings({
       }
       // Sin ningún lugar con turnos online, la agenda pública no tiene sentido.
       const quedaAlguno = lugares.some((l) =>
-        l.id === lugarId ? checked : (reservaPorLugar[l.id] ?? false)
+        l.id === lugarId ? checked : (reservaPorLugar[l.id] ?? false),
       );
       if (!checked && !quedaAlguno && reservaPublicaHabilitada) {
         await handleToggleReservaPublica(false);
@@ -267,10 +286,14 @@ export function VisibilidadSettings({
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold">Perfil público</span>
             <p className="max-w-md text-xs text-muted-foreground">
-              Aparecerá en el directorio público de Semio360 con los datos de tus prácticas.
+              Aparecerá en el directorio público de Semio360 con los datos de
+              tus prácticas.
             </p>
           </div>
-          <Switch checked={perfilPublico} onCheckedChange={togglePerfilPublico} />
+          <Switch
+            checked={perfilPublico}
+            onCheckedChange={togglePerfilPublico}
+          />
         </div>
 
         {perfilPublico && (
@@ -282,9 +305,12 @@ export function VisibilidadSettings({
               >
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
                 <div className="flex min-w-48 flex-1 flex-col gap-0.5">
-                  <span className="text-sm font-semibold">Tu perfil todavía no es público</span>
+                  <span className="text-sm font-semibold">
+                    Tu perfil todavía no es público
+                  </span>
                   <span className="text-xs">
-                    No aparecerá en el directorio hasta que configures tus prácticas.
+                    No aparecerá en el directorio hasta que configures tus
+                    prácticas.
                   </span>
                 </div>
                 <Button
@@ -297,53 +323,60 @@ export function VisibilidadSettings({
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                    Lugares visibles en tu perfil
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => irAConfiguracionTab("practica")}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    Editar prácticas
-                  </button>
+              variosLugares && (
+                <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                      Lugares visibles en tu perfil
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => irAConfiguracionTab("practica")}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Editar prácticas
+                    </button>
+                  </div>
+                  <ul className="flex flex-col divide-y divide-border/60">
+                    {lugares.map((lugar) => {
+                      const visible = lugaresVisibles.includes(lugar.id);
+                      return (
+                        <li
+                          key={lugar.id}
+                          className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                        >
+                          <div className="flex min-w-0 flex-col gap-0.5">
+                            <span
+                              className={cn(
+                                "text-sm font-medium",
+                                !visible && "text-muted-foreground",
+                              )}
+                            >
+                              {lugar.nombre ?? "Consulta particular"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {lugar.direccion} · {lugar.telefono}
+                            </span>
+                          </div>
+                          <Switch
+                            checked={visible}
+                            onCheckedChange={(checked) =>
+                              toggleLugarVisible(lugar.id, checked)
+                            }
+                            aria-label={`Mostrar ${lugar.nombre ?? "Consulta particular"} en el perfil`}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {sinLugaresVisibles && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Ningún lugar está visible: tu perfil no aparecerá en el
+                      directorio hasta que muestres al menos uno.
+                    </p>
+                  )}
                 </div>
-                <ul className="flex flex-col divide-y divide-border/60">
-                  {lugares.map((lugar) => {
-                    const visible = lugaresVisibles.includes(lugar.id);
-                    return (
-                      <li
-                        key={lugar.id}
-                        className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
-                      >
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                          <span
-                            className={cn("text-sm font-medium", !visible && "text-muted-foreground")}
-                          >
-                            {lugar.nombre ?? "Consulta particular"}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {lugar.direccion} · {lugar.telefono}
-                          </span>
-                        </div>
-                        <Switch
-                          checked={visible}
-                          onCheckedChange={(checked) => toggleLugarVisible(lugar.id, checked)}
-                          aria-label={`Mostrar ${lugar.nombre ?? "Consulta particular"} en el perfil`}
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-                {sinLugaresVisibles && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Ningún lugar está visible: tu perfil no aparecerá en el directorio hasta que
-                    muestres al menos uno.
-                  </p>
-                )}
-              </div>
+              )
             )}
 
             <div className="flex flex-col gap-1.5 mt-2">
@@ -360,7 +393,11 @@ export function VisibilidadSettings({
 
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end border-t border-dashed border-border pt-3">
-          <Button type="button" onClick={handleGuardar} disabled={saving || !hayCambios}>
+          <Button
+            type="button"
+            onClick={handleGuardar}
+            disabled={saving || !hayCambios}
+          >
             {saving ? "Guardando..." : "Guardar cambios"}
           </Button>
         </div>
@@ -369,10 +406,12 @@ export function VisibilidadSettings({
       <SettingsSection title="Agenda pública" icon={CalendarDays}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-semibold">Permitir que cualquiera reserve un turno</span>
+            <span className="text-sm font-semibold">
+              Permitir que cualquiera reserve un turno
+            </span>
             <p className="max-w-md text-xs text-muted-foreground">
-              Los visitantes podrán agendar un turno desde tu link público, sin necesidad de
-              contactarte.
+              Los visitantes podrán agendar un turno desde tu link público, sin
+              necesidad de contactarte.
             </p>
           </div>
           <Switch
@@ -381,7 +420,9 @@ export function VisibilidadSettings({
             disabled={agendaPublicaSaving}
           />
         </div>
-        {agendaPublicaError && <p className="text-xs text-destructive">{agendaPublicaError}</p>}
+        {agendaPublicaError && (
+          <p className="text-xs text-destructive">{agendaPublicaError}</p>
+        )}
 
         {reservaPublicaHabilitada && sinLugaresConHorarios && (
           <div
@@ -390,10 +431,12 @@ export function VisibilidadSettings({
           >
             <TriangleAlert className="mt-0.5 size-4 shrink-0" />
             <div className="flex min-w-48 flex-1 flex-col gap-0.5">
-              <span className="text-sm font-semibold">Tu agenda todavía no está disponible</span>
+              <span className="text-sm font-semibold">
+                Tu agenda todavía no está disponible
+              </span>
               <span className="text-xs">
-                Nadie podrá reservar turnos hasta que configures al menos un lugar de atención con
-                horarios.
+                Nadie podrá reservar turnos hasta que configures al menos un
+                lugar de atención con horarios.
               </span>
             </div>
             <Button
@@ -407,68 +450,78 @@ export function VisibilidadSettings({
           </div>
         )}
 
-        {reservaPublicaHabilitada && !sinLugaresConHorarios && variosLugares && (
-          <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
-            <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-              Lugares con turnos online
-            </span>
-            <ul className="flex flex-col divide-y divide-border/60">
-              {lugares.map((lugar) => {
-                const habilitado = reservaPorLugar[lugar.id] ?? false;
-                const nombreLugar = lugar.nombre ?? "Consulta particular";
-                const linkLugar =
-                  publicSlug && lugar.publicSlug
-                    ? `${origin ?? "semio360.com"}/directorio/${publicSlug}/${lugar.publicSlug}`
-                    : null;
-                return (
-                  <li key={lugar.id} className="flex flex-col gap-2 py-2.5 first:pt-0 last:pb-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <span
-                          className={cn("text-sm font-medium", !habilitado && "text-muted-foreground")}
-                        >
-                          {nombreLugar}
-                        </span>
-                        {!habilitado && (
-                          <span className="text-xs text-muted-foreground">
-                            Sin turnos online. No tiene link.
+        {reservaPublicaHabilitada &&
+          !sinLugaresConHorarios &&
+          variosLugares && (
+            <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+              <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                Lugares con turnos online
+              </span>
+              <ul className="flex flex-col divide-y divide-border/60">
+                {lugares.map((lugar) => {
+                  const habilitado = reservaPorLugar[lugar.id] ?? false;
+                  const nombreLugar = lugar.nombre ?? "Consulta particular";
+                  const linkLugar =
+                    publicSlug && lugar.publicSlug
+                      ? `${origin ?? "semio360.com"}/directorio/${publicSlug}/${lugar.publicSlug}`
+                      : null;
+                  return (
+                    <li
+                      key={lugar.id}
+                      className="flex flex-col gap-2 py-2.5 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              !habilitado && "text-muted-foreground",
+                            )}
+                          >
+                            {nombreLugar}
                           </span>
-                        )}
-                      </div>
-                      <Switch
-                        checked={habilitado}
-                        onCheckedChange={(checked) => handleToggleReservaLugar(lugar.id, checked)}
-                        disabled={lugarAgendaSaving === lugar.id}
-                        aria-label={`Turnos online en ${nombreLugar}`}
-                      />
-                    </div>
-                    {habilitado && linkLugar && (
-                      <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 py-1.5 pr-1.5 pl-3">
-                        <Link2 className="size-4 shrink-0 text-primary" />
-                        <span className="flex-1 truncate font-mono text-xs text-primary">
-                          {linkLugar}
-                        </span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => handleCopiar(lugar.id, linkLugar)}
-                        >
-                          {copiado === lugar.id ? "¡Copiado!" : "Copiar"}
-                        </Button>
-                        <CompartirAgendaButton
-                          url={linkLugar}
-                          nombreMedico={nombreMedico}
-                          lugarNombre={lugar.nombre}
-                          variant="outline"
+                          {!habilitado && (
+                            <span className="text-xs text-muted-foreground">
+                              Sin turnos online. No tiene link.
+                            </span>
+                          )}
+                        </div>
+                        <Switch
+                          checked={habilitado}
+                          onCheckedChange={(checked) =>
+                            handleToggleReservaLugar(lugar.id, checked)
+                          }
+                          disabled={lugarAgendaSaving === lugar.id}
+                          aria-label={`Turnos online en ${nombreLugar}`}
                         />
                       </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+                      {habilitado && linkLugar && (
+                        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 py-1.5 pr-1.5 pl-3">
+                          <Link2 className="size-4 shrink-0 text-primary" />
+                          <span className="flex-1 truncate font-mono text-xs text-primary">
+                            {linkLugar}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleCopiar(lugar.id, linkLugar)}
+                          >
+                            {copiado === lugar.id ? "¡Copiado!" : "Copiar"}
+                          </Button>
+                          <CompartirAgendaButton
+                            url={linkLugar}
+                            nombreMedico={nombreMedico}
+                            lugarNombre={lugar.nombre}
+                            variant="outline"
+                          />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
         {reservaPublicaHabilitada && !sinLugaresConHorarios && (
           <div className="flex flex-col gap-2">
@@ -498,7 +551,7 @@ export function VisibilidadSettings({
                       "rounded-md border px-3 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-default",
                       activo
                         ? "border-border bg-card font-semibold text-foreground shadow"
-                        : "border-transparent font-medium text-muted-foreground hover:text-foreground"
+                        : "border-transparent font-medium text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {semanas === 1 ? "1 semana" : `${semanas} semanas`}
@@ -506,7 +559,10 @@ export function VisibilidadSettings({
                 );
               })}
             </div>
-            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+            <p
+              className="text-xs text-muted-foreground"
+              suppressHydrationWarning
+            >
               Hoy podrían reservar hasta el {fechaLimiteReserva}.
             </p>
           </div>
@@ -517,7 +573,9 @@ export function VisibilidadSettings({
             <span className="text-sm font-semibold">Link general</span>
             <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
               <Link2 className="size-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate font-mono text-sm">{publicLink}</span>
+              <span className="flex-1 truncate font-mono text-sm">
+                {publicLink}
+              </span>
               <Button
                 type="button"
                 size="sm"
@@ -526,7 +584,10 @@ export function VisibilidadSettings({
               >
                 {copiado === "general" ? "¡Copiado!" : "Copiar"}
               </Button>
-              <CompartirAgendaButton url={publicLink} nombreMedico={nombreMedico} />
+              <CompartirAgendaButton
+                url={publicLink}
+                nombreMedico={nombreMedico}
+              />
             </div>
             <p className="text-xs text-muted-foreground">
               {variosLugares

@@ -453,7 +453,10 @@ export function EvolucionTab({
                   <Textarea
                     ref={textareaRef}
                     rows={10}
-                    className="min-h-[15rem]"
+                    // Crece con el texto (field-sizing-content) pero con tope:
+                    // pasado el 50% del alto de pantalla scrollea el textarea,
+                    // así el botón de guardar nunca queda fuera del viewport.
+                    className="max-h-[50dvh] min-h-[15rem] overflow-y-auto"
                     value={contenido}
                     onChange={(e) => setContenido(e.target.value)}
                     disabled={resumen.resumiendo}

@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Globe,
   HeartHandshake,
+  PenLine,
   Search,
   Stethoscope,
   UserPlus,
@@ -53,6 +54,9 @@ type Props = {
   // Médico con prácticas configuradas pero perfil no público: se suma un
   // acceso rápido que lo invita a publicarlo (Mi perfil).
   sugerirPerfilPublico?: boolean;
+  // Médico con perfil ya público pero sin biografía: acceso rápido que lo
+  // invita a completarla (la edita en la pestaña Visibilidad).
+  sugerirCompletarBiografia?: boolean;
   // Médico sin ninguna prepaga/obra social cargada: acceso rápido a Mi perfil.
   sugerirCargarPrepagas?: boolean;
   // Cambia a la pestaña "Buscar paciente" -- la maneja el padre porque las
@@ -67,6 +71,7 @@ export function TurnosPorDia({
   sinPracticas = false,
   puedeConfigurarPracticas = false,
   sugerirPerfilPublico = false,
+  sugerirCompletarBiografia = false,
   sugerirCargarPrepagas = false,
   onBuscarPaciente,
 }: Props) {
@@ -294,6 +299,23 @@ export function TurnosPorDia({
                       <span className="text-sm font-semibold">Publicá tu perfil</span>
                       <span className="text-xs text-muted-foreground">
                         Que los pacientes te encuentren y reserven turno online
+                      </span>
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                )}
+                {sugerirCompletarBiografia && (
+                  <Link
+                    href="/configuracion?tab=visibilidad#perfil-bio"
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent/40"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                      <PenLine className="size-4 text-primary" />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-sm font-semibold">Completá tu biografía</span>
+                      <span className="text-xs text-muted-foreground">
+                        Contales a tus pacientes sobre tu formación y experiencia
                       </span>
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

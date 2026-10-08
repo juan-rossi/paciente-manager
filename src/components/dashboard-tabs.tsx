@@ -18,6 +18,7 @@ type Props = {
   sinPracticas: boolean;
   puedeConfigurarPracticas: boolean;
   sugerirPerfilPublico: boolean;
+  sugerirCompletarBiografia: boolean;
   sugerirCargarPrepagas: boolean;
 };
 
@@ -33,6 +34,7 @@ export function DashboardTabs({
   sinPracticas,
   puedeConfigurarPracticas,
   sugerirPerfilPublico,
+  sugerirCompletarBiografia,
   sugerirCargarPrepagas,
 }: Props) {
   const [tab, setTab] = useState("turnos");
@@ -79,6 +81,7 @@ export function DashboardTabs({
           sinPracticas={sinPracticas}
           puedeConfigurarPracticas={puedeConfigurarPracticas}
           sugerirPerfilPublico={sugerirPerfilPublico}
+          sugerirCompletarBiografia={sugerirCompletarBiografia}
           sugerirCargarPrepagas={sugerirCargarPrepagas}
           onBuscarPaciente={() => setTab("buscar")}
         />
