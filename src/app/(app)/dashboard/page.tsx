@@ -70,6 +70,7 @@ export default async function DashboardPage() {
         sinPracticas={totalPracticas === 0}
         puedeConfigurarPracticas={user.role === "DOCTOR"}
         sugerirPerfilPublico={user.role === "DOCTOR" && totalPracticas > 0 && !user.perfilPublico}
+        sugerirCompletarBiografia={user.role === "DOCTOR" && user.perfilPublico && !user.biografia?.trim()}
         sugerirCargarPrepagas={user.role === "DOCTOR" && totalPrepagas === 0}
       />
     </div>

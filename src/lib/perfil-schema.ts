@@ -16,23 +16,26 @@ const optionalString = z
   .optional()
   .transform((v) => (v && v.length > 0 ? v : null));
 
-// Lo único que se edita en "Información pública" es la biografía: el resto
-// (consultorio, dirección, teléfono, ciudad) se toma de las prácticas
-// (`LugarDeTrabajo`) del médico. Los campos equivalentes de `User` quedan como
-// legado y ya no se escriben desde acá.
 export const perfilSchema = z.object({
   tituloCortesia: tituloCortesiaSchema,
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
   apellido: z.string().trim().min(1, "El apellido es obligatorio."),
   especialidad: especialidadSchema,
   nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
+  // Ids del catálogo `Prepaga` con las que trabaja el médico.
+  prepagaIds: z.array(z.string()).max(500),
+});
+
+// "Información pública" (tab Visibilidad). Lo único que se edita a mano es la
+// biografía: el resto (consultorio, dirección, teléfono, ciudad) se toma de las
+// prácticas (`LugarDeTrabajo`) del médico. Los campos equivalentes de `User`
+// quedan como legado y ya no se escriben desde acá.
+export const visibilidadSchema = z.object({
   perfilPublico: z.boolean(),
   biografia: optionalString,
   // Ids de los lugares que se muestran en el perfil público; el resto queda
   // oculto (`LugarDeTrabajo.perfilVisible`).
   lugaresVisibles: z.array(z.string()),
-  // Ids del catálogo `Prepaga` con las que trabaja el médico.
-  prepagaIds: z.array(z.string()).max(500),
 });
 
 // Valores fijos (no un número libre) para el horizonte de la agenda pública.
