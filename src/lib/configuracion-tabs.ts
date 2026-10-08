@@ -3,6 +3,8 @@ export const CONFIGURACION_TABS = [
   "usuarios",
   "mensajeria",
   "perfil",
+  "visibilidad",
+  "seguridad",
   "plan",
   "datos",
 ] as const;

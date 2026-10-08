@@ -284,7 +284,7 @@ export function TurnosPorDia({
                 </button>
                 {sugerirPerfilPublico && (
                   <Link
-                    href="/configuracion?tab=perfil"
+                    href="/configuracion?tab=visibilidad"
                     className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent/40"
                   >
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">

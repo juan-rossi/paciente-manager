@@ -6,6 +6,8 @@ import {
   Check,
   ChevronDown,
   Database,
+  Eye,
+  Lock,
   MessageSquare,
   Sparkles,
   User,
@@ -33,6 +35,8 @@ export const CONFIGURACION_SECTIONS = [
     group: "Cuenta",
     items: [
       { value: "perfil" as const, label: "Mi perfil", icon: User },
+      { value: "visibilidad" as const, label: "Visibilidad", icon: Eye },
+      { value: "seguridad" as const, label: "Seguridad", icon: Lock },
       { value: "plan" as const, label: "Mi plan", icon: Sparkles },
       { value: "datos" as const, label: "Mis datos", icon: Database },
     ],

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Building2, Database, MessageSquare, Sparkles, User, Users } from "lucide-react";
+import { Building2, Database, Eye, Lock, MessageSquare, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
@@ -17,6 +17,8 @@ import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
+import { VisibilidadSettings } from "@/components/visibilidad-settings";
+import { SeguridadSettings } from "@/components/seguridad-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 
@@ -127,6 +129,14 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <User className="size-4" />
             Mi perfil
           </TabsTrigger>
+          <TabsTrigger value="visibilidad" className={navItemClass}>
+            <Eye className="size-4" />
+            Visibilidad
+          </TabsTrigger>
+          <TabsTrigger value="seguridad" className={navItemClass}>
+            <Lock className="size-4" />
+            Seguridad
+          </TabsTrigger>
           <TabsTrigger value="plan" className={navItemClass}>
             <Sparkles className="size-4" />
             Mi plan
@@ -158,25 +168,34 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
         </TabsContent>
         <TabsContent value="perfil" className="w-full">
           <MiPerfilSettings
-            email={user.email}
             initialFotoPerfilBase64={user.fotoPerfilBase64}
             initialTituloCortesia={user.tituloCortesia}
             initialNombre={user.nombre}
             initialApellido={user.apellido}
             initialEspecialidad={user.especialidad}
             initialNroMatricula={user.nroMatricula}
+            prepagas={prepagas}
+            initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
+          />
+        </TabsContent>
+        <TabsContent value="visibilidad" className="w-full">
+          <VisibilidadSettings
+            nombreMedico={[user.tituloCortesia, user.nombre, user.apellido]
+              .filter(Boolean)
+              .join(" ")}
             initialPerfilPublico={user.perfilPublico}
             lugares={lugares.map((l) => ({
               ...l,
               tieneHorarios: blocks.some((b) => b.lugarId === l.id),
             }))}
-            prepagas={prepagas}
-            initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
             initialBiografia={user.biografia}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
             initialReservaPublicaSemanas={user.reservaPublicaSemanas}
             initialPublicSlug={user.publicSlug}
           />
+        </TabsContent>
+        <TabsContent value="seguridad" className="w-full">
+          <SeguridadSettings email={user.email} />
         </TabsContent>
         <TabsContent value="plan" className="w-full">
           <PlanSettings
