@@ -46,7 +46,11 @@ export function LoginForm() {
       });
 
       if (!response || response.error) {
-        setError("Email o contraseña incorrectos.");
+        setError(
+          response?.code === "rate_limited"
+            ? "Demasiados intentos. Esperá unos minutos o restablecé tu contraseña."
+            : "Email o contraseña incorrectos."
+        );
         return;
       }
 

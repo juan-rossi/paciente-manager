@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import { TurnstileWidget } from "@/components/marketing/turnstile-widget";
 import {
   Select,
   SelectContent,
@@ -73,6 +74,15 @@ export function SignupForm() {
       : null,
   );
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  // Cada token de Turnstile sirve una sola vez: tras un intento fallido se
+  // remonta el widget (cambiando su `key`) para que genere uno nuevo.
+  const [turnstileKey, setTurnstileKey] = useState(0);
+
+  function renovarTurnstile() {
+    setTurnstileToken("");
+    setTurnstileKey((k) => k + 1);
+  }
   const aceptado = aceptaTerminos && declaracionProfesional;
   const beneficios = [
     planElegido === "PREMIUM"
@@ -112,6 +122,11 @@ export function SignupForm() {
       return;
     }
 
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Completá la verificación antes de continuar.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -129,12 +144,14 @@ export function SignupForm() {
           plan: planElegido,
           aceptaTerminos,
           declaracionProfesional,
+          turnstileToken,
         }),
       });
       const data = await response.json();
 
       if (!response.ok) {
         setError(data.error ?? "No se pudo crear la cuenta.");
+        renovarTurnstile();
         return;
       }
 
@@ -173,6 +190,7 @@ export function SignupForm() {
       router.refresh();
     } catch {
       setError("No se pudo conectar con el servidor.");
+      renovarTurnstile();
     } finally {
       setLoading(false);
     }
@@ -365,6 +383,7 @@ export function SignupForm() {
             </div>
           </div>
 
+          <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={loading || !aceptado}>
             {loading

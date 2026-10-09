@@ -13,6 +13,14 @@ import { TurnstileWidget } from "@/components/marketing/turnstile-widget";
 export function RecuperarForm({ emailInicial }: { emailInicial: string }) {
   const [email, setEmail] = useState(emailInicial);
   const [turnstileToken, setTurnstileToken] = useState("");
+  // Cada token de Turnstile sirve una sola vez: tras un intento fallido se
+  // remonta el widget (cambiando su `key`) para que genere uno nuevo.
+  const [turnstileKey, setTurnstileKey] = useState(0);
+
+  function renovarTurnstile() {
+    setTurnstileToken("");
+    setTurnstileKey((k) => k + 1);
+  }
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [enviadoA, setEnviadoA] = useState<string | null>(null);
@@ -36,11 +44,13 @@ export function RecuperarForm({ emailInicial }: { emailInicial: string }) {
       if (!response.ok) {
         const data = (await response.json().catch(() => null)) as { error?: string } | null;
         setError(data?.error ?? "No se pudo enviar el pedido.");
+        renovarTurnstile();
         return;
       }
       setEnviadoA(email.trim());
     } catch {
       setError("No se pudo conectar con el servidor.");
+      renovarTurnstile();
     } finally {
       setLoading(false);
     }
@@ -90,7 +100,7 @@ export function RecuperarForm({ emailInicial }: { emailInicial: string }) {
                 autoFocus
               />
             </div>
-            <TurnstileWidget onToken={setTurnstileToken} />
+            <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" disabled={loading} className="mt-2">
               {loading ? "Enviando..." : "Enviarme el link"}

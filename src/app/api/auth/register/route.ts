@@ -5,6 +5,9 @@ import { registerSchema } from "@/lib/register-schema";
 import { nuevaFechaFinTrial } from "@/lib/plan";
 import { TERMINOS_VERSION } from "@/lib/terminos";
 import { PAGOS_HABILITADOS } from "@/lib/pagos";
+import { getClientIp } from "@/lib/request-ip";
+import { rateLimitOk } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -13,6 +16,27 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const ip = getClientIp(request);
+  if (!(await rateLimitOk(ip, parsed.data.email, "registro"))) {
+    return NextResponse.json(
+      { error: "Demasiados intentos. Probá de nuevo más tarde." },
+      { status: 429 }
+    );
+  }
+
+  // `turnstileToken` no es un dato de la cuenta -- se lee aparte, igual que
+  // en la reserva pública.
+  const turnstileToken =
+    body && typeof body === "object" && typeof (body as Record<string, unknown>).turnstileToken === "string"
+      ? ((body as Record<string, unknown>).turnstileToken as string)
+      : "";
+  if (!(await verifyTurnstileToken(turnstileToken, ip))) {
+    return NextResponse.json(
+      { error: "No pudimos verificar que sos una persona. Volvé a intentar." },
       { status: 400 }
     );
   }

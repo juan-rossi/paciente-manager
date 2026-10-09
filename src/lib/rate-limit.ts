@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 
-// "recuperar" (olvidé mi contraseña) usa el email pedido como `slug`: así
-// el límite por "slug" frena que le llenen la casilla de mails a una
-// persona puntual aunque el atacante rote de IP.
-type Ruta = "reservar" | "disponibilidad" | "cancelar" | "recuperar";
+// "recuperar" (olvidé mi contraseña), "login" y "registro" usan el email
+// como `slug`: así el límite por "slug" frena un ataque contra una cuenta
+// puntual (adivinar su contraseña, llenarle la casilla de mails) aunque el
+// atacante rote de IP.
+type Ruta = "reservar" | "disponibilidad" | "cancelar" | "recuperar" | "login" | "registro";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -15,6 +16,12 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   disponibilidad: { porIp: 60, porSlug: 300, ventanaMinutos: 15 },
   cancelar: { porIp: 10, porSlug: 60, ventanaMinutos: 15 },
   recuperar: { porIp: 5, porSlug: 3, ventanaMinutos: 15 },
+  // Por IP es más generoso que por email porque en un consultorio varias
+  // personas (médico + secretarias) entran desde la misma IP. El límite por
+  // email cuenta todos los intentos, no solo los fallidos: un usuario real
+  // no necesita 8 logins en 15 minutos.
+  login: { porIp: 20, porSlug: 8, ventanaMinutos: 15 },
+  registro: { porIp: 5, porSlug: 3, ventanaMinutos: 60 },
 };
 
 // Rate limiting de la reserva pública del directorio, sobre Postgres (ver
