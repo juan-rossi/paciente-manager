@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { registerSchema } from "@/lib/register-schema";
@@ -8,6 +8,8 @@ import { PAGOS_HABILITADOS } from "@/lib/pagos";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { enviarMailBienvenida } from "@/lib/bienvenida-email";
+import { getSiteUrl } from "@/lib/site-url";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
     const esPremium = PAGOS_HABILITADOS && parsed.data.plan === "PREMIUM";
     const ahora = new Date();
 
-    await prisma.user.create({
+    const creado = await prisma.user.create({
       data: {
         email: parsed.data.email,
         nombre: parsed.data.nombre,
@@ -72,7 +74,13 @@ export async function POST(request: NextRequest) {
         plan: esPremium ? "PREMIUM" : "BASICA",
         trialEndsAt: esPremium ? null : nuevaFechaFinTrial(),
       },
+      select: { email: true, nombre: true, apellido: true, tituloCortesia: true, plan: true },
     });
+
+    // Igual que en /api/auth/recuperar: en producción los links del mail
+    // salen de NEXT_PUBLIC_SITE_URL, nunca del header Host.
+    const baseUrl = process.env.NODE_ENV === "production" ? getSiteUrl() : request.nextUrl.origin;
+    after(() => enviarMailBienvenida(creado, baseUrl));
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
