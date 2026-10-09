@@ -224,6 +224,14 @@ model User {
   // cuando este flag está en true, pero a nivel de schema quedan nullable --
   // mismo criterio que `tituloCortesia`/`especialidad`.
   perfilPublico            Boolean         @default(false)
+  // Redes del médico para el perfil público -- solo se muestran con
+  // `perfilPublico` activo. Se guardan ya normalizadas como URL completa
+  // (ver `normalizarRedSocial` en src/lib/redes-sociales.ts).
+  whatsappComunidadUrl     String?
+  instagramUrl             String?
+  facebookUrl              String?
+  tiktokUrl                String?
+  youtubeUrl               String?
   // Habilita que cualquier visitante reserve un turno desde el link
   // público (`publicSlug`). Independiente de `perfilPublico`.
   reservaPublicaHabilitada Boolean         @default(false)

@@ -5,6 +5,7 @@ import { getDoctorPublicoPorSlug } from "@/lib/directorio";
 import { getTurnoVigenteParaPerfil } from "@/lib/turno-cancelacion-publica";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { descripcionPerfil, nombreDoctor, perfilJsonLd } from "@/lib/seo";
+import { redesDeUsuario } from "@/lib/redes-sociales";
 import { JsonLd } from "@/components/seo/json-ld";
 import { PublicBookingCalendar } from "@/components/marketing/public-booking-calendar";
 import {
@@ -123,6 +124,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
         fotoUrl: doctor.fotoUrl,
         prepagas,
         lugares: lugaresVisibles,
+        redes: redesDeUsuario(doctor),
       })
     : null;
 
@@ -133,6 +135,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       doctor={doctor}
       ciudad={ciudad}
       biografia={doctor.perfilPublico ? doctor.biografia : null}
+      redes={doctor.perfilPublico ? redesDeUsuario(doctor) : null}
       prepagas={prepagas}
       apilado={!hayCalendario}
     >

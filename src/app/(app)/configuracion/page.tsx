@@ -18,6 +18,7 @@ import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { VisibilidadSettings } from "@/components/visibilidad-settings";
+import { redesDeUsuario } from "@/lib/redes-sociales";
 import { SeguridadSettings } from "@/components/seguridad-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
@@ -189,6 +190,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               tieneHorarios: blocks.some((b) => b.lugarId === l.id),
             }))}
             initialBiografia={user.biografia}
+            initialRedes={redesDeUsuario(user)}
             initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
             initialReservaPublicaSemanas={user.reservaPublicaSemanas}
             initialPublicSlug={user.publicSlug}

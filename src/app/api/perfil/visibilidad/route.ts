@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { visibilidadSchema } from "@/lib/perfil-schema";
 import { generateUniquePublicSlug } from "@/lib/public-slug";
+import { RED_SOCIAL_CAMPO, REDES_SOCIALES, redesDeUsuario } from "@/lib/redes-sociales";
 
 export async function PATCH(request: NextRequest) {
   const { user, response } = await requireDoctor();
@@ -28,12 +29,16 @@ export async function PATCH(request: NextRequest) {
       : user.publicSlug;
 
   const visibles = parsed.data.lugaresVisibles;
+  const redes = Object.fromEntries(
+    REDES_SOCIALES.map((red) => [RED_SOCIAL_CAMPO[red], parsed.data.redes[red]])
+  );
   const [updated] = await prisma.$transaction([
     prisma.user.update({
       where: { id: user.id },
       data: {
         perfilPublico: parsed.data.perfilPublico,
         biografia: parsed.data.biografia,
+        ...redes,
         publicSlug,
       },
     }),
@@ -52,6 +57,8 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json({
     perfilPublico: updated.perfilPublico,
     biografia: updated.biografia,
+    // Ya normalizadas: el form las reemplaza para mostrar lo que se guardó.
+    redes: redesDeUsuario(updated),
     publicSlug: updated.publicSlug,
   });
 }

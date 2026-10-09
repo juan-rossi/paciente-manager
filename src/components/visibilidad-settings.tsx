@@ -2,16 +2,43 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Globe2, Link2, TriangleAlert } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Copy,
+  Globe2,
+  Layers,
+  Link2,
+  Loader2,
+  Save,
+  TriangleAlert,
+} from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
 import { CompartirAgendaButton } from "@/components/compartir-agenda-button";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { RESERVA_PUBLICA_SEMANAS_OPCIONES } from "@/lib/perfil-schema";
+import {
+  normalizarRedSocial,
+  RED_SOCIAL_LABELS,
+  RED_SOCIAL_PLACEHOLDERS,
+  type RedesSociales,
+  type RedSocial,
+} from "@/lib/redes-sociales";
+import { RED_SOCIAL_ICONS } from "@/components/redes-sociales-icons";
+
+// Orden en el form: primero las redes más usadas, la comunidad de WhatsApp
+// en el medio (en el perfil público va destacada, ver PerfilShell).
+const REDES_FORM: RedSocial[] = ["instagram", "facebook", "whatsappComunidad", "tiktok", "youtube"];
+
+function redesATexto(redes: RedesSociales): Record<RedSocial, string> {
+  return Object.fromEntries(REDES_FORM.map((red) => [red, redes[red] ?? ""])) as Record<RedSocial, string>;
+}
 
 type LugarResumen = {
   id: string;
@@ -36,6 +63,7 @@ type Props = {
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
   lugares: LugarResumen[];
   initialBiografia: string | null;
+  initialRedes: RedesSociales;
   initialReservaPublicaHabilitada: boolean;
   initialReservaPublicaSemanas: number;
   initialPublicSlug: string | null;
@@ -46,6 +74,7 @@ export function VisibilidadSettings({
   initialPerfilPublico,
   lugares,
   initialBiografia,
+  initialRedes,
   initialReservaPublicaHabilitada,
   initialReservaPublicaSemanas,
   initialPublicSlug,
@@ -54,6 +83,17 @@ export function VisibilidadSettings({
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
+  const [redes, setRedes] = useState(() => redesATexto(initialRedes));
+  // El error de una red se muestra recién al salir del campo (mientras se
+  // escribe un link, a medias, siempre es inválido).
+  const [redesTocadas, setRedesTocadas] = useState<RedSocial[]>([]);
+  const erroresRedes = Object.fromEntries(
+    REDES_FORM.map((red) => {
+      const resultado = normalizarRedSocial(red, redes[red]);
+      return [red, resultado.ok ? null : resultado.error];
+    }),
+  ) as Record<RedSocial, string | null>;
+  const hayRedesInvalidas = REDES_FORM.some((red) => erroresRedes[red]);
   const sinPracticas = lugares.length === 0;
   // Con un solo lugar no hay nada que elegir: ni el listado de lugares visibles
   // ni un link por lugar.
@@ -91,6 +131,7 @@ export function VisibilidadSettings({
     perfilPublico,
     biografia,
     lugaresVisibles: [...lugaresVisibles].sort(),
+    redes,
   });
   const [visibilidadGuardada, setVisibilidadGuardada] =
     useState(visibilidadSnapshot);
@@ -124,19 +165,29 @@ export function VisibilidadSettings({
 
   async function handleGuardar() {
     setError(null);
+    if (hayRedesInvalidas) {
+      setRedesTocadas(REDES_FORM);
+      return;
+    }
     setSaving(true);
     try {
       const response = await fetch("/api/perfil/visibilidad", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ perfilPublico, biografia, lugaresVisibles }),
+        body: JSON.stringify({ perfilPublico, biografia, lugaresVisibles, redes }),
       });
       const data = await response.json();
       if (!response.ok) {
         setError(data.error ?? "No se pudo guardar la información pública.");
         return;
       }
-      setVisibilidadGuardada(visibilidadSnapshot);
+      // El server devuelve las redes normalizadas ("@usuario" → URL completa):
+      // se muestran así y el snapshot guardado pasa a ser ese.
+      const redesGuardadas = redesATexto(data.redes);
+      setRedes(redesGuardadas);
+      setVisibilidadGuardada(
+        JSON.stringify({ ...JSON.parse(visibilidadSnapshot), redes: redesGuardadas }),
+      );
       setPublicSlug(data.publicSlug);
       router.refresh();
     } catch {
@@ -388,6 +439,50 @@ export function VisibilidadSettings({
                 onChange={(e) => setBiografia(e.target.value)}
               />
             </div>
+
+            <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                <span className="text-sm font-semibold">Redes y comunidad</span>
+                <span className="text-xs text-muted-foreground">
+                  Opcional · completá solo las que uses
+                </span>
+              </div>
+              {REDES_FORM.map((red) => {
+                const Icon = RED_SOCIAL_ICONS[red];
+                const errorRed = redesTocadas.includes(red) ? erroresRedes[red] : null;
+                const id = `perfil-red-${red}`;
+                return (
+                  <div key={red} className="flex flex-col gap-1">
+                    <div className="flex">
+                      <label
+                        htmlFor={id}
+                        className="flex w-32 shrink-0 items-center gap-1.5 rounded-l-lg border border-r-0 border-input bg-muted/60 px-2.5 text-xs font-semibold text-muted-foreground"
+                      >
+                        <Icon className="size-3.5 shrink-0" />
+                        {RED_SOCIAL_LABELS[red]}
+                      </label>
+                      <Input
+                        id={id}
+                        value={redes[red]}
+                        placeholder={RED_SOCIAL_PLACEHOLDERS[red]}
+                        aria-invalid={!!errorRed}
+                        aria-describedby={errorRed ? `${id}-error` : undefined}
+                        onChange={(e) => setRedes({ ...redes, [red]: e.target.value })}
+                        onBlur={() =>
+                          setRedesTocadas((prev) => (prev.includes(red) ? prev : [...prev, red]))
+                        }
+                        className="h-9 rounded-l-none"
+                      />
+                    </div>
+                    {errorRed && (
+                      <p id={`${id}-error`} className="text-xs text-destructive">
+                        {errorRed}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -398,6 +493,11 @@ export function VisibilidadSettings({
             onClick={handleGuardar}
             disabled={saving || !hayCambios}
           >
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Save className="size-4" />
+            )}
             {saving ? "Guardando..." : "Guardar cambios"}
           </Button>
         </div>
@@ -506,6 +606,11 @@ export function VisibilidadSettings({
                             size="sm"
                             onClick={() => handleCopiar(lugar.id, linkLugar)}
                           >
+                            {copiado === lugar.id ? (
+                              <Check className="size-4" />
+                            ) : (
+                              <Copy className="size-4" />
+                            )}
                             {copiado === lugar.id ? "¡Copiado!" : "Copiar"}
                           </Button>
                           <CompartirAgendaButton
@@ -570,23 +675,31 @@ export function VisibilidadSettings({
 
         {reservaPublicaHabilitada && !sinLugaresConHorarios && publicLink && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold">Link general</span>
-            <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2">
-              <Link2 className="size-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate font-mono text-sm">
+            <div className="flex items-center gap-2">
+              <Layers className="size-4 shrink-0 text-primary" />
+              <span className="text-sm font-semibold">Link general</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 py-1.5 pr-1.5 pl-3">
+              <Link2 className="size-4 shrink-0 text-primary" />
+              <span className="flex-1 truncate font-mono text-xs text-primary">
                 {publicLink}
               </span>
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
                 onClick={() => handleCopiar("general", publicLink)}
               >
+                {copiado === "general" ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
                 {copiado === "general" ? "¡Copiado!" : "Copiar"}
               </Button>
               <CompartirAgendaButton
                 url={publicLink}
                 nombreMedico={nombreMedico}
+                variant="outline"
               />
             </div>
             <p className="text-xs text-muted-foreground">
