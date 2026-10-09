@@ -97,8 +97,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = dbUser.role as UserRole;
           token.perfilCompleto = dbUser.role !== "DOCTOR" || dbUser.nroMatricula.trim() !== "";
           token.isAdmin = dbUser.isAdmin;
+          token.sessionVersion = dbUser.sessionVersion;
         }
-      } else if (trigger === "update" && typeof token.userId === "string") {
+        return token;
+      }
+
+      // Sesión ya existente: si la cuenta restableció la contraseña después
+      // de este login (ver `sessionVersion` en el schema), el JWT queda
+      // invalidado -- devolver null hace que Auth.js borre la cookie. Los
+      // JWT emitidos antes de existir el campo no lo traen y cuentan como 0.
+      if (typeof token.userId === "string") {
+        const actual = await prisma.user.findUnique({
+          where: { id: token.userId },
+          select: { sessionVersion: true },
+        });
+        if (!actual || actual.sessionVersion !== (token.sessionVersion ?? 0)) return null;
+      }
+
+      if (trigger === "update" && typeof token.userId === "string") {
         // La sesión JWT no se refresca sola en cada request -- sin esto,
         // `perfilCompleto` queda pegado al valor de cuando se logueó y nunca
         // se entera de que el perfil se completó, generando un loop de

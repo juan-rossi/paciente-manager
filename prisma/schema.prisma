@@ -265,6 +265,13 @@ model User {
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
   sobreturnosHabilitados   Boolean         @default(false)
+  // La sesión es un JWT sin tabla en la base, así que no hay forma de
+  // "borrar" sesiones abiertas: en su lugar el JWT guarda esta versión al
+  // loguearse y `getCurrentUser()`/`proxy.ts` rechazan cualquier JWT con
+  // una versión vieja. Se incrementa al restablecer la contraseña por mail
+  // (ver `/api/auth/restablecer`) para cerrar las sesiones de un posible
+  // intruso.
+  sessionVersion           Int             @default(0)
   createdAt                DateTime        @default(now())
 
   // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Una SECRETARY puede
@@ -340,6 +347,23 @@ model User {
   auditLogsDelTenant    AuditLog[]           @relation("AuditDoctor")
   auditLogsComoActor    AuditLog[]           @relation("AuditActor")
   usosIA                UsoIA[]
+  passwordResetTokens   PasswordResetToken[]
+}
+
+// Link de "olvidé mi contraseña" (ver `src/lib/password-reset.ts`). Solo se
+// guarda el hash SHA-256 del token -- el token en claro viaja únicamente en
+// el mail, así que un dump de la base no sirve para resetear cuentas. Un
+// solo uso (`usedAt`) y vencimiento corto (`expiresAt`).
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 // Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,

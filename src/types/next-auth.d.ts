@@ -27,5 +27,9 @@ declare module "next-auth/jwt" {
     role?: UserRole;
     perfilCompleto?: boolean;
     isAdmin?: boolean;
+    // Ver `User.sessionVersion` en el schema. Nunca se refresca en
+    // `trigger === "update"` -- si no, una sesión robada podría
+    // "revalidarse" sola después de un reset de contraseña.
+    sessionVersion?: number;
   }
 }
