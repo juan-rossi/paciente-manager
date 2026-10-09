@@ -119,21 +119,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.perfilCompleto = dbUser.role !== "DOCTOR" || dbUser.nroMatricula.trim() !== "";
           token.isAdmin = dbUser.isAdmin;
           token.sessionVersion = dbUser.sessionVersion;
+          token.sid = crypto.randomUUID();
         }
         return token;
       }
 
       // Sesión ya existente: si la cuenta restableció la contraseña después
-      // de este login (ver `sessionVersion` en el schema), el JWT queda
+      // de este login (ver `sessionVersion` en el schema), o si esta sesión
+      // se cerró con "Cerrar sesión" (ver `SesionRevocada`), el JWT queda
       // invalidado -- devolver null hace que Auth.js borre la cookie. Los
       // JWT emitidos antes de existir el campo no lo traen y cuentan como 0.
       if (typeof token.userId === "string") {
-        const actual = await prisma.user.findUnique({
-          where: { id: token.userId },
-          select: { sessionVersion: true },
-        });
+        const [actual, revocada] = await Promise.all([
+          prisma.user.findUnique({
+            where: { id: token.userId },
+            select: { sessionVersion: true },
+          }),
+          typeof token.sid === "string"
+            ? prisma.sesionRevocada.findUnique({ where: { sid: token.sid }, select: { sid: true } })
+            : null,
+        ]);
         if (!actual || actual.sessionVersion !== (token.sessionVersion ?? 0)) return null;
+        if (revocada) return null;
       }
+      // JWT emitidos antes de existir `sid`: se les asigna uno en la próxima
+      // renovación de la cookie, para que su logout también se pueda revocar.
+      if (!token.sid) token.sid = crypto.randomUUID();
 
       if (trigger === "update" && typeof token.userId === "string") {
         // La sesión JWT no se refresca sola en cada request -- sin esto,
@@ -158,6 +169,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
+    },
+  },
+  events: {
+    // Auth.js solo borra la cookie -- ver `SesionRevocada` en el schema por
+    // qué además hay que revocar el JWT en la base.
+    async signOut(message) {
+      const token = "token" in message ? message.token : null;
+      const sid = token?.sid;
+      if (typeof sid !== "string") return;
+      const ahora = new Date();
+      const expiresAt =
+        typeof token?.exp === "number"
+          ? new Date(token.exp * 1000)
+          : new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000);
+      await prisma.$transaction([
+        prisma.sesionRevocada.deleteMany({ where: { expiresAt: { lt: ahora } } }),
+        prisma.sesionRevocada.upsert({
+          where: { sid },
+          create: { sid, expiresAt },
+          update: {},
+        }),
+      ]);
     },
   },
 });

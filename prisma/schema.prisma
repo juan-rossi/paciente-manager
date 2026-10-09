@@ -366,6 +366,21 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+// Sesiones cerradas con "Cerrar sesión" (ver `events.signOut` en
+// `src/auth.ts`). Borrar la cookie no alcanza: un request que salió antes
+// del logout (p.ej. un prefetch) vuelve con un `Set-Cookie` renovado por
+// `proxy.ts` y revive la sesión. El callback `jwt` rechaza cualquier JWT
+// cuyo `sid` esté acá. A diferencia de `User.sessionVersion`, cierra solo
+// ese dispositivo. `expiresAt` = vencimiento del JWT: pasado eso la fila
+// ya no hace falta y se limpia al revocar otra.
+model SesionRevocada {
+  sid       String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 // Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,
 // y un médico puede compartir secretaria con otro médico. Reemplaza el
 // antiguo `User.doctorId` (1 a 1).

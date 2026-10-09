@@ -31,5 +31,8 @@ declare module "next-auth/jwt" {
     // `trigger === "update"` -- si no, una sesión robada podría
     // "revalidarse" sola después de un reset de contraseña.
     sessionVersion?: number;
+    // Id de esta sesión/dispositivo, para revocarla al cerrar sesión (ver
+    // `SesionRevocada` en el schema).
+    sid?: string;
   }
 }
