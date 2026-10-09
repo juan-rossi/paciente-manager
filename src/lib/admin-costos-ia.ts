@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { TOPE_IA_USD_DEFAULT, topeIAEfectivo } from "@/lib/ia-costos";
 import { esActivo, precioMensualEquivalente, type PlanDuracion } from "@/lib/plan";
 import { dateParamToDateBA, formatDateParamBA } from "@/lib/timezone";
 
@@ -46,7 +47,7 @@ export function sumarMeses(mes: string, cantidad: number): string {
   return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
 }
 
-function inicioDeMes(mes: string): Date {
+export function inicioDeMes(mes: string): Date {
   return dateParamToDateBA(`${mes}-01`)!;
 }
 
@@ -201,6 +202,8 @@ export type FilaMedicoCostosIA = {
   promedio: PromedioMensual | null;
   // Costo promedio sobre el precio mensual de su plan (solo planes pagos).
   porcentajePlan: number | null;
+  // Tope vigente hoy (propio o el global): el costo del mes lo alcanzó.
+  topeAlcanzado: boolean;
 };
 
 export type CostosIAData = {
@@ -246,6 +249,7 @@ export async function getCostosIA(mes: string): Promise<CostosIAData> {
       planDuracion: true,
       planEndsAt: true,
       trialEndsAt: true,
+      topeIAUsd: true,
     },
   });
 
@@ -253,15 +257,17 @@ export async function getCostosIA(mes: string): Promise<CostosIAData> {
     .map((d) => {
       const porMes = usoPorDoctor.get(d.id);
       const promedio = promedioMensual(porMes, primerUsoPorDoctor.get(d.id) ?? null, mesesPromedio);
+      const usoMes = porMes?.get(mes) ?? USO_VACIO;
       return {
         id: d.id,
         nombreCompleto: `${d.nombre} ${d.apellido}`.trim(),
         esPremiumVigente: d.plan === "PREMIUM" && esActivo(d),
-        mes: porMes?.get(mes) ?? USO_VACIO,
+        mes: usoMes,
         promedio,
         porcentajePlan: promedio
           ? porcentajeDelPlan(promedio.costoUsd, cotizacionActual, precioMensualPagado(d))
           : null,
+        topeAlcanzado: usoMes.costoUsd >= topeIAEfectivo(d),
       };
     })
     // Médicos que ya no son Premium y no usaron IA en ningún mes visible no aportan nada.
@@ -333,6 +339,9 @@ export type UsoIAMedico = {
   promedio: PromedioMensual | null;
   porcentajePlan: number | null;
   mesActual: UsoMes;
+  // Tope propio del médico (null = usa el global `topeDefaultUsd`).
+  topeIAUsd: number | null;
+  topeDefaultUsd: number;
 };
 
 export async function getUsoIAMedico(doctorId: string): Promise<UsoIAMedico | null> {
@@ -341,7 +350,7 @@ export async function getUsoIAMedico(doctorId: string): Promise<UsoIAMedico | nu
   const [doctor, filas, primerUso, cotizacion] = await Promise.all([
     prisma.user.findFirst({
       where: { id: doctorId, role: "DOCTOR" },
-      select: { plan: true, planDuracion: true, planEndsAt: true, trialEndsAt: true },
+      select: { plan: true, planDuracion: true, planEndsAt: true, trialEndsAt: true, topeIAUsd: true },
     }),
     fetchUsos({
       doctorId,
@@ -363,6 +372,8 @@ export async function getUsoIAMedico(doctorId: string): Promise<UsoIAMedico | nu
     promedio,
     porcentajePlan: promedio ? porcentajeDelPlan(promedio.costoUsd, cotizacion, precioMensualPagado(doctor)) : null,
     mesActual: porMes?.get(actual) ?? USO_VACIO,
+    topeIAUsd: doctor.topeIAUsd,
+    topeDefaultUsd: TOPE_IA_USD_DEFAULT,
   };
 }
 

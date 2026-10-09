@@ -10,8 +10,13 @@ export function anexarTexto(prev: string, texto: string): string {
   return prev.trim() ? `${prev.trim()}\n${texto}` : texto;
 }
 
-export function mensajeErrorDictado(error: TranscriptionErrorKind | null): string | null {
+export function mensajeErrorDictado(
+  error: TranscriptionErrorKind | null,
+  mensajeTopeIA: string | null
+): string | null {
   switch (error) {
+    case "tope_alcanzado":
+      return mensajeTopeIA ?? "Alcanzaste el límite mensual de uso de las funciones de IA.";
     case "mic_denegado":
       return "No se pudo acceder al micrófono. Revisá los permisos del navegador para este sitio.";
     case "transcripcion_fallida":

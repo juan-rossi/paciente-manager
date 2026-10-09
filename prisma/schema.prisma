@@ -303,6 +303,11 @@ model User {
   planDuracion PlanDuracion?
   planEndsAt   DateTime?
 
+  // Tope de gasto mensual en IA (dictado + resumen, en USD) solo para este
+  // médico -- null usa `TOPE_IA_USD_DEFAULT` de src/lib/ia-costos.ts. Se
+  // edita desde la ficha del médico en /admin; el médico nunca lo ve.
+  topeIAUsd Float?
+
   // Plan/duración elegidos en el checkout, todavía SIN confirmar por pago --
   // `plan`/`planDuracion` de arriba no se tocan hasta que el webhook reciba
   // un pago aprobado (ver `/api/mercadopago/webhook`). Evita que abandonar

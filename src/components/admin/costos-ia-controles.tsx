@@ -35,6 +35,103 @@ export function SelectorMes({
   );
 }
 
+// Tope mensual de IA de un médico (ficha en /admin/medicos/[id]). Vacío =
+// usa el global; el médico no lo ve, solo recibe un error al alcanzarlo.
+export function TopeIAForm({
+  doctorId,
+  topeIAUsd,
+  topeDefaultUsd,
+  gastoMesUsd,
+}: {
+  doctorId: string;
+  topeIAUsd: number | null;
+  topeDefaultUsd: number;
+  gastoMesUsd: number;
+}) {
+  const router = useRouter();
+  const [valor, setValor] = useState(topeIAUsd !== null ? String(topeIAUsd) : "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [guardado, setGuardado] = useState(false);
+
+  const topeVigente = topeIAUsd ?? topeDefaultUsd;
+  const alcanzado = gastoMesUsd >= topeVigente;
+
+  async function guardar(topeNuevo: string | null) {
+    setError(null);
+    setGuardado(false);
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/medicos/${doctorId}/tope-ia`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topeIAUsd: topeNuevo }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "No se pudo guardar el tope.");
+        return;
+      }
+      setValor(data.topeIAUsd !== null ? String(data.topeIAUsd) : "");
+      setGuardado(true);
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void guardar(valor || null);
+      }}
+      className="flex flex-col gap-2"
+    >
+      <Label htmlFor="tope-ia-usd">Tope mensual de IA</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground">
+            US$
+          </span>
+          <Input
+            id="tope-ia-usd"
+            inputMode="decimal"
+            value={valor}
+            onChange={(e) => {
+              setValor(e.target.value.replace(",", ".").replace(/[^\d.]/g, ""));
+              setGuardado(false);
+            }}
+            placeholder={String(topeDefaultUsd)}
+            className="w-32 pl-10"
+          />
+        </div>
+        <span className="text-sm text-muted-foreground">por mes</span>
+        <Button type="submit" size="sm" disabled={saving}>
+          {saving ? "Guardando…" : "Guardar"}
+        </Button>
+        {topeIAUsd !== null && (
+          <Button type="button" size="sm" variant="ghost" disabled={saving} onClick={() => void guardar(null)}>
+            Usar el global
+          </Button>
+        )}
+      </div>
+      {error ? (
+        <p className="text-xs text-destructive">{error}</p>
+      ) : guardado ? (
+        <p className="text-xs text-brand-accent">Tope guardado.</p>
+      ) : (
+        <p className={alcanzado ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+          {topeIAUsd === null ? `Usa el tope global de US$ ${topeDefaultUsd}. ` : ""}
+          {alcanzado
+            ? "Alcanzó el tope este mes: el dictado y el resumen están bloqueados hasta el mes siguiente."
+            : "Al alcanzarlo, el dictado y el resumen quedan bloqueados hasta el mes siguiente."}
+        </p>
+      )}
+    </form>
+  );
+}
+
 export function CotizacionForm({
   mes,
   mesLabel,
