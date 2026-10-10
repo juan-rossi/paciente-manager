@@ -84,18 +84,13 @@ export const turnoEditSchema = turnoInputSchema.pick({
   obraSocial: true,
 });
 
-// `password`/`nombre` son opcionales acá porque el mismo formulario también
+// Sin contraseña: el médico solo invita, la secretaria elige la suya (ver
+// POST /api/users). `nombre` es opcional porque el mismo formulario también
 // sirve para "sumar" a tu cuenta una secretaria que ya existe (asiste a otro
-// médico) -- en ese caso se ignoran y no hace falta completarlos. La ruta
-// exige ambos solo cuando el email no corresponde a nadie todavía.
+// médico) -- en ese caso se ignora. La ruta lo exige solo cuando el email no
+// corresponde a nadie todavía.
 export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
-  password: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null))
-    .refine((v) => v === null || v.length >= 6, "La contraseña debe tener al menos 6 caracteres."),
   nombre: z
     .string()
     .trim()
@@ -114,12 +109,6 @@ export const secretaryInputSchema = z.object({
 export const secretaryUpdateSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
-  password: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null))
-    .refine((v) => v === null || v.length >= 6, "La contraseña debe tener al menos 6 caracteres."),
   lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
   puedeBloquearHorarios: z.boolean().default(false),
 });

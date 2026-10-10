@@ -8,6 +8,8 @@ import { nuevaFechaFinTrial } from "@/lib/plan";
 import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
+import { INVITACION_COOKIE } from "@/lib/invitacion-secretaria-shared";
+import { aceptarInvitacion, buscarInvitacion } from "@/lib/invitacion-secretaria";
 
 // `code` llega al cliente en la respuesta de `signIn()` -- el login-form lo
 // usa para mostrar "demasiados intentos" en vez de "contraseña incorrecta".
@@ -75,6 +77,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const email = typeof user.email === "string" ? normalizeEmail(user.email) : "";
       if (!email) return false;
 
+      const cookieStore = await cookies();
+
+      // "Continuar con Google" desde el link de una invitación de secretaria
+      // (ver `/invitacion`): si la cuenta de Google es la del email invitado,
+      // ese login acepta la invitación. Si es otra, se corta acá -- si no,
+      // con un email nuevo se autoregistraría como médico.
+      const tokenInvitacion = cookieStore.get(INVITACION_COOKIE)?.value;
+      if (tokenInvitacion) {
+        cookieStore.delete(INVITACION_COOKIE);
+        const invitacion = await buscarInvitacion(tokenInvitacion);
+        if (invitacion) {
+          if (invitacion.email !== email) {
+            return `/invitacion?token=${encodeURIComponent(tokenInvitacion)}&error=otra-cuenta`;
+          }
+          await aceptarInvitacion(invitacion);
+          return true;
+        }
+      }
+
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) return true;
 
@@ -85,7 +106,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // términos viaja en una cookie que el cliente setea antes del redirect;
       // sin ella (p.ej. "Continuar con Google" desde /login con un email
       // nuevo) no se crea la cuenta y se lo manda a /signup a aceptar.
-      const cookieStore = await cookies();
       if (cookieStore.get(TERMINOS_COOKIE)?.value !== TERMINOS_VERSION) {
         return "/signup?error=terminos";
       }

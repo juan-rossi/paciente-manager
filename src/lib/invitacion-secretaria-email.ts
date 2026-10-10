@@ -1,31 +1,30 @@
-import { escapeHtml, sendEmail } from "@/lib/email";
+import { escapeHtml } from "@/lib/email";
+import { INVITACION_VALIDEZ_DIAS } from "@/lib/invitacion-secretaria-shared";
 
-// Se llama dentro de `after()` desde POST /api/users: un fallo de Resend no
-// tiene que romper la invitación (igual la ve al entrar), solo se loguea.
-export async function enviarMailInvitacionSecretaria(
-  datos: { email: string; nombreSecretaria: string; nombreMedico: string },
-  baseUrl: string
-): Promise<void> {
-  try {
-    await sendEmail({ to: datos.email, ...mailInvitacionSecretaria(datos, baseUrl) });
-  } catch (error) {
-    console.error("[invitacion-secretaria] no se pudo enviar el mail", error);
-  }
-}
+type DatosMail = {
+  nombreSecretaria: string;
+  nombreMedico: string;
+  // Cuenta sin contraseña todavía: el mail la invita a crear su acceso. Si
+  // ya tiene una, solo a entrar con la de siempre para aceptar.
+  cuentaNueva: boolean;
+};
 
 // Mismo criterio de estilos que `bienvenida-email.ts`: inline y con tablas.
-export function mailInvitacionSecretaria(
-  datos: { nombreSecretaria: string; nombreMedico: string },
-  baseUrl: string
-) {
+export function mailInvitacionSecretaria(datos: DatosMail, link: string) {
+  const baseUrl = new URL(link).origin;
   const saludo = datos.nombreSecretaria ? `Hola, ${datos.nombreSecretaria}` : "Hola";
   const subject = `${datos.nombreMedico} te invitó a administrar su agenda en Semio 360`;
-  const cuerpo = `${datos.nombreMedico} quiere sumarte como secretaria/o en Semio 360. Entrá con tu cuenta de siempre para aceptar o rechazar la invitación. Hasta que la aceptes no vas a ver su agenda, y si no lo conocés podés rechazarla.`;
-  const link = `${baseUrl}/turnos`;
+  const cuerpo = datos.cuentaNueva
+    ? `${datos.nombreMedico} quiere sumarte como secretaria/o en Semio 360 para que puedas gestionar sus turnos. Para aceptar, elegí tu contraseña o entrá con tu cuenta de Google.`
+    : `${datos.nombreMedico} quiere sumarte como secretaria/o en Semio 360. Entrá con tu cuenta de siempre para aceptar la invitación. Hasta que la aceptes no vas a ver su agenda, y si no lo conocés podés ignorarla.`;
+  const nota = `El link vence en ${INVITACION_VALIDEZ_DIAS} días. Si no conocés a quien te invitó, ignorá este mail.`;
   const logo = `${baseUrl}/email/semio360-logo.png`;
 
-  const text = [`${saludo}:`, "", cuerpo, "", `Entrar a Semio 360: ${link}`, "", "Equipo de Semio 360"].join("\n");
+  const text = [`${saludo}:`, "", cuerpo, "", `Aceptar la invitación: ${link}`, "", nota, "", "Equipo de Semio 360"].join(
+    "\n"
+  );
 
+  const linkHtml = escapeHtml(link);
   const html = `<!doctype html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#f4f5f8;">
@@ -38,7 +37,8 @@ export function mailInvitacionSecretaria(
         <tr><td style="padding:16px 32px 32px;">
           <p style="margin:0 0 16px;font-size:20px;font-weight:600;line-height:1.3;">${escapeHtml(saludo)}</p>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3f3f46;">${escapeHtml(cuerpo)}</p>
-          <a href="${escapeHtml(link)}" style="display:inline-block;background:#4F46E5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">Ver invitación</a>
+          <a href="${linkHtml}" style="display:inline-block;background:#4F46E5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px;">Aceptar invitación</a>
+          <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#71717a;">${escapeHtml(nota)} Si el botón no funciona, copiá esta dirección en el navegador:<br><span style="word-break:break-all;color:#4F46E5;">${linkHtml}</span></p>
         </td></tr>
       </table>
       <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio 360 · Más tiempo para lo importante</p>

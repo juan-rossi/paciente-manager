@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
-import { hashPassword } from "@/lib/auth";
 import { secretaryUpdateSchema } from "@/lib/turno-schema";
 import { obtenerSecretariaDelMedico } from "@/lib/secretarias";
 
@@ -28,19 +27,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Email, nombre y contraseña son de la cuenta de la secretaria: si también
-  // asiste a otro médico (o todavía no aceptó la invitación) no son de este
-  // médico para cambiarlos -- ver `SecretariaDelMedico.datosEditables`.
+  // Email y nombre son de la cuenta de la secretaria: si también asiste a
+  // otro médico (o todavía no aceptó la invitación) no son de este médico
+  // para cambiarlos -- ver `SecretariaDelMedico.datosEditables`. La
+  // contraseña nunca la toca el médico.
   const cambiaDatosDeCuenta =
-    parsed.data.email !== existing.email ||
-    parsed.data.nombre !== existing.nombre ||
-    parsed.data.password !== null;
+    parsed.data.email !== existing.email || parsed.data.nombre !== existing.nombre;
   if (cambiaDatosDeCuenta && !existing.datosEditables) {
     return NextResponse.json(
       {
         error: existing.pendiente
-          ? "Todavía no aceptó la invitación: no podés cambiar su email, nombre ni contraseña."
-          : "También asiste a otro médico: su email, nombre y contraseña solo los puede cambiar ella.",
+          ? "Todavía no aceptó la invitación: no podés cambiar su email ni su nombre."
+          : "También asiste a otro médico: su email y su nombre solo los puede cambiar ella.",
       },
       { status: 403 }
     );
@@ -63,11 +61,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (cambiaDatosDeCuenta) {
     await prisma.user.update({
       where: { id },
-      data: {
-        email: parsed.data.email,
-        nombre: parsed.data.nombre,
-        ...(parsed.data.password ? { passwordHash: await hashPassword(parsed.data.password) } : {}),
-      },
+      data: { email: parsed.data.email, nombre: parsed.data.nombre },
     });
   }
 

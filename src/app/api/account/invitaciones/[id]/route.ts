@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/api-auth";
+import { aceptarInvitacion } from "@/lib/invitacion-secretaria";
 
 const schema = z.object({ accion: z.enum(["aceptar", "rechazar"]) });
 
@@ -38,14 +39,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ ok: true });
   }
 
-  await prisma.doctorSecretaria.update({
-    where: { id: invitacion.id },
-    data: { aceptadaAt: new Date() },
-  });
-  // Si no estaba atendiendo a ningún médico, pasa directo a este.
-  if (!user.activeDoctorId) {
-    await prisma.user.update({ where: { id: user.id }, data: { activeDoctorId: invitacion.doctorId } });
-  }
+  await aceptarInvitacion({ ...invitacion, secretariaId: user.id });
 
   return NextResponse.json({ ok: true });
 }

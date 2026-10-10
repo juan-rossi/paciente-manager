@@ -9,10 +9,11 @@ export type SecretariaDelMedico = {
   puedeBloquearHorarios: boolean;
   // Invitación todavía no aceptada (ver `DoctorSecretaria.aceptadaAt`).
   pendiente: boolean;
-  // Email, nombre y contraseña son de la cuenta de la secretaria, no de la
-  // relación: el médico solo puede cambiarlos si ella asiste únicamente a
-  // él. Si también asiste a otro médico, cambiarlos sería tomar el control
-  // de una cuenta con acceso a la agenda de ese otro médico.
+  // Email y nombre son de la cuenta de la secretaria, no de la relación: el
+  // médico solo puede cambiarlos si ella asiste únicamente a él. Si también
+  // asiste a otro médico, cambiarlos sería tomar el control de una cuenta
+  // con acceso a la agenda de ese otro médico. La contraseña nunca la toca
+  // el médico (ver POST /api/users).
   datosEditables: boolean;
 };
 

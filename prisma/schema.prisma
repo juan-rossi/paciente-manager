@@ -408,9 +408,17 @@ model DoctorSecretaria {
   // Null = invitación pendiente: el médico sumó a una secretaria que ya
   // tenía cuenta (asiste a otro médico) y ella todavía no aceptó. Mientras
   // tanto la relación no da acceso a nada -- ni a la agenda del médico, ni
-  // al médico permiso alguno sobre la cuenta de ella. Las secretarias que
-  // crea el propio médico nacen aceptadas.
+  // al médico permiso alguno sobre la cuenta de ella. Toda asignación nace
+  // pendiente: el médico nunca elige la contraseña de la secretaria, solo la
+  // invita (ver `src/lib/invitacion-secretaria.ts`).
   aceptadaAt DateTime?
+
+  // Link del mail de invitación (`/invitacion?token=...`): sha256 del token,
+  // igual criterio que `PasswordResetToken`. Desde ahí la secretaria elige
+  // su contraseña (si todavía no tiene) o entra con Google, y eso acepta la
+  // invitación. Se borra al aceptar; reenviar la invitación lo regenera.
+  invitacionTokenHash String?   @unique
+  invitacionExpiraAt  DateTime?
 
   lugares DoctorSecretariaLugar[]
 
