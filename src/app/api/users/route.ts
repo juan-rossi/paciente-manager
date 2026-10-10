@@ -1,39 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { hashPassword } from "@/lib/auth";
 import { secretaryInputSchema } from "@/lib/turno-schema";
+import { listarSecretariasDelMedico } from "@/lib/secretarias";
+import { enviarMailInvitacionSecretaria } from "@/lib/invitacion-secretaria-email";
+import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
+import { getSiteUrl } from "@/lib/site-url";
 
 export async function GET() {
   const { tenantId, response } = await requireDoctor();
   if (response) return response;
 
-  const secretarias = await prisma.user.findMany({
-    where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: tenantId } } },
-    select: {
-      id: true,
-      email: true,
-      nombre: true,
-      createdAt: true,
-      secretariaAsignaciones: {
-        where: { doctorId: tenantId },
-        select: { lugares: { select: { lugarId: true } }, puedeBloquearHorarios: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json({
-    secretarias: secretarias.map(({ secretariaAsignaciones, ...s }) => ({
-      ...s,
-      lugarIds: secretariaAsignaciones[0]?.lugares.map((l) => l.lugarId) ?? [],
-      puedeBloquearHorarios: secretariaAsignaciones[0]?.puedeBloquearHorarios ?? false,
-    })),
-  });
+  return NextResponse.json({ secretarias: await listarSecretariasDelMedico(tenantId) });
 }
 
 export async function POST(request: NextRequest) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const body = await request.json().catch(() => null);
@@ -65,32 +48,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ya existe como secretaria (posiblemente de otro médico): la sumamos a
-    // esta cuenta en vez de crear un usuario nuevo -- puede asistir a más de
-    // un médico. No se tocan su nombre/contraseña, son de su propia cuenta.
+    // Ya existe como secretaria (posiblemente de otro médico): puede asistir
+    // a más de un médico, pero la cuenta es de ella -- se le manda una
+    // invitación y la asignación no da acceso a nada hasta que la acepte
+    // (ver `DoctorSecretaria.aceptadaAt`). No se tocan su nombre/contraseña.
     const yaAsignada = await prisma.doctorSecretaria.findUnique({
       where: { doctorId_secretariaId: { doctorId: tenantId, secretariaId: existing.id } },
     });
     if (yaAsignada) {
       return NextResponse.json(
-        { error: "Esa secretaria ya está asignada a tu cuenta." },
+        {
+          error: yaAsignada.aceptadaAt
+            ? "Esa secretaria ya está asignada a tu cuenta."
+            : "Ya le enviaste una invitación a esa secretaria.",
+        },
         { status: 409 }
       );
     }
 
-    const doctorSecretaria = await prisma.doctorSecretaria.create({
+    await prisma.doctorSecretaria.create({
       data: {
         doctorId: tenantId,
         secretariaId: existing.id,
         puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+        lugares: { create: parsed.data.lugarIds.map((lugarId) => ({ lugarId })) },
       },
     });
-    await prisma.doctorSecretariaLugar.createMany({
-      data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId: doctorSecretaria.id, lugarId })),
-    });
-    if (!existing.activeDoctorId) {
-      await prisma.user.update({ where: { id: existing.id }, data: { activeDoctorId: tenantId } });
-    }
+
+    const baseUrl = process.env.NODE_ENV === "production" ? getSiteUrl() : request.nextUrl.origin;
+    const nombreMedico = formatNombreConTitulo(user.tituloCortesia, `${user.nombre} ${user.apellido}`.trim());
+    after(() =>
+      enviarMailInvitacionSecretaria(
+        { email: existing.email, nombreSecretaria: existing.nombre, nombreMedico },
+        baseUrl
+      )
+    );
 
     return NextResponse.json(
       {
@@ -101,6 +93,8 @@ export async function POST(request: NextRequest) {
           createdAt: existing.createdAt,
           lugarIds: parsed.data.lugarIds,
           puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+          pendiente: true,
+          datosEditables: false,
         },
         linked: true,
       },
@@ -117,6 +111,7 @@ export async function POST(request: NextRequest) {
 
   const passwordHash = await hashPassword(parsed.data.password);
 
+  // La cuenta la crea el propio médico, así que la asignación nace aceptada.
   const secretaria = await prisma.user.create({
     data: {
       email: parsed.data.email,
@@ -124,18 +119,16 @@ export async function POST(request: NextRequest) {
       passwordHash,
       role: "SECRETARY",
       activeDoctorId: tenantId,
+      secretariaAsignaciones: {
+        create: {
+          doctorId: tenantId,
+          aceptadaAt: new Date(),
+          puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+          lugares: { create: parsed.data.lugarIds.map((lugarId) => ({ lugarId })) },
+        },
+      },
     },
     select: { id: true, email: true, nombre: true, createdAt: true },
-  });
-  const doctorSecretaria = await prisma.doctorSecretaria.create({
-    data: {
-      doctorId: tenantId,
-      secretariaId: secretaria.id,
-      puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
-    },
-  });
-  await prisma.doctorSecretariaLugar.createMany({
-    data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId: doctorSecretaria.id, lugarId })),
   });
 
   return NextResponse.json(
@@ -144,6 +137,8 @@ export async function POST(request: NextRequest) {
         ...secretaria,
         lugarIds: parsed.data.lugarIds,
         puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
+        pendiente: false,
+        datosEditables: true,
       },
       linked: false,
     },

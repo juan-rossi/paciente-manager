@@ -405,6 +405,13 @@ model DoctorSecretaria {
   // nueva tenga habilitado de entrada.
   puedeBloquearHorarios Boolean @default(false)
 
+  // Null = invitación pendiente: el médico sumó a una secretaria que ya
+  // tenía cuenta (asiste a otro médico) y ella todavía no aceptó. Mientras
+  // tanto la relación no da acceso a nada -- ni a la agenda del médico, ni
+  // al médico permiso alguno sobre la cuenta de ella. Las secretarias que
+  // crea el propio médico nacen aceptadas.
+  aceptadaAt DateTime?
+
   lugares DoctorSecretariaLugar[]
 
   @@unique([doctorId, secretariaId])

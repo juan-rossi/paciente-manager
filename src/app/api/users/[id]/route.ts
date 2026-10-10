@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { hashPassword } from "@/lib/auth";
 import { secretaryUpdateSchema } from "@/lib/turno-schema";
+import { obtenerSecretariaDelMedico } from "@/lib/secretarias";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -12,10 +13,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const existing = await prisma.user.findFirst({
-    where: { id, role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: tenantId } } },
-    include: { secretariaAsignaciones: { where: { doctorId: tenantId } } },
-  });
+  const existing = await obtenerSecretariaDelMedico(tenantId, id);
   if (!existing) {
     return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
   }
@@ -27,6 +25,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
       { status: 400 }
+    );
+  }
+
+  // Email, nombre y contraseña son de la cuenta de la secretaria: si también
+  // asiste a otro médico (o todavía no aceptó la invitación) no son de este
+  // médico para cambiarlos -- ver `SecretariaDelMedico.datosEditables`.
+  const cambiaDatosDeCuenta =
+    parsed.data.email !== existing.email ||
+    parsed.data.nombre !== existing.nombre ||
+    parsed.data.password !== null;
+  if (cambiaDatosDeCuenta && !existing.datosEditables) {
+    return NextResponse.json(
+      {
+        error: existing.pendiente
+          ? "Todavía no aceptó la invitación: no podés cambiar su email, nombre ni contraseña."
+          : "También asiste a otro médico: su email, nombre y contraseña solo los puede cambiar ella.",
+      },
+      { status: 403 }
     );
   }
 
@@ -44,33 +60,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Uno de los lugares seleccionados no es válido." }, { status: 400 });
   }
 
-  const secretaria = await prisma.user.update({
-    where: { id },
-    data: {
-      email: parsed.data.email,
-      nombre: parsed.data.nombre,
-      ...(parsed.data.password ? { passwordHash: await hashPassword(parsed.data.password) } : {}),
-    },
-    select: { id: true, email: true, nombre: true, createdAt: true },
-  });
+  if (cambiaDatosDeCuenta) {
+    await prisma.user.update({
+      where: { id },
+      data: {
+        email: parsed.data.email,
+        nombre: parsed.data.nombre,
+        ...(parsed.data.password ? { passwordHash: await hashPassword(parsed.data.password) } : {}),
+      },
+    });
+  }
 
-  const doctorSecretariaId = existing.secretariaAsignaciones[0].id;
-  await prisma.doctorSecretaria.update({
-    where: { id: doctorSecretariaId },
+  const { id: doctorSecretariaId } = await prisma.doctorSecretaria.update({
+    where: { doctorId_secretariaId: { doctorId: tenantId, secretariaId: id } },
     data: { puedeBloquearHorarios: parsed.data.puedeBloquearHorarios },
+    select: { id: true },
   });
   await prisma.doctorSecretariaLugar.deleteMany({ where: { doctorSecretariaId } });
   await prisma.doctorSecretariaLugar.createMany({
     data: parsed.data.lugarIds.map((lugarId) => ({ doctorSecretariaId, lugarId })),
   });
 
-  return NextResponse.json({
-    secretaria: {
-      ...secretaria,
-      lugarIds: parsed.data.lugarIds,
-      puedeBloquearHorarios: parsed.data.puedeBloquearHorarios,
-    },
-  });
+  return NextResponse.json({ secretaria: await obtenerSecretariaDelMedico(tenantId, id) });
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
@@ -80,7 +91,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
   // Esta secretaria puede asistir a más de un médico -- acá solo se quita la
-  // asignación a la cuenta de este médico, nunca se borra la cuenta.
+  // asignación a la cuenta de este médico (o se cancela la invitación si
+  // todavía no la aceptó), nunca se borra la cuenta.
   const { count } = await prisma.doctorSecretaria.deleteMany({
     where: { doctorId: tenantId, secretariaId: id },
   });
@@ -92,7 +104,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   // que le queden (o dejarla sin médico activo si no le queda ninguno).
   const secretaria = await prisma.user.findUnique({ where: { id } });
   if (secretaria?.activeDoctorId === tenantId) {
-    const otraAsignacion = await prisma.doctorSecretaria.findFirst({ where: { secretariaId: id } });
+    const otraAsignacion = await prisma.doctorSecretaria.findFirst({
+      where: { secretariaId: id, aceptadaAt: { not: null } },
+    });
     await prisma.user.update({
       where: { id },
       data: { activeDoctorId: otraAsignacion?.doctorId ?? null },

@@ -23,6 +23,9 @@ type Secretaria = {
   createdAt: string;
   lugarIds: string[];
   puedeBloquearHorarios: boolean;
+  // Ver `SecretariaDelMedico` en src/lib/secretarias.ts.
+  pendiente: boolean;
+  datosEditables: boolean;
 };
 
 type LugarOption = {
@@ -63,6 +66,8 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<Secretaria | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const datosBloqueados = editingSecretaria !== null && !editingSecretaria.datosEditables;
 
   function toggleLugar(lugarId: string, checked: boolean) {
     setLugarIds((prev) => (checked ? [...prev, lugarId] : prev.filter((id) => id !== lugarId)));
@@ -131,7 +136,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
       );
       setNotice(
         !editingSecretaria && data.linked
-          ? `${data.secretaria.nombre} ya tenía una cuenta (asiste a otro médico) -- se sumó a la tuya.`
+          ? `${data.secretaria.nombre} ya tenía una cuenta: le enviamos una invitación. Va a poder administrar tu agenda cuando la acepte.`
           : null
       );
       setOpen(false);
@@ -177,7 +182,14 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                 {initials(secretaria.nombre)}
               </span>
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{secretaria.nombre}</span>
+                <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                  {secretaria.nombre}
+                  {secretaria.pendiente && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                      Invitación pendiente
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-muted-foreground">{secretaria.email}</span>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {secretaria.lugarIds.length === 0 ? (
@@ -238,8 +250,16 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
               </span>
               {!editingSecretaria && (
                 <p className="-mt-1.5 text-xs text-muted-foreground">
-                  Si el email ya pertenece a un secretario que asiste a otro médico, se suma a tu
-                  cuenta tal cual está. (Nombre y contraseña no hacen falta en ese caso)
+                  Si el email ya pertenece a un secretario que asiste a otro médico, le enviamos una
+                  invitación y se suma a tu cuenta cuando la acepte. (Nombre y contraseña no hacen
+                  falta en ese caso)
+                </p>
+              )}
+              {editingSecretaria && !editingSecretaria.datosEditables && (
+                <p className="-mt-1.5 text-xs text-muted-foreground">
+                  {editingSecretaria.pendiente
+                    ? "Todavía no aceptó la invitación. Sus datos de acceso son de su propia cuenta."
+                    : "También asiste a otro médico: sus datos de acceso solo los puede cambiar ella."}
                 </p>
               )}
               <div className="flex flex-col gap-2">
@@ -248,6 +268,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   autoComplete="off"
+                  disabled={datosBloqueados}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -257,6 +278,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="off"
+                  disabled={datosBloqueados}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -271,6 +293,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
+                  disabled={datosBloqueados}
                 />
               </div>
             </div>
@@ -338,11 +361,11 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
       <Dialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar secretaria</DialogTitle>
+            <DialogTitle>{deleteTarget?.pendiente ? "Cancelar invitación" : "Eliminar secretaria"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Se eliminará el acceso de <strong>{deleteTarget?.nombre}</strong> ({deleteTarget?.email}
-            ).
+            {deleteTarget?.pendiente ? "Se cancelará la invitación a " : "Se eliminará el acceso de "}
+            <strong>{deleteTarget?.nombre}</strong> ({deleteTarget?.email}).
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>
