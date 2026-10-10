@@ -22,6 +22,7 @@ import {
   type FilaMedicoCostosIA,
 } from "@/lib/admin-costos-ia";
 import { formatMoneyARS } from "@/lib/admin-metrics";
+import { TOPE_IA_USD_DEFAULT } from "@/lib/ia-costos";
 
 // El mes en curso cambia con cada dictado/resumen -- sin cache.
 export const dynamic = "force-dynamic";
@@ -133,7 +134,9 @@ export default async function AdminCostosIAPage({ searchParams }: { searchParams
         <p className="text-xs text-muted-foreground">
           El promedio toma los últimos {MESES_PROMEDIO} meses cerrados, contando desde el mes del primer uso de IA
           de cada médico. “% del plan” compara el costo promedio en pesos (cotización del mes en curso) con el
-          precio mensual que paga; no aplica a médicos en trial. Los costos son estimados con los precios de{" "}
+          precio mensual que paga; no aplica a médicos en trial. “Tope alcanzado” = el costo del mes llegó a su
+          tope mensual ({formatUsd(TOPE_IA_USD_DEFAULT)} por defecto, editable en la ficha del médico) y la IA
+          queda bloqueada hasta el mes siguiente. Los costos son estimados con los precios de{" "}
           <code>src/lib/ia-costos.ts</code>.
         </p>
       </div>
@@ -143,8 +146,12 @@ export default async function AdminCostosIAPage({ searchParams }: { searchParams
 
 function FilaMedico({ fila, maxPromedio }: { fila: FilaMedicoCostosIA; maxPromedio: number }) {
   const p = fila.promedio;
-  const nivel =
-    !p || p.costoUsd === 0
+  const nivel = fila.topeAlcanzado
+    ? {
+        label: "Tope alcanzado",
+        className: "border-red-300 text-destructive dark:border-red-900",
+      }
+    : !p || p.costoUsd === 0
       ? { label: "Sin uso", className: "border-border text-muted-foreground" }
       : fila.porcentajePlan !== null && fila.porcentajePlan >= UMBRAL_USO_ALTO_PCT
         ? {

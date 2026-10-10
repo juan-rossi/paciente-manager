@@ -1,5 +1,6 @@
 import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
 import { FAQS } from "@/lib/faq";
+import type { RedesSociales } from "@/lib/redes-sociales";
 import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 
@@ -152,7 +153,13 @@ export function perfilJsonLd(d: {
   fotoUrl: string | null;
   prepagas: string[];
   lugares: { nombre: string | null; direccion: string; ciudad: string | null; telefono: string }[];
+  redes: RedesSociales;
 }) {
+  // La comunidad de WhatsApp es un link de invitación, no un perfil: no va
+  // en `sameAs`.
+  const sameAs = [d.redes.instagram, d.redes.facebook, d.redes.tiktok, d.redes.youtube].filter(
+    (url): url is string => !!url
+  );
   const url = absoluteUrl(`/directorio/${encodeURIComponent(d.slug)}`);
   const esp = d.especialidad ? ESPECIALIDAD_LABELS[d.especialidad] : null;
   return {
@@ -167,6 +174,7 @@ export function perfilJsonLd(d: {
         ...(esp ? { medicalSpecialty: esp } : {}),
         ...(d.fotoUrl ? { image: absoluteUrl(d.fotoUrl) } : {}),
         ...(d.prepagas.length > 0 ? { knowsAbout: d.prepagas.map((p) => `Cobertura ${p}`) } : {}),
+        ...(sameAs.length > 0 ? { sameAs } : {}),
         ...(d.lugares[0]?.telefono ? { telephone: d.lugares[0].telefono } : {}),
         ...(d.lugares.length > 0
           ? {

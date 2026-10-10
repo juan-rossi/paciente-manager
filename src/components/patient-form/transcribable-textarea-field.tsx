@@ -91,7 +91,7 @@ export function TranscribableTextAreaField({
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
   const minHeight = `${rows * 1.75}rem`;
-  const errorDictado = mensajeErrorDictado(transcription.error);
+  const errorDictado = mensajeErrorDictado(transcription.error, transcription.mensajeTopeIA);
 
   return (
     <div className="flex flex-col gap-1.5">

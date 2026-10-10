@@ -87,7 +87,7 @@ export function EvolucionTab({
   const isRecording =
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
-  const errorDictado = mensajeErrorDictado(transcription.error);
+  const errorDictado = mensajeErrorDictado(transcription.error, transcription.mensajeTopeIA);
 
   function resetForm() {
     setFecha(todayLocal());

@@ -1,11 +1,25 @@
 import { cookies } from "next/headers";
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { verifyPassword, type UserRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nuevaFechaFinTrial } from "@/lib/plan";
 import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
+import { getClientIp } from "@/lib/request-ip";
+import { rateLimitOk } from "@/lib/rate-limit";
+
+// `code` llega al cliente en la respuesta de `signIn()` -- el login-form lo
+// usa para mostrar "demasiados intentos" en vez de "contraseña incorrecta".
+class DemasiadosIntentos extends CredentialsSignin {
+  code = "rate_limited";
+}
+
+// Hash bcrypt de una contraseña aleatoria descartada: se compara contra él cuando el
+// email no existe para que la respuesta tarde lo mismo que con un email
+// real (si no, midiendo el tiempo se podría averiguar qué emails tienen
+// cuenta).
+const HASH_FICTICIO = "$2b$10$VYbN15W.eo0aDzuJ0sbLNu11EpZp2pZoefEF18VtZ2erBIdo/choK";
 
 // Google solo da un nombre completo -- lo partimos como mejor se puede en
 // nombre/apellido (el médico puede corregirlo después en /onboarding, donde
@@ -26,14 +40,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email =
           typeof credentials?.email === "string" ? normalizeEmail(credentials.email) : "";
         const password = typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) return null;
 
+        if (!(await rateLimitOk(getClientIp(request), email, "login"))) {
+          throw new DemasiadosIntentos();
+        }
+
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+        if (!user) {
+          await verifyPassword(password, HASH_FICTICIO);
+          return null;
+        }
 
         const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) return null;
@@ -97,8 +118,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = dbUser.role as UserRole;
           token.perfilCompleto = dbUser.role !== "DOCTOR" || dbUser.nroMatricula.trim() !== "";
           token.isAdmin = dbUser.isAdmin;
+          token.sessionVersion = dbUser.sessionVersion;
+          token.sid = crypto.randomUUID();
         }
-      } else if (trigger === "update" && typeof token.userId === "string") {
+        return token;
+      }
+
+      // Sesión ya existente: si la cuenta restableció la contraseña después
+      // de este login (ver `sessionVersion` en el schema), o si esta sesión
+      // se cerró con "Cerrar sesión" (ver `SesionRevocada`), el JWT queda
+      // invalidado -- devolver null hace que Auth.js borre la cookie. Los
+      // JWT emitidos antes de existir el campo no lo traen y cuentan como 0.
+      if (typeof token.userId === "string") {
+        const [actual, revocada] = await Promise.all([
+          prisma.user.findUnique({
+            where: { id: token.userId },
+            select: { sessionVersion: true },
+          }),
+          typeof token.sid === "string"
+            ? prisma.sesionRevocada.findUnique({ where: { sid: token.sid }, select: { sid: true } })
+            : null,
+        ]);
+        if (!actual || actual.sessionVersion !== (token.sessionVersion ?? 0)) return null;
+        if (revocada) return null;
+      }
+      // JWT emitidos antes de existir `sid`: se les asigna uno en la próxima
+      // renovación de la cookie, para que su logout también se pueda revocar.
+      if (!token.sid) token.sid = crypto.randomUUID();
+
+      if (trigger === "update" && typeof token.userId === "string") {
         // La sesión JWT no se refresca sola en cada request -- sin esto,
         // `perfilCompleto` queda pegado al valor de cuando se logueó y nunca
         // se entera de que el perfil se completó, generando un loop de
@@ -121,6 +169,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.isAdmin = (token.isAdmin as boolean | undefined) ?? false;
       }
       return session;
+    },
+  },
+  events: {
+    // Auth.js solo borra la cookie -- ver `SesionRevocada` en el schema por
+    // qué además hay que revocar el JWT en la base.
+    async signOut(message) {
+      const token = "token" in message ? message.token : null;
+      const sid = token?.sid;
+      if (typeof sid !== "string") return;
+      const ahora = new Date();
+      const expiresAt =
+        typeof token?.exp === "number"
+          ? new Date(token.exp * 1000)
+          : new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000);
+      await prisma.$transaction([
+        prisma.sesionRevocada.deleteMany({ where: { expiresAt: { lt: ahora } } }),
+        prisma.sesionRevocada.upsert({
+          where: { sid },
+          create: { sid, expiresAt },
+          update: {},
+        }),
+      ]);
     },
   },
 });

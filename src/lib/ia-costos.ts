@@ -24,6 +24,16 @@ export function costoResumenUsd(tokensEntrada: number, tokensSalida: number): nu
   );
 }
 
+// Tope de gasto en IA por médico y por mes calendario (hora de Argentina),
+// sumando dictado y resumen. Se puede pisar por médico con `User.topeIAUsd`
+// desde /admin. El médico no ve el tope: solo recibe un error al alcanzarlo.
+// El chequeo contra el gasto del mes está en src/lib/ia-tope.ts.
+export const TOPE_IA_USD_DEFAULT = 20;
+
+export function topeIAEfectivo(doctor: { topeIAUsd: number | null }): number {
+  return doctor.topeIAUsd ?? TOPE_IA_USD_DEFAULT;
+}
+
 // Registrar el uso nunca debe hacer fallar el pedido del médico: el dictado o
 // el resumen ya se generó (y se pagó), así que ante un error solo se loguea.
 export async function registrarDictado(doctorId: string, segundosAudio: number) {

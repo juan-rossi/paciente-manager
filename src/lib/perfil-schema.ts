@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ESPECIALIDAD_VALUES, type Especialidad } from "@/lib/especialidad";
 import { TITULO_CORTESIA_VALUES, type TituloCortesia } from "@/lib/titulo-cortesia";
+import { normalizarRedSocial, REDES_SOCIALES, type RedSocial } from "@/lib/redes-sociales";
 
 const tituloCortesiaSchema = z.enum(TITULO_CORTESIA_VALUES as [TituloCortesia, ...TituloCortesia[]], {
   message: "Elegí un título.",
@@ -26,6 +27,28 @@ export const perfilSchema = z.object({
   prepagaIds: z.array(z.string()).max(500),
 });
 
+// Acepta "@usuario" o el link tal cual y lo guarda como URL completa; vacío
+// queda en null.
+function redSocialSchema(red: RedSocial) {
+  return z
+    .string()
+    .nullish()
+    .transform((valor, ctx) => {
+      const resultado = normalizarRedSocial(red, valor);
+      if (!resultado.ok) {
+        ctx.addIssue({ code: "custom", message: resultado.error });
+        return z.NEVER;
+      }
+      return resultado.url;
+    });
+}
+
+const redesSocialesSchema = z.object(
+  Object.fromEntries(REDES_SOCIALES.map((red) => [red, redSocialSchema(red)])) as {
+    [K in RedSocial]: ReturnType<typeof redSocialSchema>;
+  }
+);
+
 // "Información pública" (tab Visibilidad). Lo único que se edita a mano es la
 // biografía: el resto (consultorio, dirección, teléfono, ciudad) se toma de las
 // prácticas (`LugarDeTrabajo`) del médico. Los campos equivalentes de `User`
@@ -36,6 +59,7 @@ export const visibilidadSchema = z.object({
   // Ids de los lugares que se muestran en el perfil público; el resto queda
   // oculto (`LugarDeTrabajo.perfilVisible`).
   lugaresVisibles: z.array(z.string()),
+  redes: redesSocialesSchema,
 });
 
 // Valores fijos (no un número libre) para el horizonte de la agenda pública.

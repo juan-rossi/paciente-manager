@@ -224,6 +224,14 @@ model User {
   // cuando este flag está en true, pero a nivel de schema quedan nullable --
   // mismo criterio que `tituloCortesia`/`especialidad`.
   perfilPublico            Boolean         @default(false)
+  // Redes del médico para el perfil público -- solo se muestran con
+  // `perfilPublico` activo. Se guardan ya normalizadas como URL completa
+  // (ver `normalizarRedSocial` en src/lib/redes-sociales.ts).
+  whatsappComunidadUrl     String?
+  instagramUrl             String?
+  facebookUrl              String?
+  tiktokUrl                String?
+  youtubeUrl               String?
   // Habilita que cualquier visitante reserve un turno desde el link
   // público (`publicSlug`). Independiente de `perfilPublico`.
   reservaPublicaHabilitada Boolean         @default(false)
@@ -257,6 +265,13 @@ model User {
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
   sobreturnosHabilitados   Boolean         @default(false)
+  // La sesión es un JWT sin tabla en la base, así que no hay forma de
+  // "borrar" sesiones abiertas: en su lugar el JWT guarda esta versión al
+  // loguearse y `getCurrentUser()`/`proxy.ts` rechazan cualquier JWT con
+  // una versión vieja. Se incrementa al restablecer la contraseña por mail
+  // (ver `/api/auth/restablecer`) para cerrar las sesiones de un posible
+  // intruso.
+  sessionVersion           Int             @default(0)
   createdAt                DateTime        @default(now())
 
   // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Una SECRETARY puede
@@ -287,6 +302,11 @@ model User {
   // mensual pactado (ver PLAN_PRICING), no un ciclo de facturación propio.
   planDuracion PlanDuracion?
   planEndsAt   DateTime?
+
+  // Tope de gasto mensual en IA (dictado + resumen, en USD) solo para este
+  // médico -- null usa `TOPE_IA_USD_DEFAULT` de src/lib/ia-costos.ts. Se
+  // edita desde la ficha del médico en /admin; el médico nunca lo ve.
+  topeIAUsd Float?
 
   // Plan/duración elegidos en el checkout, todavía SIN confirmar por pago --
   // `plan`/`planDuracion` de arriba no se tocan hasta que el webhook reciba
@@ -332,6 +352,38 @@ model User {
   auditLogsDelTenant    AuditLog[]           @relation("AuditDoctor")
   auditLogsComoActor    AuditLog[]           @relation("AuditActor")
   usosIA                UsoIA[]
+  passwordResetTokens   PasswordResetToken[]
+}
+
+// Link de "olvidé mi contraseña" (ver `src/lib/password-reset.ts`). Solo se
+// guarda el hash SHA-256 del token -- el token en claro viaja únicamente en
+// el mail, así que un dump de la base no sirve para resetear cuentas. Un
+// solo uso (`usedAt`) y vencimiento corto (`expiresAt`).
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Sesiones cerradas con "Cerrar sesión" (ver `events.signOut` en
+// `src/auth.ts`). Borrar la cookie no alcanza: un request que salió antes
+// del logout (p.ej. un prefetch) vuelve con un `Set-Cookie` renovado por
+// `proxy.ts` y revive la sesión. El callback `jwt` rechaza cualquier JWT
+// cuyo `sid` esté acá. A diferencia de `User.sessionVersion`, cierra solo
+// ese dispositivo. `expiresAt` = vencimiento del JWT: pasado eso la fila
+// ya no hace falta y se limpia al revocar otra.
+model SesionRevocada {
+  sid       String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 // Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,

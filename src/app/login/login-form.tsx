@@ -46,7 +46,11 @@ export function LoginForm() {
       });
 
       if (!response || response.error) {
-        setError("Email o contraseña incorrectos.");
+        setError(
+          response?.code === "rate_limited"
+            ? "Demasiados intentos. Esperá unos minutos o restablecé tu contraseña."
+            : "Email o contraseña incorrectos."
+        );
         return;
       }
 
@@ -102,7 +106,15 @@ export function LoginForm() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Link
+                href={email.trim() ? `/recuperar?email=${encodeURIComponent(email.trim())}` : "/recuperar"}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <PasswordInput
               id="password"
               autoComplete="current-password"

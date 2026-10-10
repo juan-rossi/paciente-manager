@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Building2, ChevronRight, MapPin, Phone } from "lucide-react";
 import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
+import { RED_SOCIAL_LABELS, type RedesSociales, type RedSocial } from "@/lib/redes-sociales";
 import { cn } from "@/lib/utils";
+import { RED_SOCIAL_ICONS, WhatsappIcon } from "@/components/redes-sociales-icons";
 import { BiografiaPerfil } from "./biografia-perfil";
 
 // Piezas compartidas entre el perfil público del médico
@@ -73,6 +75,60 @@ export function LugarCard({
   );
 }
 
+const REDES_ICONOS: RedSocial[] = ["instagram", "facebook", "tiktok", "youtube"];
+
+// La comunidad de WhatsApp va como botón destacado (es una acción: sumarse);
+// el resto de las redes son contexto y van como íconos discretos debajo.
+function RedesPerfil({ redes, nombreCompleto }: { redes: RedesSociales; nombreCompleto: string }) {
+  const iconos = REDES_ICONOS.filter((red) => redes[red]);
+  if (!redes.whatsappComunidad && iconos.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {redes.whatsappComunidad && (
+        <a
+          href={redes.whatsappComunidad}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="group flex items-center gap-2.5 rounded-xl border border-[#25D366]/30 bg-[#25D366]/10 px-3 py-2.5 transition-colors hover:border-[#25D366]/70"
+        >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#128C4A] text-white dark:bg-[#1FA855]">
+            <WhatsappIcon className="size-4" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-[13px] font-bold">Comunidad de WhatsApp</span>
+            <span className="text-xs text-muted-foreground">Novedades y consejos para pacientes</span>
+          </span>
+          <span className="text-xs font-bold whitespace-nowrap text-[#0E7A3E] dark:text-[#4ADE80]">
+            Unirme →
+          </span>
+        </a>
+      )}
+      {iconos.length > 0 && (
+        <ul className="flex flex-wrap gap-2">
+          {iconos.map((red) => {
+            const Icon = RED_SOCIAL_ICONS[red];
+            return (
+              <li key={red}>
+                <a
+                  href={redes[red]!}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  aria-label={`${RED_SOCIAL_LABELS[red]} de ${nombreCompleto}`}
+                  title={RED_SOCIAL_LABELS[red]}
+                  className="flex size-9 items-center justify-center rounded-[10px] border border-border/60 text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                >
+                  <Icon className="size-4" />
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 type PerfilDoctor = {
   tituloCortesia: TituloCortesia | null;
   nombre: string;
@@ -89,6 +145,7 @@ export function PerfilShell({
   doctor,
   ciudad,
   biografia,
+  redes,
   prepagas,
   apilado = false,
   children,
@@ -96,6 +153,8 @@ export function PerfilShell({
   doctor: PerfilDoctor;
   ciudad: string;
   biografia?: string | null;
+  // Null cuando el perfil no es público: las redes no se muestran.
+  redes?: RedesSociales | null;
   prepagas?: string[];
   // Sin calendario (cuenta inactiva o sin reservas online) no hay nada que
   // poner al lado del perfil: se apilan las secciones en una sola columna.
@@ -175,6 +234,8 @@ export function PerfilShell({
           </div>
 
           {biografia && <BiografiaPerfil biografia={biografia} titulo={nombreCompleto} />}
+
+          {redes && <RedesPerfil redes={redes} nombreCompleto={nombreCompleto} />}
 
           {prepagas && prepagas.length > 0 && (
             <div>

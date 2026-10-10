@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { getMedicoDetalle, formatDiasParaVencer, formatFechaCorta } from "@/lib/admin-metrics";
 import { formatNumero, formatUsd, getUsoIAMedico, MESES_PROMEDIO } from "@/lib/admin-costos-ia";
+import { TopeIAForm } from "@/components/admin/costos-ia-controles";
 
 export const dynamic = "force-dynamic";
 
@@ -69,33 +70,32 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
             Enviar email
           </Button>
         </CardContent>
-      </Card>
-
-      {medico.vencimiento && (
-        <div
-          className={
-            urgente
-              ? "flex flex-wrap items-center justify-between gap-3 rounded-xl border px-5 py-4 " +
-                ((medico.diasParaVencer ?? 99) <= 3
+        {medico.vencimiento && (
+          <CardFooter
+            className={
+              "flex-wrap justify-between gap-x-4 gap-y-1.5 py-3 " +
+              (urgente
+                ? (medico.diasParaVencer ?? 99) <= 3
                   ? "border-red-200 bg-red-50 text-destructive dark:border-red-900 dark:bg-red-950"
-                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300")
-              : "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-5 py-4"
-          }
-        >
-          <div className="flex items-center gap-3">
-            <Clock className="size-5" />
-            <div>
-              <div className="text-xs font-semibold tracking-wide uppercase opacity-80">Vencimiento</div>
-              <div className="mt-0.5 font-heading text-base font-semibold">
+                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                : "")
+            }
+          >
+            <div className="flex items-center gap-2">
+              <Clock className={urgente ? "size-4" : "size-4 text-muted-foreground"} />
+              <span className={urgente ? "opacity-80" : "text-muted-foreground"}>Vencimiento:</span>
+              <span className="font-heading font-semibold">
                 {formatDiasParaVencer(medico.diasParaVencer)} — {formatFechaCorta(medico.vencimiento)}
-              </div>
+              </span>
             </div>
-          </div>
-          {medico.esTrial && medico.estado === "ACTIVO" && (
-            <span className="text-sm opacity-90">Sin conversión a plan pago registrada</span>
-          )}
-        </div>
-      )}
+            {medico.esTrial && medico.estado === "ACTIVO" && (
+              <span className={urgente ? "opacity-80" : "text-muted-foreground"}>
+                Sin conversión a plan pago registrada
+              </span>
+            )}
+          </CardFooter>
+        )}
+      </Card>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Users} label="Total pacientes" value={String(medico.pacientesCount)} />
@@ -151,6 +151,14 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
                 ? `Promedio de ${usoIA.promedio.mesesConsiderados === 1 ? "el último mes cerrado" : `los últimos ${usoIA.promedio.mesesConsiderados} meses cerrados`} (máximo ${MESES_PROMEDIO}), desde su primer uso.`
                 : "Todavía no tiene un mes cerrado con uso de IA para calcular el promedio."}
             </p>
+            <div className="border-t border-border pt-4">
+              <TopeIAForm
+                doctorId={id}
+                topeIAUsd={usoIA.topeIAUsd}
+                topeDefaultUsd={usoIA.topeDefaultUsd}
+                gastoMesUsd={usoIA.mesActual.costoUsd}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
