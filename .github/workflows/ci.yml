@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [qa, saas, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # `postinstall` corre `prisma generate`, que no necesita conexión a la base.
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint -- --quiet
+      - run: npm test
