@@ -12,8 +12,8 @@ const GROQ_TRANSCRIPTIONS_URL = "https://api.groq.com/openai/v1/audio/transcript
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 
 // Whisper toma el `prompt` como si fuera transcripción previa, sesgando el
-// vocabulario: mismo fragmento clínico que ya mejoró los términos médicos en
-// el transcriptor local (whisper-service/src/asr/engine.ts).
+// vocabulario: este fragmento clínico mejoró los términos médicos en las
+// pruebas del viejo transcriptor local (whisper.cpp, ya retirado).
 const PROMPT_CLINICO =
   "Evolución clínica en español. Antecedentes: hipertensión arterial, diabetes tipo 2, dislipemia, hipotiroidismo. Medicación habitual: enalapril, losartán, atorvastatina, metformina, paracetamol, ibuprofeno, amoxicilina, omeprazol, levotiroxina. El paciente refiere dolor, fiebre, cefalea y mareos. Se indica tratamiento y control en una semana.";
 
