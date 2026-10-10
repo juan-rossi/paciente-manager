@@ -42,8 +42,8 @@ export function TerminosContenido() {
       <Seccion id="servicio" titulo="2. Qué es Semio360 y qué no es">
         <p>
           Semio360 es una herramienta de gestión para consultorios: agenda de turnos, ficha e
-          historia clínica digital, evolución, consentimientos informados, recordatorios,
-          transcripción de audio y, en el plan Premium, funciones de inteligencia artificial.
+          historia clínica digital, evolución, consentimientos informados, recordatorios y, en el
+          plan Premium, dictado con transcripción de audio y funciones de inteligencia artificial.
         </p>
         <p className="font-medium">
           Semio360 no presta servicios médicos, no es un prestador de salud, no emite diagnósticos
@@ -184,14 +184,24 @@ export function TerminosContenido() {
         </Lista>
       </Seccion>
 
-      <Seccion id="transcripcion" titulo="8. Transcripción de audio">
-        <p>
-          El transcriptor es un programa opcional que se instala y se ejecuta en la computadora del
-          Médico: el audio se procesa localmente y no se envía a Semio360. El Médico es responsable
-          de su equipo, de su red local, de la seguridad de ese dispositivo y de obtener el
-          consentimiento del paciente para registrar su voz cuando sea necesario. La transcripción
-          puede contener errores y debe revisarse antes de guardarla.
-        </p>
+      <Seccion id="transcripcion" titulo="8. Dictado y transcripción de audio (plan Premium)">
+        <Lista>
+          <li>
+            El dictado graba el audio desde el navegador del Médico y lo envía a un proveedor
+            tecnológico externo de transcripción, que lo recibe solo para convertirlo en texto.
+          </li>
+          <li>
+            Semio360 no almacena el audio: conserva únicamente el texto transcripto, que pasa a
+            formar parte de la historia clínica junto con lo que el Médico revise y guarde.
+          </li>
+          <li>
+            El Médico es responsable de obtener el consentimiento del paciente para registrar su voz
+            cuando sea necesario y de no dictar datos que no sean necesarios.
+          </li>
+          <li>
+            La transcripción puede contener errores u omisiones y debe revisarse antes de guardarla.
+          </li>
+        </Lista>
       </Seccion>
 
       <Seccion id="turnos" titulo="9. Turnos y comunicaciones con pacientes">
