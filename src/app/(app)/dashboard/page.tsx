@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   // (Premium nunca tiene trial, ver src/lib/plan.ts). Si ya tiene una
   // suscripción paga vigente (`planEndsAt`), el trial en papel ya no importa.
   const diasTrial = user.role === "DOCTOR" ? diasRestantesDeTrial(user) : null;
-  const tienePlanPagoVigente = Boolean(user.planEndsAt && user.planEndsAt.getTime() > Date.now());
+  const tienePlanPagoVigente = Boolean(user.planEndsAt && user.planEndsAt.getTime() > hoy.getTime());
   // Ambos avisos empujan a contratar/renovar: sin pagos habilitados se ocultan.
   const mostrarAvisoTrial =
     PAGOS_HABILITADOS &&

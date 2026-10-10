@@ -58,6 +58,10 @@ type Props = {
 // `ConfiguracionTabCookieReset`, montado en el layout de (app), que resetea
 // la cookie apenas se sale de Configuración (más robusto que corregir al
 // llegar, que depende de que este componente se remonte).
+function guardarTabEnCookie(tab: string) {
+  document.cookie = `${CONFIGURACION_TAB_COOKIE}=${tab}; path=/; max-age=31536000; samesite=lax`;
+}
+
 export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
   const [tab, setTab] = useState<string>(initialTab);
   const [open, setOpen] = useState(false);
@@ -65,7 +69,7 @@ export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
 
   function handleChange(value: string) {
     setTab(value);
-    document.cookie = `${CONFIGURACION_TAB_COOKIE}=${value}; path=/; max-age=31536000; samesite=lax`;
+    guardarTabEnCookie(value);
   }
 
   useEffect(() => {
@@ -73,7 +77,7 @@ export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
       const destino = (e as CustomEvent<string>).detail;
       if (esConfiguracionTab(destino)) {
         setTab(destino);
-        document.cookie = `${CONFIGURACION_TAB_COOKIE}=${destino}; path=/; max-age=31536000; samesite=lax`;
+        guardarTabEnCookie(destino);
       }
     }
     window.addEventListener(CONFIGURACION_TAB_EVENT, handleIrATab);

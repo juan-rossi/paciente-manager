@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getClientIp } from "@/lib/request-ip";
+import { rateLimitOk } from "@/lib/rate-limit";
 import { fetchPlaceSuggestions } from "@/lib/google-places";
 
 // A diferencia de /api/places/autocomplete, esta ruta es pública a propósito
@@ -10,6 +12,10 @@ export async function GET(request: NextRequest) {
   const input = request.nextUrl.searchParams.get("input")?.trim();
   if (!input || input.length < 2) {
     return NextResponse.json({ suggestions: [] });
+  }
+
+  if (!(await rateLimitOk(getClientIp(request), "directorio", "ciudad"))) {
+    return NextResponse.json({ error: "Demasiadas búsquedas. Probá de nuevo en unos minutos." }, { status: 429 });
   }
 
   const result = await fetchPlaceSuggestions(input, { includedPrimaryTypes: ["locality"] });

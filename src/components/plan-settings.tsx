@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AlertTriangle, Check, Clock, Loader2, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
 import { PAGO_BASELINE_KEY, PAGO_DIFERIDO_KEY, PAGO_INICIO_KEY } from "@/lib/pago-confirmado";
 import { TIME_ZONE } from "@/lib/timezone";
 import { PAGOS_HABILITADOS, PAGOS_LABEL_DESHABILITADO } from "@/lib/pagos";
+import { useStoredValue } from "@/lib/use-stored-value";
 
 type Props = {
   plan: "BASICA" | "PREMIUM";
@@ -67,22 +68,15 @@ export function PlanSettings({
   const [duracion, setDuracion] = useState<PlanDuracion>(planDuracion ?? "MENSUAL");
   const [cargando, setCargando] = useState<"BASICA" | "PREMIUM" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [avisoPendienteCerrado, setAvisoPendienteCerrado] = useState(false);
+  const [avisoPendienteCerradoAhora, setAvisoPendienteCerrado] = useState(false);
   const [upgradeAbierto, setUpgradeAbierto] = useState(false);
 
-  // Se lee en un efecto (no al inicializar el state) para no desalinear el
-  // render del servidor con el del cliente en el primer paint.
-  useEffect(() => {
-    if (!mpPreapprovalId) return;
-    try {
-      if (localStorage.getItem(AVISO_PENDIENTE_CERRADO_KEY) === mpPreapprovalId) {
-        setAvisoPendienteCerrado(true);
-      }
-    } catch {
-      // Storage no disponible (modo privado, etc.) -- el aviso simplemente
-      // se puede volver a mostrar, no es crítico.
-    }
-  }, [mpPreapprovalId]);
+  const avisoPendienteCerradoPara = useStoredValue(AVISO_PENDIENTE_CERRADO_KEY);
+  const avisoPendienteCerrado =
+    avisoPendienteCerradoAhora || (mpPreapprovalId !== null && avisoPendienteCerradoPara === mpPreapprovalId);
+  // Fijado al montar: las cuentas de vigencia de abajo no deben cambiar entre
+  // renders (ni leer el reloj durante el render).
+  const [ahora] = useState(() => Date.now());
 
   function cerrarAvisoPendiente() {
     setAvisoPendienteCerrado(true);
@@ -107,7 +101,7 @@ export function PlanSettings({
     Boolean(mpPreapprovalId) &&
     mpPreapprovalStatus !== null &&
     mpPreapprovalStatus !== "CANCELLED";
-  const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > Date.now());
+  const planVigente = Boolean(planEndsAt && new Date(planEndsAt).getTime() > ahora);
   // Canceló la suscripción mensual pero sigue con acceso hasta `planEndsAt`:
   // puede volver a contratar (la nueva compra se suma al final de lo pagado).
   const canceladoConAcceso = planVigente && esRecurrente && mpPreapprovalStatus === "CANCELLED";
@@ -137,7 +131,7 @@ export function PlanSettings({
   // gracia de cobro que le dé acceso: está inactivo desde esa fecha.
   const diasDesdeVencimiento =
     planEndsAt && !planVigente && !pagoEnGracia
-      ? Math.floor((Date.now() - new Date(planEndsAt).getTime()) / 86_400_000)
+      ? Math.floor((ahora - new Date(planEndsAt).getTime()) / 86_400_000)
       : null;
   const vencido =
     diasDesdeVencimiento !== null &&
