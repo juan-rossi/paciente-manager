@@ -1,6 +1,0 @@
-{
-  "model": "small",
-  "language": "es",
-  "port": 7891,
-  "allowedOrigins": ["http://localhost:3000"]
-}

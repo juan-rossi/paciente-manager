@@ -48,15 +48,6 @@ next-env.d.ts
 # doc con credenciales reales de cada entorno (URL, usuario, password) — nunca a git
 /ENTORNOS.md
 
-# whisper-service: proyecto npm independiente, config local y artefactos de build/empaquetado
-/whisper-service/node_modules
-/whisper-service/dist
-/whisper-service/dist-package
-/whisper-service/config/config.json
-/whisper-service/installers/windows/Output
-*.gguf
-ggml-*.bin
-
 .vercel
 
 .claude/settings.local.json

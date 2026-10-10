@@ -968,7 +968,7 @@ model CotizacionDolar {
 
 // Catálogo de coberturas (prepagas, obras sociales, "Particular") para elegir
 // en la ficha del paciente. Se carga desde la columna "Sigla / Alias" de
-// src/semio360_obras_sociales_prepagas_argentina.xlsx.
+// db/semio360_obras_sociales_prepagas_argentina.xlsx.
 model Prepaga {
   id             String   @id @default(cuid())
   nombre         String   @unique
