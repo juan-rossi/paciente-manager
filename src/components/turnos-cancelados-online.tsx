@@ -23,7 +23,7 @@ export function TurnosCanceladosOnline({ turnos }: { turnos: TurnoCanceladoPorPa
           const inicio = new Date(t.inicio);
           const canceladoAt = new Date(t.canceladoAt);
           return (
-            <li key={t.id} className="flex flex-col gap-0.5 rounded-md border border-border bg-card p-2.5 sm:p-3">
+            <li key={t.id} className="flex flex-col gap-0.5 rounded-md border border-border border-l-[3px] border-l-destructive bg-card p-2.5 shadow-sm sm:p-3">
               <p className="truncate text-sm font-medium">{t.nombreYApellido}</p>
               <p className="text-xs text-muted-foreground">
                 Era el {fecha(inicio)} a las {formatHoraBA(inicio)}
