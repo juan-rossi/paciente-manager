@@ -11,7 +11,7 @@ export const FAQS = [
   },
   {
     q: "¿Necesito instalar algo?",
-    a: "No. Semio360 corre en el navegador, sin instalación. El único componente opcional es el transcriptor de audio, un programa liviano para dictar la evolución sin que el audio salga de tu computadora.",
+    a: "No. Semio360 corre en el navegador, sin instalación, incluido el dictado de la evolución: solo necesitás un micrófono.",
   },
   {
     q: "¿Cómo funciona la historia clínica?",
@@ -23,7 +23,7 @@ export const FAQS = [
   },
   {
     q: "¿Qué plan necesito?",
-    a: "Básico cubre historia clínica, turnos, transcripción y recordatorios manuales. Premium suma resúmenes y autocompletado con IA, más el envío automático de recordatorios cuando esté disponible.",
+    a: "Básico cubre historia clínica, turnos, secretarias y recordatorios manuales. Premium suma el dictado con transcripción automática, resúmenes y autocompletado con IA, más el envío automático de recordatorios cuando esté disponible.",
   },
   {
     q: "¿Cómo se protege la información de mis pacientes?",

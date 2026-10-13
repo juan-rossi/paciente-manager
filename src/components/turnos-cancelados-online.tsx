@@ -5,8 +5,8 @@ function fecha(date: Date) {
   return date.toLocaleDateString("es-AR", { timeZone: TIME_ZONE, day: "numeric", month: "numeric", year: "numeric" });
 }
 
-// Registro al final de Turnos: los turnos online que el paciente canceló
-// desde el perfil público. Esos horarios ya están libres en la agenda.
+// Registro al final de Turnos: los turnos que el paciente canceló (perfil
+// público o link `{cancelar}` del recordatorio). Esos horarios ya están libres.
 export function TurnosCanceladosOnline({ turnos }: { turnos: TurnoCanceladoPorPaciente[] }) {
   if (turnos.length === 0) return null;
 
@@ -15,7 +15,7 @@ export function TurnosCanceladosOnline({ turnos }: { turnos: TurnoCanceladoPorPa
       <div>
         <h2 className="text-sm font-semibold">Cancelados por pacientes</h2>
         <p className="text-xs text-muted-foreground">
-          Turnos online que el paciente canceló desde tu perfil. El horario ya quedó libre en la agenda.
+          Turnos que el paciente canceló desde tu perfil o desde el link del recordatorio. El horario ya quedó libre en la agenda.
         </p>
       </div>
       <ul className="flex flex-col gap-2">
@@ -23,7 +23,7 @@ export function TurnosCanceladosOnline({ turnos }: { turnos: TurnoCanceladoPorPa
           const inicio = new Date(t.inicio);
           const canceladoAt = new Date(t.canceladoAt);
           return (
-            <li key={t.id} className="flex flex-col gap-0.5 rounded-md border border-border bg-card p-2.5 sm:p-3">
+            <li key={t.id} className="flex flex-col gap-0.5 rounded-md border border-border border-l-[3px] border-l-destructive bg-card p-2.5 shadow-sm sm:p-3">
               <p className="truncate text-sm font-medium">{t.nombreYApellido}</p>
               <p className="text-xs text-muted-foreground">
                 Era el {fecha(inicio)} a las {formatHoraBA(inicio)}

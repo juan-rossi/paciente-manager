@@ -74,16 +74,7 @@ export async function POST(request: NextRequest) {
   const xRequestId = request.headers.get("x-request-id");
   const firmaValida = verificarFirmaWebhook(xSignature, xRequestId, dataId);
   if (!firmaValida) {
-    // Log temporal para diagnosticar un mismatch de firma real de
-    // MercadoPago -- sacar una vez confirmado que las notificaciones se
-    // procesan bien (ver conversación del 2026-09-27).
-    console.error("Webhook de MercadoPago rechazado por firma inválida", {
-      type,
-      dataId,
-      xSignature,
-      xRequestId,
-      query: request.nextUrl.search,
-    });
+    console.error("Webhook de MercadoPago rechazado por firma inválida", { type, dataId });
     return NextResponse.json({ error: "Firma inválida." }, { status: 401 });
   }
 

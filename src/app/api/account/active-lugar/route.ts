@@ -28,9 +28,11 @@ export async function PATCH(request: NextRequest) {
 
   const asignacion = await prisma.doctorSecretaria.findUnique({
     where: { doctorId_secretariaId: { doctorId: tenantId, secretariaId: user.id } },
-    select: { lugares: { select: { lugarId: true } } },
+    select: { aceptadaAt: true, lugares: { select: { lugarId: true } } },
   });
-  const permitido = asignacion?.lugares.some((l) => l.lugarId === parsed.data.lugarId) ?? false;
+  const permitido =
+    Boolean(asignacion?.aceptadaAt) &&
+    (asignacion?.lugares.some((l) => l.lugarId === parsed.data.lugarId) ?? false);
   if (!permitido) {
     return NextResponse.json({ error: "Ese lugar no está asignado a tu cuenta." }, { status: 403 });
   }

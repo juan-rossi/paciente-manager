@@ -4,7 +4,20 @@ import { prisma } from "@/lib/prisma";
 // como `slug`: así el límite por "slug" frena un ataque contra una cuenta
 // puntual (adivinar su contraseña, llenarle la casilla de mails) aunque el
 // atacante rote de IP.
-type Ruta = "reservar" | "disponibilidad" | "cancelar" | "recuperar" | "login" | "registro";
+// "ciudad" (autocomplete/detalle de ciudades del directorio, ambos contra
+// Google Places pago) usa un `slug` fijo: el límite por "slug" pasa a ser
+// un tope global de la cuota aunque el atacante rote de IP.
+// "link-turno" (links `{confirmar}`/`{cancelar}` del recordatorio) usa el
+// código del link como `slug`.
+type Ruta =
+  | "reservar"
+  | "disponibilidad"
+  | "cancelar"
+  | "recuperar"
+  | "login"
+  | "registro"
+  | "ciudad"
+  | "link-turno";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -22,6 +35,12 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   // no necesita 8 logins en 15 minutos.
   login: { porIp: 20, porSlug: 8, ventanaMinutos: 15 },
   registro: { porIp: 5, porSlug: 3, ventanaMinutos: 60 },
+  // El autocomplete ya tiene debounce en el cliente: 60 por IP alcanza para
+  // varias búsquedas reales seguidas.
+  ciudad: { porIp: 60, porSlug: 2000, ventanaMinutos: 15 },
+  // Abrir el link + tocar el botón son 2 intentos; un paciente real no pasa
+  // de unos pocos. Por IP frena que alguien barra códigos al azar.
+  "link-turno": { porIp: 30, porSlug: 20, ventanaMinutos: 15 },
 };
 
 // Rate limiting de la reserva pública del directorio, sobre Postgres (ver

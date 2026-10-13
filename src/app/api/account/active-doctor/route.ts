@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest) {
       doctorId_secretariaId: { doctorId: parsed.data.doctorId, secretariaId: user.id },
     },
   });
-  if (!asignacion) {
+  if (!asignacion?.aceptadaAt) {
     return NextResponse.json({ error: "No asistís a ese médico." }, { status: 403 });
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -34,6 +34,8 @@ import { RED_SOCIAL_ICONS } from "@/components/redes-sociales-icons";
 
 // Orden en el form: primero las redes más usadas, la comunidad de WhatsApp
 // en el medio (en el perfil público va destacada, ver PerfilShell).
+const sinSuscripcion = () => () => {};
+
 const REDES_FORM: RedSocial[] = ["instagram", "facebook", "whatsappComunidad", "tiktok", "youtube"];
 
 function redesATexto(redes: RedesSociales): Record<RedSocial, string> {
@@ -272,12 +274,12 @@ export function VisibilidadSettings({
   // El server no conoce `window.location.origin` -- arranca mostrando el
   // dominio de producción (igual en server y cliente, sin mismatch de
   // hidratación) y recién en el cliente, ya montado, lo corrige al origin
-  // real (útil para probar el link en local). Mismo criterio que el filtro
-  // recordado en PatientSearch.
-  const [origin, setOrigin] = useState<string | null>(null);
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  // real (útil para probar el link en local).
+  const origin = useSyncExternalStore(
+    sinSuscripcion,
+    () => window.location.origin,
+    () => null
+  );
 
   const publicLink = publicSlug
     ? `${origin ?? "semio360.com"}/directorio/${publicSlug}`

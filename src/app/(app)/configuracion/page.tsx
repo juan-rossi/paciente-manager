@@ -22,6 +22,7 @@ import { redesDeUsuario } from "@/lib/redes-sociales";
 import { SeguridadSettings } from "@/components/seguridad-settings";
 import { diasRestantesDeTrial } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
+import { listarSecretariasDelMedico } from "@/lib/secretarias";
 
 export const dynamic = "force-dynamic";
 
@@ -69,20 +70,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
       where: { userId: user.id },
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
     }),
-    prisma.user.findMany({
-      where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId: user.id } } },
-      select: {
-        id: true,
-        email: true,
-        nombre: true,
-        createdAt: true,
-        secretariaAsignaciones: {
-          where: { doctorId: user.id },
-          select: { lugares: { select: { lugarId: true } }, puedeBloquearHorarios: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
+    listarSecretariasDelMedico(user.id),
     prisma.lugarDeTrabajo.findMany({
       where: { userId: user.id, deletedAt: null },
       orderBy: { createdAt: "asc" },
@@ -91,12 +79,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
     prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
   ]);
 
-  const initialSecretarias = secretarias.map(({ secretariaAsignaciones, ...s }) => ({
-    ...s,
-    createdAt: s.createdAt.toISOString(),
-    lugarIds: secretariaAsignaciones[0]?.lugares.map((l) => l.lugarId) ?? [],
-    puedeBloquearHorarios: secretariaAsignaciones[0]?.puedeBloquearHorarios ?? false,
-  }));
+  const initialSecretarias = secretarias.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }));
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
 import { formatDateParamBA } from "@/lib/timezone";
+import { useStoredValue } from "@/lib/use-stored-value";
 
 type Props = {
   diasRestantesDeTrial: number;
@@ -23,16 +24,7 @@ function formatFecha(iso: string) {
 export function TrialPorTerminarAviso({ diasRestantesDeTrial, trialEndsAt }: Props) {
   const [cerrado, setCerrado] = useState(false);
 
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(AVISO_TRIAL_CERRADO_KEY) === formatDateParamBA(new Date())) {
-        setCerrado(true);
-      }
-    } catch {
-      // Storage no disponible -- el aviso simplemente se puede volver a
-      // mostrar, no es crítico.
-    }
-  }, []);
+  const cerradoEl = useStoredValue(AVISO_TRIAL_CERRADO_KEY);
 
   function cerrarAviso() {
     setCerrado(true);
@@ -43,7 +35,7 @@ export function TrialPorTerminarAviso({ diasRestantesDeTrial, trialEndsAt }: Pro
     }
   }
 
-  if (cerrado) return null;
+  if (cerrado || cerradoEl === formatDateParamBA(new Date())) return null;
 
   return (
     <div className="relative flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 pr-11 sm:flex-row sm:items-center sm:gap-3.5 dark:border-amber-900/50 dark:bg-amber-950/40">

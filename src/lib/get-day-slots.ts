@@ -17,6 +17,8 @@ export type SerializedTurno = {
   obraSocial: string | null;
   obraSocialNro: string | null;
   patientId?: string | null;
+  recordatorioEnviado: boolean;
+  confirmadoAt: string | null;
 };
 
 export type DaySlot = {
@@ -25,6 +27,10 @@ export type DaySlot = {
   lugarId: string;
   turno: SerializedTurno | null;
   bloqueado: { bloqueoId: string; motivo: string | null } | null;
+  // Turno que el paciente canceló (link del recordatorio o perfil público)
+  // en este horario, que sigue libre -- la grilla lo muestra como
+  // "Cancelado" para que se vea, sin dejar de poder reservarse.
+  cancelado: { nombreYApellido: string } | null;
 };
 
 export type LugarInfo = {
@@ -164,7 +170,11 @@ export async function getDaySlots(
 
   function serialize(turno: (typeof turnos)[number]) {
     return serializeTurno(
-      { ...turno, fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null },
+      {
+        ...turno,
+        fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null,
+        confirmadoAt: turno.confirmadoAt?.toISOString() ?? null,
+      },
       role
     ) as SerializedTurno;
   }
@@ -187,15 +197,36 @@ export async function getDaySlots(
     if (!turnoDeGrillaPorInicio.has(key)) turnoDeGrillaPorInicio.set(key, turno);
   }
 
+  // Solo los que canceló el paciente: los que cancela el médico/secretaria
+  // ya los sabe quien los canceló. Si hay varios en el mismo horario, el
+  // último que se canceló.
+  const canceladosPorPaciente = await prisma.turno.findMany({
+    where: {
+      doctorId: tenantId,
+      inicio: { gte: dayStart, lt: dayEnd },
+      estado: "CANCELADO",
+      canceladoPorPacienteAt: { not: null },
+      ...(lugarId ? { lugarId } : {}),
+    },
+    orderBy: { canceladoPorPacienteAt: "asc" },
+    select: { inicio: true, lugarId: true, nombreYApellido: true },
+  });
+  const canceladoPorInicio = new Map(
+    canceladosPorPaciente.map((t) => [`${t.lugarId}|${t.inicio.getTime()}`, t])
+  );
+
   const result: DaySlot[] = slots.map((slot) => {
     const turno = turnoDeGrillaPorInicio.get(slot.inicio.getTime());
     const bloqueo = turno ? null : bloqueoQueAplica(slot.inicio, slot.lugarId);
+    const cancelado =
+      turno || bloqueo ? undefined : canceladoPorInicio.get(`${slot.lugarId}|${slot.inicio.getTime()}`);
     return {
       inicio: slot.inicio.toISOString(),
       fin: slot.fin.toISOString(),
       lugarId: slot.lugarId,
       turno: turno ? serialize(turno) : null,
       bloqueado: bloqueo ? { bloqueoId: bloqueo.id, motivo: bloqueo.motivo } : null,
+      cancelado: cancelado ? { nombreYApellido: cancelado.nombreYApellido } : null,
     };
   });
 
@@ -207,6 +238,7 @@ export async function getDaySlots(
       lugarId: turno.lugarId,
       turno: serialize(turno),
       bloqueado: null,
+      cancelado: null,
     }));
 
   const bloqueosDelDia: BloqueoDelDia[] = bloqueos.map((b) => ({

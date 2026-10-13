@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getClientIp } from "@/lib/request-ip";
+import { rateLimitOk } from "@/lib/rate-limit";
 import { fetchPlaceDetails } from "@/lib/google-places";
 
 // Pública, igual que /api/directorio/ciudad-autocomplete -- solo expone
@@ -8,6 +10,10 @@ export async function GET(request: NextRequest) {
   const placeId = request.nextUrl.searchParams.get("placeId")?.trim();
   if (!placeId) {
     return NextResponse.json({ error: "Falta el ID del lugar." }, { status: 400 });
+  }
+
+  if (!(await rateLimitOk(getClientIp(request), "directorio", "ciudad"))) {
+    return NextResponse.json({ error: "Demasiadas búsquedas. Probá de nuevo en unos minutos." }, { status: 429 });
   }
 
   const result = await fetchPlaceDetails(placeId);

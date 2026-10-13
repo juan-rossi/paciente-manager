@@ -21,12 +21,12 @@ Semio360 es una plataforma en la nube para gestionar un consultorio médico: tur
 ## Funciones
 - Historia clínica electrónica: ficha única por paciente con datos personales, antecedentes, evolución y consentimientos informados, registrada de forma cronológica conforme a la Ley 26.529.
 - Turnos: el médico configura sus días y horarios y el sistema arma la agenda disponible. Los pacientes pueden reservar online desde el perfil público del médico.
-- Dictado y transcripción: la consulta se dicta y se transcribe; el audio se procesa en la computadora del médico y no sale de ella.
+- Dictado y transcripción (Premium): la evolución se dicta desde el navegador y se transcribe automáticamente, con un resumen generado por IA; el audio no se guarda, solo el texto.
 - Recordatorios de turno por WhatsApp (manuales en el plan Básico).
 - Roles y auditoría: cada médico ve solo a sus pacientes y cada cambio queda registrado (quién, qué y cuándo).
 
 ## Planes
-Básico: historia clínica, turnos, transcripción y recordatorios manuales. Premium: suma resúmenes y autocompletado con IA y envío automático de recordatorios cuando esté disponible. 60 días de prueba gratis, sin tarjeta de crédito.
+Básico: historia clínica, turnos, secretarias y recordatorios manuales. Premium: suma dictado con transcripción automática, resúmenes y autocompletado con IA y envío automático de recordatorios cuando esté disponible. 60 días de prueba gratis, sin tarjeta de crédito.
 
 ## Directorio de médicos
 ${absoluteUrl("/directorio")} lista médicos con perfil público: especialidad, ciudad, coberturas médicas aceptadas, lugares de atención y reserva de turno online.

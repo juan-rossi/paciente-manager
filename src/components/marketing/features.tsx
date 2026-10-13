@@ -30,9 +30,9 @@ const FEATURES: Feature[] = [
   },
   {
     icon: Mic,
-    title: "Dictado con transcripción local",
-    text: "Dictás la evolución y se transcribe sola, con un transcriptor que corre en tu propia computadora.",
-    detail: "El audio nunca sale de tu equipo",
+    title: "Dictado con transcripción automática",
+    text: "Dictás la evolución desde el navegador y se transcribe sola, con un resumen listo para revisar.",
+    detail: "El audio no se guarda, solo el texto",
   },
   {
     icon: ClipboardSignature,

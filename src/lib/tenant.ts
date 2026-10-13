@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
  * opera dentro de la cuenta indicada por `activeDoctorId` -- el médico que
  * eligió en el selector del header (ver `src/components/doctor-switcher.tsx`).
  * Se valida que el médico elegido realmente esté asignado a la secretaria
+ * (y que ella haya aceptado la asignación, ver `DoctorSecretaria.aceptadaAt`)
  * en el momento de setear `activeDoctorId` (ver
  * `src/app/api/account/active-doctor/route.ts`), no acá en cada lectura.
  *
@@ -56,9 +57,10 @@ export async function resolveActiveLugarId(user: {
 
   const asignacion = await prisma.doctorSecretaria.findUnique({
     where: { doctorId_secretariaId: { doctorId, secretariaId: user.id } },
-    select: { lugares: { orderBy: { createdAt: "asc" }, select: { lugarId: true } } },
+    select: { aceptadaAt: true, lugares: { orderBy: { createdAt: "asc" }, select: { lugarId: true } } },
   });
-  const permitidos = asignacion?.lugares.map((l) => l.lugarId) ?? [];
+  // Una invitación pendiente no da acceso a ningún lugar.
+  const permitidos = asignacion?.aceptadaAt ? asignacion.lugares.map((l) => l.lugarId) : [];
   if (permitidos.length === 0) return null;
 
   if (user.activeLugarId && permitidos.includes(user.activeLugarId)) {
@@ -89,7 +91,7 @@ export async function resolvePuedeBloquearHorarios(user: {
 
   const asignacion = await prisma.doctorSecretaria.findUnique({
     where: { doctorId_secretariaId: { doctorId, secretariaId: user.id } },
-    select: { puedeBloquearHorarios: true },
+    select: { puedeBloquearHorarios: true, aceptadaAt: true },
   });
-  return asignacion?.puedeBloquearHorarios ?? false;
+  return Boolean(asignacion?.aceptadaAt && asignacion.puedeBloquearHorarios);
 }

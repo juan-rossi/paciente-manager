@@ -5,6 +5,7 @@ import { NavLinks } from "@/components/nav-links";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { DoctorSwitcher } from "@/components/doctor-switcher";
 import { LugarSwitcher } from "@/components/lugar-switcher";
+import { InvitacionesSecretaria } from "@/components/invitaciones-secretaria";
 import { UserChip } from "@/components/user-chip";
 import { ConfiguracionTabCookieReset } from "@/components/configuracion-tab-cookie-reset";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
@@ -21,7 +22,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const doctoresAsignados =
     user && user.role === "SECRETARY"
       ? await prisma.user.findMany({
-          where: { role: "DOCTOR", doctorAsignaciones: { some: { secretariaId: user.id } } },
+          where: {
+            role: "DOCTOR",
+            doctorAsignaciones: { some: { secretariaId: user.id, aceptadaAt: { not: null } } },
+          },
           select: {
             id: true,
             nombre: true,
@@ -43,12 +47,39 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           where: {
             deletedAt: null,
             secretariasConAcceso: {
-              some: { doctorSecretaria: { doctorId: user.activeDoctorId, secretariaId: user.id } },
+              some: {
+                doctorSecretaria: {
+                  doctorId: user.activeDoctorId,
+                  secretariaId: user.id,
+                  aceptadaAt: { not: null },
+                },
+              },
             },
           },
           select: { id: true, tipo: true, nombre: true },
           orderBy: { createdAt: "asc" },
         })
+      : [];
+
+  // Médicos que la sumaron y todavía no aceptó (ver `DoctorSecretaria.aceptadaAt`).
+  const invitaciones =
+    user && user.role === "SECRETARY"
+      ? (
+          await prisma.doctorSecretaria.findMany({
+            where: { secretariaId: user.id, aceptadaAt: null },
+            select: {
+              id: true,
+              doctor: { select: { nombre: true, apellido: true, tituloCortesia: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          })
+        ).map((inv) => ({
+          id: inv.id,
+          nombreMedico: formatNombreConTitulo(
+            inv.doctor.tituloCortesia,
+            `${inv.doctor.nombre} ${inv.doctor.apellido}`.trim()
+          ),
+        }))
       : [];
   const activeLugarId = user ? await resolveActiveLugarId(user) : undefined;
 
@@ -161,6 +192,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         )}
       </header>
+      <InvitacionesSecretaria invitaciones={invitaciones} />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 print:max-w-none print:p-0">
         {children}
       </main>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
 import { formatDateParamBA } from "@/lib/timezone";
+import { useStoredValue } from "@/lib/use-stored-value";
 import { DIAS_AVISO_PLAN_URGENTE } from "@/lib/plan";
 
 type Props = {
@@ -24,16 +25,7 @@ export function PlanPorVencerAviso({ diasRestantes, planEndsAt }: Props) {
   const [cerrado, setCerrado] = useState(false);
   const urgente = diasRestantes <= DIAS_AVISO_PLAN_URGENTE;
 
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(AVISO_PLAN_CERRADO_KEY) === formatDateParamBA(new Date())) {
-        setCerrado(true);
-      }
-    } catch {
-      // Storage no disponible -- el aviso simplemente se puede volver a
-      // mostrar, no es crítico.
-    }
-  }, []);
+  const cerradoEl = useStoredValue(AVISO_PLAN_CERRADO_KEY);
 
   function cerrarAviso() {
     setCerrado(true);
@@ -44,7 +36,7 @@ export function PlanPorVencerAviso({ diasRestantes, planEndsAt }: Props) {
     }
   }
 
-  if (cerrado) return null;
+  if (cerrado || cerradoEl === formatDateParamBA(new Date())) return null;
 
   const dias = `${diasRestantes} ${diasRestantes === 1 ? "día" : "días"}`;
   const fecha = formatFecha(planEndsAt);

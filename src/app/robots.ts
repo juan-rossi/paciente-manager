@@ -29,6 +29,7 @@ const PRIVADAS = [
   "/cuenta-inactiva",
   "/login",
   "/signup",
+  "/t/",
 ];
 
 export default function robots(): MetadataRoute.Robots {

@@ -139,6 +139,8 @@ enum DiaSemana {
   DOMINGO
 }
 
+// CONFIRMADO acá significa "activo" (ocupa el horario), no que el paciente
+// haya confirmado su asistencia -- eso es `Turno.confirmadoAt`.
 enum TurnoEstado {
   CONFIRMADO
   CANCELADO
@@ -404,6 +406,21 @@ model DoctorSecretaria {
   // ni siquiera administra, vía "Día completo"), no algo que una secretaria
   // nueva tenga habilitado de entrada.
   puedeBloquearHorarios Boolean @default(false)
+
+  // Null = invitación pendiente: el médico sumó a una secretaria que ya
+  // tenía cuenta (asiste a otro médico) y ella todavía no aceptó. Mientras
+  // tanto la relación no da acceso a nada -- ni a la agenda del médico, ni
+  // al médico permiso alguno sobre la cuenta de ella. Toda asignación nace
+  // pendiente: el médico nunca elige la contraseña de la secretaria, solo la
+  // invita (ver `src/lib/invitacion-secretaria.ts`).
+  aceptadaAt DateTime?
+
+  // Link del mail de invitación (`/invitacion?token=...`): sha256 del token,
+  // igual criterio que `PasswordResetToken`. Desde ahí la secretaria elige
+  // su contraseña (si todavía no tiene) o entra con Google, y eso acepta la
+  // invitación. Se borra al aceptar; reenviar la invitación lo regenera.
+  invitacionTokenHash String?   @unique
+  invitacionExpiraAt  DateTime?
 
   lugares DoctorSecretariaLugar[]
 
@@ -691,6 +708,18 @@ model Turno {
   // (no cuando canceló el médico). Alimenta "Cancelados por pacientes".
   canceladoPorPacienteAt DateTime?
 
+  // El paciente confirmó que viene (link `{confirmar}` del recordatorio) o
+  // el médico/secretaria lo marcó a mano. Junto con `estado` y
+  // `recordatorioEnviado` arma el estado que se ve en la grilla (ver
+  // `estadoVisualTurno`). Se borra si el turno se reprograma.
+  confirmadoAt DateTime?
+
+  // Código corto (no hasheado: hace falta para volver a armar el mensaje)
+  // de los links `{confirmar}`/`{cancelar}` del recordatorio -- ver
+  // `turno-link-paciente.ts`. Solo permite confirmar o cancelar ESTE turno.
+  // Se genera la primera vez que el turno aparece en Recordatorios.
+  linkCodigo String? @unique
+
   @@index([inicio])
   @@index([doctorId])
   @@index([lugarId])
@@ -953,7 +982,7 @@ model CotizacionDolar {
 
 // Catálogo de coberturas (prepagas, obras sociales, "Particular") para elegir
 // en la ficha del paciente. Se carga desde la columna "Sigla / Alias" de
-// src/semio360_obras_sociales_prepagas_argentina.xlsx.
+// db/semio360_obras_sociales_prepagas_argentina.xlsx.
 model Prepaga {
   id             String   @id @default(cuid())
   nombre         String   @unique

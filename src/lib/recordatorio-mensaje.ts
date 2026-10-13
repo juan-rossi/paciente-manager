@@ -21,16 +21,24 @@ export function formatFechaRecordatorio(turnoInicio: Date, ahora: Date = new Dat
   return `el ${fecha}`;
 }
 
+// `links` son los de `{confirmar}`/`{cancelar}` (ver turno-link-paciente.ts).
+// Sin links (ej. la vista previa de Configuración) los placeholders quedan
+// tal cual.
 export function buildMensajeRecordatorio(
   template: string,
   nombre: string,
   turnoInicio: Date,
-  ahora: Date = new Date()
+  ahora: Date = new Date(),
+  links?: { confirmar: string; cancelar: string }
 ): string {
-  return template
+  let mensaje = template
     .replaceAll("{nombre}", nombre)
     .replaceAll("{fecha}", formatFechaRecordatorio(turnoInicio, ahora))
     .replaceAll("{hora}", formatHoraBA(turnoInicio));
+  if (links) {
+    mensaje = mensaje.replaceAll("{confirmar}", links.confirmar).replaceAll("{cancelar}", links.cancelar);
+  }
+  return mensaje;
 }
 
 // Mensaje de cancelación/aplazamiento (ver "Pendientes de notificar" en
