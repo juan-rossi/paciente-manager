@@ -4,6 +4,7 @@ import { requireDoctor } from "@/lib/api-auth";
 import { slotDurationSchema } from "@/lib/turno-schema";
 import { planReschedule, type ReprogramacionItem } from "@/lib/schedule-reschedule";
 import { startOfDayBA } from "@/lib/timezone";
+import { RESET_CONFIRMACION } from "@/lib/turno-estado";
 
 export async function GET() {
   const { user, response } = await requireDoctor();
@@ -122,7 +123,7 @@ export async function PATCH(request: NextRequest) {
     for (const item of plan) {
       await tx.turno.update({
         where: { id: item.turnoId },
-        data: { inicio: item.newInicio, fin: item.newFin },
+        data: { inicio: item.newInicio, fin: item.newFin, ...RESET_CONFIRMACION },
       });
     }
     return tx.user.update({

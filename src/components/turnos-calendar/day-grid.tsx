@@ -5,7 +5,10 @@ import { getMinutesSinceMidnightBA } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/lib/auth";
 import type { Slot } from "./types";
+import { ESTADO_VISUAL_LABELS, estadoVisualTurno } from "@/lib/turno-estado";
 import {
+  ESTADO_TURNO_BLOQUE,
+  EstadoTurnoIcono,
   OnlineBadge,
   agruparBloqueados,
   formatHora,
@@ -123,6 +126,7 @@ function BloqueContiguoGrid({
             ((minutesFromMidnight(slot.fin) - minutesFromMidnight(slot.inicio)) / totalMinutes) *
             100;
           const ocupado = Boolean(slot.turno);
+          const estado = slot.turno ? estadoVisualTurno(slot.turno) : null;
 
           return (
             <button
@@ -133,21 +137,42 @@ function BloqueContiguoGrid({
               style={{
                 top: `${top}%`,
                 height: `${height}%`,
-                minHeight: ocupado ? 44 : 22,
+                minHeight: ocupado || slot.cancelado ? 44 : 22,
               }}
+              title={estado ? ESTADO_VISUAL_LABELS[estado] : slot.cancelado ? "Cancelado por el paciente" : undefined}
               aria-label={
                 ocupado
-                  ? `Turno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
-                  : `Libre, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
+                  ? `Turno de ${slot.turno!.nombreYApellido} (${ESTADO_VISUAL_LABELS[estado!]}), ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`
+                  : `Libre${slot.cancelado ? ` (canceló ${slot.cancelado.nombreYApellido})` : ""}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Reservar."}`
               }
               className={cn(
-                "absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border py-1 pr-2 pl-6 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
-                ocupado
-                  ? "border-primary/30 bg-primary/15 text-primary hover:bg-primary/25"
-                  : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+                "absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border py-1 pr-2 pl-7 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+                estado
+                  ? ESTADO_TURNO_BLOQUE[estado]
+                  : slot.cancelado
+                    ? ESTADO_TURNO_BLOQUE.CANCELADO
+                    : "border-dashed border-border text-muted-foreground hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
               )}
             >
-              {ocupado ? (
+              {(estado || slot.cancelado) && (
+                <EstadoTurnoIcono
+                  estado={estado ?? "CANCELADO"}
+                  className="absolute top-1/2 left-1.5 -translate-y-1/2"
+                />
+              )}
+              {slot.cancelado && !ocupado ? (
+                <>
+                  <span className="flex items-center gap-1 overflow-hidden text-xs">
+                    <strong className="shrink-0 font-semibold">Libre</strong>
+                    <span className="truncate">
+                      [ {formatHora(slot.inicio)} - {formatHora(slot.fin)} ]
+                    </span>
+                  </span>
+                  <span className="truncate text-[11px] leading-tight opacity-80">
+                    Canceló <span className="line-through">{slot.cancelado.nombreYApellido}</span>
+                  </span>
+                </>
+              ) : ocupado ? (
                 <>
                   <span className="flex items-center justify-between gap-1.5">
                     <strong className="min-w-0 text-xs leading-tight font-semibold break-words">
@@ -244,31 +269,37 @@ function BloqueContiguoGrid({
                 <div className="flex flex-1 flex-col">
                   {pieces.map((piece, index) => {
                     const ocupado = Boolean(piece.turno);
+                    const estado = piece.turno ? estadoVisualTurno(piece.turno) : null;
                     return (
                       <button
                         key={piece.inicio}
                         type="button"
                         disabled={isPastDay}
                         onClick={() => (piece.turno ? onOpenEdit(piece) : onOpenBooking(piece))}
+                        title={estado ? ESTADO_VISUAL_LABELS[estado] : undefined}
                         aria-label={
                           ocupado
-                            ? `Turno de ${piece.turno!.nombreYApellido}, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Editar."}`
+                            ? `Turno de ${piece.turno!.nombreYApellido} (${ESTADO_VISUAL_LABELS[estado!]}), ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Editar."}`
                             : `Libre, ${formatHora(piece.inicio)} a ${formatHora(piece.fin)}${isPastDay ? "." : ". Reservar."}`
                         }
                         className={cn(
                           "flex w-full flex-1 flex-col items-start justify-center px-2 py-1 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
                           index > 0 && "border-t border-dashed border-border/70",
-                          ocupado
-                            ? "bg-primary/15 text-primary hover:bg-primary/25"
+                          // Sin borde propio: el contenedor de la fila ya lo tiene.
+                          estado
+                            ? cn(ESTADO_TURNO_BLOQUE[estado], "border-0")
                             : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
                         )}
                       >
                         {ocupado ? (
                           <>
                             <span className="flex w-full items-center justify-between gap-1.5">
-                              <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
-                                {piece.turno!.nombreYApellido}
-                              </strong>
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <EstadoTurnoIcono estado={estado!} />
+                                <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
+                                  {piece.turno!.nombreYApellido}
+                                </strong>
+                              </span>
                               {piece.turno!.origen === "ONLINE" && (
                                 <OnlineBadge className="hidden sm:inline-block" />
                               )}
@@ -305,16 +336,20 @@ function BloqueContiguoGrid({
                       type="button"
                       disabled={isPastDay}
                       onClick={() => onOpenEdit(sob)}
-                      aria-label={`Sobreturno de ${sob.turno!.nombreYApellido}, ${formatHora(sob.inicio)} a ${formatHora(sob.fin)}${isPastDay ? "." : ". Editar."}`}
+                      title={ESTADO_VISUAL_LABELS[estadoVisualTurno(sob.turno!)]}
+                      aria-label={`Sobreturno de ${sob.turno!.nombreYApellido} (${ESTADO_VISUAL_LABELS[estadoVisualTurno(sob.turno!)]}), ${formatHora(sob.inicio)} a ${formatHora(sob.fin)}${isPastDay ? "." : ". Editar."}`}
                       className={cn(
                         "flex w-full flex-1 flex-col items-start justify-center bg-amber-500/15 px-2 py-1 text-left text-amber-800 transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400",
                         index > 0 && "border-t border-dashed border-amber-500/40"
                       )}
                     >
                       <span className="flex w-full items-center justify-between gap-1.5">
-                        <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
-                          {sob.turno!.nombreYApellido}
-                        </strong>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <EstadoTurnoIcono estado={estadoVisualTurno(sob.turno!)} />
+                          <strong className="min-w-0 text-[11px] leading-tight font-semibold break-words">
+                            {sob.turno!.nombreYApellido}
+                          </strong>
+                        </span>
                         {sob.turno!.origen === "ONLINE" && (
                           <OnlineBadge className="hidden sm:inline-block" />
                         )}
@@ -343,9 +378,14 @@ function BloqueContiguoGrid({
               disabled={isPastDay}
               onClick={() => onOpenEdit(slot)}
               style={{ top: `${top}%`, height: `${height}%`, minHeight: 44 }}
-              aria-label={`Sobreturno de ${slot.turno!.nombreYApellido}, ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`}
-              className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border border-dashed border-amber-500/70 bg-amber-500/15 py-1 pr-2 pl-6 text-left text-amber-800 shadow-sm transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400"
+              title={ESTADO_VISUAL_LABELS[estadoVisualTurno(slot.turno!)]}
+              aria-label={`Sobreturno de ${slot.turno!.nombreYApellido} (${ESTADO_VISUAL_LABELS[estadoVisualTurno(slot.turno!)]}), ${formatHora(slot.inicio)} a ${formatHora(slot.fin)}${isPastDay ? "." : ". Editar."}`}
+              className="absolute left-1 flex w-[calc(100%-0.5rem)] flex-col justify-center gap-0.5 rounded-md border border-dashed border-amber-500/70 bg-amber-500/15 py-1 pr-2 pl-7 text-left text-amber-800 shadow-sm transition-colors hover:bg-amber-500/25 disabled:pointer-events-none disabled:opacity-50 dark:text-amber-400"
             >
+              <EstadoTurnoIcono
+                estado={estadoVisualTurno(slot.turno!)}
+                className="absolute top-1/2 left-1.5 -translate-y-1/2"
+              />
               <span className="flex items-center justify-between gap-1.5">
                 <strong className="min-w-0 text-xs leading-tight font-semibold break-words">
                   {slot.turno!.nombreYApellido}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Loader2, Mail, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,14 +14,7 @@ import {
   isSameDayBA,
 } from "@/lib/timezone";
 import type { DiaSemana } from "@/lib/slots";
-
-type RecordatorioTurno = {
-  id: string;
-  nombreYApellido: string;
-  telefono: string;
-  inicio: string;
-  recordatorioEnviado: boolean;
-};
+import type { RecordatorioTurno } from "@/lib/get-recordatorios-del-dia";
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -163,7 +156,13 @@ export function RecordatoriosCalendar({
               {turnos.map((turno) => {
                 const inicio = new Date(turno.inicio);
                 const hora = formatHoraBA(inicio);
-                const mensaje = buildMensajeRecordatorio(mensajeTemplate, turno.nombreYApellido, inicio);
+                const mensaje = buildMensajeRecordatorio(
+                  mensajeTemplate,
+                  turno.nombreYApellido,
+                  inicio,
+                  new Date(),
+                  turno.links
+                );
                 const href = buildWhatsAppHref(turno.telefono, mensaje);
 
                 const marcando = marcandoId === turno.id;
@@ -180,9 +179,14 @@ export function RecordatoriosCalendar({
                       <p className="truncate text-sm font-medium">{turno.nombreYApellido}</p>
                       <p className="truncate text-xs text-muted-foreground">{turno.telefono}</p>
                     </div>
-                    {turno.recordatorioEnviado ? (
-                      <Badge className="h-auto gap-1 self-center bg-green-600 px-2.5 pt-1.5 pb-1 leading-none text-white">
+                    {turno.confirmado ? (
+                      <Badge className="h-auto gap-1 self-center bg-emerald-600 px-2.5 pt-1.5 pb-1 leading-none text-white">
                         <Check className="size-3" data-icon="inline-start" />
+                        Confirmado
+                      </Badge>
+                    ) : turno.recordatorioEnviado ? (
+                      <Badge className="h-auto gap-1 self-center bg-primary px-2.5 pt-1.5 pb-1 leading-none text-primary-foreground">
+                        <Mail className="size-3" data-icon="inline-start" />
                         Enviado
                       </Badge>
                     ) : (

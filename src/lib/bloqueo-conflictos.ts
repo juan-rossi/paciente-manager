@@ -6,6 +6,7 @@ import { agruparPorLugar, bloquesDelDia } from "@/lib/bloques-dia";
 import { planReschedule } from "@/lib/schedule-reschedule";
 import { buscarProximosDiasLibres } from "@/lib/dia-sin-configurar";
 import { formatDateParamBA, getMinutesSinceMidnightBA, setTimeBA, startOfDayBA } from "@/lib/timezone";
+import { RESET_CONFIRMACION } from "@/lib/turno-estado";
 
 export type ConflictoTurno = {
   id: string;
@@ -255,6 +256,7 @@ export async function resolverConflictos(
             fin: nuevoFin,
             avisoPendiente: true,
             avisoPendienteMotivo: "APLAZADO",
+            ...RESET_CONFIRMACION,
             avisoPendienteFechaAnterior: turno.inicio,
           },
         });
@@ -273,6 +275,7 @@ export async function resolverConflictos(
             fin: nuevoFin,
             avisoPendiente: true,
             avisoPendienteMotivo: "APLAZADO",
+            ...RESET_CONFIRMACION,
             avisoPendienteFechaAnterior: turno.inicio,
           },
         });
@@ -321,6 +324,7 @@ export async function resolverConflictos(
           fin: item.newFin,
           avisoPendiente: true,
           avisoPendienteMotivo: "APLAZADO",
+          ...RESET_CONFIRMACION,
           avisoPendienteFechaAnterior: item.oldInicio,
         },
       });

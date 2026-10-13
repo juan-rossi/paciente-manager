@@ -1,5 +1,6 @@
-import { Building2, Clock, MapPin } from "lucide-react";
+import { Building2, Check, Clock, Mail, MapPin, X, type LucideIcon } from "lucide-react";
 import { rangesOverlap } from "@/lib/bloques-dia";
+import { ESTADO_VISUAL_LABELS, type EstadoVisualTurno } from "@/lib/turno-estado";
 import { formatHoraBA, getMinutesSinceMidnightBA } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import type { LugarInfo, Slot } from "./types";
@@ -21,6 +22,50 @@ export function OnlineBadge({ className }: { className?: string }) {
     >
       ONLINE
     </span>
+  );
+}
+
+// Fondo suave + ícono por estado (ver `estadoVisualTurno`). El ámbar queda
+// para los sobreturnos y el celeste para el badge ONLINE.
+export const ESTADO_TURNO_BLOQUE: Record<EstadoVisualTurno, string> = {
+  NUEVO:
+    "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800/40 dark:text-slate-200 dark:hover:bg-slate-800/70",
+  RECORDATORIO_ENVIADO: "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20",
+  CONFIRMADO:
+    "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:bg-emerald-950/80",
+  CANCELADO:
+    "border-dashed border-rose-300 bg-rose-50/70 text-rose-800 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/60",
+};
+
+const ESTADO_TURNO_ICONO: Record<EstadoVisualTurno, { fondo: string; Icono: LucideIcon | null }> = {
+  NUEVO: { fondo: "bg-slate-400 dark:bg-slate-500", Icono: null },
+  RECORDATORIO_ENVIADO: { fondo: "bg-primary", Icono: Mail },
+  CONFIRMADO: { fondo: "bg-emerald-500", Icono: Check },
+  CANCELADO: { fondo: "bg-rose-500", Icono: X },
+};
+
+export function EstadoTurnoIcono({ estado, className }: { estado: EstadoVisualTurno; className?: string }) {
+  const { fondo, Icono } = ESTADO_TURNO_ICONO[estado];
+  return (
+    <span
+      aria-hidden
+      className={cn("grid size-4 shrink-0 place-items-center rounded-full text-white", fondo, className)}
+    >
+      {Icono ? <Icono className="size-2.5" strokeWidth={3} /> : <span className="size-1.5 rounded-full bg-white" />}
+    </span>
+  );
+}
+
+export function EstadosLeyenda() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-xs text-muted-foreground">
+      {(Object.keys(ESTADO_VISUAL_LABELS) as EstadoVisualTurno[]).map((estado) => (
+        <span key={estado} className="inline-flex items-center gap-1.5">
+          <EstadoTurnoIcono estado={estado} />
+          {ESTADO_VISUAL_LABELS[estado]}
+        </span>
+      ))}
+    </div>
   );
 }
 

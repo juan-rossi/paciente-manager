@@ -12,8 +12,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DNI_REGEX } from "@/lib/dni";
+import { ESTADO_VISUAL_LABELS, estadoVisualTurno } from "@/lib/turno-estado";
 import { filterTelefono } from "@/lib/utils";
-import { formatHora } from "./utils";
+import { EstadoTurnoIcono, formatHora } from "./utils";
 import type { TurnoFormState } from "./use-turno-form";
 
 // Diálogos de reservar/editar turno y de cancelarlo.
@@ -40,9 +41,12 @@ export function TurnoDialogs({ state, selectedDate, prepagas }: {
     cancelTarget,
     setCancelTarget,
     cancelling,
+    togglingConfirmado,
+    handleToggleConfirmado,
     handleSubmitForm,
     handleCancelar,
   } = state;
+  const estado = editingTurnoId && formSlot?.turno ? estadoVisualTurno(formSlot.turno) : null;
 
   return (
     <>
@@ -66,6 +70,26 @@ export function TurnoDialogs({ state, selectedDate, prepagas }: {
                 </strong>
               </div>
             </div>
+            {estado && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <span className="flex items-center gap-2 text-sm">
+                  <EstadoTurnoIcono estado={estado} />
+                  <span>
+                    <span className="text-muted-foreground">Estado:</span>{" "}
+                    <strong className="font-semibold">{ESTADO_VISUAL_LABELS[estado]}</strong>
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleConfirmado}
+                  disabled={togglingConfirmado}
+                >
+                  {estado === "CONFIRMADO" ? "Quitar confirmación" : "Marcar confirmado"}
+                </Button>
+              </div>
+            )}
             <hr className="mt-2 mb-2" />
             <div className="flex flex-col gap-1.5">
               <Label>Nombre completo *</Label>

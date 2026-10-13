@@ -8,6 +8,9 @@ export type TurnoInfo = {
   obraSocialNro: string | null;
   patientId?: string | null;
   origen: string;
+  estado: string;
+  recordatorioEnviado: boolean;
+  confirmadoAt: string | null;
 };
 
 export type Slot = {
@@ -16,6 +19,7 @@ export type Slot = {
   lugarId: string;
   turno: TurnoInfo | null;
   bloqueado: { bloqueoId: string; motivo: string | null } | null;
+  cancelado: { nombreYApellido: string } | null;
 };
 
 export type BloqueoDelDia = {

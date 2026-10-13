@@ -8,7 +8,13 @@ import { limpiarAperturasSinTurnos } from "@/lib/horario-excepcional";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-const turnoUpdateSchema = z.union([z.object({ estado: z.literal("CANCELADO") }), turnoEditSchema]);
+// `confirmado`: el médico/secretaria marca a mano que el paciente confirmó
+// (ej. avisó por teléfono) o lo desmarca -- ver `Turno.confirmadoAt`.
+const turnoUpdateSchema = z.union([
+  z.object({ estado: z.literal("CANCELADO") }),
+  z.object({ confirmado: z.boolean() }),
+  turnoEditSchema,
+]);
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { user, tenantId, activeLugarId, response } = await requireUser();
@@ -58,6 +64,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // sin uso -- el día vuelve a no disponible en vez de quedar abierto
     // indefinidamente a turnos nuevos que nadie pidió.
     await limpiarAperturasSinTurnos(turno.doctorId, turno.lugarId, turno.inicio);
+    return NextResponse.json({ turno: serializeTurno(turno, user.role) });
+  }
+
+  if ("confirmado" in parsed.data) {
+    const turno = await prisma.turno.update({
+      where: { id },
+      data: { confirmadoAt: parsed.data.confirmado ? new Date() : null },
+    });
     return NextResponse.json({ turno: serializeTurno(turno, user.role) });
   }
 

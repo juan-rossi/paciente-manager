@@ -7,7 +7,17 @@ import { prisma } from "@/lib/prisma";
 // "ciudad" (autocomplete/detalle de ciudades del directorio, ambos contra
 // Google Places pago) usa un `slug` fijo: el límite por "slug" pasa a ser
 // un tope global de la cuota aunque el atacante rote de IP.
-type Ruta = "reservar" | "disponibilidad" | "cancelar" | "recuperar" | "login" | "registro" | "ciudad";
+// "link-turno" (links `{confirmar}`/`{cancelar}` del recordatorio) usa el
+// código del link como `slug`.
+type Ruta =
+  | "reservar"
+  | "disponibilidad"
+  | "cancelar"
+  | "recuperar"
+  | "login"
+  | "registro"
+  | "ciudad"
+  | "link-turno";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -28,6 +38,9 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   // El autocomplete ya tiene debounce en el cliente: 60 por IP alcanza para
   // varias búsquedas reales seguidas.
   ciudad: { porIp: 60, porSlug: 2000, ventanaMinutos: 15 },
+  // Abrir el link + tocar el botón son 2 intentos; un paciente real no pasa
+  // de unos pocos. Por IP frena que alguien barra códigos al azar.
+  "link-turno": { porIp: 30, porSlug: 20, ventanaMinutos: 15 },
 };
 
 // Rate limiting de la reserva pública del directorio, sobre Postgres (ver

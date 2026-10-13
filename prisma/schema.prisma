@@ -139,6 +139,8 @@ enum DiaSemana {
   DOMINGO
 }
 
+// CONFIRMADO acá significa "activo" (ocupa el horario), no que el paciente
+// haya confirmado su asistencia -- eso es `Turno.confirmadoAt`.
 enum TurnoEstado {
   CONFIRMADO
   CANCELADO
@@ -705,6 +707,18 @@ model Turno {
   // Se completa cuando el propio paciente canceló desde el perfil público
   // (no cuando canceló el médico). Alimenta "Cancelados por pacientes".
   canceladoPorPacienteAt DateTime?
+
+  // El paciente confirmó que viene (link `{confirmar}` del recordatorio) o
+  // el médico/secretaria lo marcó a mano. Junto con `estado` y
+  // `recordatorioEnviado` arma el estado que se ve en la grilla (ver
+  // `estadoVisualTurno`). Se borra si el turno se reprograma.
+  confirmadoAt DateTime?
+
+  // Código corto (no hasheado: hace falta para volver a armar el mensaje)
+  // de los links `{confirmar}`/`{cancelar}` del recordatorio -- ver
+  // `turno-link-paciente.ts`. Solo permite confirmar o cancelar ESTE turno.
+  // Se genera la primera vez que el turno aparece en Recordatorios.
+  linkCodigo String? @unique
 
   @@index([inicio])
   @@index([doctorId])

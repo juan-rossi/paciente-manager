@@ -11,7 +11,7 @@ export type TurnoCanceladoPorPaciente = {
 
 const LIMITE = 100;
 
-// Turnos reservados online que el propio paciente canceló desde el perfil.
+// Turnos que el propio paciente canceló (perfil público o link del recordatorio).
 // Ya no ocupan la agenda (estado CANCELADO); esto es solo el registro. Mismo
 // criterio de scoping por lugar que el resto de la app (`lugarId === null` =
 // secretaria sin lugar asignado, no ve nada).

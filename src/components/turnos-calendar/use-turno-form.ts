@@ -23,6 +23,7 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
 
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [togglingConfirmado, setTogglingConfirmado] = useState(false);
 
   function openBooking(slot: Slot) {
     setFormSlot(slot);
@@ -89,6 +90,32 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     }
   }
 
+  // Marca/desmarca a mano que el paciente confirmó. Actualiza el turno del
+  // diálogo en el lugar (sigue abierto) y recarga la grilla por detrás.
+  async function handleToggleConfirmado() {
+    const turno = formSlot?.turno;
+    if (!turno) return;
+    setTogglingConfirmado(true);
+    try {
+      const response = await fetch(`/api/turnos/${turno.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmado: !turno.confirmadoAt }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "No se pudo actualizar el turno.");
+        return;
+      }
+      setFormSlot((slot) =>
+        slot?.turno ? { ...slot, turno: { ...slot.turno, confirmadoAt: data.turno.confirmadoAt } } : slot
+      );
+      await loadSlots(selectedDate);
+    } finally {
+      setTogglingConfirmado(false);
+    }
+  }
+
   async function handleCancelar() {
     if (!cancelTarget?.turno) return;
     setCancelling(true);
@@ -128,6 +155,8 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     setCancelTarget,
     cancelling,
     setCancelling,
+    togglingConfirmado,
+    handleToggleConfirmado,
     openBooking,
     openEdit,
     handleSubmitForm,

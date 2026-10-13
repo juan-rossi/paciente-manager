@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CalendarClock, MessageSquare, Power, Sparkles } from "lucide-react";
+import { Ban, CalendarClock, MessageSquare, Plus, Power, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SettingsSection } from "@/components/settings-section";
 import { cn } from "@/lib/utils";
+
+const LINKS_SUGERIDOS = "Confirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}";
 
 type Props = {
   initialMensajeTemplate: string;
@@ -114,6 +116,27 @@ export function MessagingSettings({
             <p>
               <code>{"{hora}"}</code> — horario del turno (HH:MM).
             </p>
+            <p>
+              <code>{"{confirmar}"}</code> — link para que el paciente confirme su asistencia. El turno
+              pasa a <strong>Confirmado</strong> en la agenda.
+            </p>
+            <p>
+              <code>{"{cancelar}"}</code> — link para que el paciente cancele el turno (hasta 1 hora
+              antes). El horario queda libre y aparece en &quot;Cancelados por pacientes&quot;.
+            </p>
+            {!mensajeTemplate.includes("{confirmar}") && !mensajeTemplate.includes("{cancelar}") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-1 self-start"
+                disabled={!mensajeriaHabilitada}
+                onClick={() => setMensajeTemplate((t) => `${t.trimEnd()}\n${LINKS_SUGERIDOS}`)}
+              >
+                <Plus className="size-3.5" />
+                Agregar links de confirmar y cancelar
+              </Button>
+            )}
           </div>
         </div>
       </SettingsSection>

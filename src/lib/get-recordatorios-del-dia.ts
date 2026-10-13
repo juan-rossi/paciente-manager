@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDayBA } from "@/lib/timezone";
 import type { DiaSemana } from "@/lib/slots";
+import { asegurarLinkCodigos, linkPaciente } from "@/lib/turno-link-paciente";
 
 export type RecordatorioTurno = {
   id: string;
@@ -8,6 +9,9 @@ export type RecordatorioTurno = {
   telefono: string;
   inicio: string;
   recordatorioEnviado: boolean;
+  confirmado: boolean;
+  // Los de `{confirmar}`/`{cancelar}` de la plantilla.
+  links: { confirmar: string; cancelar: string };
 };
 
 // Mismo criterio que `getDaySlots` para turnos: una secretaria solo ve los
@@ -44,11 +48,31 @@ export async function getRecordatoriosDelDia(
       ...(lugarId ? { lugarId } : {}),
     },
     orderBy: { inicio: "asc" },
-    select: { id: true, nombreYApellido: true, telefono: true, inicio: true, recordatorioEnviado: true },
+    select: {
+      id: true,
+      nombreYApellido: true,
+      telefono: true,
+      inicio: true,
+      recordatorioEnviado: true,
+      confirmadoAt: true,
+      linkCodigo: true,
+    },
   });
+  const codigos = await asegurarLinkCodigos(turnos);
 
   return {
-    turnos: turnos.map((t) => ({ ...t, inicio: t.inicio.toISOString() })),
+    turnos: turnos.map((t) => {
+      const codigo = codigos.get(t.id)!;
+      return {
+        id: t.id,
+        nombreYApellido: t.nombreYApellido,
+        telefono: t.telefono,
+        inicio: t.inicio.toISOString(),
+        recordatorioEnviado: t.recordatorioEnviado,
+        confirmado: t.confirmadoAt !== null,
+        links: { confirmar: linkPaciente(codigo, "si"), cancelar: linkPaciente(codigo, "no") },
+      };
+    }),
     diasConHorario,
     sinConfigurar: blocks.length === 0,
   };

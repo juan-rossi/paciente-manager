@@ -24,6 +24,7 @@ import { CompartirAgendaButton } from "@/components/compartir-agenda-button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BloqueoDelDia, LugarInfo, Slot } from "@/components/turnos-calendar/types";
 import {
+  EstadosLeyenda,
   LugarIcon,
   capitalize,
   formatHora,
@@ -398,6 +399,7 @@ export function TurnosCalendar({
                         </div>
                       );
                     })}
+                    <EstadosLeyenda />
                   </div>
                 )}
               </>
