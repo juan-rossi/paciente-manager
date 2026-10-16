@@ -21,6 +21,8 @@ import type { UserRole } from "@/lib/auth";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { CompartirAgendaButton } from "@/components/compartir-agenda-button";
+import { TurnosCanceladosOnline } from "@/components/turnos-cancelados-online";
+import type { TurnoCanceladoPorPaciente } from "@/lib/turnos-cancelados-por-pacientes";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BloqueoDelDia, LugarInfo, Slot } from "@/components/turnos-calendar/types";
 import {
@@ -63,6 +65,8 @@ type Props = {
   initialSobreturnosHabilitados: boolean;
   initialLugares: LugarInfo[];
   initialBloqueosDelDia: BloqueoDelDia[];
+  // Turnos del día que el paciente canceló (registro debajo de la grilla).
+  initialCanceladosPorPacientes: TurnoCanceladoPorPaciente[];
   // Nombres de las prepagas con las que trabaja el médico (opciones del
   // desplegable de Obra Social).
   prepagas: string[];
@@ -85,6 +89,7 @@ export function TurnosCalendar({
   initialSobreturnosHabilitados,
   initialLugares,
   initialBloqueosDelDia,
+  initialCanceladosPorPacientes,
   prepagas,
   compartir,
 }: Props) {
@@ -106,6 +111,9 @@ export function TurnosCalendar({
   );
   const [lugares, setLugares] = useState<LugarInfo[]>(initialLugares);
   const [bloqueosDelDia, setBloqueosDelDia] = useState<BloqueoDelDia[]>(initialBloqueosDelDia);
+  const [canceladosPorPacientes, setCanceladosPorPacientes] = useState<TurnoCanceladoPorPaciente[]>(
+    initialCanceladosPorPacientes
+  );
   const [loading, setLoading] = useState(false);
   // En mobile arranca colapsado para no ocupar toda la pantalla con el
   // calendario -- en desktop (lg+) siempre se muestra, sin importar este
@@ -127,6 +135,7 @@ export function TurnosCalendar({
       setSobreturnosHabilitados(Boolean(data.sobreturnosHabilitados));
       setLugares(data.lugares ?? []);
       setBloqueosDelDia(data.bloqueosDelDia ?? []);
+      setCanceladosPorPacientes(data.canceladosPorPacientes ?? []);
     } finally {
       setLoading(false);
     }
@@ -417,6 +426,8 @@ export function TurnosCalendar({
           })()}
         </div>
       </div>
+
+      {!loading && <TurnosCanceladosOnline turnos={canceladosPorPacientes} />}
 
       <TurnoDialogs state={turnoForm} selectedDate={selectedDate} prepagas={prepagas} />
 

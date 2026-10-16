@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/api-auth";
 import { turnoInputSchema } from "@/lib/turno-schema";
 import { serializeTurno } from "@/lib/turno-serialize";
 import { getDaySlots } from "@/lib/get-day-slots";
+import { getTurnosCanceladosPorPacientes } from "@/lib/turnos-cancelados-por-pacientes";
 import { dateParamToDateBA, startOfDayBA } from "@/lib/timezone";
 import { isRangoBloqueado } from "@/lib/bloqueo-horario";
 
@@ -16,9 +17,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Parámetro 'date' inválido (YYYY-MM-DD)." }, { status: 400 });
   }
 
-  const result = await getDaySlots(date, user.role, tenantId, activeLugarId);
+  const [result, canceladosPorPacientes] = await Promise.all([
+    getDaySlots(date, user.role, tenantId, activeLugarId),
+    getTurnosCanceladosPorPacientes(date, tenantId, activeLugarId),
+  ]);
 
-  return NextResponse.json(result);
+  return NextResponse.json({ ...result, canceladosPorPacientes });
 }
 
 export async function POST(request: NextRequest) {
