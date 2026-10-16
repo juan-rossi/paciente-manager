@@ -4,7 +4,6 @@ import { getTenantId, resolveActiveLugarId, resolvePuedeBloquearHorarios } from 
 import { formatDateParamBA } from "@/lib/timezone";
 import { prisma } from "@/lib/prisma";
 import { TurnosCalendar } from "@/components/turnos-calendar";
-import { TurnosCanceladosOnline } from "@/components/turnos-cancelados-online";
 import { getTurnosCanceladosPorPacientes } from "@/lib/turnos-cancelados-por-pacientes";
 import { nombreDoctor } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
@@ -74,28 +73,26 @@ export default async function TurnosPage() {
     }
   }
 
-  const canceladosPorPacientes = await getTurnosCanceladosPorPacientes(tenantId, activeLugarId);
+  const canceladosPorPacientes = await getTurnosCanceladosPorPacientes(today, tenantId, activeLugarId);
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col gap-4">
-      <TurnosCalendar
-        role={user.role}
-        tenantId={tenantId}
-        activeLugarId={activeLugarId}
-        puedeBloquearHorarios={puedeBloquearHorarios}
-        initialDate={formatDateParamBA(today)}
-        initialSlots={slots}
-        initialSobreturnos={sobreturnos}
-        initialSinConfigurar={sinConfigurar}
-        initialDiasConHorario={diasConHorario}
-        initialDiasEspeciales={diasEspeciales}
-        initialSobreturnosHabilitados={sobreturnosHabilitados}
-        initialLugares={lugares}
-        initialBloqueosDelDia={bloqueosDelDia}
-        prepagas={prepagas}
-        compartir={compartir}
-      />
-      <TurnosCanceladosOnline turnos={canceladosPorPacientes} />
-    </div>
+    <TurnosCalendar
+      role={user.role}
+      tenantId={tenantId}
+      activeLugarId={activeLugarId}
+      puedeBloquearHorarios={puedeBloquearHorarios}
+      initialDate={formatDateParamBA(today)}
+      initialSlots={slots}
+      initialSobreturnos={sobreturnos}
+      initialSinConfigurar={sinConfigurar}
+      initialDiasConHorario={diasConHorario}
+      initialDiasEspeciales={diasEspeciales}
+      initialSobreturnosHabilitados={sobreturnosHabilitados}
+      initialLugares={lugares}
+      initialBloqueosDelDia={bloqueosDelDia}
+      initialCanceladosPorPacientes={canceladosPorPacientes}
+      prepagas={prepagas}
+      compartir={compartir}
+    />
   );
 }
