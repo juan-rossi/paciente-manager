@@ -55,7 +55,7 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
     "Todo lo de Básico",
     "Transcripción de audio (dictado)",
     "Resúmenes y autocompletado de campos con IA",
-    "Envío automático de recordatorios por WhatsApp",
+    "Perfil destacado en el Directorio de profesionales",
   ],
 };
 

@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CalendarClock, MessageSquare, Plus, Power, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Ban, CalendarClock, MessageSquare, Plus, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -194,20 +192,6 @@ export function MessagingSettings({
               los que se movió el turno.
             </p>
           </div>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection
-        title="Envío automático de recordatorios"
-        description="Mandá los recordatorios de turno por WhatsApp solo, sin que la secretaria tenga que apretar enviar."
-        icon={Sparkles}
-      >
-        <div className="flex items-center gap-3 opacity-60">
-          <Checkbox id="envio-automatico" checked={false} disabled />
-          <Label htmlFor="envio-automatico" className="font-normal">
-            Enviar automáticamente
-          </Label>
-          <Badge variant="secondary">Premium · Próximamente</Badge>
         </div>
       </SettingsSection>
 

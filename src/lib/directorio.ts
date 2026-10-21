@@ -2,8 +2,10 @@ import { prisma } from "@/lib/prisma";
 import type { Especialidad } from "@/lib/especialidad";
 import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
-import { esActivo } from "@/lib/plan";
+import { esActivo, isPremium } from "@/lib/plan";
 import { fotoDoctorPath } from "@/lib/site-url";
+import { formatDateParamBA } from "@/lib/timezone";
+import { getDisponibilidadPublica } from "@/lib/public-booking";
 
 const doctorPublicoSelect = {
   id: true,
@@ -40,7 +42,9 @@ function pickDoctorPublico(row: {
   biografia: string | null;
   fotoPerfilBase64: string | null;
   reservaPublicaHabilitada: boolean;
-}): Omit<DoctorPublico, "distanciaKm" | "ciudades" | "lugarIdMasCercano"> {
+  destacado: boolean;
+  prepagas: { prepaga: { nombre: string } }[];
+}): Omit<DoctorPublico, "distanciaKm" | "ciudades" | "lugarIdMasCercano" | "proximoTurno"> {
   return {
     id: row.id,
     publicSlug: row.publicSlug,
@@ -52,6 +56,8 @@ function pickDoctorPublico(row: {
     biografia: row.biografia,
     fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPerfilBase64),
     reservaPublicaHabilitada: row.reservaPublicaHabilitada,
+    destacado: row.destacado,
+    prepagas: row.destacado ? row.prepagas.map(({ prepaga }) => prepaga.nombre) : [],
   };
 }
 
@@ -73,6 +79,16 @@ export type DoctorPublico = {
   biografia: string | null;
   fotoUrl: string | null;
   reservaPublicaHabilitada: boolean;
+  // Beneficio de Premium: con el plan vigente (mismo criterio que el acceso a
+  // la IA, `isPremium && esActivo`) el médico gana lugares en el listado (ver
+  // `getDoctoresPublicos`) y su tarjeta sale ampliada, con el badge
+  // "Destacado" (ver DoctorCard).
+  destacado: boolean;
+  // Coberturas que acepta y primer horario libre de su agenda pública (ISO) --
+  // solo se calculan para los destacados, que son los únicos cuya tarjeta los
+  // muestra: para el resto quedan en `[]` / `null`.
+  prepagas: string[];
+  proximoTurno: string | null;
   distanciaKm: number | null;
   // El `LugarDeTrabajo` que matcheó la búsqueda por ubicación (`null` si
   // matcheó por el perfil, o si no hubo búsqueda activa) -- se propaga como
@@ -96,6 +112,12 @@ function ciudadesDe(doctor: { ciudad: string | null; lugaresDeTrabajo: { ciudad:
 // confunde más de lo que ayuda. Cubre una ciudad más su área metropolitana;
 // por fuera de eso, mejor no mostrar nada que mostrar algo irrelevante.
 const RADIO_MAXIMO_KM = 50;
+
+// Al buscar por ciudad, la distancia de un destacado cuenta por este factor
+// para ordenar: un Premium a 3 km compite como si estuviera a 1,5 km (le gana
+// a un Básico a 2 km, no a uno a 800 m). El radio máximo se aplica siempre
+// sobre la distancia real, y la tarjeta muestra la real.
+const FACTOR_DISTANCIA_DESTACADO = 0.5;
 
 type Punto = { latitud: number; longitud: number; ciudad: string | null; lugarId: string | null };
 
@@ -123,6 +145,11 @@ function tienePunto(p: {
 // la query: trae todos los candidatos y calcula en memoria contra el
 // conjunto {perfil, lugares activos}. Sin ciudad, se listan todos
 // alfabéticamente.
+//
+// Los destacados (Premium vigente) ganan lugares: con búsqueda por ciudad,
+// por `FACTOR_DISTANCIA_DESTACADO`; sin búsqueda, van todos primero, en un
+// orden que rota cada día (ver `rotacionDelDia`) para que el alfabético no
+// favorezca siempre al mismo.
 export async function getDoctoresPublicos(filtros: {
   especialidad?: string;
   lat?: number;
@@ -144,6 +171,13 @@ export async function getDoctoresPublicos(filtros: {
     select: {
       ...doctorPublicoSelect,
       ...cuentaSelect,
+      plan: true,
+      slotDurationMinutes: true,
+      reservaPublicaSemanas: true,
+      prepagas: {
+        select: { prepaga: { select: { nombre: true } } },
+        orderBy: { prepaga: { nombre: "asc" } },
+      },
       latitud: true,
       longitud: true,
       lugaresDeTrabajo: {
@@ -167,6 +201,7 @@ export async function getDoctoresPublicos(filtros: {
   // lugar oculto, porque podría ser justo la de ese lugar.
   const doctores = candidatos.map((doctor) => {
     const visibles = doctor.lugaresDeTrabajo.filter((l) => l.perfilVisible);
+    const activo = esActivo(doctor);
     return {
       ...doctor,
       lugaresDeTrabajo: visibles,
@@ -174,68 +209,124 @@ export async function getDoctoresPublicos(filtros: {
       latitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.latitud : null,
       longitud: visibles.length === doctor.lugaresDeTrabajo.length ? doctor.longitud : null,
       reservaPublicaHabilitada:
-        esActivo(doctor) &&
+        activo &&
         doctor.reservaPublicaHabilitada &&
         visibles.some((l) => l.reservaPublicaHabilitada),
+      destacado: activo && isPremium(doctor),
     };
   });
 
-  if (!buscandoPorUbicacion) {
-    return doctores.map((doctor) => ({
-      ...pickDoctorPublico(doctor),
-      ciudades: ciudadesDe(doctor),
-      distanciaKm: null,
-      lugarIdMasCercano: null,
-    }));
-  }
+  const agendaPorId = new Map(candidatos.map((d) => [d.id, d]));
+  return conProximoTurno(ordenar(), agendaPorId);
 
-  return doctores
-    .map((doctor) => {
-      const ciudades = ciudadesDe(doctor);
-      const puntos = [
-        { latitud: doctor.latitud, longitud: doctor.longitud, ciudad: doctor.ciudad, lugarId: null as string | null },
-        ...doctor.lugaresDeTrabajo.map((l) => ({
-          latitud: l.latitud,
-          longitud: l.longitud,
-          ciudad: l.ciudad,
-          lugarId: l.id as string | null,
-        })),
-      ].filter(tienePunto);
-
-      if (puntos.length === 0) {
-        return { ...pickDoctorPublico(doctor), ciudades, distanciaKm: null, lugarIdMasCercano: null };
-      }
-
-      // La ciudad que se muestra es la del punto que efectivamente matcheó
-      // (perfil o alguno de los lugares), no siempre la del perfil -- si no,
-      // un médico que aparece por un consultorio en otra ciudad mostraría
-      // "Bariloche · a 0 m" al buscar en Buenos Aires, lo cual es
-      // contradictorio. `lugarId` viaja junto para poder destacar ese mismo
-      // lugar en el calendario de reserva del perfil (ver DoctorCard).
-      const masCercano = puntos
-        .map((p) => ({
-          ciudad: p.ciudad,
-          lugarId: p.lugarId,
-          distanciaKm: distanciaKm(filtros.lat!, filtros.lng!, p.latitud, p.longitud),
+  function ordenar(): Omit<DoctorPublico, "proximoTurno">[] {
+    if (!buscandoPorUbicacion) {
+      const hoy = formatDateParamBA(new Date());
+      // `sort` es estable: los no destacados quedan en el orden por apellido de
+      // la query.
+      return doctores
+        .map((doctor) => ({
+          ...pickDoctorPublico(doctor),
+          ciudades: ciudadesDe(doctor),
+          distanciaKm: null,
+          lugarIdMasCercano: null,
         }))
-        .reduce((min, p) => (p.distanciaKm < min.distanciaKm ? p : min));
+        .sort(
+          (a, b) =>
+            Number(b.destacado) - Number(a.destacado) ||
+            (a.destacado ? rotacionDelDia(a.id, hoy) - rotacionDelDia(b.id, hoy) : 0)
+        );
+    }
 
-      return {
-        ...pickDoctorPublico(doctor),
-        // Ojo: NO cae a `doctor.ciudad` si el punto que matcheó no tiene su
-        // propia ciudad cargada -- eso mezclaría la ciudad de un lugar con
-        // la distancia de otro (ej. un lugar en San Luis sin `ciudad`
-        // cargada mostrando "Corrientes", la ciudad del perfil, a pesar de
-        // que la distancia sí es la de San Luis).
-        ciudad: masCercano.ciudad,
-        ciudades,
-        distanciaKm: masCercano.distanciaKm,
-        lugarIdMasCercano: masCercano.lugarId,
-      };
+    return doctores
+      .map((doctor) => {
+        const ciudades = ciudadesDe(doctor);
+        const puntos = [
+          { latitud: doctor.latitud, longitud: doctor.longitud, ciudad: doctor.ciudad, lugarId: null as string | null },
+          ...doctor.lugaresDeTrabajo.map((l) => ({
+            latitud: l.latitud,
+            longitud: l.longitud,
+            ciudad: l.ciudad,
+            lugarId: l.id as string | null,
+          })),
+        ].filter(tienePunto);
+
+        if (puntos.length === 0) {
+          return { ...pickDoctorPublico(doctor), ciudades, distanciaKm: null, lugarIdMasCercano: null };
+        }
+
+        // La ciudad que se muestra es la del punto que efectivamente matcheó
+        // (perfil o alguno de los lugares), no siempre la del perfil -- si no,
+        // un médico que aparece por un consultorio en otra ciudad mostraría
+        // "Bariloche · a 0 m" al buscar en Buenos Aires, lo cual es
+        // contradictorio. `lugarId` viaja junto para poder destacar ese mismo
+        // lugar en el calendario de reserva del perfil (ver DoctorCard).
+        const masCercano = puntos
+          .map((p) => ({
+            ciudad: p.ciudad,
+            lugarId: p.lugarId,
+            distanciaKm: distanciaKm(filtros.lat!, filtros.lng!, p.latitud, p.longitud),
+          }))
+          .reduce((min, p) => (p.distanciaKm < min.distanciaKm ? p : min));
+
+        return {
+          ...pickDoctorPublico(doctor),
+          // Ojo: NO cae a `doctor.ciudad` si el punto que matcheó no tiene su
+          // propia ciudad cargada -- eso mezclaría la ciudad de un lugar con
+          // la distancia de otro (ej. un lugar en San Luis sin `ciudad`
+          // cargada mostrando "Corrientes", la ciudad del perfil, a pesar de
+          // que la distancia sí es la de San Luis).
+          ciudad: masCercano.ciudad,
+          ciudades,
+          distanciaKm: masCercano.distanciaKm,
+          lugarIdMasCercano: masCercano.lugarId,
+        };
+      })
+      .filter(
+        (doctor): doctor is Omit<DoctorPublico, "proximoTurno"> & { distanciaKm: number } =>
+          doctor.distanciaKm !== null
+      )
+      .filter((doctor) => doctor.distanciaKm <= RADIO_MAXIMO_KM)
+      .sort((a, b) => distanciaParaOrdenar(a) - distanciaParaOrdenar(b));
+  }
+}
+
+function distanciaParaOrdenar(doctor: { destacado: boolean; distanciaKm: number }): number {
+  return doctor.destacado ? doctor.distanciaKm * FACTOR_DISTANCIA_DESTACADO : doctor.distanciaKm;
+}
+
+// Orden pseudoaleatorio entre destacados, fijo durante el día (en horario de
+// Argentina) y distinto al siguiente: hash FNV-1a de `día:id`. Así el mismo
+// paciente ve el mismo orden si recarga, pero ningún Premium queda siempre
+// último entre los destacados.
+function rotacionDelDia(id: string, dia: string): number {
+  let hash = 0x811c9dc5;
+  for (const char of `${dia}:${id}`) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+// El "Próximo turno" de la tarjeta sale de la misma disponibilidad que ve el
+// paciente en el calendario del perfil (`getDisponibilidadPublica`), así que
+// nunca promete un horario que después no se puede reservar. Solo para
+// destacados con reserva online, en paralelo.
+async function conProximoTurno(
+  doctores: Omit<DoctorPublico, "proximoTurno">[],
+  agendaPorId: Map<string, { id: string; slotDurationMinutes: number; reservaPublicaSemanas: number }>
+): Promise<DoctorPublico[]> {
+  return Promise.all(
+    doctores.map(async (doctor) => {
+      const agenda = agendaPorId.get(doctor.id);
+      if (!doctor.destacado || !doctor.reservaPublicaHabilitada || !agenda) {
+        return { ...doctor, proximoTurno: null };
+      }
+      const dias = await getDisponibilidadPublica(agenda);
+      const primero = dias.find((d) => d.horarios.length > 0)?.horarios[0];
+      return { ...doctor, proximoTurno: primero?.inicio ?? null };
     })
-    .filter((doctor): doctor is DoctorPublico & { distanciaKm: number } => doctor.distanciaKm !== null)
-    .filter((doctor) => doctor.distanciaKm <= RADIO_MAXIMO_KM)
-    .sort((a, b) => a.distanciaKm - b.distanciaKm);
+  );
 }
 
 // Alcanzable con `perfilPublico: false` si el médico igual habilitó la
