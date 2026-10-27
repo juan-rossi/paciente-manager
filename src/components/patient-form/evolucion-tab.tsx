@@ -56,6 +56,8 @@ type Props = {
   // La transcripción es una función Premium: sin plan Premium vigente no se
   // muestra ningún control de dictado.
   transcripcionHabilitada?: boolean;
+  // Resume solo apenas termina cada dictado (ver Configuración > Dictado e IA).
+  resumirAlTerminar?: boolean;
 };
 
 export function EvolucionTab({
@@ -65,6 +67,7 @@ export function EvolucionTab({
   evolucionesEliminadas = [],
   onChangeEvolucionesEliminadas,
   transcripcionHabilitada = false,
+  resumirAlTerminar = false,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
@@ -79,6 +82,9 @@ export function EvolucionTab({
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  // Cambia con cada formulario nuevo: un resumen que llega después de cerrar
+  // el diálogo no debe escribir sobre la próxima evolución.
+  const formularioRef = useRef(0);
 
   const transcription = useCloudTranscription();
   const resumen = useResumenIA("evolucion");
@@ -96,24 +102,35 @@ export function EvolucionTab({
     setError(null);
     resumen.limpiarError();
     setEditingIndex(null);
+    formularioRef.current += 1;
   }
 
+  // Mientras se graba y transcribe el textarea no se muestra, así que
+  // `contenido`/`dictado` no cambian entre `iniciar()` y este callback.
   function handleTextoFinal(texto: string) {
-    setContenido((prev) => anexarTexto(prev, texto));
+    const nuevoContenido = anexarTexto(contenido, texto);
     // Si ya se resumió, el dictado original sigue siendo el registro
     // completo: lo nuevo se suma también ahí.
-    setDictado((prev) => (prev.trim() ? anexarTexto(prev, texto) : prev));
+    const nuevoDictado = dictado.trim() ? anexarTexto(dictado, texto) : "";
+    setContenido(nuevoContenido);
+    setDictado(nuevoDictado);
+    // Si el resumen falla, queda la transcripción y se muestra el error.
+    if (resumirAlTerminar) void resumirDesde(nuevoDictado || nuevoContenido);
+  }
+
+  async function resumirDesde(fuente: string) {
+    if (!fuente.trim()) return;
+    const formulario = formularioRef.current;
+    const texto = await resumen.resumir(fuente);
+    if (texto === null || formulario !== formularioRef.current) return;
+    setDictado(fuente);
+    setContenido(texto);
   }
 
   async function handleResumir() {
     // Una vez resumido, se vuelve a resumir siempre desde el dictado
     // completo, no desde un resumen previo.
-    const fuente = dictado.trim() ? dictado : contenido;
-    if (!fuente.trim()) return;
-    const texto = await resumen.resumir(fuente);
-    if (texto === null) return;
-    setDictado(fuente);
-    setContenido(texto);
+    await resumirDesde(dictado.trim() ? dictado : contenido);
   }
 
   function handleRestaurarDictado() {
@@ -127,6 +144,7 @@ export function EvolucionTab({
   }
 
   function openEditDialog(entry: EvolucionValue, index: number) {
+    formularioRef.current += 1;
     setEditingIndex(index);
     setFecha(entry.fecha);
     setContenido(entry.contenido);

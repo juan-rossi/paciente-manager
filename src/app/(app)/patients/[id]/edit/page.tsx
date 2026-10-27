@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { esActivo, isPremium } from "@/lib/plan";
+import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { Button } from "@/components/ui/button";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { patientFromApi } from "@/components/patient-form/utils";
@@ -32,6 +33,7 @@ export default async function EditPatientPage({ params }: Props) {
   }
 
   const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient);
+  const resumenAutomatico = await getResumenAutomatico(user);
 
   return (
     <div className="flex flex-col gap-4">
@@ -56,6 +58,7 @@ export default async function EditPatientPage({ params }: Props) {
         initialEvoluciones={evoluciones}
         initialEvolucionesEliminadas={evolucionesEliminadas}
         transcripcionHabilitada={isPremium(user) && esActivo(user)}
+        resumenAutomatico={resumenAutomatico}
       />
     </div>
   );

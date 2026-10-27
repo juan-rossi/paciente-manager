@@ -28,6 +28,8 @@ type Props = {
   // Función Premium: sin plan Premium vigente no se muestran los botones de
   // mic ni de IA.
   transcripcionHabilitada?: boolean;
+  // Resume solo apenas termina cada dictado (ver Configuración > Dictado e IA).
+  resumirAlTerminar?: boolean;
 };
 
 // Como en `EvolucionTab`, pero para un campo de texto suelto del formulario en
@@ -46,6 +48,7 @@ export function TranscribableTextAreaField({
   dictado = "",
   onDictadoChange,
   transcripcionHabilitada = false,
+  resumirAlTerminar = false,
 }: Props) {
   const transcription = useCloudTranscription();
   const resumen = useResumenIA(tipoResumen ?? "antecedentes");
@@ -61,14 +64,26 @@ export function TranscribableTextAreaField({
     dictadoRef.current = dictado;
   }, [value, dictado]);
 
+  const { resumir } = resumen;
   const handleTextoFinal = useCallback(
-    (texto: string) => {
-      onChange(anexarTexto(valueRef.current, texto));
+    async (texto: string) => {
+      const value = anexarTexto(valueRef.current, texto);
       // Si ya se resumió, el dictado original sigue siendo el registro
       // completo: lo nuevo se suma también ahí.
-      if (dictadoRef.current.trim()) onDictadoChange?.(anexarTexto(dictadoRef.current, texto));
+      const dictado = dictadoRef.current.trim() ? anexarTexto(dictadoRef.current, texto) : "";
+      onChange(value);
+      if (dictado) onDictadoChange?.(dictado);
+      if (!resumirAlTerminar || !puedeResumir) return;
+
+      // Igual que `handleResumir`, pero sin esperar el clic. Si falla, queda
+      // la transcripción en el campo y se muestra el error.
+      const fuente = dictado || value;
+      const resumido = await resumir(fuente);
+      if (resumido === null) return;
+      onDictadoChange?.(fuente);
+      onChange(resumido);
     },
-    [onChange, onDictadoChange]
+    [onChange, onDictadoChange, resumirAlTerminar, puedeResumir, resumir]
   );
 
   async function handleResumir() {
@@ -190,7 +205,9 @@ export function TranscribableTextAreaField({
       </div>
 
       {resumen.resumiendo && (
-        <p className="text-sm text-muted-foreground">Resumiendo con IA…</p>
+        <p className="text-sm text-muted-foreground">
+          {resumirAlTerminar ? "Resumiendo automáticamente con IA…" : "Resumiendo con IA…"}
+        </p>
       )}
       {errorDictado && <p className="text-sm text-destructive">{errorDictado}</p>}
       {resumen.error && <p className="text-sm text-destructive">{resumen.error}</p>}

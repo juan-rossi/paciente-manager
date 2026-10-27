@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Building2, Database, Eye, Lock, MessageSquare, Sparkles, User, Users } from "lucide-react";
+import { Building2, Database, Eye, Lock, MessageSquare, Mic, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
@@ -13,6 +13,7 @@ import {
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
+import { DictadoSettings } from "@/components/dictado-settings";
 import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
@@ -20,7 +21,7 @@ import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { VisibilidadSettings } from "@/components/visibilidad-settings";
 import { redesDeUsuario } from "@/lib/redes-sociales";
 import { SeguridadSettings } from "@/components/seguridad-settings";
-import { diasRestantesDeTrial } from "@/lib/plan";
+import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 import { listarSecretariasDelMedico } from "@/lib/secretarias";
 
@@ -107,6 +108,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
+          <TabsTrigger value="dictado" className={navItemClass}>
+            <Mic className="size-4" />
+            Dictado e IA
+          </TabsTrigger>
 
           <div className={groupLabelClass}>Cuenta</div>
           <TabsTrigger value="perfil" className={navItemClass}>
@@ -148,6 +153,14 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialMensajeriaHabilitada={user.mensajeriaHabilitada}
             initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
             initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
+          />
+        </TabsContent>
+        <TabsContent value="dictado" className="w-full">
+          <DictadoSettings
+            initialResumenAutomatico={user.resumenAutomatico}
+            initialResumenAutoAntecedentes={user.resumenAutoAntecedentes}
+            initialResumenAutoEvoluciones={user.resumenAutoEvoluciones}
+            transcripcionHabilitada={isPremium(user) && esActivo(user)}
           />
         </TabsContent>
         <TabsContent value="perfil" className="w-full">

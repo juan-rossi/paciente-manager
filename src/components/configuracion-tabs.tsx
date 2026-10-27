@@ -9,6 +9,7 @@ import {
   Eye,
   Lock,
   MessageSquare,
+  Mic,
   Sparkles,
   User,
   Users,
@@ -29,6 +30,7 @@ export const CONFIGURACION_SECTIONS = [
       { value: "practica" as const, label: "Mi práctica", icon: Building2 },
       { value: "usuarios" as const, label: "Usuarios", icon: Users },
       { value: "mensajeria" as const, label: "Mensajería", icon: MessageSquare },
+      { value: "dictado" as const, label: "Dictado e IA", icon: Mic },
     ],
   },
   {

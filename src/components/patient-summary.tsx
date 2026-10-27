@@ -134,12 +134,14 @@ export function PatientSummary({
   patientValues,
   auditEntries = [],
   transcripcionHabilitada = false,
+  resumirEvolucionesAlTerminar = false,
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
   patientValues?: PatientFormValues;
   auditEntries?: AuditEntry[];
   transcripcionHabilitada?: boolean;
+  resumirEvolucionesAlTerminar?: boolean;
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
@@ -357,6 +359,7 @@ export function PatientSummary({
                 patientId={patient.id}
                 initialEvoluciones={evolucionValues}
                 transcripcionHabilitada={transcripcionHabilitada}
+                resumirAlTerminar={resumirEvolucionesAlTerminar}
               />
             </div>
           </FormSection>

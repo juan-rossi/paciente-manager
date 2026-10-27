@@ -2,6 +2,7 @@ export const CONFIGURACION_TABS = [
   "practica",
   "usuarios",
   "mensajeria",
+  "dictado",
   "perfil",
   "visibilidad",
   "seguridad",

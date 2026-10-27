@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { esActivo, isPremium } from "@/lib/plan";
+import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { emptyPatientFormValues } from "@/components/patient-form/utils";
 
@@ -29,6 +30,7 @@ export default async function NewPatientPage({
         mode="create"
         initialValues={initialValues}
         transcripcionHabilitada={user ? isPremium(user) && esActivo(user) : false}
+        resumenAutomatico={user ? await getResumenAutomatico(user) : undefined}
       />
     </div>
   );
