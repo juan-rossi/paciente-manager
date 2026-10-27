@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DictadoCompleto } from "./dictado-completo";
 import { useCloudTranscription } from "./use-cloud-transcription";
-import { useResumenIA, type TipoResumen } from "./use-resumen-ia";
+import { TITULO_YA_RESUMIDO, useResumenIA, type TipoResumen } from "./use-resumen-ia";
 import { anexarTexto, formatElapsed, mensajeErrorDictado } from "./dictado-utils";
 
 type Props = {
@@ -51,7 +51,8 @@ export function TranscribableTextAreaField({
   resumirAlTerminar = false,
 }: Props) {
   const transcription = useCloudTranscription();
-  const resumen = useResumenIA(tipoResumen ?? "antecedentes");
+  // Si el campo ya viene con dictado guardado, ese dictado ya se resumió.
+  const resumen = useResumenIA(tipoResumen ?? "antecedentes", dictado);
   const puedeResumir = transcripcionHabilitada && Boolean(tipoResumen && onDictadoChange);
 
   // `useCloudTranscription` guarda el callback de `iniciar()` y lo llama recién
@@ -105,6 +106,8 @@ export function TranscribableTextAreaField({
   const isRecording =
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
+  const fuenteResumen = dictado.trim() ? dictado : value;
+  const yaResumido = resumen.yaResumido(fuenteResumen);
   const minHeight = `${rows * 1.75}rem`;
   const errorDictado = mensajeErrorDictado(transcription.error, transcription.mensajeTopeIA);
 
@@ -135,22 +138,28 @@ export function TranscribableTextAreaField({
           </Button>
         )}
         {puedeResumir && (
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            disabled={isRecording || ocupado || !(dictado.trim() || value.trim())}
-            aria-label="Resumir con IA"
-            title="Resumir con IA"
-            onClick={() => void handleResumir()}
-            className="absolute top-11 right-2 z-10 bg-background"
+          // El tooltip va en el span: el botón deshabilitado no recibe el hover
+          // (`disabled:pointer-events-none`) y no mostraría su `title`.
+          <span
+            title={yaResumido ? TITULO_YA_RESUMIDO : "Resumir con IA"}
+            className="absolute top-11 right-2 z-10 inline-flex"
           >
-            {resumen.resumiendo ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="size-3.5" />
-            )}
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              disabled={isRecording || ocupado || !fuenteResumen.trim() || yaResumido}
+              aria-label={yaResumido ? TITULO_YA_RESUMIDO : "Resumir con IA"}
+              onClick={() => void handleResumir()}
+              className="bg-background"
+            >
+              {resumen.resumiendo ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="size-3.5" />
+              )}
+            </Button>
+          </span>
         )}
 
         {transcription.recordingStatus === "conectando" && (
