@@ -49,6 +49,9 @@ type Props = {
   className?: string;
   orientation?: "horizontal" | "vertical";
   initialTab: ConfiguracionTab;
+  // Tabs que la cuenta no puede ver (p.ej. "dictado" sin Premium): no aparecen
+  // en el selector mobile ni se puede navegar a ellas con `irAConfiguracionTab`.
+  tabsOcultas?: readonly ConfiguracionTab[];
   children: ReactNode;
 };
 
@@ -64,7 +67,7 @@ function guardarTabEnCookie(tab: string) {
   document.cookie = `${CONFIGURACION_TAB_COOKIE}=${tab}; path=/; max-age=31536000; samesite=lax`;
 }
 
-export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
+export function ConfiguracionTabs({ children, initialTab, tabsOcultas = [], ...props }: Props) {
   const [tab, setTab] = useState<string>(initialTab);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -77,14 +80,14 @@ export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
   useEffect(() => {
     function handleIrATab(e: Event) {
       const destino = (e as CustomEvent<string>).detail;
-      if (esConfiguracionTab(destino)) {
+      if (esConfiguracionTab(destino) && !tabsOcultas.includes(destino)) {
         setTab(destino);
         guardarTabEnCookie(destino);
       }
     }
     window.addEventListener(CONFIGURACION_TAB_EVENT, handleIrATab);
     return () => window.removeEventListener(CONFIGURACION_TAB_EVENT, handleIrATab);
-  }, []);
+  }, [tabsOcultas]);
 
   // Cerrar al clickear afuera
   useEffect(() => {
@@ -110,9 +113,11 @@ export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
     }
   }, [open]);
 
-  const allItems = CONFIGURACION_SECTIONS.flatMap((s) =>
-    s.items.map((item) => ({ ...item, group: s.group }))
-  );
+  const sections = CONFIGURACION_SECTIONS.map((s) => ({
+    ...s,
+    items: s.items.filter((item) => !tabsOcultas.includes(item.value)),
+  }));
+  const allItems = sections.flatMap((s) => s.items.map((item) => ({ ...item, group: s.group })));
   const activeItem = allItems.find((i) => i.value === tab) ?? allItems[0];
   const ActiveIcon = activeItem.icon;
 
@@ -153,7 +158,7 @@ export function ConfiguracionTabs({ children, initialTab, ...props }: Props) {
         {/* Menú desplegable */}
         {open && (
           <div className="absolute left-0 right-0 top-full z-40 mt-1.5 overflow-hidden rounded-xl border border-border/80 bg-card p-1.5 shadow-xl animate-in fade-in-50 zoom-in-95 duration-150">
-            {CONFIGURACION_SECTIONS.map((section, idx) => (
+            {sections.map((section, idx) => (
               <div key={section.group} className={idx > 0 ? "mt-2 border-t border-border/40 pt-1.5" : ""}>
                 <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75">
                   {section.group}
