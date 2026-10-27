@@ -9,6 +9,7 @@ type Props = {
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
   invalidFields: Set<string>;
   transcripcionHabilitada?: boolean;
+  resumirAntecedentesAlTerminar?: boolean;
 };
 
 export function ConsultaInicialTab({
@@ -16,6 +17,7 @@ export function ConsultaInicialTab({
   onChange,
   invalidFields,
   transcripcionHabilitada,
+  resumirAntecedentesAlTerminar,
 }: Props) {
   return (
     <div className="flex flex-col gap-6">
@@ -56,6 +58,7 @@ export function ConsultaInicialTab({
         dictado={values.antecedentesEnfermedadDictado}
         onDictadoChange={(v) => onChange("antecedentesEnfermedadDictado", v)}
         transcripcionHabilitada={transcripcionHabilitada}
+        resumirAlTerminar={resumirAntecedentesAlTerminar}
       />
 
       <div className="flex flex-col gap-2">

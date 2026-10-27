@@ -283,7 +283,8 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       fecha: doctor.createdAt,
       titulo: "Registro autogestionado",
       descripcion: doctor.trialEndsAt
-        ? "Inicio de período de prueba (60 días) — plan Trial."
+        ? // `plan` puede haber cambiado al convertir: la duración sale de las fechas.
+          `Inicio de período de prueba (${Math.round((doctor.trialEndsAt.getTime() - doctor.createdAt.getTime()) / 86_400_000)} días) — plan Trial.`
         : "Alta de la cuenta.",
     },
   ];

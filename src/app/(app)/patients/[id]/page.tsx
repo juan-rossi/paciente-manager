@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { esActivo, isPremium } from "@/lib/plan";
+import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientSummary } from "@/components/patient-summary";
 import { patientFromApi } from "@/components/patient-form/utils";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
@@ -77,6 +78,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   }
 
   const { values: patientValues } = patientFromApi(patient);
+  const resumenAutomatico = await getResumenAutomatico(user);
 
   return (
     <PatientSummary
@@ -85,6 +87,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
       patientValues={patientValues}
       auditEntries={auditEntries}
       transcripcionHabilitada={isPremium(user) && esActivo(user)}
+      resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
     />
   );
 }

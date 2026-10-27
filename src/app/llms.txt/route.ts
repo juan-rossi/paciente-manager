@@ -11,7 +11,7 @@ export function GET() {
 
 > ${SITE_DESCRIPTION}
 
-Semio360 es una plataforma web (sin instalación) para médicos y consultorios de Argentina. Reúne agenda de turnos con reserva online, historia clínica electrónica, consentimiento informado y dictado de la consulta con transcripción. Incluye 60 días de prueba gratis, sin tarjeta. También mantiene un directorio público de médicos con perfil verificado, filtrable por especialidad y ciudad.
+Semio360 es una plataforma web (sin instalación) para médicos y consultorios de Argentina. Reúne agenda de turnos con reserva online, historia clínica electrónica, consentimiento informado y dictado de la consulta con transcripción. Incluye prueba gratis sin tarjeta: 60 días del plan Básico o 30 días del Premium. También mantiene un directorio público de médicos con perfil verificado, filtrable por especialidad y ciudad.
 
 ## Páginas principales
 

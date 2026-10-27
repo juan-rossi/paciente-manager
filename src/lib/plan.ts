@@ -1,15 +1,26 @@
-export const TRIAL_DIAS = 60;
+// Duración del período de prueba según el plan con el que se registra el
+// médico. El trial de Premium es más corto porque incluye las funciones de
+// IA, que tienen costo por uso (igual quedan bajo el tope de `admin-costos-ia`).
+export const TRIAL_DIAS: Record<"BASICA" | "PREMIUM", number> = {
+  BASICA: 60,
+  PREMIUM: 30,
+};
 
-// Faltando esta cantidad de días (o menos) para que se termine el trial de
-// Básico, ya se puede contratar Básico desde "Mi plan" (antes de eso, el
+// Faltando esta cantidad de días (o menos) para que se termine el trial, ya
+// se puede contratar el plan en prueba desde "Mi plan" (antes de eso, el
 // botón queda reemplazado por "Incluido en tu prueba") -- y es también la
 // ventana en la que se le avisa al médico en el home que el trial está por
 // terminar (ver `TrialPorTerminarAviso` / `diasRestantesDeTrial`).
 export const DIAS_AVISO_TRIAL_POR_TERMINAR = 7;
 
-export function nuevaFechaFinTrial(desde: Date = new Date()): Date {
+// Plan elegido en /signup cuando se registra con Google: Google salta el
+// formulario, así que viaja en una cookie que lee el callback de auth
+// (src/auth.ts) al autocrear la cuenta -- mismo patrón que `TERMINOS_COOKIE`.
+export const SIGNUP_PLAN_COOKIE = "semio_signup_plan";
+
+export function nuevaFechaFinTrial(plan: "BASICA" | "PREMIUM", desde: Date = new Date()): Date {
   const fin = new Date(desde);
-  fin.setDate(fin.getDate() + TRIAL_DIAS);
+  fin.setDate(fin.getDate() + TRIAL_DIAS[plan]);
   return fin;
 }
 
@@ -55,7 +66,7 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
     "Todo lo de Básico",
     "Transcripción de audio (dictado)",
     "Resúmenes y autocompletado de campos con IA",
-    "Envío automático de recordatorios por WhatsApp",
+    "Perfil destacado en el Directorio de profesionales",
   ],
 };
 

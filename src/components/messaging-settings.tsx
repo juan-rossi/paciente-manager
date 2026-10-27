@@ -2,17 +2,66 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CalendarClock, MessageSquare, Plus, Power, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Ban, CalendarClock, MessageSquare, Plus, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { SettingsSection } from "@/components/settings-section";
+import { TemplateEditor, type TemplateVariable } from "@/components/template-editor";
 import { cn } from "@/lib/utils";
 
 const LINKS_SUGERIDOS = "Confirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}";
+
+const NOMBRE: TemplateVariable = { token: "{nombre}", description: "nombre y apellido del paciente." };
+
+const VARIABLES_RECORDATORIO: TemplateVariable[] = [
+  NOMBRE,
+  {
+    token: "{fecha}",
+    description: (
+      <>
+        según cuándo sea el turno respecto al momento de enviar el recordatorio:{" "}
+        <strong>&quot;hoy&quot;</strong>, <strong>&quot;mañana&quot;</strong> o{" "}
+        <strong>&quot;el dd/mm/aaaa&quot;</strong>.
+      </>
+    ),
+  },
+  { token: "{hora}", description: "horario del turno (HH:MM)." },
+  {
+    token: "{confirmar}",
+    link: true,
+    description: (
+      <>
+        link para que el paciente confirme su asistencia. El turno pasa a{" "}
+        <strong>Confirmado</strong> en la agenda.
+      </>
+    ),
+  },
+  {
+    token: "{cancelar}",
+    link: true,
+    description: (
+      <>
+        link para que el paciente cancele el turno (hasta 1 hora antes). El horario queda libre y
+        aparece en <strong>Cancelados por pacientes</strong>.
+      </>
+    ),
+  },
+];
+
+const VARIABLES_CANCELACION: TemplateVariable[] = [
+  NOMBRE,
+  { token: "{fecha}", description: "día del turno que se canceló." },
+  { token: "{hora}", description: "horario del turno que se canceló." },
+];
+
+const VARIABLES_APLAZAMIENTO: TemplateVariable[] = [
+  NOMBRE,
+  { token: "{fecha}", description: <>día del turno <strong>original</strong>, antes de moverse.</> },
+  { token: "{hora}", description: <>horario del turno <strong>original</strong>, antes de moverse.</> },
+  { token: "{nueva_fecha}", description: "día al que se movió el turno." },
+  { token: "{nueva_hora}", description: "horario al que se movió el turno." },
+];
 
 type Props = {
   initialMensajeTemplate: string;
@@ -95,41 +144,20 @@ export function MessagingSettings({
         icon={MessageSquare}
       >
         <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
-          <Label>Mensaje</Label>
-          <Textarea
-            rows={4}
+          <TemplateEditor
+            id="mensaje-recordatorio"
+            label="Mensaje"
             value={mensajeTemplate}
-            onChange={(e) => setMensajeTemplate(e.target.value)}
+            onChange={setMensajeTemplate}
+            variables={VARIABLES_RECORDATORIO}
             disabled={!mensajeriaHabilitada}
-          />
-          <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Variables disponibles:</span>
-            <p>
-              <code>{"{nombre}"}</code> — nombre y apellido del paciente.
-            </p>
-            <p>
-              <code>{"{fecha}"}</code> — según cuándo sea el turno respecto al momento de enviar el
-              recordatorio: <strong>&quot;hoy&quot;</strong> si es el mismo día,{" "}
-              <strong>&quot;mañana&quot;</strong> si es al día siguiente, o{" "}
-              <strong>&quot;el dd/mm/aaaa&quot;</strong> para cualquier otra fecha.
-            </p>
-            <p>
-              <code>{"{hora}"}</code> — horario del turno (HH:MM).
-            </p>
-            <p>
-              <code>{"{confirmar}"}</code> — link para que el paciente confirme su asistencia. El turno
-              pasa a <strong>Confirmado</strong> en la agenda.
-            </p>
-            <p>
-              <code>{"{cancelar}"}</code> — link para que el paciente cancele el turno (hasta 1 hora
-              antes). El horario queda libre y aparece en &quot;Cancelados por pacientes&quot;.
-            </p>
+          >
             {!mensajeTemplate.includes("{confirmar}") && !mensajeTemplate.includes("{cancelar}") && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="mt-1 self-start"
+                className="self-start"
                 disabled={!mensajeriaHabilitada}
                 onClick={() => setMensajeTemplate((t) => `${t.trimEnd()}\n${LINKS_SUGERIDOS}`)}
               >
@@ -137,7 +165,7 @@ export function MessagingSettings({
                 Agregar links de confirmar y cancelar
               </Button>
             )}
-          </div>
+          </TemplateEditor>
         </div>
       </SettingsSection>
 
@@ -147,23 +175,14 @@ export function MessagingSettings({
         icon={Ban}
       >
         <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
-          <Label>Mensaje</Label>
-          <Textarea
-            rows={4}
+          <TemplateEditor
+            id="mensaje-cancelacion"
+            label="Mensaje"
             value={mensajeTemplateCancelado}
-            onChange={(e) => setMensajeTemplateCancelado(e.target.value)}
+            onChange={setMensajeTemplateCancelado}
+            variables={VARIABLES_CANCELACION}
             disabled={!mensajeriaHabilitada}
           />
-          <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Variables disponibles:</span>
-            <p>
-              <code>{"{nombre}"}</code> — nombre y apellido del paciente.
-            </p>
-            <p>
-              <code>{"{fecha}"}</code> / <code>{"{hora}"}</code> — día y horario del turno que se
-              canceló.
-            </p>
-          </div>
         </div>
       </SettingsSection>
 
@@ -173,41 +192,14 @@ export function MessagingSettings({
         icon={CalendarClock}
       >
         <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
-          <Label>Mensaje</Label>
-          <Textarea
-            rows={4}
+          <TemplateEditor
+            id="mensaje-aplazamiento"
+            label="Mensaje"
             value={mensajeTemplateAplazado}
-            onChange={(e) => setMensajeTemplateAplazado(e.target.value)}
+            onChange={setMensajeTemplateAplazado}
+            variables={VARIABLES_APLAZAMIENTO}
             disabled={!mensajeriaHabilitada}
           />
-          <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Variables disponibles:</span>
-            <p>
-              <code>{"{nombre}"}</code> — nombre y apellido del paciente.
-            </p>
-            <p>
-              <code>{"{fecha}"}</code> / <code>{"{hora}"}</code> — día y horario del turno
-              <strong> original</strong>, antes de moverse.
-            </p>
-            <p>
-              <code>{"{nueva_fecha}"}</code> / <code>{"{nueva_hora}"}</code> — día y horario a
-              los que se movió el turno.
-            </p>
-          </div>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection
-        title="Envío automático de recordatorios"
-        description="Mandá los recordatorios de turno por WhatsApp solo, sin que la secretaria tenga que apretar enviar."
-        icon={Sparkles}
-      >
-        <div className="flex items-center gap-3 opacity-60">
-          <Checkbox id="envio-automatico" checked={false} disabled />
-          <Label htmlFor="envio-automatico" className="font-normal">
-            Enviar automáticamente
-          </Label>
-          <Badge variant="secondary">Premium · Próximamente</Badge>
         </div>
       </SettingsSection>
 

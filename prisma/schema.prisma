@@ -267,6 +267,13 @@ model User {
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
   sobreturnosHabilitados   Boolean         @default(false)
+  // Resumen con IA apenas termina la transcripción de un dictado, sin tocar
+  // "Resumir con IA" (ver Configuración > Dictado e IA). El interruptor
+  // general manda; los otros dos eligen en qué campos aplica. Las
+  // secretarias usan la configuración del médico activo.
+  resumenAutomatico        Boolean         @default(false)
+  resumenAutoAntecedentes  Boolean         @default(true)
+  resumenAutoEvoluciones   Boolean         @default(true)
   // La sesión es un JWT sin tabla en la base, así que no hay forma de
   // "borrar" sesiones abiertas: en su lugar el JWT guarda esta versión al
   // loguearse y `getCurrentUser()`/`proxy.ts` rechazan cualquier JWT con

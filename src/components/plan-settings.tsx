@@ -134,27 +134,32 @@ export function PlanSettings({
       ? Math.floor((ahora - new Date(planEndsAt).getTime()) / 86_400_000)
       : null;
   const vencido =
-    diasDesdeVencimiento !== null &&
-    !(plan === "BASICA" && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0);
+    diasDesdeVencimiento !== null && !(diasRestantesDeTrial !== null && diasRestantesDeTrial > 0);
   const sinPagos = !PAGOS_HABILITADOS;
   function textoBoton(elegido: "BASICA" | "PREMIUM") {
     if (sinPagos) return PAGOS_LABEL_DESHABILITADO;
     if (vencido && elegido === plan) return "Renovar";
-    if (!recontratable) return elegido === "PREMIUM" ? "Pasar a Premium" : "Contratar";
+    if (!recontratable) return elegido === "PREMIUM" && plan !== "PREMIUM" ? "Pasar a Premium" : "Contratar";
     if (duracion === "MENSUAL") return elegido === plan ? "Reactivar" : "Suscribirme";
     return elegido === plan ? `Renovar ${PLAN_DURACION_LABEL[duracion]}` : "Contratar";
   }
-  // El período de prueba es exclusivo de Básico (Premium nunca lo tiene,
-  // ver src/lib/plan.ts) y deja de ser relevante en cuanto hay un plan
-  // pago vigente (recurrente o prepago) -- `trialEndsAt` puede seguir
-  // técnicamente en el futuro (nunca se limpia), pero ya no es lo que
-  // manda: `planEndsAt` lo reemplaza.
-  const enTrial =
-    plan === "BASICA" && !planVigente && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
-  // En la última semana de trial ya se puede contratar Básico (antes de
-  // eso, el botón se reemplaza por "Incluido en tu prueba" -- ver más
-  // abajo). Antes esto era simplemente `enTrial`, sin ventana.
-  const bloqueaBasicoPorTrial = enTrial && diasRestantesDeTrial! > DIAS_AVISO_TRIAL_POR_TERMINAR;
+  // El período de prueba (de Básico o de Premium, según con cuál se
+  // registró -- ver `TRIAL_DIAS` en src/lib/plan.ts) deja de ser relevante
+  // en cuanto hay un plan pago vigente (recurrente o prepago) --
+  // `trialEndsAt` puede seguir técnicamente en el futuro (nunca se limpia),
+  // pero ya no es lo que manda: `planEndsAt` lo reemplaza.
+  const enTrial = !planVigente && diasRestantesDeTrial !== null && diasRestantesDeTrial > 0;
+  // En la última semana de trial ya se puede contratar (antes de eso, el
+  // botón del plan en prueba se reemplaza por "Incluido en tu prueba" --
+  // ver más abajo). Desde un trial de Básico se puede pasar a Premium en
+  // cualquier momento; desde uno de Premium, bajar a Básico antes de la
+  // última semana perdería los días de prueba que quedan, así que también
+  // espera.
+  const bloqueaPorTrial = enTrial && diasRestantesDeTrial! > DIAS_AVISO_TRIAL_POR_TERMINAR;
+  const bloqueaBasicoPorTrial = bloqueaPorTrial;
+  const bloqueaPremiumPorTrial = bloqueaPorTrial && plan === "PREMIUM";
+  const textoBasicoBloqueadoPorTrial =
+    plan === "BASICA" ? "Incluido en tu prueba" : "Disponible en la última semana de prueba";
   // Fecha de inicio aproximada del pago único vigente -- no se guarda en la
   // base (no hace falta un campo nuevo), se calcula restando la duración
   // elegida a `planEndsAt`, mismo criterio que ya usa `admin-metrics.ts`
@@ -294,7 +299,7 @@ export function PlanSettings({
           <div className="flex justify-center">
             {bloqueaBasicoPorTrial ? (
               <span className="text-center text-xs text-muted-foreground">
-                Incluido en tu prueba
+                {textoBasicoBloqueadoPorTrial}
               </span>
             ) : basicaBloqueada ? (
               <span className="text-center text-xs text-muted-foreground">
@@ -320,7 +325,11 @@ export function PlanSettings({
             )}
           </div>
           <div className="flex justify-center">
-            {!(plan === "PREMIUM" && planBloqueaCompra) && (
+            {bloqueaPremiumPorTrial ? (
+              <span className="text-center text-xs text-muted-foreground">
+                Incluido en tu prueba
+              </span>
+            ) : !(plan === "PREMIUM" && planBloqueaCompra) && (
               <Button
                 type="button"
                 size="sm"
@@ -778,7 +787,7 @@ export function PlanSettings({
 
               {bloqueaBasicoPorTrial ? (
                 <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
-                  Incluido en tu prueba
+                  {textoBasicoBloqueadoPorTrial}
                 </div>
               ) : basicaBloqueada ? (
                 <div className="rounded-lg border border-border/60 bg-muted/40 py-2 text-center text-xs font-medium text-muted-foreground">
@@ -827,7 +836,7 @@ export function PlanSettings({
                   Premium
                 </span>
                 <Badge variant="default" className="text-[11px]">
-                  Recomendado
+                  {plan === "PREMIUM" && enTrial ? "En prueba" : "Recomendado"}
                 </Badge>
               </div>
 
@@ -846,7 +855,11 @@ export function PlanSettings({
                 )}
               </div>
 
-              {plan === "PREMIUM" && planBloqueaCompra ? (
+              {bloqueaPremiumPorTrial ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/10 py-2 text-center text-xs font-semibold text-primary">
+                  Incluido en tu prueba
+                </div>
+              ) : plan === "PREMIUM" && planBloqueaCompra ? (
                 <div className="rounded-lg border border-primary/30 bg-primary/10 py-2 text-center text-xs font-semibold text-primary">
                   Plan actual
                 </div>

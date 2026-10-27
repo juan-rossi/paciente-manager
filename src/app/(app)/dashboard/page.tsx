@@ -32,16 +32,15 @@ export default async function DashboardPage() {
   ]);
 
   // Solo se le avisa al médico dueño de la cuenta (no a sus secretarias --
-  // ellas no pueden pagar) y solo en la última semana del trial de Básico
-  // (Premium nunca tiene trial, ver src/lib/plan.ts). Si ya tiene una
-  // suscripción paga vigente (`planEndsAt`), el trial en papel ya no importa.
+  // ellas no pueden pagar) y solo en la última semana del trial (de Básico o
+  // de Premium). Si ya tiene una suscripción paga vigente (`planEndsAt`), el
+  // trial en papel ya no importa.
   const diasTrial = user.role === "DOCTOR" ? diasRestantesDeTrial(user) : null;
   const tienePlanPagoVigente = Boolean(user.planEndsAt && user.planEndsAt.getTime() > hoy.getTime());
   // Ambos avisos empujan a contratar/renovar: sin pagos habilitados se ocultan.
   const mostrarAvisoTrial =
     PAGOS_HABILITADOS &&
     user.role === "DOCTOR" &&
-    user.plan === "BASICA" &&
     !tienePlanPagoVigente &&
     diasTrial !== null &&
     diasTrial > 0 &&

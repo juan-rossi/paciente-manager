@@ -23,8 +23,8 @@ export async function enviarMailBienvenida(datos: DatosBienvenida, baseUrl: stri
 
 type Paso = { titulo: string; detalle: string };
 
-// El trial es de Básico (sin dictado ni IA): a esa cuenta no se le sugiere
-// dictar. Premium arranca sin trial, inactiva hasta que se confirme el pago.
+// El trial de Básico no tiene dictado ni IA: a esa cuenta no se le sugiere
+// dictar. El de Premium sí.
 function pasosPorPlan(plan: DatosBienvenida["plan"]): Paso[] {
   const comunes: Paso[] = [
     { titulo: "Completá tu perfil.", detalle: "Lugar de atención y horarios, desde Configuración." },
@@ -49,10 +49,8 @@ export function mailBienvenida(datos: DatosBienvenida, baseUrl: string) {
   // dice el género (Lic., Méd., Odont.).
   const subject = "Te damos la bienvenida a Semio 360";
 
-  const intro =
-    datos.plan === "PREMIUM"
-      ? "Tu cuenta ya está creada. Apenas se confirme el pago del plan Premium vas a tener acceso a todo. Para arrancar te sugerimos tres cosas:"
-      : `Tu cuenta ya está activa. Tenés ${TRIAL_DIAS} días de prueba del plan Básico, sin cargar tarjeta. Para arrancar te sugerimos tres cosas:`;
+  const nombrePlan = datos.plan === "PREMIUM" ? "Premium" : "Básico";
+  const intro = `Tu cuenta ya está activa. Tenés ${TRIAL_DIAS[datos.plan]} días de prueba del plan ${nombrePlan}, sin cargar tarjeta. Para arrancar te sugerimos tres cosas:`;
   const pasos = pasosPorPlan(datos.plan);
   const link = `${baseUrl}/dashboard`;
   const logo = `${baseUrl}/email/semio360-logo.png`;

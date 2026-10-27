@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Building2, Database, Eye, Lock, MessageSquare, Sparkles, User, Users } from "lucide-react";
+import { Building2, Database, Eye, Lock, MessageSquare, Mic, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
@@ -9,10 +9,12 @@ import {
   CONFIGURACION_TAB_COOKIE,
   DEFAULT_CONFIGURACION_TAB,
   esConfiguracionTab,
+  type ConfiguracionTab,
 } from "@/lib/configuracion-tabs";
 import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
+import { DictadoSettings } from "@/components/dictado-settings";
 import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
@@ -20,7 +22,7 @@ import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { VisibilidadSettings } from "@/components/visibilidad-settings";
 import { redesDeUsuario } from "@/lib/redes-sociales";
 import { SeguridadSettings } from "@/components/seguridad-settings";
-import { diasRestantesDeTrial } from "@/lib/plan";
+import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 import { listarSecretariasDelMedico } from "@/lib/secretarias";
 
@@ -53,11 +55,18 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
       mpPreapprovalStatus = "AUTHORIZED";
     }
   }
+  // Dictado y resumen con IA son Premium: sin plan Premium vigente la sección
+  // "Dictado e IA" no se muestra (ni por deep link ni por la tab guardada).
+  const iaHabilitada = isPremium(user) && esActivo(user);
+  const tabsOcultas: ConfiguracionTab[] = iaHabilitada ? [] : ["dictado"];
+  const esTabVisible = (tab: string | undefined): tab is ConfiguracionTab =>
+    esConfiguracionTab(tab) && !tabsOcultas.includes(tab);
+
   const cookieStore = await cookies();
   const tabGuardada = cookieStore.get(CONFIGURACION_TAB_COOKIE)?.value;
-  const initialTab = esConfiguracionTab(tabParam)
+  const initialTab = esTabVisible(tabParam)
     ? tabParam
-    : esConfiguracionTab(tabGuardada)
+    : esTabVisible(tabGuardada)
       ? tabGuardada
       : DEFAULT_CONFIGURACION_TAB;
 
@@ -90,6 +99,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
 
       <ConfiguracionTabs
         initialTab={initialTab}
+        tabsOcultas={tabsOcultas}
         orientation="vertical"
         className="flex-col items-stretch gap-4 md:gap-6 md:flex-row md:items-start"
       >
@@ -107,6 +117,12 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessageSquare className="size-4" />
             Mensajería
           </TabsTrigger>
+          {iaHabilitada && (
+            <TabsTrigger value="dictado" className={navItemClass}>
+              <Mic className="size-4" />
+              Dictado e IA
+            </TabsTrigger>
+          )}
 
           <div className={groupLabelClass}>Cuenta</div>
           <TabsTrigger value="perfil" className={navItemClass}>
@@ -150,6 +166,16 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
           />
         </TabsContent>
+        {iaHabilitada && (
+          <TabsContent value="dictado" className="w-full">
+            <DictadoSettings
+              initialResumenAutomatico={user.resumenAutomatico}
+              initialResumenAutoAntecedentes={user.resumenAutoAntecedentes}
+              initialResumenAutoEvoluciones={user.resumenAutoEvoluciones}
+              transcripcionHabilitada={iaHabilitada}
+            />
+          </TabsContent>
+        )}
         <TabsContent value="perfil" className="w-full">
           <MiPerfilSettings
             initialFotoPerfilBase64={user.fotoPerfilBase64}

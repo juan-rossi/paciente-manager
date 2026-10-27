@@ -30,7 +30,12 @@ import { ExamenFisicoTab } from "./examen-fisico-tab";
 import { DiagnosticoTab } from "./diagnostico-tab";
 import { EvolucionTab } from "./evolucion-tab";
 import { emptyPatientFormValues } from "./utils";
-import type { AntecedenteValue, EvolucionValue, PatientFormValues } from "./types";
+import type {
+  AntecedenteValue,
+  EvolucionValue,
+  PatientFormValues,
+  ResumenAutomatico,
+} from "./types";
 import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
 
 type Props = {
@@ -40,6 +45,7 @@ type Props = {
   initialEvoluciones?: EvolucionValue[];
   initialEvolucionesEliminadas?: EvolucionValue[];
   transcripcionHabilitada?: boolean;
+  resumenAutomatico?: ResumenAutomatico;
 };
 
 const REQUIRED_FIELDS = [
@@ -94,6 +100,7 @@ export function PatientForm({
   initialEvoluciones,
   initialEvolucionesEliminadas,
   transcripcionHabilitada = false,
+  resumenAutomatico,
 }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
@@ -318,6 +325,7 @@ export function PatientForm({
                 onChange={handleChange}
                 invalidFields={invalidFields}
                 transcripcionHabilitada={transcripcionHabilitada}
+                resumirAntecedentesAlTerminar={resumenAutomatico?.antecedentes}
               />
             </TabsContent>
             <TabsContent value="antecedentes">
@@ -338,6 +346,7 @@ export function PatientForm({
                   evolucionesEliminadas={evolucionesEliminadas}
                   onChangeEvolucionesEliminadas={setEvolucionesEliminadas}
                   transcripcionHabilitada={transcripcionHabilitada}
+                  resumirAlTerminar={resumenAutomatico?.evoluciones}
                 />
               </TabsContent>
             )}

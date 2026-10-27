@@ -18,7 +18,10 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ lugar?: string }>;
+  // `reservar=1` lo agrega el botón "Reservar turno" de la tarjeta de un
+  // destacado en el directorio (ver DoctorCard): en mobile abre el wizard de
+  // reserva de una, en desktop el ancla `#reservar` baja al calendario.
+  searchParams: Promise<{ lugar?: string; reservar?: string }>;
 };
 
 type DoctorPerfil = NonNullable<Awaited<ReturnType<typeof getDoctorPublicoPorSlug>>>;
@@ -89,7 +92,7 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
 
 export default async function PerfilPublicoPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { lugar: lugarDestacado } = await searchParams;
+  const { lugar: lugarDestacado, reservar } = await searchParams;
   const doctor = await getDoctorPublicoPorSlug(slug);
   if (!doctor) notFound();
 
@@ -140,13 +143,16 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       apilado={!hayCalendario}
     >
       {hayCalendario && (
-        <PublicBookingCalendar
-          slug={doctor.publicSlug!}
-          turnoActivo={turnoActivo}
-          lugares={lugaresReservables}
-          lugarDestacado={lugarDestacado}
-          prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
-        />
+        <div id="reservar" className="scroll-mt-24">
+          <PublicBookingCalendar
+            slug={doctor.publicSlug!}
+            turnoActivo={turnoActivo}
+            lugares={lugaresReservables}
+            lugarDestacado={lugarDestacado}
+            prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
+            abrirWizardEnMobile={reservar === "1"}
+          />
+        </div>
       )}
 
       {lugaresSueltos.length > 0 ? (

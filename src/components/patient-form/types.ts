@@ -118,3 +118,10 @@ export type EvolucionValue = {
   contenidoDictado?: string | null;
   deletedAt?: string | null;
 };
+
+// En qué campos se resume con IA apenas termina un dictado (ver
+// `getResumenAutomatico`).
+export type ResumenAutomatico = {
+  antecedentes: boolean;
+  evoluciones: boolean;
+};

@@ -88,7 +88,7 @@ export function homeJsonLd() {
         ],
         offers: [
           { "@type": "Offer", name: "Plan Básico", description: "60 días de prueba gratis, sin tarjeta." },
-          { "@type": "Offer", name: "Plan Premium", description: "Suma resúmenes y autocompletado con IA." },
+          { "@type": "Offer", name: "Plan Premium", description: "Suma resúmenes y autocompletado con IA. 30 días de prueba gratis, sin tarjeta." },
         ],
       },
       {

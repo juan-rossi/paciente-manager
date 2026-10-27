@@ -17,7 +17,7 @@ import {
 import type { EvolucionValue } from "./types";
 import { formatFechaCorta, formatFechaRelativa } from "./utils";
 import { useCloudTranscription } from "./use-cloud-transcription";
-import { useResumenIA } from "./use-resumen-ia";
+import { TITULO_YA_RESUMIDO, useResumenIA } from "./use-resumen-ia";
 import { DictadoCompleto } from "./dictado-completo";
 import { anexarTexto, formatElapsed, mensajeErrorDictado } from "./dictado-utils";
 import { DateInput } from "./date-input";
@@ -56,6 +56,8 @@ type Props = {
   // La transcripción es una función Premium: sin plan Premium vigente no se
   // muestra ningún control de dictado.
   transcripcionHabilitada?: boolean;
+  // Resume solo apenas termina cada dictado (ver Configuración > Dictado e IA).
+  resumirAlTerminar?: boolean;
 };
 
 export function EvolucionTab({
@@ -65,6 +67,7 @@ export function EvolucionTab({
   evolucionesEliminadas = [],
   onChangeEvolucionesEliminadas,
   transcripcionHabilitada = false,
+  resumirAlTerminar = false,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
@@ -79,6 +82,9 @@ export function EvolucionTab({
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  // Cambia con cada formulario nuevo: un resumen que llega después de cerrar
+  // el diálogo no debe escribir sobre la próxima evolución.
+  const formularioRef = useRef(0);
 
   const transcription = useCloudTranscription();
   const resumen = useResumenIA("evolucion");
@@ -87,6 +93,8 @@ export function EvolucionTab({
   const isRecording =
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
+  const fuenteResumen = dictado.trim() ? dictado : contenido;
+  const yaResumido = resumen.yaResumido(fuenteResumen);
   const errorDictado = mensajeErrorDictado(transcription.error, transcription.mensajeTopeIA);
 
   function resetForm() {
@@ -95,25 +103,37 @@ export function EvolucionTab({
     setDictado("");
     setError(null);
     resumen.limpiarError();
+    resumen.marcarResumido("");
     setEditingIndex(null);
+    formularioRef.current += 1;
   }
 
+  // Mientras se graba y transcribe el textarea no se muestra, así que
+  // `contenido`/`dictado` no cambian entre `iniciar()` y este callback.
   function handleTextoFinal(texto: string) {
-    setContenido((prev) => anexarTexto(prev, texto));
+    const nuevoContenido = anexarTexto(contenido, texto);
     // Si ya se resumió, el dictado original sigue siendo el registro
     // completo: lo nuevo se suma también ahí.
-    setDictado((prev) => (prev.trim() ? anexarTexto(prev, texto) : prev));
+    const nuevoDictado = dictado.trim() ? anexarTexto(dictado, texto) : "";
+    setContenido(nuevoContenido);
+    setDictado(nuevoDictado);
+    // Si el resumen falla, queda la transcripción y se muestra el error.
+    if (resumirAlTerminar) void resumirDesde(nuevoDictado || nuevoContenido);
+  }
+
+  async function resumirDesde(fuente: string) {
+    if (!fuente.trim()) return;
+    const formulario = formularioRef.current;
+    const texto = await resumen.resumir(fuente);
+    if (texto === null || formulario !== formularioRef.current) return;
+    setDictado(fuente);
+    setContenido(texto);
   }
 
   async function handleResumir() {
     // Una vez resumido, se vuelve a resumir siempre desde el dictado
     // completo, no desde un resumen previo.
-    const fuente = dictado.trim() ? dictado : contenido;
-    if (!fuente.trim()) return;
-    const texto = await resumen.resumir(fuente);
-    if (texto === null) return;
-    setDictado(fuente);
-    setContenido(texto);
+    await resumirDesde(fuenteResumen);
   }
 
   function handleRestaurarDictado() {
@@ -127,12 +147,15 @@ export function EvolucionTab({
   }
 
   function openEditDialog(entry: EvolucionValue, index: number) {
+    formularioRef.current += 1;
     setEditingIndex(index);
     setFecha(entry.fecha);
     setContenido(entry.contenido);
     setDictado(entry.contenidoDictado ?? "");
     setError(null);
     resumen.limpiarError();
+    // Si la evolución guardada trae dictado, ese dictado ya se resumió.
+    resumen.marcarResumido(entry.contenidoDictado ?? "");
     setOpen(true);
   }
 
@@ -401,20 +424,27 @@ export function EvolucionTab({
                           Dictar
                         </Button>
                       )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isRecording || ocupado || !(dictado.trim() || contenido.trim())}
-                        onClick={() => void handleResumir()}
+                      {/* El tooltip va en el span: el botón deshabilitado no recibe
+                          el hover y no mostraría su `title`. */}
+                      <span
+                        title={yaResumido ? TITULO_YA_RESUMIDO : undefined}
+                        className="inline-flex"
                       >
-                        {resumen.resumiendo ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="size-3.5" />
-                        )}
-                        {resumen.resumiendo ? "Resumiendo…" : "Resumir con IA"}
-                      </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isRecording || ocupado || !fuenteResumen.trim() || yaResumido}
+                          onClick={() => void handleResumir()}
+                        >
+                          {resumen.resumiendo ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="size-3.5" />
+                          )}
+                          {resumen.resumiendo ? "Resumiendo…" : "Resumir con IA"}
+                        </Button>
+                      </span>
                     </div>
                   )}
                 </div>
