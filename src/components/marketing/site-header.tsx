@@ -84,7 +84,7 @@ export function SiteHeader() {
           >
             Iniciar sesión
           </Button>
-          <Button size="sm" nativeButton={false} render={<Link href="/signup" />}>
+          <Button size="sm" nativeButton={false} render={<Link href="/signup?plan=PREMIUM" />}>
             Probar Semio360
           </Button>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { ArrowRight, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TRIAL_DIAS } from "@/lib/plan";
 import { HeroWindow } from "./hero-window";
 
 export function Hero() {
@@ -29,7 +30,7 @@ export function Hero() {
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
             <span className="size-1.5 rounded-full bg-brand-accent" />
-            60 días de prueba gratis, sin tarjeta
+            Prueba gratis sin tarjeta: {TRIAL_DIAS.BASICA} días Básico, {TRIAL_DIAS.PREMIUM} Premium
           </span>
           <h1 className="max-w-xl font-heading text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]">
             Tu consultorio.
@@ -40,7 +41,7 @@ export function Hero() {
             Gestioná turnos, pacientes e historias clínicas desde un solo lugar.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-            <Button size="lg" nativeButton={false} render={<Link href="/signup" />}>
+            <Button size="lg" nativeButton={false} render={<Link href="/signup?plan=PREMIUM" />}>
               Probar Semio360
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Button>

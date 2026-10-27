@@ -4,7 +4,6 @@ import { hashPassword } from "@/lib/auth";
 import { registerSchema } from "@/lib/register-schema";
 import { nuevaFechaFinTrial } from "@/lib/plan";
 import { TERMINOS_VERSION } from "@/lib/terminos";
-import { PAGOS_HABILITADOS } from "@/lib/pagos";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
@@ -50,9 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(parsed.data.password);
-    // Sin pagos habilitados no se puede crear una cuenta Premium (quedaría
-    // inactiva sin forma de pagar): se registra siempre como Básico con trial.
-    const esPremium = PAGOS_HABILITADOS && parsed.data.plan === "PREMIUM";
+    const plan = parsed.data.plan;
     const ahora = new Date();
 
     const creado = await prisma.user.create({
@@ -68,11 +65,10 @@ export async function POST(request: NextRequest) {
         terminosAceptadosAt: ahora,
         declaracionProfesionalAt: ahora,
         role: "DOCTOR",
-        // Premium no tiene período de prueba -- arranca sin trial y queda
-        // inactiva hasta que se confirme el primer pago (ver signup-form.tsx,
-        // que dispara el checkout de MercadoPago apenas se crea la cuenta).
-        plan: esPremium ? "PREMIUM" : "BASICA",
-        trialEndsAt: esPremium ? null : nuevaFechaFinTrial(),
+        // Los dos planes arrancan con período de prueba, de distinta
+        // duración (ver `TRIAL_DIAS` en src/lib/plan.ts).
+        plan,
+        trialEndsAt: nuevaFechaFinTrial(plan),
       },
       select: { email: true, nombre: true, apellido: true, tituloCortesia: true, plan: true },
     });

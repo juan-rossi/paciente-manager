@@ -26,7 +26,7 @@ Semio360 es una plataforma en la nube para gestionar un consultorio médico: tur
 - Roles y auditoría: cada médico ve solo a sus pacientes y cada cambio queda registrado (quién, qué y cuándo).
 
 ## Planes
-Básico: historia clínica, turnos, secretarias y recordatorios manuales. Premium: suma dictado con transcripción automática, resúmenes y autocompletado con IA y perfil destacado en el Directorio de profesionales. 60 días de prueba gratis, sin tarjeta de crédito.
+Básico: historia clínica, turnos, secretarias y recordatorios manuales. Premium: suma dictado con transcripción automática, resúmenes y autocompletado con IA y perfil destacado en el Directorio de profesionales. Prueba gratis sin tarjeta de crédito: 60 días del plan Básico o 30 días del Premium.
 
 ## Directorio de médicos
 ${absoluteUrl("/directorio")} lista médicos con perfil público: especialidad, ciudad, coberturas médicas aceptadas, lugares de atención y reserva de turno online.

@@ -6,6 +6,7 @@ import {
   diasRestantesDeTrial,
   esActivo,
   fechaVencimientoRelevante,
+  nuevaFechaFinTrial,
   precioTotalDuracion,
   trialActivo,
 } from "@/lib/plan";
@@ -36,6 +37,11 @@ describe("trial", () => {
 
   it("sin trial", () => {
     expect(diasRestantesDeTrial({ plan: "PREMIUM", trialEndsAt: null })).toBeNull();
+  });
+
+  it("nuevaFechaFinTrial: 60 días Básico, 30 Premium", () => {
+    expect(diasRestantesDeTrial({ plan: "BASICA", trialEndsAt: nuevaFechaFinTrial("BASICA") })).toBe(60);
+    expect(diasRestantesDeTrial({ plan: "PREMIUM", trialEndsAt: nuevaFechaFinTrial("PREMIUM") })).toBe(30);
   });
 });
 

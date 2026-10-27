@@ -4,7 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { verifyPassword, type UserRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { nuevaFechaFinTrial } from "@/lib/plan";
+import { nuevaFechaFinTrial, SIGNUP_PLAN_COOKIE } from "@/lib/plan";
 import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
@@ -110,6 +110,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return "/signup?error=terminos";
       }
       const ahora = new Date();
+      const plan = cookieStore.get(SIGNUP_PLAN_COOKIE)?.value === "PREMIUM" ? "PREMIUM" : "BASICA";
+      cookieStore.delete(SIGNUP_PLAN_COOKIE);
       const { nombre, apellido } = splitNombre(
         typeof user.name === "string" ? user.name : ""
       );
@@ -123,8 +125,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           terminosAceptadosAt: ahora,
           declaracionProfesionalAt: ahora,
           role: "DOCTOR",
-          plan: "BASICA",
-          trialEndsAt: nuevaFechaFinTrial(),
+          plan,
+          trialEndsAt: nuevaFechaFinTrial(plan),
         },
       });
       return true;

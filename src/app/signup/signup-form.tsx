@@ -42,7 +42,7 @@ import {
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
-import { PAGOS_HABILITADOS } from "@/lib/pagos";
+import { SIGNUP_PLAN_COOKIE, TRIAL_DIAS } from "@/lib/plan";
 import { TerminosContenido } from "@/components/legal/terminos-contenido";
 import {
   TERMINOS_COOKIE,
@@ -55,9 +55,7 @@ type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 export function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Sin pagos habilitados Premium no se puede contratar: se ignora ?plan=PREMIUM.
-  const planElegido =
-    PAGOS_HABILITADOS && searchParams.get("plan") === "PREMIUM" ? "PREMIUM" : "BASICA";
+  const planElegido = searchParams.get("plan") === "PREMIUM" ? "PREMIUM" : "BASICA";
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
@@ -84,10 +82,10 @@ export function SignupForm() {
     setTurnstileKey((k) => k + 1);
   }
   const aceptado = aceptaTerminos && declaracionProfesional;
+  const nombrePlan = planElegido === "PREMIUM" ? "Premium" : "Básico";
+  const diasTrial = TRIAL_DIAS[planElegido];
   const beneficios = [
-    planElegido === "PREMIUM"
-      ? "Plan Premium: después de crear la cuenta te pedimos el pago"
-      : "60 días del plan Básico gratis, sin tarjeta",
+    `${diasTrial} días del plan ${nombrePlan} gratis, sin tarjeta`,
     "Historia clínica y turnos en un solo lugar",
     "Podés cambiar de plan cuando quieras",
   ];
@@ -98,6 +96,7 @@ export function SignupForm() {
     // Google salta este formulario: el callback de auth lee esta cookie para
     // exigir y registrar la aceptación al crear la cuenta (ver src/auth.ts).
     document.cookie = `${TERMINOS_COOKIE}=${TERMINOS_VERSION}; path=/; max-age=${TERMINOS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+    document.cookie = `${SIGNUP_PLAN_COOKIE}=${planElegido}; path=/; max-age=${TERMINOS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
     void signIn("google", { redirectTo: "/dashboard" });
   }
 
@@ -167,25 +166,6 @@ export function SignupForm() {
         return;
       }
 
-      if (planElegido === "PREMIUM") {
-        // Premium no tiene trial -- en vez de mandarlo al dashboard, arranca
-        // el checkout de MercadoPago de una para que empiece a pagar ya.
-        const checkoutResponse = await fetch("/api/mercadopago/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan: "PREMIUM", duracion: "MENSUAL" }),
-        });
-        const checkoutData = await checkoutResponse.json();
-        if (checkoutResponse.ok && checkoutData.initPoint) {
-          window.location.href = checkoutData.initPoint;
-          return;
-        }
-        // Si el checkout falló, igual la cuenta existe -- lo mandamos a "Mi
-        // plan" para que pueda reintentar desde ahí.
-        router.replace("/configuracion");
-        return;
-      }
-
       router.replace("/dashboard");
       router.refresh();
     } catch {
@@ -224,9 +204,7 @@ export function SignupForm() {
           </Link>
           <h1 className="text-xl font-semibold">Creá tu cuenta en Semio360</h1>
           <p className="text-sm text-muted-foreground">
-            {planElegido === "PREMIUM"
-              ? "Vas a empezar con el plan Premium -- después de crear la cuenta te pedimos el pago."
-              : "Probá el plan Básico gratis durante 60 días, sin tarjeta."}
+            Probá el plan {nombrePlan} gratis durante {diasTrial} días, sin tarjeta.
           </p>
         </div>
 
@@ -386,11 +364,7 @@ export function SignupForm() {
           <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={loading || !aceptado}>
-            {loading
-              ? "Creando cuenta..."
-              : planElegido === "PREMIUM"
-                ? "Crear cuenta y pagar"
-                : "Crear cuenta gratis"}
+            {loading ? "Creando cuenta..." : "Crear cuenta gratis"}
           </Button>
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

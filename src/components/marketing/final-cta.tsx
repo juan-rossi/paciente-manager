@@ -147,7 +147,7 @@ function FinalHeadline({ visible }: { visible: boolean }) {
         <br />
         Una sola plataforma.
       </h2>
-      <Button size="lg" nativeButton={false} render={<Link href="/signup" />}>
+      <Button size="lg" nativeButton={false} render={<Link href="/signup?plan=PREMIUM" />}>
         Empezar con Semio360
       </Button>
     </motion.div>

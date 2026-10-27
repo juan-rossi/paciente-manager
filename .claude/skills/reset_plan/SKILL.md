@@ -69,7 +69,10 @@ DATABASE_URL="$DB_URL" DOCTOR_EMAIL="<email elegido>" \
   npx tsx scripts/reset-plan.ts
 ```
 
-El script deja: `plan: BASICA`, `trialEndsAt` a esa cantidad de días,
+Si el usuario pide un trial **Premium** (30 días en vez de 60), agregá
+`TRIAL_PLAN=PREMIUM`; si no lo menciona, no preguntes: es Básico.
+
+El script deja: `plan: BASICA` (o `PREMIUM` con `TRIAL_PLAN`), `trialEndsAt` a esa cantidad de días,
 `planDuracion`/`planEndsAt`/`planPendiente`/`planDuracionPendiente`
 en `null`, y `mpPreapprovalId`/`mpPreapprovalStatus` en `null` (sin
 preapproval ni pago único en curso).

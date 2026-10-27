@@ -10,8 +10,9 @@ const prisma = new PrismaClient({ adapter });
 // desarrollo/QA (ver skill `reset_plan`), nunca para producción real.
 //
 // Sin DOCTOR_EMAIL: lista los DOCTOR de esa base (para elegir uno).
-// Con DOCTOR_EMAIL: resetea esa cuenta. TRIAL_DIAS_RESTANTES opcional
-// (default 60 = trial fresco); un número menor simula estar a esa
+// Con DOCTOR_EMAIL: resetea esa cuenta. TRIAL_PLAN opcional (BASICA por
+// default, o PREMIUM). TRIAL_DIAS_RESTANTES opcional (default: trial fresco,
+// 60 días Básico / 30 Premium); un número menor simula estar a esa
 // cantidad de días de que se corte el acceso.
 async function main() {
   const email = process.env.DOCTOR_EMAIL?.trim().toLowerCase();
@@ -35,8 +36,13 @@ async function main() {
     return;
   }
 
+  const planRaw = process.env.TRIAL_PLAN?.trim().toUpperCase() || "BASICA";
+  if (planRaw !== "BASICA" && planRaw !== "PREMIUM") {
+    throw new Error("TRIAL_PLAN debe ser BASICA o PREMIUM.");
+  }
+  const plan = planRaw;
   const diasRestantesRaw = process.env.TRIAL_DIAS_RESTANTES;
-  const diasRestantes = diasRestantesRaw ? Number(diasRestantesRaw) : 60;
+  const diasRestantes = diasRestantesRaw ? Number(diasRestantesRaw) : plan === "PREMIUM" ? 30 : 60;
   if (!Number.isFinite(diasRestantes) || diasRestantes <= 0) {
     throw new Error("TRIAL_DIAS_RESTANTES debe ser un número mayor a 0.");
   }
@@ -47,7 +53,7 @@ async function main() {
   const actualizado = await prisma.user.update({
     where: { email },
     data: {
-      plan: "BASICA",
+      plan,
       trialEndsAt,
       planDuracion: null,
       planEndsAt: null,
