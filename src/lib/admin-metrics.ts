@@ -66,7 +66,7 @@ export type MedicoResumen = {
   estado: EstadoMedico;
   tier: "BASICA" | "PREMIUM";
   esTrial: boolean;
-  planLabel: string; // "Trial", "Trial vencido", "Básico · 6 meses", ...
+  planLabel: string; // "Trial · Premium", "Trial vencido · Básico", "Básico · 6 meses", ...
   vencimiento: Date | null;
   diasParaVencer: number | null; // negativo = ya venció
   pacientesCount: number;
@@ -75,12 +75,12 @@ export type MedicoResumen = {
 };
 
 function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" | "planEndsAt" | "trialEndsAt">) {
+  const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
   if (doctor.planEndsAt && doctor.planDuracion) {
-    const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
     return { label: `${tier} · ${PLAN_DURACION_LABEL[doctor.planDuracion]}`, esTrial: false };
   }
   const trialVencido = doctor.trialEndsAt ? doctor.trialEndsAt.getTime() <= Date.now() : false;
-  return { label: trialVencido ? "Trial vencido" : "Trial", esTrial: true };
+  return { label: `${trialVencido ? "Trial vencido" : "Trial"} · ${tier}`, esTrial: true };
 }
 
 function resumenDe(doctor: DoctorListRow): MedicoResumen {
