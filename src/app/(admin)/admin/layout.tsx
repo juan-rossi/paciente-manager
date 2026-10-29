@@ -10,7 +10,9 @@ const ADMIN_NAV_LINKS = [
   { href: "/admin/medicos", label: "Médicos", icon: "Stethoscope" as const, matchPrefixes: ["/admin/medicos"] },
   { href: "/admin/gastos", label: "Gastos", icon: "Wallet" as const },
   { href: "/admin/costos-ia", label: "Costos IA", icon: "Sparkles" as const },
-  { href: "/admin/marketing", label: "Marketing", icon: "Megaphone" as const, matchPrefixes: ["/admin/marketing"] },
+  // Directo a la primera pestaña: /admin/marketing redirige en el servidor y,
+  // al no tener loading.tsx, la pantalla quedaba congelada hasta el redirect.
+  { href: "/admin/marketing/bienvenidas", label: "Marketing", icon: "Megaphone" as const, matchPrefixes: ["/admin/marketing"] },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

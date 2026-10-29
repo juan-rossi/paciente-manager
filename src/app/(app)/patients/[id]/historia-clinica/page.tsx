@@ -9,6 +9,7 @@ import { ANTECEDENTES_ORDEN, ESTADO_CIVIL_OPTIONS } from "@/components/patient-f
 import { TIME_ZONE } from "@/lib/timezone";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageEnter } from "@/components/page-transition";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -99,210 +100,212 @@ export default async function HistoriaClinicaPage({ params }: Props) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "");
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 print:max-w-none print:px-0 print:py-0">
-      <div className="flex items-start justify-between gap-4 print:hidden">
-        <p className="text-sm text-muted-foreground">
-          Copia de la historia clínica para entregar al paciente (Ley 26.529, art. 14).
-        </p>
-        <PrintButton />
-      </div>
-
-      <Card className="print:rounded-none print:border-none print:bg-transparent print:py-0 print:shadow-none">
-        <CardContent className="flex flex-col gap-6 print:px-0">
-          <header className="flex flex-col gap-1 border-b-2 border-foreground pb-4">
-            <h1 className="text-xl font-bold">Historia Clínica</h1>
-            <p className="text-sm text-muted-foreground">
-              {doctor ? `${doctor.nombre} ${doctor.apellido}`.trim() : ""}
-              {doctor?.nroMatricula ? ` — Matrícula ${doctor.nroMatricula}` : ""}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Copia generada el{" "}
-              {new Date().toLocaleDateString("es-AR", { timeZone: TIME_ZONE })}
-            </p>
-          </header>
-
-          <Seccion
-        titulo="Datos del paciente"
-        fields={[
-          { label: "Nombre y Apellido", value: patient.nombreYApellido },
-          { label: "DNI", value: patient.nroDocumento },
-          {
-            label: "Fecha de nacimiento",
-            value: patient.fechaNacimiento
-              ? `${formatFecha(patient.fechaNacimiento)}${edad ? ` (${edad} años)` : ""}`
-              : null,
-          },
-          { label: "Sexo", value: patient.sexo ? SEXO_LABELS[patient.sexo] : null },
-          {
-            label: "Estado civil",
-            value: patient.estadoCivil ? ESTADO_CIVIL_LABELS.get(patient.estadoCivil) : null,
-          },
-          { label: "Profesión", value: patient.profesion },
-          { label: "Nacionalidad", value: patient.nacionalidad },
-          { label: "Domicilio", value: patient.domicilio },
-          { label: "Teléfono", value: patient.telefono },
-          { label: "Obra Social", value: patient.obraSocial },
-          { label: "Nro Obra Social", value: patient.obraSocialNro },
-          { label: "Contacto de emergencia", value: patient.contactoEmergencia },
-          { label: "Teléfono de emergencia", value: patient.telefonoEmergencia },
-        ]}
-      />
-
-      <Seccion
-        titulo="Consulta inicial"
-        fields={[
-          { label: "AUTOVALIDO Total", value: patient.autoValidoTotal },
-          { label: "Parcial", value: patient.autoValidoParcial },
-          { label: "Dependiente", value: patient.dependiente },
-          { label: "Motivo de Consulta", value: patient.motivoConsulta },
-          { label: "Antecedentes de la enfermedad actual", value: patient.antecedentesEnfermedad },
-          {
-            label: "Hábitos tóxicos",
-            value: [
-              patient.habitoAlcohol && "Alcohol",
-              patient.habitoCigarrillos && "Cigarrillos",
-              patient.habitoDrogas && "Drogas",
-            ]
-              .filter(Boolean)
-              .join(", ") || null,
-          },
-        ]}
-      >
-        {patient.antecedentesEnfermedadDictado?.trim() && (
-          <div className="mt-3 print:hidden">
-            <DictadoCompleto dictado={patient.antecedentesEnfermedadDictado} />
-          </div>
-        )}
-      </Seccion>
-
-      {patient.antecedentes.length > 0 && (
-        <Seccion titulo="Antecedentes personales">
-          <ul className="flex flex-col gap-2 text-sm">
-            {patient.antecedentes.map((a) => (
-              <li key={a.id}>
-                <strong>{ANTECEDENTE_LABELS.get(a.tipo) ?? a.tipo}</strong>
-                {[a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).length > 0 && (
-                  <span className="text-muted-foreground">
-                    {" — "}
-                    {[a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).join(" · ")}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Seccion>
-      )}
-
-      <Seccion
-        titulo="Signos vitales"
-        fields={[
-          { label: "Frecuencia Cardíaca", value: patient.frecuenciaCardiaca },
-          { label: "Pulso Radial", value: patient.pulsoRadial },
-          { label: "Ritmo", value: patient.ritmo },
-          { label: "Presión Arterial", value: patient.presionArterial },
-          { label: "Frecuencia Respiratoria", value: patient.frecuenciaRespiratoria },
-          { label: "Peso Actual", value: patient.pesoActual },
-          { label: "Peso Habitual", value: patient.pesoHabitual },
-          { label: "Estatura", value: patient.estatura },
-          { label: "Temperatura", value: patient.temperatura },
-        ]}
-      />
-
-      <Seccion
-        titulo="Examen físico"
-        fields={[
-          { label: "Cráneo", value: patient.craneo },
-          { label: "Ojo: Agudeza Visual", value: patient.ojo },
-          { label: "Oído: Agudeza Auditiva", value: patient.oido },
-          { label: "Piel, Faneras, Celular Subcutáneo y Ganglios", value: patient.pcfg },
-          { label: "Cuello — Palpación", value: patient.cuelloPalpacion },
-          { label: "Cuello — Tamaño", value: patient.cuelloTamanio },
-          { label: "Cuello — Auscultación", value: patient.cuelloAuscultacion },
-          { label: "Tórax — Forma", value: patient.toraxForma },
-          { label: "Tórax — Mamas", value: patient.toraxMamas },
-          { label: "Auscultación M V", value: patient.auscultacionMV },
-          { label: "Auscultación V V", value: patient.auscultacionVV },
-          { label: "Rales", value: patient.rales },
-          { label: "Excursión de Bases y Vértices", value: patient.excursion },
-          { label: "R1", value: patient.acvR1 },
-          { label: "R2", value: patient.acvR2 },
-          { label: "Soplos", value: patient.soplos },
-          { label: "Pulso Carotídeo", value: patient.carotideo },
-          { label: "Pulso Radial (CV)", value: patient.radial },
-          { label: "Pulso Femoral", value: patient.femoral },
-          { label: "Pedio", value: patient.pedio },
-          { label: "Abdomen — Inspección", value: patient.abdomenInspeccion },
-          { label: "Abdomen — Palpación", value: patient.abdomenPalpacion },
-          { label: "Abdomen — Auscultación", value: patient.abdomenAuscultacion },
-          { label: "PP Renal Derecha", value: patient.ppRenalDerecha },
-          { label: "PP Renal Izquierda", value: patient.ppRenalIzquierda },
-          { label: "Mamas", value: patient.mamas },
-          { label: "Sensorio", value: patient.sensorio },
-          { label: "Lenguaje", value: patient.lenguaje },
-          { label: "Marcha", value: patient.marcha },
-          { label: "Temblor", value: patient.temblor },
-          { label: "Taxia", value: patient.taxia },
-          { label: "Reflejo Fotomotor", value: patient.reflejosFotomotor },
-          { label: "Reflejos de Acomodación", value: patient.reflejosAcomodacion },
-          { label: "Reflejos Osteotendinosos", value: patient.osteotendinosos },
-          { label: "Sensibilidad", value: patient.sensibilidad },
-          { label: "Columna Cervical", value: patient.columnaCervical },
-          { label: "Dorsal", value: patient.dorsal },
-          { label: "Lumbar", value: patient.lumbar },
-          { label: "Articulaciones: Movilidad", value: patient.movilidad },
-          { label: "Dolor", value: patient.dolor },
-          { label: "Tumefacción", value: patient.tumefaccion },
-        ]}
-      />
-
-      <Seccion
-        titulo="Diagnóstico"
-        fields={[
-          { label: "Diagnóstico Presuntivo", value: patient.diagnosticoPresuntivo },
-          { label: "Métodos Complementarios", value: patient.metodosComplementarios },
-          { label: "Tratamiento", value: patient.tratamiento },
-        ]}
-      />
-
-      {patient.evoluciones.length > 0 && (
-        <Seccion titulo="Evolución clínica">
-          <div className="flex flex-col gap-3 text-sm">
-            {patient.evoluciones.map((e) => (
-              <div key={e.id} className="break-inside-avoid">
-                <p className="text-xs font-semibold text-muted-foreground">{formatFecha(e.fecha)}</p>
-                <p className="whitespace-pre-wrap">{e.contenido}</p>
-                <div className="mt-1 print:hidden">
-                  <DictadoCompleto dictado={e.contenidoDictado} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Seccion>
-      )}
-
-      {patient.consentimientos.length > 0 && (
-        <Seccion titulo="Consentimientos informados">
-          <div className="flex flex-col gap-3 text-sm">
-            {patient.consentimientos.map((c) => (
-              <div key={c.id} className="break-inside-avoid">
-                <p className="text-xs font-semibold text-muted-foreground">
-                  {formatFecha(c.fecha)} — {c.tipo === "ESCRITO" ? "Escrito" : "Verbal"} —{" "}
-                  {c.estado === "OTORGADO" ? "Otorgado" : "Rechazado"}
-                  {c.revocadoEn && ` — Revocado el ${formatFecha(c.revocadoEn)}`}
-                </p>
-                <p className="font-semibold">{c.procedimiento}</p>
-                <p className="whitespace-pre-wrap">{c.riesgosBeneficios}</p>
-              </div>
-            ))}
-          </div>
-        </Seccion>
-      )}
-
-          <p className="text-center text-xs text-muted-foreground">
-            Documento generado por Semio360 conforme a la Ley 26.529 de Derechos del Paciente.
+    <PageEnter>
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 print:max-w-none print:px-0 print:py-0">
+        <div className="flex items-start justify-between gap-4 print:hidden">
+          <p className="text-sm text-muted-foreground">
+            Copia de la historia clínica para entregar al paciente (Ley 26.529, art. 14).
           </p>
-        </CardContent>
-      </Card>
-    </div>
+          <PrintButton />
+        </div>
+
+        <Card className="print:rounded-none print:border-none print:bg-transparent print:py-0 print:shadow-none">
+          <CardContent className="flex flex-col gap-6 print:px-0">
+            <header className="flex flex-col gap-1 border-b-2 border-foreground pb-4">
+              <h1 className="text-xl font-bold">Historia Clínica</h1>
+              <p className="text-sm text-muted-foreground">
+                {doctor ? `${doctor.nombre} ${doctor.apellido}`.trim() : ""}
+                {doctor?.nroMatricula ? ` — Matrícula ${doctor.nroMatricula}` : ""}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Copia generada el{" "}
+                {new Date().toLocaleDateString("es-AR", { timeZone: TIME_ZONE })}
+              </p>
+            </header>
+
+            <Seccion
+          titulo="Datos del paciente"
+          fields={[
+            { label: "Nombre y Apellido", value: patient.nombreYApellido },
+            { label: "DNI", value: patient.nroDocumento },
+            {
+              label: "Fecha de nacimiento",
+              value: patient.fechaNacimiento
+                ? `${formatFecha(patient.fechaNacimiento)}${edad ? ` (${edad} años)` : ""}`
+                : null,
+            },
+            { label: "Sexo", value: patient.sexo ? SEXO_LABELS[patient.sexo] : null },
+            {
+              label: "Estado civil",
+              value: patient.estadoCivil ? ESTADO_CIVIL_LABELS.get(patient.estadoCivil) : null,
+            },
+            { label: "Profesión", value: patient.profesion },
+            { label: "Nacionalidad", value: patient.nacionalidad },
+            { label: "Domicilio", value: patient.domicilio },
+            { label: "Teléfono", value: patient.telefono },
+            { label: "Obra Social", value: patient.obraSocial },
+            { label: "Nro Obra Social", value: patient.obraSocialNro },
+            { label: "Contacto de emergencia", value: patient.contactoEmergencia },
+            { label: "Teléfono de emergencia", value: patient.telefonoEmergencia },
+          ]}
+        />
+
+        <Seccion
+          titulo="Consulta inicial"
+          fields={[
+            { label: "AUTOVALIDO Total", value: patient.autoValidoTotal },
+            { label: "Parcial", value: patient.autoValidoParcial },
+            { label: "Dependiente", value: patient.dependiente },
+            { label: "Motivo de Consulta", value: patient.motivoConsulta },
+            { label: "Antecedentes de la enfermedad actual", value: patient.antecedentesEnfermedad },
+            {
+              label: "Hábitos tóxicos",
+              value: [
+                patient.habitoAlcohol && "Alcohol",
+                patient.habitoCigarrillos && "Cigarrillos",
+                patient.habitoDrogas && "Drogas",
+              ]
+                .filter(Boolean)
+                .join(", ") || null,
+            },
+          ]}
+        >
+          {patient.antecedentesEnfermedadDictado?.trim() && (
+            <div className="mt-3 print:hidden">
+              <DictadoCompleto dictado={patient.antecedentesEnfermedadDictado} />
+            </div>
+          )}
+        </Seccion>
+
+        {patient.antecedentes.length > 0 && (
+          <Seccion titulo="Antecedentes personales">
+            <ul className="flex flex-col gap-2 text-sm">
+              {patient.antecedentes.map((a) => (
+                <li key={a.id}>
+                  <strong>{ANTECEDENTE_LABELS.get(a.tipo) ?? a.tipo}</strong>
+                  {[a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).length > 0 && (
+                    <span className="text-muted-foreground">
+                      {" — "}
+                      {[a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).join(" · ")}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Seccion>
+        )}
+
+        <Seccion
+          titulo="Signos vitales"
+          fields={[
+            { label: "Frecuencia Cardíaca", value: patient.frecuenciaCardiaca },
+            { label: "Pulso Radial", value: patient.pulsoRadial },
+            { label: "Ritmo", value: patient.ritmo },
+            { label: "Presión Arterial", value: patient.presionArterial },
+            { label: "Frecuencia Respiratoria", value: patient.frecuenciaRespiratoria },
+            { label: "Peso Actual", value: patient.pesoActual },
+            { label: "Peso Habitual", value: patient.pesoHabitual },
+            { label: "Estatura", value: patient.estatura },
+            { label: "Temperatura", value: patient.temperatura },
+          ]}
+        />
+
+        <Seccion
+          titulo="Examen físico"
+          fields={[
+            { label: "Cráneo", value: patient.craneo },
+            { label: "Ojo: Agudeza Visual", value: patient.ojo },
+            { label: "Oído: Agudeza Auditiva", value: patient.oido },
+            { label: "Piel, Faneras, Celular Subcutáneo y Ganglios", value: patient.pcfg },
+            { label: "Cuello — Palpación", value: patient.cuelloPalpacion },
+            { label: "Cuello — Tamaño", value: patient.cuelloTamanio },
+            { label: "Cuello — Auscultación", value: patient.cuelloAuscultacion },
+            { label: "Tórax — Forma", value: patient.toraxForma },
+            { label: "Tórax — Mamas", value: patient.toraxMamas },
+            { label: "Auscultación M V", value: patient.auscultacionMV },
+            { label: "Auscultación V V", value: patient.auscultacionVV },
+            { label: "Rales", value: patient.rales },
+            { label: "Excursión de Bases y Vértices", value: patient.excursion },
+            { label: "R1", value: patient.acvR1 },
+            { label: "R2", value: patient.acvR2 },
+            { label: "Soplos", value: patient.soplos },
+            { label: "Pulso Carotídeo", value: patient.carotideo },
+            { label: "Pulso Radial (CV)", value: patient.radial },
+            { label: "Pulso Femoral", value: patient.femoral },
+            { label: "Pedio", value: patient.pedio },
+            { label: "Abdomen — Inspección", value: patient.abdomenInspeccion },
+            { label: "Abdomen — Palpación", value: patient.abdomenPalpacion },
+            { label: "Abdomen — Auscultación", value: patient.abdomenAuscultacion },
+            { label: "PP Renal Derecha", value: patient.ppRenalDerecha },
+            { label: "PP Renal Izquierda", value: patient.ppRenalIzquierda },
+            { label: "Mamas", value: patient.mamas },
+            { label: "Sensorio", value: patient.sensorio },
+            { label: "Lenguaje", value: patient.lenguaje },
+            { label: "Marcha", value: patient.marcha },
+            { label: "Temblor", value: patient.temblor },
+            { label: "Taxia", value: patient.taxia },
+            { label: "Reflejo Fotomotor", value: patient.reflejosFotomotor },
+            { label: "Reflejos de Acomodación", value: patient.reflejosAcomodacion },
+            { label: "Reflejos Osteotendinosos", value: patient.osteotendinosos },
+            { label: "Sensibilidad", value: patient.sensibilidad },
+            { label: "Columna Cervical", value: patient.columnaCervical },
+            { label: "Dorsal", value: patient.dorsal },
+            { label: "Lumbar", value: patient.lumbar },
+            { label: "Articulaciones: Movilidad", value: patient.movilidad },
+            { label: "Dolor", value: patient.dolor },
+            { label: "Tumefacción", value: patient.tumefaccion },
+          ]}
+        />
+
+        <Seccion
+          titulo="Diagnóstico"
+          fields={[
+            { label: "Diagnóstico Presuntivo", value: patient.diagnosticoPresuntivo },
+            { label: "Métodos Complementarios", value: patient.metodosComplementarios },
+            { label: "Tratamiento", value: patient.tratamiento },
+          ]}
+        />
+
+        {patient.evoluciones.length > 0 && (
+          <Seccion titulo="Evolución clínica">
+            <div className="flex flex-col gap-3 text-sm">
+              {patient.evoluciones.map((e) => (
+                <div key={e.id} className="break-inside-avoid">
+                  <p className="text-xs font-semibold text-muted-foreground">{formatFecha(e.fecha)}</p>
+                  <p className="whitespace-pre-wrap">{e.contenido}</p>
+                  <div className="mt-1 print:hidden">
+                    <DictadoCompleto dictado={e.contenidoDictado} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Seccion>
+        )}
+
+        {patient.consentimientos.length > 0 && (
+          <Seccion titulo="Consentimientos informados">
+            <div className="flex flex-col gap-3 text-sm">
+              {patient.consentimientos.map((c) => (
+                <div key={c.id} className="break-inside-avoid">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {formatFecha(c.fecha)} — {c.tipo === "ESCRITO" ? "Escrito" : "Verbal"} —{" "}
+                    {c.estado === "OTORGADO" ? "Otorgado" : "Rechazado"}
+                    {c.revocadoEn && ` — Revocado el ${formatFecha(c.revocadoEn)}`}
+                  </p>
+                  <p className="font-semibold">{c.procedimiento}</p>
+                  <p className="whitespace-pre-wrap">{c.riesgosBeneficios}</p>
+                </div>
+              ))}
+            </div>
+          </Seccion>
+        )}
+
+            <p className="text-center text-xs text-muted-foreground">
+              Documento generado por Semio360 conforme a la Ley 26.529 de Derechos del Paciente.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </PageEnter>
   );
 }

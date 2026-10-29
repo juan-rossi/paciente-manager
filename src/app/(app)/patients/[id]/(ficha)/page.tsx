@@ -7,6 +7,7 @@ import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientSummary } from "@/components/patient-summary";
 import { patientFromApi } from "@/components/patient-form/utils";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
+import { PageEnter } from "@/components/page-transition";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -81,13 +82,15 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const resumenAutomatico = await getResumenAutomatico(user);
 
   return (
-    <PatientSummary
-      patient={patient}
-      diffs={diffs}
-      patientValues={patientValues}
-      auditEntries={auditEntries}
-      transcripcionHabilitada={isPremium(user) && esActivo(user)}
-      resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
-    />
+    <PageEnter>
+      <PatientSummary
+        patient={patient}
+        diffs={diffs}
+        patientValues={patientValues}
+        auditEntries={auditEntries}
+        transcripcionHabilitada={isPremium(user) && esActivo(user)}
+        resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
+      />
+    </PageEnter>
   );
 }

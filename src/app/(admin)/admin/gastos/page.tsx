@@ -1,5 +1,6 @@
 import { getGastos } from "@/lib/admin-gastos";
 import { GastosScreen } from "@/components/admin/gastos-screen";
+import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
@@ -11,5 +12,9 @@ export default async function AdminGastosPage() {
     monto: g.monto,
   }));
 
-  return <GastosScreen initialGastos={gastos} />;
+  return (
+    <PageEnter>
+      <GastosScreen initialGastos={gastos} />
+    </PageEnter>
+  );
 }

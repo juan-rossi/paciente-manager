@@ -3,6 +3,7 @@ import { esActivo, isPremium } from "@/lib/plan";
 import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { emptyPatientFormValues } from "@/components/patient-form/utils";
+import { PageEnter } from "@/components/page-transition";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -24,14 +25,16 @@ export default async function NewPatientPage({
   initialValues.obraSocial = firstString(params.obraSocial) ?? "";
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Nuevo paciente</h1>
-      <PatientForm
-        mode="create"
-        initialValues={initialValues}
-        transcripcionHabilitada={user ? isPremium(user) && esActivo(user) : false}
-        resumenAutomatico={user ? await getResumenAutomatico(user) : undefined}
-      />
-    </div>
+    <PageEnter>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-semibold">Nuevo paciente</h1>
+        <PatientForm
+          mode="create"
+          initialValues={initialValues}
+          transcripcionHabilitada={user ? isPremium(user) && esActivo(user) : false}
+          resumenAutomatico={user ? await getResumenAutomatico(user) : undefined}
+        />
+      </div>
+    </PageEnter>
   );
 }

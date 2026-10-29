@@ -7,6 +7,7 @@ import { TurnosCalendar } from "@/components/turnos-calendar";
 import { getTurnosCanceladosPorPacientes } from "@/lib/turnos-cancelados-por-pacientes";
 import { nombreDoctor } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
+import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
@@ -76,23 +77,25 @@ export default async function TurnosPage() {
   const canceladosPorPacientes = await getTurnosCanceladosPorPacientes(today, tenantId, activeLugarId);
 
   return (
-    <TurnosCalendar
-      role={user.role}
-      tenantId={tenantId}
-      activeLugarId={activeLugarId}
-      puedeBloquearHorarios={puedeBloquearHorarios}
-      initialDate={formatDateParamBA(today)}
-      initialSlots={slots}
-      initialSobreturnos={sobreturnos}
-      initialSinConfigurar={sinConfigurar}
-      initialDiasConHorario={diasConHorario}
-      initialDiasEspeciales={diasEspeciales}
-      initialSobreturnosHabilitados={sobreturnosHabilitados}
-      initialLugares={lugares}
-      initialBloqueosDelDia={bloqueosDelDia}
-      initialCanceladosPorPacientes={canceladosPorPacientes}
-      prepagas={prepagas}
-      compartir={compartir}
-    />
+    <PageEnter>
+      <TurnosCalendar
+        role={user.role}
+        tenantId={tenantId}
+        activeLugarId={activeLugarId}
+        puedeBloquearHorarios={puedeBloquearHorarios}
+        initialDate={formatDateParamBA(today)}
+        initialSlots={slots}
+        initialSobreturnos={sobreturnos}
+        initialSinConfigurar={sinConfigurar}
+        initialDiasConHorario={diasConHorario}
+        initialDiasEspeciales={diasEspeciales}
+        initialSobreturnosHabilitados={sobreturnosHabilitados}
+        initialLugares={lugares}
+        initialBloqueosDelDia={bloqueosDelDia}
+        initialCanceladosPorPacientes={canceladosPorPacientes}
+        prepagas={prepagas}
+        compartir={compartir}
+      />
+    </PageEnter>
   );
 }

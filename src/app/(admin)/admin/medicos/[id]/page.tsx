@@ -15,6 +15,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { getMedicoDetalle, formatDiasParaVencer, formatFechaCorta } from "@/lib/admin-metrics";
 import { formatNumero, formatUsd, getUsoIAMedico, MESES_PROMEDIO } from "@/lib/admin-costos-ia";
 import { TopeIAForm } from "@/components/admin/costos-ia-controles";
+import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
@@ -29,184 +30,186 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
   const maxUso = Math.max(1, ...medico.usoMensual.map((m) => m.pacientes));
 
   return (
-    <div className="flex flex-col gap-5">
-      <Link
-        href="/admin/medicos"
-        className="flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-3.5" />
-        Médicos
-      </Link>
+    <PageEnter>
+      <div className="flex flex-col gap-5">
+        <Link
+          href="/admin/medicos"
+          className="flex w-fit items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          Médicos
+        </Link>
 
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex size-13 shrink-0 items-center justify-center rounded-full bg-accent font-heading text-lg font-semibold text-accent-foreground">
-              {iniciales(medico.nombreCompleto)}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-heading text-lg font-semibold">{medico.nombreCompleto}</h1>
-                {medico.estado === "ACTIVO" ? (
-                  <Badge
-                    variant="outline"
-                    className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
-                  >
-                    Activo
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">Inactivo</Badge>
-                )}
-                <Badge variant="secondary">{medico.planLabel}</Badge>
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex size-13 shrink-0 items-center justify-center rounded-full bg-accent font-heading text-lg font-semibold text-accent-foreground">
+                {iniciales(medico.nombreCompleto)}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {medico.nroMatricula ? `MP ${medico.nroMatricula} · ` : ""}
-                {medico.email}
-              </p>
-            </div>
-          </div>
-          <Button type="button" variant="outline" nativeButton={false} render={<a href={`mailto:${medico.email}`} />}>
-            <Mail className="size-3.5" />
-            Enviar email
-          </Button>
-        </CardContent>
-        {medico.vencimiento && (
-          <CardFooter
-            className={
-              "flex-wrap justify-between gap-x-4 gap-y-1.5 py-3 " +
-              (urgente
-                ? (medico.diasParaVencer ?? 99) <= 3
-                  ? "border-red-200 bg-red-50 text-destructive dark:border-red-900 dark:bg-red-950"
-                  : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
-                : "")
-            }
-          >
-            <div className="flex items-center gap-2">
-              <Clock className={urgente ? "size-4" : "size-4 text-muted-foreground"} />
-              <span className={urgente ? "opacity-80" : "text-muted-foreground"}>Vencimiento:</span>
-              <span className="font-heading font-semibold">
-                {formatDiasParaVencer(medico.diasParaVencer)} — {formatFechaCorta(medico.vencimiento)}
-              </span>
-            </div>
-            {medico.esTrial && medico.estado === "ACTIVO" && (
-              <span className={urgente ? "opacity-80" : "text-muted-foreground"}>
-                Sin conversión a plan pago registrada
-              </span>
-            )}
-          </CardFooter>
-        )}
-      </Card>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={Users} label="Total pacientes" value={String(medico.pacientesCount)} />
-        <StatCard icon={CalendarDays} label="Total turnos" value={String(medico.turnosCount)} />
-        <StatCard
-          icon={Clock}
-          label="Última actividad"
-          value={medico.ultimaActividad ? formatFechaCorta(medico.ultimaActividad) : "Sin actividad todavía"}
-        />
-        <StatCard
-          icon={Stethoscope}
-          label="Secretarias asignadas"
-          value={
-            medico.secretarias.length > 0 ? `${medico.secretarias.length} · ${medico.secretarias.join(", ")}` : "0"
-          }
-        />
-      </div>
-
-      {usoIA && (
-        <Card>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="flex items-center gap-1.5 font-heading text-sm font-semibold">
-                <Sparkles className="size-3.5 text-primary" />
-                Uso de IA
-              </h2>
-              <Link href="/admin/costos-ia" className="text-xs font-medium text-primary hover:underline">
-                Ver costos IA
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <UsoIADato
-                label="Minutos de dictado / mes"
-                value={usoIA.promedio ? formatNumero(usoIA.promedio.minutos) : "—"}
-              />
-              <UsoIADato
-                label="Resúmenes / mes"
-                value={usoIA.promedio ? formatNumero(usoIA.promedio.resumenes) : "—"}
-              />
-              <UsoIADato
-                label="Costo / mes"
-                value={usoIA.promedio ? formatUsd(usoIA.promedio.costoUsd) : "—"}
-                sub={usoIA.porcentajePlan !== null ? `${formatNumero(usoIA.porcentajePlan, 1)} % de su plan` : undefined}
-              />
-              <UsoIADato
-                label="Este mes"
-                value={formatUsd(usoIA.mesActual.costoUsd)}
-                sub={`${formatNumero(usoIA.mesActual.minutos)} min · ${usoIA.mesActual.resumenes} resúmenes`}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {usoIA.promedio
-                ? `Promedio de ${usoIA.promedio.mesesConsiderados === 1 ? "el último mes cerrado" : `los últimos ${usoIA.promedio.mesesConsiderados} meses cerrados`} (máximo ${MESES_PROMEDIO}), desde su primer uso.`
-                : "Todavía no tiene un mes cerrado con uso de IA para calcular el promedio."}
-            </p>
-            <div className="border-t border-border pt-4">
-              <TopeIAForm
-                doctorId={id}
-                topeIAUsd={usoIA.topeIAUsd}
-                topeDefaultUsd={usoIA.topeDefaultUsd}
-                gastoMesUsd={usoIA.mesActual.costoUsd}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <CardContent className="flex flex-col gap-1">
-            <h2 className="font-heading text-sm font-semibold">Historial de suscripción</h2>
-            <div className="mt-4 flex flex-col">
-              {medico.historial.map((evento, i) => (
-                <div key={i} className="relative flex gap-3 pb-6 last:pb-0">
-                  {i < medico.historial.length - 1 && (
-                    <span className="absolute top-3.5 left-[5px] h-full w-px bg-border" />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-heading text-lg font-semibold">{medico.nombreCompleto}</h1>
+                  {medico.estado === "ACTIVO" ? (
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
+                    >
+                      Activo
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Inactivo</Badge>
                   )}
-                  <span className="relative mt-1.5 size-2.5 shrink-0 rounded-full bg-primary" />
-                  <div>
-                    <div className="text-xs text-muted-foreground">
-                      {evento.fecha ? formatFechaCorta(evento.fecha) : "Estado actual"}
-                      {evento.estimado && " (estimado)"}
+                  <Badge variant="secondary">{medico.planLabel}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {medico.nroMatricula ? `MP ${medico.nroMatricula} · ` : ""}
+                  {medico.email}
+                </p>
+              </div>
+            </div>
+            <Button type="button" variant="outline" nativeButton={false} render={<a href={`mailto:${medico.email}`} />}>
+              <Mail className="size-3.5" />
+              Enviar email
+            </Button>
+          </CardContent>
+          {medico.vencimiento && (
+            <CardFooter
+              className={
+                "flex-wrap justify-between gap-x-4 gap-y-1.5 py-3 " +
+                (urgente
+                  ? (medico.diasParaVencer ?? 99) <= 3
+                    ? "border-red-200 bg-red-50 text-destructive dark:border-red-900 dark:bg-red-950"
+                    : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                  : "")
+              }
+            >
+              <div className="flex items-center gap-2">
+                <Clock className={urgente ? "size-4" : "size-4 text-muted-foreground"} />
+                <span className={urgente ? "opacity-80" : "text-muted-foreground"}>Vencimiento:</span>
+                <span className="font-heading font-semibold">
+                  {formatDiasParaVencer(medico.diasParaVencer)} — {formatFechaCorta(medico.vencimiento)}
+                </span>
+              </div>
+              {medico.esTrial && medico.estado === "ACTIVO" && (
+                <span className={urgente ? "opacity-80" : "text-muted-foreground"}>
+                  Sin conversión a plan pago registrada
+                </span>
+              )}
+            </CardFooter>
+          )}
+        </Card>
+
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard icon={Users} label="Total pacientes" value={String(medico.pacientesCount)} />
+          <StatCard icon={CalendarDays} label="Total turnos" value={String(medico.turnosCount)} />
+          <StatCard
+            icon={Clock}
+            label="Última actividad"
+            value={medico.ultimaActividad ? formatFechaCorta(medico.ultimaActividad) : "Sin actividad todavía"}
+          />
+          <StatCard
+            icon={Stethoscope}
+            label="Secretarias asignadas"
+            value={
+              medico.secretarias.length > 0 ? `${medico.secretarias.length} · ${medico.secretarias.join(", ")}` : "0"
+            }
+          />
+        </div>
+
+        {usoIA && (
+          <Card>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="flex items-center gap-1.5 font-heading text-sm font-semibold">
+                  <Sparkles className="size-3.5 text-primary" />
+                  Uso de IA
+                </h2>
+                <Link href="/admin/costos-ia" className="text-xs font-medium text-primary hover:underline">
+                  Ver costos IA
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <UsoIADato
+                  label="Minutos de dictado / mes"
+                  value={usoIA.promedio ? formatNumero(usoIA.promedio.minutos) : "—"}
+                />
+                <UsoIADato
+                  label="Resúmenes / mes"
+                  value={usoIA.promedio ? formatNumero(usoIA.promedio.resumenes) : "—"}
+                />
+                <UsoIADato
+                  label="Costo / mes"
+                  value={usoIA.promedio ? formatUsd(usoIA.promedio.costoUsd) : "—"}
+                  sub={usoIA.porcentajePlan !== null ? `${formatNumero(usoIA.porcentajePlan, 1)} % de su plan` : undefined}
+                />
+                <UsoIADato
+                  label="Este mes"
+                  value={formatUsd(usoIA.mesActual.costoUsd)}
+                  sub={`${formatNumero(usoIA.mesActual.minutos)} min · ${usoIA.mesActual.resumenes} resúmenes`}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {usoIA.promedio
+                  ? `Promedio de ${usoIA.promedio.mesesConsiderados === 1 ? "el último mes cerrado" : `los últimos ${usoIA.promedio.mesesConsiderados} meses cerrados`} (máximo ${MESES_PROMEDIO}), desde su primer uso.`
+                  : "Todavía no tiene un mes cerrado con uso de IA para calcular el promedio."}
+              </p>
+              <div className="border-t border-border pt-4">
+                <TopeIAForm
+                  doctorId={id}
+                  topeIAUsd={usoIA.topeIAUsd}
+                  topeDefaultUsd={usoIA.topeDefaultUsd}
+                  gastoMesUsd={usoIA.mesActual.costoUsd}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card>
+            <CardContent className="flex flex-col gap-1">
+              <h2 className="font-heading text-sm font-semibold">Historial de suscripción</h2>
+              <div className="mt-4 flex flex-col">
+                {medico.historial.map((evento, i) => (
+                  <div key={i} className="relative flex gap-3 pb-6 last:pb-0">
+                    {i < medico.historial.length - 1 && (
+                      <span className="absolute top-3.5 left-[5px] h-full w-px bg-border" />
+                    )}
+                    <span className="relative mt-1.5 size-2.5 shrink-0 rounded-full bg-primary" />
+                    <div>
+                      <div className="text-xs text-muted-foreground">
+                        {evento.fecha ? formatFechaCorta(evento.fecha) : "Estado actual"}
+                        {evento.estimado && " (estimado)"}
+                      </div>
+                      <div className="text-sm font-semibold">{evento.titulo}</div>
+                      <div className="mt-0.5 text-sm text-muted-foreground">{evento.descripcion}</div>
                     </div>
-                    <div className="text-sm font-semibold">{evento.titulo}</div>
-                    <div className="mt-0.5 text-sm text-muted-foreground">{evento.descripcion}</div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1">
-            <h2 className="font-heading text-sm font-semibold">Uso mensual</h2>
-            <p className="text-xs text-muted-foreground">Pacientes nuevos cargados por mes</p>
-            <div className="mt-4 flex h-36 items-end gap-4 border-b border-border pb-0.5">
-              {medico.usoMensual.map((m) => (
-                <div key={m.mes} className="flex flex-1 flex-col items-center gap-2">
-                  <span className="text-xs font-semibold">{m.pacientes}</span>
-                  <div
-                    className="w-7 rounded-t bg-brand-secondary"
-                    style={{ height: `${Math.max(4, (m.pacientes / maxUso) * 108)}px` }}
-                  />
-                  <span className="text-[11px] text-muted-foreground">{m.mes}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col gap-1">
+              <h2 className="font-heading text-sm font-semibold">Uso mensual</h2>
+              <p className="text-xs text-muted-foreground">Pacientes nuevos cargados por mes</p>
+              <div className="mt-4 flex h-36 items-end gap-4 border-b border-border pb-0.5">
+                {medico.usoMensual.map((m) => (
+                  <div key={m.mes} className="flex flex-1 flex-col items-center gap-2">
+                    <span className="text-xs font-semibold">{m.pacientes}</span>
+                    <div
+                      className="w-7 rounded-t bg-brand-secondary"
+                      style={{ height: `${Math.max(4, (m.pacientes / maxUso) * 108)}px` }}
+                    />
+                    <span className="text-[11px] text-muted-foreground">{m.mes}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </PageEnter>
   );
 }
 
