@@ -84,8 +84,8 @@ export const PLAN_DURACION_LABEL: Record<PlanDuracion, string> = {
 // Precios reales en ARS. Descuento respecto al precio mensual: 6 meses 5%,
 // 12 meses 11%, 18 meses 15%, 24 meses 20%.
 export const PLAN_PRICING: Record<"BASICA" | "PREMIUM", Record<PlanDuracion, number>> = {
-  BASICA: { MENSUAL: 40000, SEMESTRAL: 38000, ANUAL: 35600, MESES_18: 34000, BIANUAL: 32000 },
-  PREMIUM: { MENSUAL: 75000, SEMESTRAL: 71250, ANUAL: 66750, MESES_18: 63750, BIANUAL: 60000 },
+  BASICA: { MENSUAL: 29800, SEMESTRAL: 28310, ANUAL: 26522, MESES_18: 25330, BIANUAL: 23840 },
+  PREMIUM: { MENSUAL: 44600, SEMESTRAL: 42370, ANUAL: 39694, MESES_18: 37910, BIANUAL: 35680 },
 };
 
 export function precioMensualEquivalente(

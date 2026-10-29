@@ -55,9 +55,9 @@ describe("diasRestantesDePagoUnico", () => {
 
 describe("precioTotalDuracion", () => {
   it("multiplica el precio mensual con descuento por los meses", () => {
-    expect(precioTotalDuracion("BASICA", "MENSUAL")).toBe(40000);
-    expect(precioTotalDuracion("BASICA", "SEMESTRAL")).toBe(38000 * 6);
-    expect(precioTotalDuracion("PREMIUM", "BIANUAL")).toBe(60000 * 24);
+    expect(precioTotalDuracion("BASICA", "MENSUAL")).toBe(29800);
+    expect(precioTotalDuracion("BASICA", "SEMESTRAL")).toBe(28310 * 6);
+    expect(precioTotalDuracion("PREMIUM", "BIANUAL")).toBe(35680 * 24);
   });
 });
 
@@ -66,9 +66,9 @@ describe("calcularUpgradePremium", () => {
     const calculo = calcularUpgradePremium({ planDuracion: "SEMESTRAL", planEndsAt: enDias(61) }, AHORA)!;
     expect(calculo.diasRestantes).toBe(61);
     expect(calculo.aPagar).toBe(calculo.totalPremium - calculo.creditoBasico);
-    // (71250 - 38000) por ~2 meses.
-    expect(calculo.aPagar).toBeGreaterThan(66000);
-    expect(calculo.aPagar).toBeLessThan(67000);
+    // (42370 - 28310) por ~2 meses.
+    expect(calculo.aPagar).toBeGreaterThan(28000);
+    expect(calculo.aPagar).toBeLessThan(28500);
   });
 
   it("no aplica a la suscripción mensual, sin fecha o ya vencido", () => {
