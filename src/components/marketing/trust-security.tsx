@@ -3,6 +3,10 @@
 import { motion } from "motion/react";
 import { DatabaseBackup, Lock, ScrollText, ShieldCheck, UserCog } from "lucide-react";
 import { SectionHeading } from "./section-heading";
+import { EASE_OUT, IN_VIEW } from "./motion-tokens";
+
+// Trazo tipo electrocardiograma (dos latidos) que se dibuja una sola vez.
+const ECG_PATH = "M0 20H52l5-4 5 4h8l4 12 6-30 5 26 4-8h22l7-6 7 6H160l5-4 5 4h8l4 12 6-30 5 26 4-8h38";
 
 // Solo afirmaciones reales: las mismas 3 que ya existían en la sección de
 // compliance del Home actual (confidencialidad, acceso controlado, historia
@@ -45,10 +49,10 @@ export function TrustSecurity() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-center">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            viewport={IN_VIEW}
+            transition={{ duration: 0.7, ease: EASE_OUT }}
             className="mx-auto flex w-full max-w-xs flex-col items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-8 text-center"
           >
             <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
@@ -59,16 +63,31 @@ export function TrustSecurity() {
               Toda la evolución del paciente, registrada de forma cronológica y centralizada, tal
               como exige la ley.
             </p>
+            <svg viewBox="0 0 240 36" className="mt-1 h-9 w-full overflow-visible" aria-hidden>
+              <path d="M0 20H240" className="stroke-primary/15" strokeWidth={1} fill="none" />
+              <motion.path
+                d={ECG_PATH}
+                fill="none"
+                className="stroke-brand-accent"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                whileInView={{ pathLength: 1 }}
+                viewport={IN_VIEW}
+                transition={{ duration: 1.8, ease: EASE_OUT, delay: 0.3 }}
+              />
+            </svg>
           </motion.div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             {LAYERS.map((layer, i) => (
               <motion.div
                 key={layer.title}
-                initial={{ opacity: 0, y: 14 }}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-10%" }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
+                viewport={IN_VIEW}
+                transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.15 + i * 0.08 }}
                 className="flex flex-col gap-2.5 rounded-xl border border-border/60 bg-card p-5"
               >
                 <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -84,7 +103,7 @@ export function TrustSecurity() {
         <div className="mt-10 flex justify-center">
           <a
             href="mailto:contacto@semio360.com?subject=Preguntas sobre seguridad y compliance"
-            className="text-sm font-semibold text-primary hover:underline"
+            className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0_1.5px] bg-left-bottom bg-no-repeat pb-0.5 text-sm font-semibold text-primary transition-[background-size] duration-500 ease-[cubic-bezier(.22,1,.36,1)] hover:bg-[length:100%_1.5px] focus-visible:bg-[length:100%_1.5px]"
           >
             Conocer más sobre seguridad y compliance →
           </a>

@@ -11,6 +11,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SectionHeading } from "./section-heading";
+import { IN_VIEW, SPRING_SOFT } from "./motion-tokens";
+
+function trackPointer(e: React.PointerEvent<HTMLElement>) {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty("--x", `${e.clientX - r.left}px`);
+  e.currentTarget.style.setProperty("--y", `${e.clientY - r.top}px`);
+}
 
 type Feature = {
   icon: LucideIcon;
@@ -74,20 +81,30 @@ export function Features() {
           {FEATURES.map((f, i) => (
             <motion.div
               key={f.title}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-10%" }}
-              transition={{ duration: 0.45, delay: (i % 3) * 0.08, ease: "easeOut" }}
-              className="group flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/5"
+              viewport={IN_VIEW}
+              transition={{ ...SPRING_SOFT, delay: (i % 3) * 0.08 }}
+              onPointerMove={trackPointer}
+              className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border/60 bg-card p-6 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
             >
-              <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
+              {/* Halo que sigue al puntero (variables CSS, sin re-render). */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                  background:
+                    "radial-gradient(260px circle at var(--x, 50%) var(--y, 50%), color-mix(in oklch, var(--primary) 12%, transparent), transparent 70%)",
+                }}
+              />
+              <span className="relative flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-300 ease-[cubic-bezier(.34,1.32,.64,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
                 <f.icon className="size-5" />
               </span>
-              <div>
+              <div className="relative">
                 <h3 className="font-heading text-lg font-bold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.text}</p>
               </div>
-              <span className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              <span className="relative mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 {f.detail}
               </span>
             </motion.div>

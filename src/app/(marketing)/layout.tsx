@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Semio360Mark } from "@/components/brand/logo";
 import { SiteHeader } from "@/components/marketing/site-header";
+import { MarketingMotion } from "@/components/marketing/marketing-motion";
 
 // Mismas secciones que el header; solo existen en el home, de ahí el `/#id`.
 const FOOTER_PRODUCT_LINKS = [
@@ -15,7 +16,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <MarketingMotion>{children}</MarketingMotion>
+      </main>
 
       <footer className="border-t border-[#d9dee9] bg-[#eef1f7] text-sm text-[#566078]">
         <div className="mx-auto grid max-w-6xl gap-x-8 gap-y-10 px-5 py-14 sm:grid-cols-[2fr_1fr_1fr] sm:px-4 sm:py-12">

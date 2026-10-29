@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValueEvent,
+  useScroll,
+  useTransform,
+  type MotionValue,
+} from "motion/react";
+import { EASE_OUT } from "./motion-tokens";
 import { AppWindow } from "./app-window";
 import { MockSidebar } from "./mock-sidebar";
 import { AppointmentCard } from "./appointment-card";
@@ -25,19 +34,14 @@ const SCENES = [
   },
 ] as const;
 
-// Storytelling "agenda -> paciente -> historia clínica" ligado al scroll con
-// GSAP ScrollTrigger (pin + scrub) -- una sola interfaz que se transforma,
-// no tres capturas sueltas. Con prefers-reduced-motion, se muestran los 3
-// estados apilados y estáticos, sin pin ni scrub.
+// Storytelling "agenda -> paciente -> historia clínica" ligado al scroll:
+// una sola interfaz que se transforma, no tres capturas sueltas. La sección
+// mide 300vh y el contenido queda `sticky`; el progreso de scroll (motion
+// useScroll, que usa ScrollTimeline nativo cuando el navegador lo soporta)
+// maneja los cruces. Antes era un pin de GSAP, que reordenaba el DOM por su
+// cuenta y chocaba con React al desmontar. Con prefers-reduced-motion, se
+// muestran los 3 estados apilados y estáticos.
 export function ScrollStory() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const scene0Ref = useRef<HTMLDivElement>(null);
-  const scene1Ref = useRef<HTMLDivElement>(null);
-  const scene2Ref = useRef<HTMLDivElement>(null);
-  const text0Ref = useRef<HTMLDivElement>(null);
-  const text1Ref = useRef<HTMLDivElement>(null);
-  const text2Ref = useRef<HTMLDivElement>(null);
-  const lineRef = useRef<HTMLDivElement>(null);
   const [reducedMotion, setReducedMotion] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -45,75 +49,7 @@ export function ScrollStory() {
     setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  useLayoutEffect(() => {
-    if (reducedMotion !== false) return;
-    if (!sectionRef.current) return;
-
-    let ctx: ReturnType<typeof import("gsap").gsap.context> | undefined;
-    let scrollTriggerInstance: { kill: () => void } | undefined;
-    // Sin este flag, un unmount durante el import (p.ej. al navegar rápido a
-    // otra página bajo el mismo layout) deja que gsap.context() se ejecute
-    // igual sobre una sección que React ya está por desmontar -- el pin de
-    // ScrollTrigger reordena el DOM por su cuenta, y React termina llamando
-    // removeChild sobre un nodo que ya no es hijo directo de su padre
-    // original ("NotFoundError: ... not a child of this node").
-    let cancelled = false;
-
-    (async () => {
-      const { gsap } = await import("gsap");
-      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      gsap.registerPlugin(ScrollTrigger);
-      if (cancelled) return;
-
-      ctx = gsap.context(() => {
-        const scenes = [scene0Ref.current, scene1Ref.current, scene2Ref.current].filter(
-          Boolean
-        ) as HTMLDivElement[];
-        const texts = [text0Ref.current, text1Ref.current, text2Ref.current].filter(
-          Boolean
-        ) as HTMLDivElement[];
-        gsap.set(scenes.slice(1), { opacity: 0, y: 12 });
-        gsap.set(texts.slice(1), { opacity: 0, y: 8 });
-
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top top",
-            end: "+=200%",
-            scrub: 0.6,
-            pin: true,
-            anticipatePin: 1,
-          },
-        });
-        scrollTriggerInstance = tl.scrollTrigger ?? undefined;
-
-        // El mockup se puede cruzar en fade (se ve bien superpuesto un
-        // instante), pero los títulos NO: se swapean en secuencia estricta
-        // (el saliente llega a opacity 0 antes de que el entrante arranque)
-        // para que nunca se lean dos títulos superpuestos en un scrub lento.
-        tl.to({}, { duration: 0.15 })
-          .to(scenes[0], { opacity: 0, y: -12, duration: 0.15 })
-          .to(scenes[1], { opacity: 1, y: 0, duration: 0.15 }, "<")
-          .to(texts[0], { opacity: 0, y: -8, duration: 0.06 }, "<")
-          .to(texts[1], { opacity: 1, y: 0, duration: 0.06 })
-          .to({}, { duration: 0.35 })
-          .to(scenes[1], { opacity: 0, y: -12, duration: 0.15 })
-          .to(scenes[2], { opacity: 1, y: 0, duration: 0.15 }, "<")
-          .to(texts[1], { opacity: 0, y: -8, duration: 0.06 }, "<")
-          .to(texts[2], { opacity: 1, y: 0, duration: 0.06 })
-          .fromTo(lineRef.current, { height: "0%" }, { height: "100%", duration: 0.35, ease: "none" })
-          .to({}, { duration: 0.1 });
-      }, sectionRef);
-    })();
-
-    return () => {
-      cancelled = true;
-      scrollTriggerInstance?.kill();
-      ctx?.revert();
-    };
-  }, [reducedMotion]);
-
-  if (reducedMotion === null) return <div ref={sectionRef} />;
+  if (reducedMotion === null) return <div className="h-[300vh]" />;
 
   if (reducedMotion) {
     return (
@@ -128,7 +64,7 @@ export function ScrollStory() {
                 </h3>
                 <p className="mt-3 text-muted-foreground">{scene.text}</p>
               </div>
-              <StoryWindow sceneIndex={i} lineHeight="100%" />
+              <StoryWindow sceneIndex={i} />
             </div>
           ))}
         </div>
@@ -136,37 +72,95 @@ export function ScrollStory() {
     );
   }
 
+  return <AnimatedStory />;
+}
+
+// Puntos del progreso (0..1) de la sección donde cambia la escena. El mockup
+// se cruza en fade ligado al scroll (se ve bien superpuesto un instante),
+// pero los títulos NO van ligados al scroll: el scroll solo elige la escena
+// activa y el texto cambia en secuencia (AnimatePresence mode="wait"), así
+// que nunca se leen dos títulos superpuestos, scrollees como scrollees.
+const SWAP_1 = 0.18;
+const SWAP_2 = 0.52;
+
+const sceneAt = (v: number) => (v < SWAP_1 + 0.06 ? 0 : v < SWAP_2 + 0.06 ? 1 : 2);
+
+function AnimatedStory() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress: p } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
+  // Entrada: desde que la sección asoma abajo hasta que toca el top.
+  const { scrollYProgress: enter } = useScroll({ target: sectionRef, offset: ["start end", "start start"] });
+
+  const tiltX = useTransform(enter, [0, 1], [22, 0]);
+  const tiltScale = useTransform(enter, [0, 1], [0.9, 1]);
+
+  const scene0 = useCross(p, null, SWAP_1, 0.12);
+  const scene1 = useCross(p, SWAP_1, SWAP_2, 0.12);
+  const scene2 = useCross(p, SWAP_2, null, 0.12);
+  const [active, setActive] = useState(0);
+  useMotionValueEvent(p, "change", (v) => setActive(sceneAt(v)));
+  const lineHeight = useTransform(p, [SWAP_2 + 0.12, 0.92], ["0%", "100%"]);
+
   return (
-    <section ref={sectionRef} className="relative border-t border-border/60">
-      <div className="flex h-screen items-center overflow-hidden py-16">
+    <section ref={sectionRef} className="relative h-[300vh] border-t border-border/60">
+      <div className="sticky top-0 flex h-screen items-center overflow-hidden py-16">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 lg:grid-cols-2 lg:items-center lg:gap-16">
           <div className="relative h-32">
-            <div ref={text0Ref} className="absolute inset-0">
-              <StoryText scene={SCENES[0]} />
-            </div>
-            <div ref={text1Ref} className="absolute inset-0">
-              <StoryText scene={SCENES[1]} />
-            </div>
-            <div ref={text2Ref} className="absolute inset-0">
-              <StoryText scene={SCENES[2]} />
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={active}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE_OUT } }}
+                exit={{ opacity: 0, y: -10, transition: { duration: 0.18, ease: "easeIn" } }}
+                className="absolute inset-0"
+              >
+                <StoryText scene={SCENES[active]} />
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          <div className="relative mx-auto w-full max-w-md">
-            <div ref={scene0Ref} className="relative">
+          <motion.div
+            style={{ rotateX: tiltX, scale: tiltScale, transformPerspective: 1400, transformOrigin: "50% 100%" }}
+            className="relative mx-auto w-full max-w-md"
+          >
+            <motion.div style={scene0} className="relative">
               <StoryWindow sceneIndex={0} />
-            </div>
-            <div ref={scene1Ref} className="absolute inset-0">
+            </motion.div>
+            <motion.div style={scene1} className="absolute inset-0">
               <StoryWindow sceneIndex={1} />
-            </div>
-            <div ref={scene2Ref} className="absolute inset-0">
-              <StoryWindow sceneIndex={2} lineRef={lineRef} />
-            </div>
-          </div>
+            </motion.div>
+            <motion.div style={scene2} className="absolute inset-0">
+              <StoryWindow sceneIndex={2} lineHeight={lineHeight} />
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </section>
   );
+}
+
+// Opacidad + desplazamiento de una escena visible entre `from` y `to`
+// (null = visible desde el inicio / hasta el final), con fundidos de `fade`.
+function useCross(
+  p: MotionValue<number>,
+  from: number | null,
+  to: number | null,
+  fade: number,
+  shift = 12
+) {
+  const input = [
+    ...(from === null ? [0] : [from, from + fade]),
+    ...(to === null ? [1] : [to, to + fade]),
+  ];
+  const opacity = useTransform(p, input, [
+    ...(from === null ? [1] : [0, 1]),
+    ...(to === null ? [1] : [1, 0]),
+  ]);
+  const y = useTransform(p, input, [
+    ...(from === null ? [0] : [shift, 0]),
+    ...(to === null ? [0] : [0, -shift]),
+  ]);
+  return { opacity, y };
 }
 
 function StoryText({ scene }: { scene: (typeof SCENES)[number] }) {
@@ -183,12 +177,10 @@ function StoryText({ scene }: { scene: (typeof SCENES)[number] }) {
 
 function StoryWindow({
   sceneIndex,
-  lineRef,
-  lineHeight,
+  lineHeight = "100%",
 }: {
   sceneIndex: number;
-  lineRef?: React.RefObject<HTMLDivElement | null>;
-  lineHeight?: string;
+  lineHeight?: string | MotionValue<string>;
 }) {
   return (
     <AppWindow>
@@ -209,8 +201,7 @@ function StoryWindow({
           {sceneIndex === 2 && (
             <div className="relative h-full overflow-hidden">
               <div className="absolute top-5 bottom-5 left-8 w-px bg-border/70" />
-              <div
-                ref={lineRef}
+              <motion.div
                 style={{ height: lineHeight }}
                 className="absolute top-5 left-8 w-px bg-primary"
               />
