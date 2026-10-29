@@ -23,6 +23,7 @@ import {
 } from "@/lib/admin-costos-ia";
 import { formatMoneyARS } from "@/lib/admin-metrics";
 import { TOPE_IA_USD_DEFAULT } from "@/lib/ia-costos";
+import { PageEnter } from "@/components/page-transition";
 
 // El mes en curso cambia con cada dictado/resumen -- sin cache.
 export const dynamic = "force-dynamic";
@@ -44,103 +45,105 @@ export default async function AdminCostosIAPage({ searchParams }: { searchParams
   const ventana = `${labelMes(data.mesesPromedio[0])} – ${labelMes(data.mesesPromedio[MESES_PROMEDIO - 1])}`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-xl font-semibold">Costos IA</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Dictado (Groq) y resumen (Claude Haiku) de los médicos Premium
+    <PageEnter>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="font-heading text-xl font-semibold">Costos IA</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Dictado (Groq) y resumen (Claude Haiku) de los médicos Premium
+            </p>
+          </div>
+          <SelectorMes
+            mes={mes}
+            meses={data.mesesDisponibles.map((m) => ({
+              value: m,
+              label: m === actual ? `${labelMes(m)} (en curso)` : labelMes(m),
+            }))}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard
+            icon={DollarSign}
+            label={`Costo · ${data.mesLabel}`}
+            value={formatUsd(data.totales.costoUsd)}
+            sub={costoArs !== null ? `≈ ${formatMoneyARS(costoArs)} ARS` : "sin cotización cargada"}
+          />
+          <KpiCard
+            icon={AudioLines}
+            label="Minutos dictados"
+            value={formatNumero(data.totales.minutos)}
+            sub={`en ${formatNumero(data.totales.dictados)} dictado${data.totales.dictados === 1 ? "" : "s"}`}
+          />
+          <KpiCard
+            icon={FileText}
+            label="Resúmenes"
+            value={formatNumero(data.totales.resumenes)}
+            sub={`${formatNumero(data.totales.tokens / 1000, 1)} mil tokens`}
+          />
+          <KpiCard
+            icon={Sparkles}
+            label="Médicos Premium"
+            value={String(data.medicosPremium)}
+            sub={`${data.medicosConUso} usaron IA en el mes`}
+          />
+        </div>
+
+        <Card>
+          <CardContent>
+            <CotizacionForm
+              key={mes}
+              mes={mes}
+              mesLabel={data.mesLabel}
+              arsPorUsd={cotizacion?.arsPorUsd ?? null}
+              heredadaDe={cotizacion && cotizacion.mes !== mes ? labelMes(cotizacion.mes) : null}
+            />
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-heading text-sm font-semibold">Por médico</h2>
+            <p className="text-xs text-muted-foreground">Promedio mensual: {ventana}</p>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            {data.filas.length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-muted-foreground">
+                Todavía no hay médicos Premium ni usos de IA registrados.
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-5">Médico</TableHead>
+                    <TableHead className="text-right">Min/mes prom.</TableHead>
+                    <TableHead className="text-right">Resúmenes/mes prom.</TableHead>
+                    <TableHead className="text-right">Costo/mes prom.</TableHead>
+                    <TableHead className="text-right">% del plan</TableHead>
+                    <TableHead className="text-right">{data.mesLabel}</TableHead>
+                    <TableHead className="pr-5">Uso</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.filas.map((f) => (
+                    <FilaMedico key={f.id} fila={f} maxPromedio={maxPromedio} />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            El promedio toma los últimos {MESES_PROMEDIO} meses cerrados, contando desde el mes del primer uso de IA
+            de cada médico. “% del plan” compara el costo promedio en pesos (cotización del mes en curso) con el
+            precio mensual que paga; no aplica a médicos en trial. “Tope alcanzado” = el costo del mes llegó a su
+            tope mensual ({formatUsd(TOPE_IA_USD_DEFAULT)} por defecto, editable en la ficha del médico) y la IA
+            queda bloqueada hasta el mes siguiente. Los costos son estimados con los precios de{" "}
+            <code>src/lib/ia-costos.ts</code>.
           </p>
         </div>
-        <SelectorMes
-          mes={mes}
-          meses={data.mesesDisponibles.map((m) => ({
-            value: m,
-            label: m === actual ? `${labelMes(m)} (en curso)` : labelMes(m),
-          }))}
-        />
       </div>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard
-          icon={DollarSign}
-          label={`Costo · ${data.mesLabel}`}
-          value={formatUsd(data.totales.costoUsd)}
-          sub={costoArs !== null ? `≈ ${formatMoneyARS(costoArs)} ARS` : "sin cotización cargada"}
-        />
-        <KpiCard
-          icon={AudioLines}
-          label="Minutos dictados"
-          value={formatNumero(data.totales.minutos)}
-          sub={`en ${formatNumero(data.totales.dictados)} dictado${data.totales.dictados === 1 ? "" : "s"}`}
-        />
-        <KpiCard
-          icon={FileText}
-          label="Resúmenes"
-          value={formatNumero(data.totales.resumenes)}
-          sub={`${formatNumero(data.totales.tokens / 1000, 1)} mil tokens`}
-        />
-        <KpiCard
-          icon={Sparkles}
-          label="Médicos Premium"
-          value={String(data.medicosPremium)}
-          sub={`${data.medicosConUso} usaron IA en el mes`}
-        />
-      </div>
-
-      <Card>
-        <CardContent>
-          <CotizacionForm
-            key={mes}
-            mes={mes}
-            mesLabel={data.mesLabel}
-            arsPorUsd={cotizacion?.arsPorUsd ?? null}
-            heredadaDe={cotizacion && cotizacion.mes !== mes ? labelMes(cotizacion.mes) : null}
-          />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-heading text-sm font-semibold">Por médico</h2>
-          <p className="text-xs text-muted-foreground">Promedio mensual: {ventana}</p>
-        </div>
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          {data.filas.length === 0 ? (
-            <p className="px-5 py-8 text-center text-sm text-muted-foreground">
-              Todavía no hay médicos Premium ni usos de IA registrados.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-5">Médico</TableHead>
-                  <TableHead className="text-right">Min/mes prom.</TableHead>
-                  <TableHead className="text-right">Resúmenes/mes prom.</TableHead>
-                  <TableHead className="text-right">Costo/mes prom.</TableHead>
-                  <TableHead className="text-right">% del plan</TableHead>
-                  <TableHead className="text-right">{data.mesLabel}</TableHead>
-                  <TableHead className="pr-5">Uso</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.filas.map((f) => (
-                  <FilaMedico key={f.id} fila={f} maxPromedio={maxPromedio} />
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          El promedio toma los últimos {MESES_PROMEDIO} meses cerrados, contando desde el mes del primer uso de IA
-          de cada médico. “% del plan” compara el costo promedio en pesos (cotización del mes en curso) con el
-          precio mensual que paga; no aplica a médicos en trial. “Tope alcanzado” = el costo del mes llegó a su
-          tope mensual ({formatUsd(TOPE_IA_USD_DEFAULT)} por defecto, editable en la ficha del médico) y la IA
-          queda bloqueada hasta el mes siguiente. Los costos son estimados con los precios de{" "}
-          <code>src/lib/ia-costos.ts</code>.
-        </p>
-      </div>
-    </div>
+    </PageEnter>
   );
 }
 
