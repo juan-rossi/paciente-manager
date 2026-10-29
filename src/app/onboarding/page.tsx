@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { OnboardingForm } from "./onboarding-form";
+import { MetaPixel } from "@/components/marketing/meta-pixel";
 
 export default async function OnboardingPage() {
   const user = await getCurrentUser();
@@ -9,6 +10,9 @@ export default async function OnboardingPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+      {/* Solo llega acá quien se acaba de registrar con Google (todavía sin
+          matrícula): es el registro completo de ese camino. */}
+      <MetaPixel evento="CompleteRegistration" />
       <div
         className="pointer-events-none absolute inset-0 -z-10"
         style={{

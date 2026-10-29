@@ -9,6 +9,7 @@ import { rateLimitOk } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { enviarMailBienvenida } from "@/lib/bienvenida-email";
 import { getSiteUrl } from "@/lib/site-url";
+import { leerOrigenCookie, ORIGEN_COOKIE } from "@/lib/origen-registro";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
         // duración (ver `TRIAL_DIAS` en src/lib/plan.ts).
         plan,
         trialEndsAt: nuevaFechaFinTrial(plan),
+        ...leerOrigenCookie(request.cookies.get(ORIGEN_COOKIE)?.value),
       },
       select: { email: true, nombre: true, apellido: true, tituloCortesia: true, plan: true },
     });
@@ -78,7 +80,9 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NODE_ENV === "production" ? getSiteUrl() : request.nextUrl.origin;
     after(() => enviarMailBienvenida(creado, baseUrl));
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    const respuesta = NextResponse.json({ ok: true }, { status: 201 });
+    respuesta.cookies.delete(ORIGEN_COOKIE);
+    return respuesta;
   } catch (error) {
     console.error("Error al registrar usuario:", error);
     return NextResponse.json({ error: "No se pudo crear la cuenta." }, { status: 500 });

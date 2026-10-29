@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Semio360Mark } from "@/components/brand/logo";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { MarketingMotion } from "@/components/marketing/marketing-motion";
+import { CapturaOrigen } from "@/components/marketing/captura-origen";
 
 // Mismas secciones que el header; solo existen en el home, de ahí el `/#id`.
 const FOOTER_PRODUCT_LINKS = [
@@ -14,6 +15,7 @@ const FOOTER_PRODUCT_LINKS = [
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <CapturaOrigen />
       <SiteHeader />
 
       <main className="flex-1">

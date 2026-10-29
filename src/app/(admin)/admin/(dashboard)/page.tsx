@@ -3,7 +3,7 @@ import { CheckCircle2, ChevronRight, Clock, DollarSign, Mail, MinusCircle, Spark
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getDashboardData, formatDiasParaVencer, formatMoneyARS } from "@/lib/admin-metrics";
+import { DIAS_ORIGENES, getDashboardData, formatDiasParaVencer, formatMoneyARS } from "@/lib/admin-metrics";
 import { formatNumero, formatUsd, getResumenCostoIAMes, labelMes } from "@/lib/admin-costos-ia";
 import { PageEnter } from "@/components/page-transition";
 
@@ -84,11 +84,6 @@ export default async function AdminDashboardPage() {
               }
             />
           </Link>
-        </div>
-
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-          Los montos de MRR usan precios de plan placeholder (<code>PLAN_PRICING</code> en{" "}
-          <code>src/lib/plan.ts</code>) — el pricing final de Semio 360 todavía no está definido.
         </div>
 
         <Card className="py-0">
@@ -202,6 +197,42 @@ export default async function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="py-0">
+          <CardContent className="flex flex-col gap-0 p-0">
+            <div className="border-b border-border px-5 py-4">
+              <h2 className="font-heading text-sm font-semibold">Origen de los registros</h2>
+              <p className="text-xs text-muted-foreground">
+                Últimos {DIAS_ORIGENES} días · por <code>utm_source</code> del link o, si no traía, el sitio de
+                donde llegó
+              </p>
+            </div>
+            {data.origenes.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-muted-foreground">
+                No hubo registros en los últimos {DIAS_ORIGENES} días.
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="px-5 py-2.5 font-medium">Canal</th>
+                    <th className="px-5 py-2.5 text-right font-medium">Registros</th>
+                    <th className="px-5 py-2.5 text-right font-medium">Pagando</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.origenes.map((o) => (
+                    <tr key={o.canal}>
+                      <td className="px-5 py-2.5 font-medium">{o.canal}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums">{o.registros}</td>
+                      <td className="px-5 py-2.5 text-right tabular-nums">{o.pagando}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </PageEnter>
   );

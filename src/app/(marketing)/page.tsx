@@ -15,6 +15,7 @@ import { Pricing } from "@/components/marketing/pricing";
 import { FAQ } from "@/components/marketing/faq";
 import { FinalCTA } from "@/components/marketing/final-cta";
 import { JsonLd } from "@/components/seo/json-ld";
+import { MetaPixel } from "@/components/marketing/meta-pixel";
 import { homeJsonLd } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +62,9 @@ export default async function MarketingHomePage() {
   return (
     <>
       <JsonLd data={homeJsonLd()} />
+      {/* Solo en el home (y /signup): el directorio lo usan pacientes, y
+          qué médico miran no es algo para mandarle a Meta. */}
+      <MetaPixel />
       <ScrollToHash />
       <Hero />
       <ConceptOrbit />

@@ -9,6 +9,7 @@ import {
   type PlanDuracion,
 } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
+import { canalDeOrigen } from "@/lib/origen-registro";
 
 /**
  * Capa de datos del panel owner/admin (`/admin`) -- consultas cross-tenant
@@ -37,6 +38,9 @@ const DOCTOR_LIST_SELECT = {
   planDuracion: true,
   planEndsAt: true,
   bonificado: true,
+  utmSource: true,
+  registroReferrer: true,
+  registroLanding: true,
   _count: {
     select: {
       pacientes: { where: { deletedAt: null } },
@@ -138,7 +142,12 @@ export type DashboardData = {
   medicosEnPlanPago: number;
   medicosBonificados: number;
   altasPorMes: { mes: string; cantidad: number }[];
+  // Registros de los últimos `DIAS_ORIGENES` días por canal (ver
+  // `canalDeOrigen`), de mayor a menor.
+  origenes: { canal: string; registros: number; pagando: number }[];
 };
+
+export const DIAS_ORIGENES = 90;
 
 export async function getDashboardData(): Promise<DashboardData> {
   const doctoresRaw = await fetchDoctoresBase();
@@ -173,6 +182,18 @@ export async function getDashboardData(): Promise<DashboardData> {
     ).length,
   }));
 
+  const desdeOrigenes = Date.now() - DIAS_ORIGENES * 24 * 60 * 60 * 1000;
+  const porCanal = new Map<string, { canal: string; registros: number; pagando: number }>();
+  doctoresRaw.forEach((raw, i) => {
+    if (raw.createdAt.getTime() < desdeOrigenes) return;
+    const canal = canalDeOrigen(raw);
+    const fila = porCanal.get(canal) ?? { canal, registros: 0, pagando: 0 };
+    fila.registros++;
+    if (!doctores[i].esTrial && !doctores[i].bonificado) fila.pagando++;
+    porCanal.set(canal, fila);
+  });
+  const origenes = [...porCanal.values()].sort((a, b) => b.registros - a.registros);
+
   return {
     totalMedicos: doctores.length,
     activos,
@@ -183,6 +204,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     medicosEnPlanPago: pagosActivos.length,
     medicosBonificados: doctores.length - pagantes.length,
     altasPorMes,
+    origenes,
   };
 }
 
@@ -261,6 +283,9 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       planDuracion: true,
       planEndsAt: true,
       bonificado: true,
+      utmSource: true,
+      registroReferrer: true,
+      registroLanding: true,
       doctorAsignaciones: {
         select: { secretaria: { select: { nombre: true, apellido: true } } },
       },

@@ -707,7 +707,7 @@ export function VisibilidadSettings({
             <p className="text-xs text-muted-foreground">
               {variosLugares
                 ? "Ofrece todos los lugares con turnos online y el paciente elige uno. Para evitar confusiones, mandale el link del lugar."
-                : "Compartilo con tus pacientes para que reserven un turno."}
+                : "Compartilo con tus pacientes para que reserven un turno. Pegalo en la bio de tu Instagram y te sacan turno desde ahí."}
             </p>
           </div>
         )}

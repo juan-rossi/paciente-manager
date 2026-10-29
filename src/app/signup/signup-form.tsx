@@ -43,6 +43,7 @@ import {
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
 import { SIGNUP_PLAN_COOKIE, TRIAL_DIAS } from "@/lib/plan";
+import { trackRegistroCompleto } from "@/lib/meta-pixel";
 import { TerminosContenido } from "@/components/legal/terminos-contenido";
 import {
   TERMINOS_COOKIE,
@@ -153,6 +154,9 @@ export function SignupForm() {
         renovarTurnstile();
         return;
       }
+
+      // El alta con Google lo registra en /onboarding.
+      trackRegistroCompleto();
 
       const loginResponse = await signIn("credentials", {
         email,

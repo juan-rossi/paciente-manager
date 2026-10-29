@@ -9,6 +9,7 @@ import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
 import { INVITACION_COOKIE } from "@/lib/invitacion-secretaria-shared";
+import { leerOrigenCookie, ORIGEN_COOKIE } from "@/lib/origen-registro";
 import { aceptarInvitacion, buscarInvitacion } from "@/lib/invitacion-secretaria";
 
 // `code` llega al cliente en la respuesta de `signIn()` -- el login-form lo
@@ -112,6 +113,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const ahora = new Date();
       const plan = cookieStore.get(SIGNUP_PLAN_COOKIE)?.value === "PREMIUM" ? "PREMIUM" : "BASICA";
       cookieStore.delete(SIGNUP_PLAN_COOKIE);
+      const origen = leerOrigenCookie(cookieStore.get(ORIGEN_COOKIE)?.value);
+      cookieStore.delete(ORIGEN_COOKIE);
       const { nombre, apellido } = splitNombre(
         typeof user.name === "string" ? user.name : ""
       );
@@ -127,6 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: "DOCTOR",
           plan,
           trialEndsAt: nuevaFechaFinTrial(plan),
+          ...origen,
         },
       });
       return true;
