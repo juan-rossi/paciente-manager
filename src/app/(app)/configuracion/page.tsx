@@ -25,6 +25,7 @@ import { SeguridadSettings } from "@/components/seguridad-settings";
 import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 import { listarSecretariasDelMedico } from "@/lib/secretarias";
+import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
@@ -91,140 +92,142 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   const initialSecretarias = secretarias.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }));
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Configuración</h1>
+    <PageEnter>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-semibold">Configuración</h1>
 
-      {/* Solo el médico paga (ver /api/mercadopago/checkout). */}
-      <PagoConfirmadoModal retornoDePago={pagoParam === "retorno" && user.role === "DOCTOR"} />
+        {/* Solo el médico paga (ver /api/mercadopago/checkout). */}
+        <PagoConfirmadoModal retornoDePago={pagoParam === "retorno" && user.role === "DOCTOR"} />
 
-      <ConfiguracionTabs
-        initialTab={initialTab}
-        tabsOcultas={tabsOcultas}
-        orientation="vertical"
-        className="flex-col items-stretch gap-4 md:gap-6 md:flex-row md:items-start"
-      >
-        <TabsList className="hidden md:flex w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
-          <div className={groupLabelClass}>Consultorio</div>
-          <TabsTrigger value="practica" className={navItemClass}>
-            <Building2 className="size-4" />
-            Mi práctica
-          </TabsTrigger>
-          <TabsTrigger value="usuarios" className={navItemClass}>
-            <Users className="size-4" />
-            Usuarios
-          </TabsTrigger>
-          <TabsTrigger value="mensajeria" className={navItemClass}>
-            <MessageSquare className="size-4" />
-            Mensajería
-          </TabsTrigger>
-          {iaHabilitada && (
-            <TabsTrigger value="dictado" className={navItemClass}>
-              <Mic className="size-4" />
-              Dictado e IA
+        <ConfiguracionTabs
+          initialTab={initialTab}
+          tabsOcultas={tabsOcultas}
+          orientation="vertical"
+          className="flex-col items-stretch gap-4 md:gap-6 md:flex-row md:items-start"
+        >
+          <TabsList className="hidden md:flex w-full shrink-0 items-stretch gap-0.5 rounded-xl border border-border/60 bg-card p-2 md:w-56">
+            <div className={groupLabelClass}>Consultorio</div>
+            <TabsTrigger value="practica" className={navItemClass}>
+              <Building2 className="size-4" />
+              Mi práctica
             </TabsTrigger>
-          )}
+            <TabsTrigger value="usuarios" className={navItemClass}>
+              <Users className="size-4" />
+              Usuarios
+            </TabsTrigger>
+            <TabsTrigger value="mensajeria" className={navItemClass}>
+              <MessageSquare className="size-4" />
+              Mensajería
+            </TabsTrigger>
+            {iaHabilitada && (
+              <TabsTrigger value="dictado" className={navItemClass}>
+                <Mic className="size-4" />
+                Dictado e IA
+              </TabsTrigger>
+            )}
 
-          <div className={groupLabelClass}>Cuenta</div>
-          <TabsTrigger value="perfil" className={navItemClass}>
-            <User className="size-4" />
-            Mi perfil
-          </TabsTrigger>
-          <TabsTrigger value="visibilidad" className={navItemClass}>
-            <Eye className="size-4" />
-            Visibilidad
-          </TabsTrigger>
-          <TabsTrigger value="seguridad" className={navItemClass}>
-            <Lock className="size-4" />
-            Seguridad
-          </TabsTrigger>
-          <TabsTrigger value="plan" className={navItemClass}>
-            <Sparkles className="size-4" />
-            Mi plan
-          </TabsTrigger>
-          <TabsTrigger value="datos" className={navItemClass}>
-            <Database className="size-4" />
-            Mis datos
-          </TabsTrigger>
-        </TabsList>
+            <div className={groupLabelClass}>Cuenta</div>
+            <TabsTrigger value="perfil" className={navItemClass}>
+              <User className="size-4" />
+              Mi perfil
+            </TabsTrigger>
+            <TabsTrigger value="visibilidad" className={navItemClass}>
+              <Eye className="size-4" />
+              Visibilidad
+            </TabsTrigger>
+            <TabsTrigger value="seguridad" className={navItemClass}>
+              <Lock className="size-4" />
+              Seguridad
+            </TabsTrigger>
+            <TabsTrigger value="plan" className={navItemClass}>
+              <Sparkles className="size-4" />
+              Mi plan
+            </TabsTrigger>
+            <TabsTrigger value="datos" className={navItemClass}>
+              <Database className="size-4" />
+              Mis datos
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="practica" className="w-full">
-          <MiPracticaSettings
-            initialLugares={lugares}
-            initialBlocks={blocks}
-            initialSlotDurationMinutes={user.slotDurationMinutes}
-            initialSobreturnosHabilitados={user.sobreturnosHabilitados}
-          />
-        </TabsContent>
-        <TabsContent value="usuarios" className="w-full">
-          <SecretaryUsers initialSecretarias={initialSecretarias} lugares={lugares} />
-        </TabsContent>
-        <TabsContent value="mensajeria" className="w-full">
-          <MessagingSettings
-            initialMensajeTemplate={user.mensajeTemplate}
-            initialMensajeriaHabilitada={user.mensajeriaHabilitada}
-            initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
-            initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
-          />
-        </TabsContent>
-        {iaHabilitada && (
-          <TabsContent value="dictado" className="w-full">
-            <DictadoSettings
-              initialResumenAutomatico={user.resumenAutomatico}
-              initialResumenAutoAntecedentes={user.resumenAutoAntecedentes}
-              initialResumenAutoEvoluciones={user.resumenAutoEvoluciones}
-              transcripcionHabilitada={iaHabilitada}
+          <TabsContent value="practica" className="w-full">
+            <MiPracticaSettings
+              initialLugares={lugares}
+              initialBlocks={blocks}
+              initialSlotDurationMinutes={user.slotDurationMinutes}
+              initialSobreturnosHabilitados={user.sobreturnosHabilitados}
             />
           </TabsContent>
-        )}
-        <TabsContent value="perfil" className="w-full">
-          <MiPerfilSettings
-            initialFotoPerfilBase64={user.fotoPerfilBase64}
-            initialTituloCortesia={user.tituloCortesia}
-            initialNombre={user.nombre}
-            initialApellido={user.apellido}
-            initialEspecialidad={user.especialidad}
-            initialNroMatricula={user.nroMatricula}
-            prepagas={prepagas}
-            initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
-          />
-        </TabsContent>
-        <TabsContent value="visibilidad" className="w-full">
-          <VisibilidadSettings
-            nombreMedico={[user.tituloCortesia, user.nombre, user.apellido]
-              .filter(Boolean)
-              .join(" ")}
-            initialPerfilPublico={user.perfilPublico}
-            lugares={lugares.map((l) => ({
-              ...l,
-              tieneHorarios: blocks.some((b) => b.lugarId === l.id),
-            }))}
-            initialBiografia={user.biografia}
-            initialRedes={redesDeUsuario(user)}
-            initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
-            initialReservaPublicaSemanas={user.reservaPublicaSemanas}
-            initialPublicSlug={user.publicSlug}
-          />
-        </TabsContent>
-        <TabsContent value="seguridad" className="w-full">
-          <SeguridadSettings email={user.email} />
-        </TabsContent>
-        <TabsContent value="plan" className="w-full">
-          <PlanSettings
-            plan={user.plan}
-            trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
-            diasRestantesDeTrial={diasRestantesDeTrial(user)}
-            planDuracion={user.planDuracion}
-            planEndsAt={user.planEndsAt?.toISOString() ?? null}
-            mpPreapprovalId={user.mpPreapprovalId}
-            mpPreapprovalStatus={mpPreapprovalStatus}
-            pagoEnGracia={user.pagoEnGracia}
-            graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}
-          />
-        </TabsContent>
-        <TabsContent value="datos" className="w-full">
-          <ExportSettings />
-        </TabsContent>
-      </ConfiguracionTabs>
-    </div>
+          <TabsContent value="usuarios" className="w-full">
+            <SecretaryUsers initialSecretarias={initialSecretarias} lugares={lugares} />
+          </TabsContent>
+          <TabsContent value="mensajeria" className="w-full">
+            <MessagingSettings
+              initialMensajeTemplate={user.mensajeTemplate}
+              initialMensajeriaHabilitada={user.mensajeriaHabilitada}
+              initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
+              initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
+            />
+          </TabsContent>
+          {iaHabilitada && (
+            <TabsContent value="dictado" className="w-full">
+              <DictadoSettings
+                initialResumenAutomatico={user.resumenAutomatico}
+                initialResumenAutoAntecedentes={user.resumenAutoAntecedentes}
+                initialResumenAutoEvoluciones={user.resumenAutoEvoluciones}
+                transcripcionHabilitada={iaHabilitada}
+              />
+            </TabsContent>
+          )}
+          <TabsContent value="perfil" className="w-full">
+            <MiPerfilSettings
+              initialFotoPerfilBase64={user.fotoPerfilBase64}
+              initialTituloCortesia={user.tituloCortesia}
+              initialNombre={user.nombre}
+              initialApellido={user.apellido}
+              initialEspecialidad={user.especialidad}
+              initialNroMatricula={user.nroMatricula}
+              prepagas={prepagas}
+              initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
+            />
+          </TabsContent>
+          <TabsContent value="visibilidad" className="w-full">
+            <VisibilidadSettings
+              nombreMedico={[user.tituloCortesia, user.nombre, user.apellido]
+                .filter(Boolean)
+                .join(" ")}
+              initialPerfilPublico={user.perfilPublico}
+              lugares={lugares.map((l) => ({
+                ...l,
+                tieneHorarios: blocks.some((b) => b.lugarId === l.id),
+              }))}
+              initialBiografia={user.biografia}
+              initialRedes={redesDeUsuario(user)}
+              initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
+              initialReservaPublicaSemanas={user.reservaPublicaSemanas}
+              initialPublicSlug={user.publicSlug}
+            />
+          </TabsContent>
+          <TabsContent value="seguridad" className="w-full">
+            <SeguridadSettings email={user.email} />
+          </TabsContent>
+          <TabsContent value="plan" className="w-full">
+            <PlanSettings
+              plan={user.plan}
+              trialEndsAt={user.trialEndsAt?.toISOString() ?? null}
+              diasRestantesDeTrial={diasRestantesDeTrial(user)}
+              planDuracion={user.planDuracion}
+              planEndsAt={user.planEndsAt?.toISOString() ?? null}
+              mpPreapprovalId={user.mpPreapprovalId}
+              mpPreapprovalStatus={mpPreapprovalStatus}
+              pagoEnGracia={user.pagoEnGracia}
+              graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}
+            />
+          </TabsContent>
+          <TabsContent value="datos" className="w-full">
+            <ExportSettings />
+          </TabsContent>
+        </ConfiguracionTabs>
+      </div>
+    </PageEnter>
   );
 }

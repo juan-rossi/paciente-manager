@@ -6,6 +6,7 @@ import { getTurnosPendientesDeAviso } from "@/lib/turnos-pendientes-aviso";
 import { formatDateParamBA } from "@/lib/timezone";
 import { RecordatoriosCalendar } from "@/components/recordatorios-calendar";
 import { RecordatoriosPendientes } from "@/components/recordatorios-pendientes";
+import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
@@ -46,22 +47,24 @@ export default async function RecordatoriosPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Recordatorios</h1>
-      <RecordatoriosPendientes
-        initialPendientes={pendientes}
-        mensajeTemplateCancelado={doctor.mensajeTemplateCancelado}
-        mensajeTemplateAplazado={doctor.mensajeTemplateAplazado}
-      />
-      <RecordatoriosCalendar
-        tenantId={tenantId}
-        activeLugarId={activeLugarId}
-        initialDate={formatDateParamBA(today)}
-        initialTurnos={turnos}
-        initialDiasConHorario={diasConHorario}
-        initialSinConfigurar={sinConfigurar}
-        mensajeTemplate={doctor.mensajeTemplate}
-      />
-    </div>
+    <PageEnter>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-semibold">Recordatorios</h1>
+        <RecordatoriosPendientes
+          initialPendientes={pendientes}
+          mensajeTemplateCancelado={doctor.mensajeTemplateCancelado}
+          mensajeTemplateAplazado={doctor.mensajeTemplateAplazado}
+        />
+        <RecordatoriosCalendar
+          tenantId={tenantId}
+          activeLugarId={activeLugarId}
+          initialDate={formatDateParamBA(today)}
+          initialTurnos={turnos}
+          initialDiasConHorario={diasConHorario}
+          initialSinConfigurar={sinConfigurar}
+          mensajeTemplate={doctor.mensajeTemplate}
+        />
+      </div>
+    </PageEnter>
   );
 }

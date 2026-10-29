@@ -7,6 +7,7 @@ import { getTenantId } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EliminadosTable } from "@/components/eliminados-table";
+import { PageEnter } from "@/components/page-transition";
 
 const PAGE_SIZE = 20;
 const RETENCION_ANIOS = 10;
@@ -41,60 +42,62 @@ export default async function PacientesEliminadosPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Pacientes eliminados</h1>
-      <Card>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            Por la Ley 26.529 la historia clínica se conserva un mínimo de 10 años: podés
-            restaurar cualquier paciente eliminado en ese período.
-          </p>
-          <EliminadosTable
-            pacientes={pacientes.map((p) => ({ ...p, deletedAt: p.deletedAt!.toISOString() }))}
-          />
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                Página {page} de {totalPages} ({total} en total)
-              </p>
-              <div className="flex items-center gap-2">
-                {page <= 1 ? (
-                  <Button size="sm" variant="outline" disabled>
-                    <ChevronLeft className="size-4" />
-                    Anterior
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={`/patients/eliminados?page=${page - 1}`} />}
-                  >
-                    <ChevronLeft className="size-4" />
-                    Anterior
-                  </Button>
-                )}
-                {page >= totalPages ? (
-                  <Button size="sm" variant="outline" disabled>
-                    Siguiente
-                    <ChevronRight className="size-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={`/patients/eliminados?page=${page + 1}`} />}
-                  >
-                    Siguiente
-                    <ChevronRight className="size-4" />
-                  </Button>
-                )}
+    <PageEnter>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-semibold">Pacientes eliminados</h1>
+        <Card>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Por la Ley 26.529 la historia clínica se conserva un mínimo de 10 años: podés
+              restaurar cualquier paciente eliminado en ese período.
+            </p>
+            <EliminadosTable
+              pacientes={pacientes.map((p) => ({ ...p, deletedAt: p.deletedAt!.toISOString() }))}
+            />
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Página {page} de {totalPages} ({total} en total)
+                </p>
+                <div className="flex items-center gap-2">
+                  {page <= 1 ? (
+                    <Button size="sm" variant="outline" disabled>
+                      <ChevronLeft className="size-4" />
+                      Anterior
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      nativeButton={false}
+                      render={<Link href={`/patients/eliminados?page=${page - 1}`} />}
+                    >
+                      <ChevronLeft className="size-4" />
+                      Anterior
+                    </Button>
+                  )}
+                  {page >= totalPages ? (
+                    <Button size="sm" variant="outline" disabled>
+                      Siguiente
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      nativeButton={false}
+                      render={<Link href={`/patients/eliminados?page=${page + 1}`} />}
+                    >
+                      Siguiente
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </PageEnter>
   );
 }

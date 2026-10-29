@@ -13,6 +13,7 @@ import {
 } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
 import { PAGOS_HABILITADOS } from "@/lib/pagos";
+import { PageEnter } from "@/components/page-transition";
 
 // Sin esto, Next.js puede prerenderizar la página en build time y congelar la
 // lista de "últimos pacientes" en vez de consultarla en cada request.
@@ -54,24 +55,26 @@ export default async function DashboardPage() {
     PAGOS_HABILITADOS && diasPlan !== null && diasPlan > 0 && diasPlan <= DIAS_AVISO_PLAN_POR_VENCER;
 
   return (
-    <div className="flex flex-col gap-6">
-      {mostrarAvisoPlan && user.planEndsAt && (
-        <PlanPorVencerAviso diasRestantes={diasPlan} planEndsAt={user.planEndsAt.toISOString()} />
-      )}
-      {mostrarAvisoTrial && user.trialEndsAt && (
-        <TrialPorTerminarAviso diasRestantesDeTrial={diasTrial} trialEndsAt={user.trialEndsAt.toISOString()} />
-      )}
-      <DashboardTabs
-        initialDate={formatDateParamBA(hoy)}
-        initialTurnos={turnos}
-        diasConHorario={diasConHorario}
-        totalPacientes={totalPacientes}
-        sinPracticas={totalPracticas === 0}
-        puedeConfigurarPracticas={user.role === "DOCTOR"}
-        sugerirPerfilPublico={user.role === "DOCTOR" && totalPracticas > 0 && !user.perfilPublico}
-        sugerirCompletarBiografia={user.role === "DOCTOR" && user.perfilPublico && !user.biografia?.trim()}
-        sugerirCargarPrepagas={user.role === "DOCTOR" && totalPrepagas === 0}
-      />
-    </div>
+    <PageEnter>
+      <div className="flex flex-col gap-6">
+        {mostrarAvisoPlan && user.planEndsAt && (
+          <PlanPorVencerAviso diasRestantes={diasPlan} planEndsAt={user.planEndsAt.toISOString()} />
+        )}
+        {mostrarAvisoTrial && user.trialEndsAt && (
+          <TrialPorTerminarAviso diasRestantesDeTrial={diasTrial} trialEndsAt={user.trialEndsAt.toISOString()} />
+        )}
+        <DashboardTabs
+          initialDate={formatDateParamBA(hoy)}
+          initialTurnos={turnos}
+          diasConHorario={diasConHorario}
+          totalPacientes={totalPacientes}
+          sinPracticas={totalPracticas === 0}
+          puedeConfigurarPracticas={user.role === "DOCTOR"}
+          sugerirPerfilPublico={user.role === "DOCTOR" && totalPracticas > 0 && !user.perfilPublico}
+          sugerirCompletarBiografia={user.role === "DOCTOR" && user.perfilPublico && !user.biografia?.trim()}
+          sugerirCargarPrepagas={user.role === "DOCTOR" && totalPrepagas === 0}
+        />
+      </div>
+    </PageEnter>
   );
 }

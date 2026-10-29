@@ -9,6 +9,7 @@ import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { Button } from "@/components/ui/button";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { patientFromApi } from "@/components/patient-form/utils";
+import { PageEnter } from "@/components/page-transition";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -36,30 +37,32 @@ export default async function EditPatientPage({ params }: Props) {
   const resumenAutomatico = await getResumenAutomatico(user);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            nativeButton={false}
-            render={<Link href={`/patients/${patient.id}`} />}
-          >
-            <ArrowLeft className="size-4" />
-            Volver a detalle
-          </Button>
+    <PageEnter>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-semibold">{patient.nombreYApellido}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/patients/${patient.id}`} />}
+            >
+              <ArrowLeft className="size-4" />
+              Volver a detalle
+            </Button>
+          </div>
         </div>
+        <PatientForm
+          mode="edit"
+          patientId={patient.id}
+          initialValues={values}
+          initialEvoluciones={evoluciones}
+          initialEvolucionesEliminadas={evolucionesEliminadas}
+          transcripcionHabilitada={isPremium(user) && esActivo(user)}
+          resumenAutomatico={resumenAutomatico}
+        />
       </div>
-      <PatientForm
-        mode="edit"
-        patientId={patient.id}
-        initialValues={values}
-        initialEvoluciones={evoluciones}
-        initialEvolucionesEliminadas={evolucionesEliminadas}
-        transcripcionHabilitada={isPremium(user) && esActivo(user)}
-        resumenAutomatico={resumenAutomatico}
-      />
-    </div>
+    </PageEnter>
   );
 }

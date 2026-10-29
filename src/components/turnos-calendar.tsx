@@ -150,12 +150,15 @@ export function TurnosCalendar({
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   });
-  const isFirstRender = useRef(true);
+  // Se compara contra el médico/lugar anterior en vez de "saltear el primer
+  // render": en desarrollo React corre los efectos dos veces al montar, y con
+  // una bandera la segunda corrida refetcheaba el día recién traído por el
+  // servidor (la grilla aparecía, se ocultaba con "Cargando..." y volvía).
+  const tenantLugarAnterior = useRef({ tenantId, activeLugarId });
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    const anterior = tenantLugarAnterior.current;
+    if (anterior.tenantId === tenantId && anterior.activeLugarId === activeLugarId) return;
+    tenantLugarAnterior.current = { tenantId, activeLugarId };
     loadSlots(selectedDateRef.current);
   }, [tenantId, activeLugarId]);
 

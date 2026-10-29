@@ -89,12 +89,13 @@ export function RecordatoriosCalendar({
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   });
-  const isFirstRender = useRef(true);
+  // Comparación contra el médico/lugar anterior, no "saltear el primer
+  // render" -- ver turnos-calendar.tsx.
+  const tenantLugarAnterior = useRef({ tenantId, activeLugarId });
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    const anterior = tenantLugarAnterior.current;
+    if (anterior.tenantId === tenantId && anterior.activeLugarId === activeLugarId) return;
+    tenantLugarAnterior.current = { tenantId, activeLugarId };
     loadTurnos(selectedDateRef.current);
   }, [tenantId, activeLugarId]);
 
