@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const existing = await obtenerSecretariaDelMedico(tenantId, id);
   if (!existing) {
-    return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Asistente no encontrado." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => null);
@@ -91,7 +91,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     where: { doctorId: tenantId, secretariaId: id },
   });
   if (count === 0) {
-    return NextResponse.json({ error: "Secretaria no encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Asistente no encontrado." }, { status: 404 });
   }
 
   // Si tenía a este médico como el activo, hay que reasignarla a otro de los

@@ -69,7 +69,7 @@ export function TerminosContenido() {
             actividad realizada con ellas y debe avisar de inmediato cualquier uso no autorizado.
           </li>
           <li>
-            El Médico puede dar acceso a secretarias u otros colaboradores. Es responsable de
+            El Médico puede dar acceso a asistentes u otros colaboradores. Es responsable de
             elegirlos, de limitar sus permisos, de darlos de baja cuando corresponda y de que
             cumplan estos términos y el deber de confidencialidad.
           </li>

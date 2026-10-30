@@ -56,8 +56,8 @@ const FEATURES: Feature[] = [
   {
     icon: Users,
     title: "Roles por usuario",
-    text: "Tu secretaria gestiona turnos sin acceder a la información clínica sensible de tus pacientes.",
-    detail: "Médico y secretaria, separados",
+    text: "Tu asistente gestiona turnos sin acceder a la información clínica sensible de tus pacientes.",
+    detail: "Médico y asistente, separados",
   },
   {
     icon: ScrollText,

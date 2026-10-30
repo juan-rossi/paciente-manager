@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest) {
 
   if (user.role !== "SECRETARY") {
     return NextResponse.json(
-      { error: "Solo las cuentas de secretaria eligen médico activo." },
+      { error: "Solo las cuentas de asistente eligen médico activo." },
       { status: 403 }
     );
   }

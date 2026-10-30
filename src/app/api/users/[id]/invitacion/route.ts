@@ -19,7 +19,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     select: { id: true },
   });
   if (!invitacion) {
-    return NextResponse.json({ error: "No hay una invitación pendiente para esa secretaria." }, { status: 404 });
+    return NextResponse.json({ error: "No hay una invitación pendiente para ese asistente." }, { status: 404 });
   }
 
   const baseUrl = process.env.NODE_ENV === "production" ? getSiteUrl() : request.nextUrl.origin;

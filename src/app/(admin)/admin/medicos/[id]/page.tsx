@@ -112,7 +112,7 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
           />
           <StatCard
             icon={Stethoscope}
-            label="Secretarias asignadas"
+            label="Asistentes asignados"
             value={
               medico.secretarias.length > 0 ? `${medico.secretarias.length} · ${medico.secretarias.join(", ")}` : "0"
             }

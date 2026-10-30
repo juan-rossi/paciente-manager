@@ -18,7 +18,7 @@ export const TESTIMONIOS: Testimonio[] = [
     nombre: "Dr. Fernando Tito",
     rol: "Consultorio particular",
     texto:
-      "Mi secretaria maneja los turnos sola, sin que yo tenga que estar encima. Los recordatorios por WhatsApp bajaron muchísimo las ausencias.",
+      "Mi asistente maneja los turnos sola, sin que yo tenga que estar encima. Los recordatorios por WhatsApp bajaron muchísimo las ausencias.",
   },
   {
     nombre: "Dra. Melani Vignolles.",

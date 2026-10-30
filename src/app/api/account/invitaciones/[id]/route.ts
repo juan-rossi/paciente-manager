@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (response) return response;
 
   if (user.role !== "SECRETARY") {
-    return NextResponse.json({ error: "Solo las cuentas de secretaria reciben invitaciones." }, { status: 403 });
+    return NextResponse.json({ error: "Solo las cuentas de asistente reciben invitaciones." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);

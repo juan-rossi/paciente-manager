@@ -17,7 +17,7 @@ const LAYERS = [
   {
     icon: ShieldCheck,
     title: "Confidencialidad por diseño",
-    text: "Cada médico ve únicamente los datos de sus propios pacientes. Las secretarias no acceden a información clínica sensible.",
+    text: "Cada médico ve únicamente los datos de sus propios pacientes. Los asistentes no acceden a información clínica sensible.",
   },
   {
     icon: Lock,

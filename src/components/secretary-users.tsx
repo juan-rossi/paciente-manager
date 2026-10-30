@@ -120,7 +120,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
       );
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "No se pudo guardar la secretaria.");
+        setError(data.error ?? "No se pudo guardar el asistente.");
         return;
       }
       setSecretarias((prev) =>
@@ -173,7 +173,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
   return (
     <SettingsSection
       title="Usuarios"
-      description="Administrá las cuentas de secretario: pueden gestionar turnos, pero no acceden a la información clínica de los pacientes."
+      description="Administrá las cuentas de asistente: pueden gestionar turnos, pero no acceden a la información clínica de los pacientes."
       icon={Users}
     >
       <div className="flex flex-col gap-3">
@@ -189,7 +189,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
           </p>
         )}
         {secretarias.length === 0 && (
-          <p className="text-sm text-muted-foreground">Todavía no invitaste a ningún secretario.</p>
+          <p className="text-sm text-muted-foreground">Todavía no invitaste a ningún asistente.</p>
         )}
         {secretarias.map((secretaria) => (
           <div
@@ -245,7 +245,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                 type="button"
                 onClick={() => openEdit(secretaria)}
                 className="text-muted-foreground hover:text-foreground"
-                aria-label="Editar secretaria"
+                aria-label="Editar asistente"
               >
                 <Pencil className="size-4" />
               </button>
@@ -253,7 +253,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                 type="button"
                 onClick={() => setDeleteTarget(secretaria)}
                 className="text-muted-foreground hover:text-destructive"
-                aria-label="Eliminar secretario"
+                aria-label="Eliminar asistente"
               >
                 <Trash2 className="size-4" />
               </button>
@@ -265,14 +265,14 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
       <div>
         <Button type="button" onClick={openCreate}>
           <UserPlus className="size-4" />
-          Invitar secretario
+          Invitar asistente
         </Button>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingSecretaria ? "Editar secretario" : "Invitar secretario"}</DialogTitle>
+            <DialogTitle>{editingSecretaria ? "Editar asistente" : "Invitar asistente"}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3.5">
@@ -289,7 +289,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                 <p className="-mt-1.5 text-xs text-muted-foreground">
                   {editingSecretaria.pendiente
                     ? "Todavía no aceptó la invitación: su nombre y email no se pueden cambiar. Si el email está mal, cancelá la invitación y enviá una nueva."
-                    : "También asiste a otro médico: su nombre y email solo los puede cambiar ella."}
+                    : "También asiste a otro médico: su nombre y email solo los puede cambiar desde su cuenta."}
                 </p>
               )}
               <div className="flex flex-col gap-2">
@@ -383,7 +383,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
       <Dialog open={deleteTarget !== null} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{deleteTarget?.pendiente ? "Cancelar invitación" : "Eliminar secretaria"}</DialogTitle>
+            <DialogTitle>{deleteTarget?.pendiente ? "Cancelar invitación" : "Eliminar asistente"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             {deleteTarget?.pendiente ? "Se cancelará la invitación a " : "Se eliminará el acceso de "}

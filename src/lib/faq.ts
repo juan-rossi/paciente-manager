@@ -23,7 +23,7 @@ export const FAQS = [
   },
   {
     q: "¿Qué plan necesito?",
-    a: "Básico cubre historia clínica, turnos, secretarias y recordatorios manuales. Premium suma el dictado con transcripción automática, resúmenes y autocompletado con IA, el perfil destacado en el Directorio de profesionales (mejor posición en las búsquedas y una tarjeta ampliada con tus coberturas, tu próximo turno libre y reserva directa).",
+    a: "Básico cubre historia clínica, turnos, asistentes y recordatorios manuales. Premium suma el dictado con transcripción automática, resúmenes y autocompletado con IA, el perfil destacado en el Directorio de profesionales (mejor posición en las búsquedas y una tarjeta ampliada con tus coberturas, tu próximo turno libre y reserva directa).",
   },
   {
     q: "¿Cómo se protege la información de mis pacientes?",
