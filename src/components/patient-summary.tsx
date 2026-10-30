@@ -195,7 +195,7 @@ export function PatientSummary({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="contents lg:sticky lg:top-20 lg:-m-1 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col lg:gap-6 lg:self-start lg:overflow-y-auto lg:p-1">
+        <div className="contents lg:sticky lg:top-20 lg:-m-1 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col lg:gap-6 lg:self-start lg:overflow-y-auto lg:p-1 lg:*:shrink-0 subtle-scrollbar">
           <FormSection title="Información del Paciente" icon={IdCard} contentClassName="bg-card">
             <div className="col-span-full grid grid-cols-1 gap-4 sm:grid-cols-12">
               <InfoField

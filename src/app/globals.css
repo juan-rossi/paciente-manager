@@ -200,6 +200,14 @@
       display: none;
     }
   }
+  /* Barra fina y casi invisible; se marca un poco más al pasar el mouse. */
+  .subtle-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 12%, transparent) transparent;
+    &:hover {
+      scrollbar-color: color-mix(in oklab, var(--foreground) 25%, transparent) transparent;
+    }
+  }
 }
 /* Transición entre pantallas (ver components/page-transition.tsx): el
    esqueleto se va rápido y el contenido real entra un poco después, con un
