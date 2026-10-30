@@ -317,6 +317,13 @@ model User {
   // edita desde la ficha del médico en /admin; el médico nunca lo ve.
   topeIAUsd Float?
 
+  // Médico que usa la plataforma sin pagar (p.ej. amigos que ayudaron a
+  // armarla). Solo afecta las métricas económicas de /admin -- no cuenta en
+  // el MRR, la conversión trial→pago ni el % de costo IA sobre su plan --; no
+  // toca el acceso, que sigue saliendo de `trialEndsAt`/`planEndsAt`. Se
+  // marca desde la ficha del médico en /admin; el médico nunca lo ve.
+  bonificado Boolean @default(false)
+
   // Plan/duración elegidos en el checkout, todavía SIN confirmar por pago --
   // `plan`/`planDuracion` de arriba no se tocan hasta que el webhook reciba
   // un pago aprobado (ver `/api/mercadopago/webhook`). Evita que abandonar

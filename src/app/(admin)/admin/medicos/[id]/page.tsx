@@ -15,6 +15,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { getMedicoDetalle, formatDiasParaVencer, formatFechaCorta } from "@/lib/admin-metrics";
 import { formatNumero, formatUsd, getUsoIAMedico, MESES_PROMEDIO } from "@/lib/admin-costos-ia";
 import { TopeIAForm } from "@/components/admin/costos-ia-controles";
+import { BonificadoBadge } from "@/components/admin/bonificado-badge";
+import { BonificadoSwitch } from "@/components/admin/bonificado-switch";
 import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +62,7 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
                     <Badge variant="secondary">Inactivo</Badge>
                   )}
                   <Badge variant="secondary">{medico.planLabel}</Badge>
+                  {medico.bonificado && <BonificadoBadge />}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {medico.nroMatricula ? `MP ${medico.nroMatricula} · ` : ""}
@@ -115,6 +118,12 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
             }
           />
         </div>
+
+        <Card>
+          <CardContent>
+            <BonificadoSwitch doctorId={id} bonificado={medico.bonificado} />
+          </CardContent>
+        </Card>
 
         {usoIA && (
           <Card>

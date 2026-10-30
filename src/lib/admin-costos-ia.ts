@@ -177,11 +177,13 @@ type PlanPago = {
   planDuracion: PlanDuracion | null;
   planEndsAt: Date | null;
   trialEndsAt: Date | null;
+  bonificado: boolean;
 };
 
-// Precio mensual que paga hoy, o null si no tiene plan pago vigente (trial).
+// Precio mensual que paga hoy, o null si no tiene plan pago vigente (trial)
+// o si está bonificado.
 function precioMensualPagado(doctor: PlanPago): number | null {
-  if (!doctor.planEndsAt || !doctor.planDuracion || !esActivo(doctor)) return null;
+  if (doctor.bonificado || !doctor.planEndsAt || !doctor.planDuracion || !esActivo(doctor)) return null;
   return precioMensualEquivalente(doctor.plan, doctor.planDuracion);
 }
 
@@ -249,6 +251,7 @@ export async function getCostosIA(mes: string): Promise<CostosIAData> {
       planDuracion: true,
       planEndsAt: true,
       trialEndsAt: true,
+      bonificado: true,
       topeIAUsd: true,
     },
   });
@@ -350,7 +353,7 @@ export async function getUsoIAMedico(doctorId: string): Promise<UsoIAMedico | nu
   const [doctor, filas, primerUso, cotizacion] = await Promise.all([
     prisma.user.findFirst({
       where: { id: doctorId, role: "DOCTOR" },
-      select: { plan: true, planDuracion: true, planEndsAt: true, trialEndsAt: true, topeIAUsd: true },
+      select: { plan: true, planDuracion: true, planEndsAt: true, trialEndsAt: true, bonificado: true, topeIAUsd: true },
     }),
     fetchUsos({
       doctorId,

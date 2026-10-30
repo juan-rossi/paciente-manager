@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MedicosFiltros } from "@/components/admin/medicos-filtros";
+import { BonificadoBadge } from "@/components/admin/bonificado-badge";
 import {
   getMedicos,
   formatDiasParaVencer,
@@ -105,7 +106,10 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{m.planLabel}</Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="secondary">{m.planLabel}</Badge>
+                        {m.bonificado && <BonificadoBadge />}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{formatFechaCorta(m.createdAt)}</TableCell>
                     <TableCell>

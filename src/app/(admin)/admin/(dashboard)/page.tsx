@@ -63,7 +63,12 @@ export default async function AdminDashboardPage() {
             icon={DollarSign}
             label="MRR estimado"
             value={formatMoneyARS(data.mrrEstimado)}
-            sub={`ARS · ${data.medicosEnPlanPago} médico${data.medicosEnPlanPago === 1 ? "" : "s"} en plan pago`}
+            sub={
+              `ARS · ${data.medicosEnPlanPago} médico${data.medicosEnPlanPago === 1 ? "" : "s"} en plan pago` +
+              (data.medicosBonificados > 0
+                ? ` · ${data.medicosBonificados} bonificado${data.medicosBonificados === 1 ? "" : "s"} excluido${data.medicosBonificados === 1 ? "" : "s"}`
+                : "")
+            }
           />
           <Link href="/admin/costos-ia" className="rounded-xl transition-shadow hover:shadow-md [&>*]:h-full">
             <KpiCard

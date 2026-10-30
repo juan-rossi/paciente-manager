@@ -36,6 +36,7 @@ const DOCTOR_LIST_SELECT = {
   trialEndsAt: true,
   planDuracion: true,
   planEndsAt: true,
+  bonificado: true,
   _count: {
     select: {
       pacientes: { where: { deletedAt: null } },
@@ -66,6 +67,8 @@ export type MedicoResumen = {
   estado: EstadoMedico;
   tier: "BASICA" | "PREMIUM";
   esTrial: boolean;
+  // Usa la plataforma sin pagar: queda fuera de MRR y conversión.
+  bonificado: boolean;
   planLabel: string; // "Trial · Premium", "Trial vencido · Básico", "Básico · 6 meses", ...
   vencimiento: Date | null;
   diasParaVencer: number | null; // negativo = ya venció
@@ -96,6 +99,7 @@ function resumenDe(doctor: DoctorListRow): MedicoResumen {
     estado: activo ? "ACTIVO" : "INACTIVO",
     tier: doctor.plan,
     esTrial,
+    bonificado: doctor.bonificado,
     planLabel: label,
     vencimiento,
     diasParaVencer: diasParaFecha(vencimiento),
@@ -132,6 +136,7 @@ export type DashboardData = {
   };
   mrrEstimado: number;
   medicosEnPlanPago: number;
+  medicosBonificados: number;
   altasPorMes: { mes: string; cantidad: number }[];
 };
 
@@ -146,13 +151,15 @@ export async function getDashboardData(): Promise<DashboardData> {
     .filter((d) => d.estado === "ACTIVO" && d.diasParaVencer !== null && d.diasParaVencer <= 7)
     .sort((a, b) => (a.diasParaVencer ?? 0) - (b.diasParaVencer ?? 0));
 
-  const convirtieron = doctores.filter((d) => !d.esTrial).length;
-  const vencieronSinConvertir = doctores.filter((d) => d.esTrial && d.estado === "INACTIVO").length;
-  const enTrialActualmente = doctores.filter((d) => d.esTrial && d.estado === "ACTIVO").length;
+  // Los bonificados no son clientes: no cuentan ni como conversión ni como ingreso.
+  const pagantes = doctores.filter((d) => !d.bonificado);
+  const convirtieron = pagantes.filter((d) => !d.esTrial).length;
+  const vencieronSinConvertir = pagantes.filter((d) => d.esTrial && d.estado === "INACTIVO").length;
+  const enTrialActualmente = pagantes.filter((d) => d.esTrial && d.estado === "ACTIVO").length;
   const trialsFinalizados = convirtieron + vencieronSinConvertir;
   const porcentaje = trialsFinalizados > 0 ? Math.round((convirtieron / trialsFinalizados) * 100) : null;
 
-  const pagosActivos = doctoresRaw.filter((d) => d.planEndsAt && d.planDuracion && esActivo(d));
+  const pagosActivos = doctoresRaw.filter((d) => !d.bonificado && d.planEndsAt && d.planDuracion && esActivo(d));
   const mrrEstimado = pagosActivos.reduce(
     (sum, d) => sum + precioMensualEquivalente(d.plan, d.planDuracion as PlanDuracion),
     0
@@ -174,6 +181,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     conversion: { convirtieron, vencieronSinConvertir, enTrialActualmente, porcentaje },
     mrrEstimado,
     medicosEnPlanPago: pagosActivos.length,
+    medicosBonificados: doctores.length - pagantes.length,
     altasPorMes,
   };
 }
@@ -252,6 +260,7 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       trialEndsAt: true,
       planDuracion: true,
       planEndsAt: true,
+      bonificado: true,
       doctorAsignaciones: {
         select: { secretaria: { select: { nombre: true, apellido: true } } },
       },
