@@ -28,18 +28,45 @@ function formatFecha(fecha: Date | null): string {
 
 type FieldEntry = { label: string; value: string | null | undefined };
 
+// Un texto largo (relato de antecedentes, tratamiento...) encajonado en una
+// columna de 1/3 se vuelve una tira angosta de decenas de renglones. Esos
+// campos van debajo de la grilla, a todo el ancho.
+const LARGO_TEXTO_ANCHO = 80;
+
+function esTextoLargo(value: string): boolean {
+  return value.length > LARGO_TEXTO_ANCHO || value.includes("\n");
+}
+
 function Datos({ fields }: { fields: FieldEntry[] }) {
-  const populated = fields.filter((f) => f.value && f.value.trim());
+  const populated = fields.filter((f): f is { label: string; value: string } =>
+    Boolean(f.value && f.value.trim()),
+  );
   if (populated.length === 0) return null;
+  const cortos = populated.filter((f) => !esTextoLargo(f.value));
+  const largos = populated.filter((f) => esTextoLargo(f.value));
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-      {populated.map((f) => (
-        <div key={f.label} className="flex flex-col gap-0.5">
-          <dt className="text-xs font-semibold text-muted-foreground">{f.label}</dt>
-          <dd className="whitespace-pre-wrap">{f.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="flex flex-col gap-3">
+      {cortos.length > 0 && (
+        <dl className="grid break-inside-avoid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+          {cortos.map((f) => (
+            <div key={f.label} className="flex flex-col gap-0.5">
+              <dt className="text-xs font-semibold text-muted-foreground">{f.label}</dt>
+              <dd className="whitespace-pre-wrap">{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {largos.length > 0 && (
+        <dl className="flex flex-col gap-3 text-sm">
+          {largos.map((f) => (
+            <div key={f.label} className="flex flex-col gap-0.5">
+              <dt className="text-xs font-semibold text-muted-foreground">{f.label}</dt>
+              <dd className="whitespace-pre-wrap leading-relaxed text-pretty">{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
   );
 }
 
@@ -55,8 +82,10 @@ function Seccion({
   const tieneCampos = fields ? fields.some((f) => f.value && f.value.trim()) : true;
   if (!tieneCampos && !children) return null;
   return (
-    <section className="break-inside-avoid border-b border-border pb-4">
-      <h2 className="mb-2 text-xs font-bold tracking-wide text-foreground uppercase">{titulo}</h2>
+    <section className="border-b border-border pb-4">
+      <h2 className="mb-2 break-after-avoid text-xs font-bold tracking-wide text-foreground uppercase">
+        {titulo}
+      </h2>
       {fields && <Datos fields={fields} />}
       {children}
     </section>
