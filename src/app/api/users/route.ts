@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: yaAsignada.aceptadaAt
-            ? "Esa secretaria ya está asignada a tu cuenta."
-            : "Ya le enviaste una invitación a esa secretaria.",
+            ? "Ese asistente ya está asignado a tu cuenta."
+            : "Ya le enviaste una invitación a ese asistente.",
         },
         { status: 409 }
       );
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   } else {
     if (!parsed.data.nombre) {
       return NextResponse.json(
-        { error: "El nombre es obligatorio para invitar a una secretaria nueva." },
+        { error: "El nombre es obligatorio para invitar a un asistente nuevo." },
         { status: 400 }
       );
     }

@@ -15,8 +15,8 @@ export function mailInvitacionSecretaria(datos: DatosMail, link: string) {
   const saludo = datos.nombreSecretaria ? `Hola, ${datos.nombreSecretaria}` : "Hola";
   const subject = `${datos.nombreMedico} te invitó a administrar su agenda en Semio 360`;
   const cuerpo = datos.cuentaNueva
-    ? `${datos.nombreMedico} quiere sumarte como secretaria/o en Semio 360 para que puedas gestionar sus turnos. Para aceptar, elegí tu contraseña o entrá con tu cuenta de Google.`
-    : `${datos.nombreMedico} quiere sumarte como secretaria/o en Semio 360. Entrá con tu cuenta de siempre para aceptar la invitación. Hasta que la aceptes no vas a ver su agenda, y si no lo conocés podés ignorarla.`;
+    ? `${datos.nombreMedico} quiere sumarte como asistente en Semio 360 para que puedas gestionar sus turnos. Para aceptar, elegí tu contraseña o entrá con tu cuenta de Google.`
+    : `${datos.nombreMedico} quiere sumarte como asistente en Semio 360. Entrá con tu cuenta de siempre para aceptar la invitación. Hasta que la aceptes no vas a ver su agenda, y si no lo conocés podés ignorarla.`;
   const nota = `El link vence en ${INVITACION_VALIDEZ_DIAS} días. Si no conocés a quien te invitó, ignorá este mail.`;
   const logo = `${baseUrl}/email/semio360-logo.png`;
 

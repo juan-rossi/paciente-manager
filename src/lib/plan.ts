@@ -58,7 +58,7 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
     "Historia clínica de pacientes",
     "Asignación de turnos",
     "Recordatorios de turnos por WhatsApp (manual)",
-    "Usuarios de tipo Secretario/a",
+    "Usuarios de tipo Asistente",
     "Listado en Directorio de profesionales",
     "Agenda pública",
   ],
