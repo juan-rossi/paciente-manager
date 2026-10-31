@@ -40,11 +40,13 @@ export function SiteHeader() {
           : "border-transparent bg-transparent"
       )}
     >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Semio360Mark className="size-8" />
-            <Semio360Wordmark className="h-5" />
+      {/* Sin flex-wrap: en mobile angosto el CTA y el menú caían a un segundo
+          renglón; se achica el logo (y bajo 340px se queda solo el isotipo). */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-6">
+        <div className="flex min-w-0 items-center gap-8">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5">
+            <Semio360Mark className="size-7 sm:size-8" />
+            <Semio360Wordmark className="h-4 max-[339px]:hidden sm:h-5" />
           </Link>
 
           <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
@@ -56,7 +58,7 @@ export function SiteHeader() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {/* <a> nativo a propósito, no <Link> -- ScrollStory usa GSAP
               ScrollTrigger con `pin: true`, que reestructura el DOM por su
               cuenta; una transición del lado del cliente hacia otra página

@@ -57,13 +57,17 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
   // vez de envolver todo en un <Link>), porque la de un destacado tiene un
   // segundo link adentro ("Reservar turno") y no se pueden anidar <a>.
   return (
-    <div
-      className={cn(
-        "group relative flex w-full flex-col gap-3.5 rounded-2xl border p-6 transition-shadow hover:shadow-lg hover:shadow-primary/5 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring",
-        doctor.destacado ? "border-primary/40 bg-primary/[0.04] shadow-md shadow-primary/5" : "border-border/60 bg-card"
+    <div className="group relative flex w-full flex-col gap-3.5 rounded-2xl border border-border/60 bg-card p-6 transition-shadow hover:shadow-lg hover:shadow-primary/5 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring">
+      {/* El destacado se marca con un sello discreto en la esquina, no con
+          otro fondo/borde: la diferencia real está en el pie (próximo turno
+          y botón de reserva). */}
+      {doctor.destacado && (
+        <span className="absolute top-4 right-4 inline-flex items-center gap-1 text-[11px] font-bold text-primary">
+          <Star className="size-3 fill-current" />
+          Destacado
+        </span>
       )}
-    >
-      <div className="flex items-center gap-3">
+      <div className={cn("flex items-center gap-3", doctor.destacado && "pr-20")}>
         <div className="flex size-13 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 font-heading text-lg font-bold text-primary">
           {doctor.fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -83,23 +87,15 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
         <div className="min-w-0">
           <Link
             href={href}
-            className="block truncate font-heading text-[15px] font-bold outline-none after:absolute after:inset-0 after:rounded-2xl"
+            className="block font-heading text-[15px] font-bold leading-snug break-words outline-none after:absolute after:inset-0 after:rounded-2xl"
           >
             {nombreCompleto}
           </Link>
-          {(doctor.especialidad || doctor.destacado) && (
+          {doctor.especialidad && (
             <div className="mt-1 flex flex-wrap gap-1.5">
-              {doctor.especialidad && (
-                <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
-                  {ESPECIALIDAD_LABELS[doctor.especialidad]}
-                </span>
-              )}
-              {doctor.destacado && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
-                  <Star className="size-3 fill-current" />
-                  Destacado
-                </span>
-              )}
+              <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                {ESPECIALIDAD_LABELS[doctor.especialidad]}
+              </span>
             </div>
           )}
         </div>
@@ -130,12 +126,7 @@ export function DoctorCard({ doctor }: { doctor: DoctorPublico }) {
       )}
 
       {doctor.biografia && (
-        <p
-          className={cn(
-            "text-[13px] leading-relaxed text-muted-foreground",
-            doctor.destacado ? "line-clamp-6" : "line-clamp-2"
-          )}
-        >
+        <p className="line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">
           {doctor.biografia}
         </p>
       )}
