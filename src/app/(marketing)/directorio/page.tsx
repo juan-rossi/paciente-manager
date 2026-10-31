@@ -77,9 +77,12 @@ export default async function DirectorioPage({ searchParams }: Props) {
               No encontramos médicos con esos filtros. Probá con otra especialidad o ciudad.
             </p>
           ) : (
-            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            // `grid-cols-1` (minmax(0, 1fr)) y `min-w-0`, no el track implícito:
+            // un nombre largo sin cortes estiraba la columna más allá del
+            // viewport en mobile y con ella toda la página.
+            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {doctores.map((doctor) => (
-                <li key={doctor.id} className="flex">
+                <li key={doctor.id} className="flex min-w-0">
                   <DoctorCard doctor={doctor} />
                 </li>
               ))}
