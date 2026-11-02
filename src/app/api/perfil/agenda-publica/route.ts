@@ -20,6 +20,15 @@ export async function PATCH(request: NextRequest) {
 
   const { reservaPublicaHabilitada, reservaPublicaSemanas } = parsed.data;
 
+  // Fuera del directorio por un admin (ver `src/lib/sanciones.ts`): la agenda
+  // pública tampoco se puede volver a prender.
+  if (user.fueraDelDirectorioAt && reservaPublicaHabilitada && !user.reservaPublicaHabilitada) {
+    return NextResponse.json(
+      { error: "Tu perfil fue quitado del directorio por un administrador." },
+      { status: 403 }
+    );
+  }
+
   let publicSlug = user.publicSlug;
   if (reservaPublicaHabilitada && !publicSlug) {
     publicSlug = await generateUniquePublicSlug(user.nombre, user.apellido);

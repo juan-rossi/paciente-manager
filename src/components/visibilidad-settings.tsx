@@ -11,6 +11,7 @@ import {
   Link2,
   Loader2,
   Save,
+  ShieldX,
   TriangleAlert,
 } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
@@ -61,6 +62,10 @@ type Props = {
   // "Dr. Juan Pérez" -- para el texto al compartir el link de la agenda.
   nombreMedico: string;
   initialPerfilPublico: boolean;
+  // Si el perfil ya salió alguna vez en el directorio (ver
+  // `perfilPublicadoAt`). Se lee de las props: tras guardar, el refresh trae
+  // el valor nuevo.
+  perfilPublicado: boolean;
   // Prácticas activas del médico -- de acá salen consultorio, dirección y
   // teléfono del perfil público. Se leen siempre de las props (no de estado
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
@@ -73,11 +78,15 @@ type Props = {
   initialReservaPublicaHabilitada: boolean;
   initialReservaPublicaSemanas: number;
   initialPublicSlug: string | null;
+  // Motivo, si un admin lo sacó del directorio (ver `src/lib/sanciones.ts`):
+  // perfil y agenda pública quedan apagados y no los puede prender.
+  fueraDelDirectorioMotivo: string | null;
 };
 
 export function VisibilidadSettings({
   nombreMedico,
   initialPerfilPublico,
+  perfilPublicado,
   lugares,
   initialBiografia,
   initialModeracion,
@@ -85,7 +94,9 @@ export function VisibilidadSettings({
   initialReservaPublicaHabilitada,
   initialReservaPublicaSemanas,
   initialPublicSlug,
+  fueraDelDirectorioMotivo,
 }: Props) {
+  const fueraDelDirectorio = fueraDelDirectorioMotivo !== null;
   const router = useRouter();
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
@@ -113,6 +124,11 @@ export function VisibilidadSettings({
     lugares.filter((l) => l.perfilVisible).map((l) => l.id),
   );
   const sinLugaresVisibles = !sinPracticas && lugaresVisibles.length === 0;
+  // Primera publicación frenada por la moderación: se avisa recién con el
+  // perfil ya guardado como público (antes de guardar no se moderó nada).
+  const esperandoModeracion =
+    initialPerfilPublico && !perfilPublicado && !fueraDelDirectorio && (moderacion.biografia || moderacion.foto);
+  const rechazado = moderacion.biografia === "rechazado" || moderacion.foto === "rechazado";
 
   function togglePerfilPublico(checked: boolean) {
     setPerfilPublico(checked);
@@ -347,6 +363,21 @@ export function VisibilidadSettings({
   return (
     <div className="flex w-full flex-col gap-5">
       <SettingsSection title="Información pública" icon={Globe2}>
+        {fueraDelDirectorio && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-destructive"
+          >
+            <ShieldX className="mt-0.5 size-4 shrink-0" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold">Tu perfil fue quitado del directorio</span>
+              <span className="text-xs">Motivo: {fueraDelDirectorioMotivo}</span>
+              <span className="text-xs">
+                Si creés que es un error, escribinos a contacto@semio360.com.
+              </span>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold">Perfil público</span>
@@ -356,8 +387,9 @@ export function VisibilidadSettings({
             </p>
           </div>
           <Switch
-            checked={perfilPublico}
+            checked={perfilPublico && !fueraDelDirectorio}
             onCheckedChange={togglePerfilPublico}
+            disabled={fueraDelDirectorio}
           />
         </div>
 
@@ -387,7 +419,25 @@ export function VisibilidadSettings({
                   Configurar prácticas
                 </Button>
               </div>
-            ) : (
+            ) : esperandoModeracion ? (
+              <div
+                role="status"
+                className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+              >
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">
+                    Tu perfil todavía no aparece en el directorio
+                  </span>
+                  <span className="text-xs">
+                    {rechazado
+                      ? "Parte de tu información pública no fue aprobada. Modificala para que se vuelva a revisar y tu perfil se publique."
+                      : "Se publicará cuando un administrador revise tu información pública."}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+            {!sinPracticas && (
               variosLugares && (
                 <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
                   <div className="flex items-center justify-between gap-2">
@@ -531,9 +581,9 @@ export function VisibilidadSettings({
             </p>
           </div>
           <Switch
-            checked={reservaPublicaHabilitada}
+            checked={reservaPublicaHabilitada && !fueraDelDirectorio}
             onCheckedChange={handleToggleReservaPublica}
-            disabled={agendaPublicaSaving}
+            disabled={agendaPublicaSaving || fueraDelDirectorio}
           />
         </div>
         {agendaPublicaError && (

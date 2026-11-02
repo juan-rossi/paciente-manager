@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SIN_SANCION } from "@/lib/sanciones";
 import { esActivo } from "@/lib/plan";
 import { generarSlots } from "@/lib/slots";
 import { startOfDayBA, formatDateParamBA } from "@/lib/timezone";
@@ -19,7 +20,7 @@ function addDays(date: Date, amount: number): Date {
 // exige para la página del perfil.
 export async function getDoctorParaReserva(slug: string) {
   const doctor = await prisma.user.findFirst({
-    where: { role: "DOCTOR", reservaPublicaHabilitada: true, publicSlug: slug },
+    where: { role: "DOCTOR", reservaPublicaHabilitada: true, publicSlug: slug, ...SIN_SANCION },
   });
   // Sin plan activo (trial o suscripción vigente) no se puede reservar online,
   // aunque la agenda esté configurada como pública.

@@ -9,6 +9,7 @@ import {
   type PlanDuracion,
 } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
+import type { TipoSancion } from "@/lib/sancion-email";
 
 /**
  * Capa de datos del panel owner/admin (`/admin`) -- consultas cross-tenant
@@ -37,6 +38,8 @@ const DOCTOR_LIST_SELECT = {
   planDuracion: true,
   planEndsAt: true,
   bonificado: true,
+  suspendidoAt: true,
+  fueraDelDirectorioAt: true,
   _count: {
     select: {
       pacientes: { where: { deletedAt: null } },
@@ -69,6 +72,8 @@ export type MedicoResumen = {
   esTrial: boolean;
   // Usa la plataforma sin pagar: queda fuera de MRR y conversión.
   bonificado: boolean;
+  // Sanción vigente desde /admin/moderacion (ver `src/lib/sanciones.ts`).
+  sancion: TipoSancion | null;
   planLabel: string; // "Trial · Premium", "Trial vencido · Básico", "Básico · 6 meses", ...
   vencimiento: Date | null;
   diasParaVencer: number | null; // negativo = ya venció
@@ -77,7 +82,7 @@ export type MedicoResumen = {
   secretariasCount: number;
 };
 
-function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" | "planEndsAt" | "trialEndsAt">) {
+export function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" | "planEndsAt" | "trialEndsAt">) {
   const tier = doctor.plan === "PREMIUM" ? "Premium" : "Básico";
   if (doctor.planEndsAt && doctor.planDuracion) {
     return { label: `${tier} · ${PLAN_DURACION_LABEL[doctor.planDuracion]}`, esTrial: false };
@@ -100,6 +105,7 @@ function resumenDe(doctor: DoctorListRow): MedicoResumen {
     tier: doctor.plan,
     esTrial,
     bonificado: doctor.bonificado,
+    sancion: doctor.suspendidoAt ? "SUSPENSION" : doctor.fueraDelDirectorioAt ? "FUERA_DEL_DIRECTORIO" : null,
     planLabel: label,
     vencimiento,
     diasParaVencer: diasParaFecha(vencimiento),
@@ -244,6 +250,7 @@ export type MedicoDetalle = MedicoResumen & {
   historial: { fecha: Date | null; titulo: string; descripcion: string; estimado?: boolean }[];
   usoMensual: { mes: string; pacientes: number }[];
   secretarias: string[];
+  sancionDetalle: { desde: Date; motivo: string; porNombre: string | null } | null;
 };
 
 export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null> {
@@ -261,6 +268,12 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       planDuracion: true,
       planEndsAt: true,
       bonificado: true,
+      suspendidoAt: true,
+      suspensionMotivo: true,
+      suspendidoPorId: true,
+      fueraDelDirectorioAt: true,
+      fueraDelDirectorioMotivo: true,
+      fueraDelDirectorioPorId: true,
       doctorAsignaciones: {
         select: { secretaria: { select: { nombre: true, apellido: true } } },
       },
@@ -344,7 +357,20 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
     .map((a) => `${a.secretaria.nombre} ${a.secretaria.apellido}`.trim())
     .filter(Boolean);
 
-  return { ...resumen, ultimaActividad, historial, usoMensual, secretarias };
+  const sancionDesde = doctor.suspendidoAt ?? doctor.fueraDelDirectorioAt;
+  const sancionPorId = doctor.suspendidoAt ? doctor.suspendidoPorId : doctor.fueraDelDirectorioPorId;
+  const sancionPor = sancionPorId
+    ? await prisma.user.findUnique({ where: { id: sancionPorId }, select: { nombre: true, apellido: true } })
+    : null;
+  const sancionDetalle = sancionDesde
+    ? {
+        desde: sancionDesde,
+        motivo: (doctor.suspendidoAt ? doctor.suspensionMotivo : doctor.fueraDelDirectorioMotivo) ?? "",
+        porNombre: sancionPor ? `${sancionPor.nombre} ${sancionPor.apellido}`.trim() : null,
+      }
+    : null;
+
+  return { ...resumen, ultimaActividad, historial, usoMensual, secretarias, sancionDetalle };
 }
 
 function restarMeses(fecha: Date, meses: number): Date {

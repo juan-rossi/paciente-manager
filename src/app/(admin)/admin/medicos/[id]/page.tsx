@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   CalendarDays,
   Clock,
+  Download,
   Mail,
+  ShieldX,
   Sparkles,
   Stethoscope,
   Users,
@@ -17,6 +19,8 @@ import { formatNumero, formatUsd, getUsoIAMedico, MESES_PROMEDIO } from "@/lib/a
 import { TopeIAForm } from "@/components/admin/costos-ia-controles";
 import { BonificadoBadge } from "@/components/admin/bonificado-badge";
 import { BonificadoSwitch } from "@/components/admin/bonificado-switch";
+import { LevantarSancionButton } from "@/components/admin/sancion-button";
+import { SANCION_LABELS } from "@/lib/sanciones";
 import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +67,7 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
                   )}
                   <Badge variant="secondary">{medico.planLabel}</Badge>
                   {medico.bonificado && <BonificadoBadge />}
+                  {medico.sancion && <Badge variant="destructive">{SANCION_LABELS[medico.sancion]}</Badge>}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {medico.nroMatricula ? `MP ${medico.nroMatricula} · ` : ""}
@@ -101,6 +106,44 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
             </CardFooter>
           )}
         </Card>
+
+        {medico.sancion && medico.sancionDetalle && (
+          <Card className="border-destructive/30">
+            <CardContent className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <ShieldX className="mt-0.5 size-5 shrink-0 text-destructive" />
+                <div className="flex flex-col gap-1">
+                  <span className="font-heading text-sm font-semibold">
+                    {medico.sancion === "SUSPENSION"
+                      ? "Cuenta suspendida: no puede iniciar sesión"
+                      : "Fuera del directorio: sigue usando la app, pero no aparece al público"}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Desde el {formatFechaCorta(medico.sancionDetalle.desde)}
+                    {medico.sancionDetalle.porNombre ? ` por ${medico.sancionDetalle.porNombre}` : ""} ·
+                    &ldquo;{medico.sancionDetalle.motivo}&rdquo;
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-start gap-2">
+                {/* Por ley tiene que poder llevarse sus historias clínicas: las pide a
+                    contacto@ y se las mandamos (ver /api/admin/medicos/[id]/exportar). */}
+                {medico.sancion === "SUSPENSION" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    nativeButton={false}
+                    render={<a href={`/api/admin/medicos/${medico.id}/exportar`} />}
+                  >
+                    <Download className="size-3.5" />
+                    Exportar historias clínicas
+                  </Button>
+                )}
+                <LevantarSancionButton doctorId={medico.id} tipo={medico.sancion} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard icon={Users} label="Total pacientes" value={String(medico.pacientesCount)} />

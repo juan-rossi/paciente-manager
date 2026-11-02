@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { fotoPerfilSchema } from "@/lib/perfil-schema";
-import { sincronizarCampoPublico } from "@/lib/moderacion";
+import { marcarPerfilPublicado, sincronizarCampoPublico } from "@/lib/moderacion";
 
 // Tope generoso para el string base64 (incluye el overhead ~33% de la
 // codificación) -- sin esto un archivo grande infla la fila de "User" sin
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
   // Solo la foto: la biografía no cambió, no se vuelve a moderar.
   const moderacion = await sincronizarCampoPublico(user.id, "FOTO");
+  await marcarPerfilPublicado(user.id);
 
   return NextResponse.json({ ok: true, moderacion });
 }
@@ -42,6 +43,7 @@ export async function DELETE() {
   await prisma.user.update({ where: { id: user.id }, data: { fotoPerfilBase64: null } });
   // Quitar la foto se publica directo (sin moderación).
   await sincronizarCampoPublico(user.id, "FOTO");
+  await marcarPerfilPublicado(user.id);
 
   return NextResponse.json({ ok: true });
 }

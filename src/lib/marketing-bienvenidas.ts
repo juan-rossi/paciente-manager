@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SIN_SANCION } from "@/lib/sanciones";
 import type { Prisma } from "@/generated/prisma/client";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { absoluteUrl } from "@/lib/site-url";
@@ -34,7 +35,9 @@ export type MedicoExcluido = { id: string; nombreCompleto: string; faltantes: st
 const ELEGIBLE: Prisma.UserWhereInput = {
   role: "DOCTOR",
   perfilPublico: true,
+  perfilPublicadoAt: { not: null },
   publicSlug: { not: null },
+  ...SIN_SANCION,
   tituloCortesia: { not: null },
   especialidad: { not: null },
   nombre: { not: "" },
@@ -132,6 +135,7 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
         nroMatricula: true,
         biografiaPublica: true,
         perfilPublico: true,
+        perfilPublicadoAt: true,
         lugaresDeTrabajo: {
           where: { deletedAt: null },
           select: { _count: { select: { bloques: true } } },
@@ -150,6 +154,7 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
   for (const m of medicos) {
     const faltantes: string[] = [];
     if (!m.perfilPublico) faltantes.push("Perfil no público");
+    else if (!m.perfilPublicadoAt) faltantes.push("Perfil esperando moderación");
     if (!m.tituloCortesia || !m.especialidad || !m.nroMatricula || !m.nombre || !m.apellido) {
       faltantes.push("Perfil incompleto");
     }

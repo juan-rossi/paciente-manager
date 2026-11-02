@@ -254,3 +254,23 @@ export async function getEstadoModeracionPerfil(userId: string): Promise<{
     foto: estadoDe("FOTO", user.fotoPerfilBase64),
   };
 }
+
+// La primera vez que un perfil público queda con todo lo cargado aprobado (o
+// sin nada que revisar), pasa a listarse en el directorio (ver
+// `perfilPublicadoAt`). Se llama después de terminar de sincronizar los dos
+// campos -- no desde `sincronizarCampoPublico`, que va de a uno: tras moderar
+// la biografía, una foto nueva todavía no tiene revisión y pasaría como limpia.
+export async function marcarPerfilPublicado(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { perfilPublico: true, perfilPublicadoAt: true },
+  });
+  if (user.perfilPublicadoAt) return true;
+  if (!user.perfilPublico) return false;
+
+  const estado = await getEstadoModeracionPerfil(userId);
+  if (estado.biografia || estado.foto) return false;
+
+  await prisma.user.update({ where: { id: userId }, data: { perfilPublicadoAt: new Date() } });
+  return true;
+}

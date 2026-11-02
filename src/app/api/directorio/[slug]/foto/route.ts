@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SIN_SANCION } from "@/lib/sanciones";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     where: {
       role: "DOCTOR",
       publicSlug: slug,
-      OR: [{ perfilPublico: true }, { reservaPublicaHabilitada: true }],
+      OR: [{ perfilPublico: true, perfilPublicadoAt: { not: null } }, { reservaPublicaHabilitada: true }],
+      ...SIN_SANCION,
     },
     select: { fotoPublicaBase64: true },
   });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api-auth";
+import { marcarPerfilPublicado } from "@/lib/moderacion";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             : { biografiaPublica: revision.contenido },
       }),
     ]);
+    // Si era lo último que frenaba la primera publicación, el perfil pasa a
+    // listarse en el directorio.
+    await marcarPerfilPublicado(revision.userId);
   } else {
     await resolucion;
   }

@@ -6,6 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ModeracionAcciones } from "@/components/admin/moderacion-acciones";
 import { CATEGORIA_LABELS } from "@/lib/moderacion";
 import { nombreConTitulo } from "@/lib/marketing-bienvenidas-texto";
+import { planLabelDe } from "@/lib/admin-metrics";
+import { diasParaFecha } from "@/lib/plan";
+import { BonificadoBadge } from "@/components/admin/bonificado-badge";
+import { SancionButton } from "@/components/admin/sancion-button";
+import { SANCION_LABELS, sancionActual, sancionQueCorresponde } from "@/lib/sanciones";
 import { PageEnter } from "@/components/page-transition";
 
 // La cola cambia cada vez que un médico guarda su perfil -- sin cache.
@@ -20,6 +25,7 @@ const fechaFormatter = new Intl.DateTimeFormat("es-AR", {
 });
 
 export default async function AdminModeracionPage() {
+  const ahora = new Date();
   const revisiones = await prisma.moderacionPerfil.findMany({
     where: { estado: "PENDIENTE" },
     orderBy: { createdAt: "asc" },
@@ -39,6 +45,19 @@ export default async function AdminModeracionPage() {
           publicSlug: true,
           biografiaPublica: true,
           fotoPublicaBase64: true,
+          plan: true,
+          planDuracion: true,
+          planEndsAt: true,
+          trialEndsAt: true,
+          bonificado: true,
+          suspendidoAt: true,
+          fueraDelDirectorioAt: true,
+          _count: {
+            select: {
+              turnosDelDoctor: { where: { estado: "CONFIRMADO", inicio: { gte: ahora } } },
+              doctorAsignaciones: { where: { aceptadaAt: { not: null } } },
+            },
+          },
         },
       },
     },
@@ -68,6 +87,11 @@ export default async function AdminModeracionPage() {
             {revisiones.map((r) => {
               const esFoto = r.campo === "FOTO";
               const anterior = esFoto ? r.user.fotoPublicaBase64 : r.user.biografiaPublica;
+              // Mismo rótulo que el listado de /admin/medicos, para decidir con
+              // contexto (no es lo mismo un trial de ayer que un Premium anual).
+              const { label: planLabel, esTrial } = planLabelDe(r.user);
+              const diasTrial = esTrial ? diasParaFecha(r.user.trialEndsAt) : null;
+              const sancionVigente = sancionActual(r.user);
               return (
                 <li key={r.id}>
                   <Card>
@@ -82,6 +106,16 @@ export default async function AdminModeracionPage() {
                               {nombreConTitulo(r.user)}
                             </Link>
                             <Badge variant="secondary">{esFoto ? "Foto" : "Biografía"}</Badge>
+                            <Badge variant="outline">{planLabel}</Badge>
+                            {diasTrial !== null && diasTrial > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                {diasTrial === 1 ? "queda 1 día" : `quedan ${diasTrial} días`}
+                              </span>
+                            )}
+                            {r.user.bonificado && <BonificadoBadge />}
+                            {sancionVigente && (
+                              <Badge variant="destructive">{SANCION_LABELS[sancionVigente]}</Badge>
+                            )}
                             {r.user.publicSlug && (
                               <a
                                 href={`/directorio/${r.user.publicSlug}`}
@@ -111,7 +145,25 @@ export default async function AdminModeracionPage() {
                             </span>
                           </div>
                         </div>
-                        <ModeracionAcciones id={r.id} updatedAt={r.updatedAt.toISOString()} />
+                        <div className="flex flex-wrap items-start justify-end gap-2">
+                          {!sancionVigente && (
+                            <SancionButton
+                              doctorId={r.user.id}
+                              nombre={nombreConTitulo(r.user)}
+                              planLabel={planLabel}
+                              tipo={sancionQueCorresponde(r.user)}
+                              turnosFuturos={r.user._count.turnosDelDoctor}
+                              secretarias={r.user._count.doctorAsignaciones}
+                              revisionId={r.id}
+                              motivoSugerido={
+                                esFoto
+                                  ? "Subió una foto de perfil inadecuada."
+                                  : "Publicó contenido inadecuado en su biografía."
+                              }
+                            />
+                          )}
+                          <ModeracionAcciones id={r.id} updatedAt={r.updatedAt.toISOString()} />
+                        </div>
                       </div>
 
                       <div className="grid gap-4 sm:grid-cols-2">

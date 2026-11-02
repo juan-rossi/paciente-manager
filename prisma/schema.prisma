@@ -233,6 +233,13 @@ model User {
   // cuando este flag está en true, pero a nivel de schema quedan nullable --
   // mismo criterio que `tituloCortesia`/`especialidad`.
   perfilPublico            Boolean         @default(false)
+  // Primera vez que el perfil salió en el directorio, con la biografía y la
+  // foto ya aprobadas por la moderación (ver `marcarPerfilPublicado` en
+  // src/lib/moderacion.ts). Hasta entonces el perfil no se lista aunque
+  // `perfilPublico` esté prendido: un médico nuevo con contenido marcado no
+  // aparece hasta que un admin lo revise. Una vez seteado no se borra -- los
+  // cambios posteriores esperan revisión mostrando la versión anterior.
+  perfilPublicadoAt        DateTime?
   // Redes del médico para el perfil público -- solo se muestran con
   // `perfilPublico` activo. Se guardan ya normalizadas como URL completa
   // (ver `normalizarRedSocial` en src/lib/redes-sociales.ts).
@@ -330,6 +337,18 @@ model User {
   // toca el acceso, que sigue saliendo de `trialEndsAt`/`planEndsAt`. Se
   // marca desde la ficha del médico en /admin; el médico nunca lo ve.
   bonificado Boolean @default(false)
+
+  // Sanciones por mal uso, aplicadas desde /admin/moderacion (ver
+  // `src/lib/sanciones.ts`). Cuál corresponde depende del plan: a un médico
+  // en período de prueba se lo suspende (no puede entrar, ver `authorize()` y
+  // `sessionVersion`); a uno que paga solo se lo saca del directorio y de la
+  // agenda pública, y sigue usando la app. Las dos se levantan desde su ficha.
+  suspendidoAt             DateTime?
+  suspensionMotivo         String?
+  suspendidoPorId          String?
+  fueraDelDirectorioAt     DateTime?
+  fueraDelDirectorioMotivo String?
+  fueraDelDirectorioPorId  String?
 
   // Plan/duración elegidos en el checkout, todavía SIN confirmar por pago --
   // `plan`/`planDuracion` de arriba no se tocan hasta que el webhook reciba

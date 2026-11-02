@@ -12,8 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Semio360Mark } from "@/components/brand/logo";
 import { GoogleIcon } from "@/components/google-icon";
 
+// El motivo le llega por mail al suspender (ver `src/lib/sancion-email.ts`).
+const CUENTA_SUSPENDIDA =
+  "Tu cuenta está suspendida. Te enviamos un mail con el motivo. Si creés que es un error, escribinos a contacto@semio360.com.";
+
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "Esa cuenta no está asociada a ningún usuario de Semio360.",
+  Suspendida: CUENTA_SUSPENDIDA,
 };
 
 export function LoginForm() {
@@ -49,7 +54,9 @@ export function LoginForm() {
         setError(
           response?.code === "rate_limited"
             ? "Demasiados intentos. Esperá unos minutos o restablecé tu contraseña."
-            : "Email o contraseña incorrectos."
+            : response?.code === "suspended"
+              ? CUENTA_SUSPENDIDA
+              : "Email o contraseña incorrectos."
         );
         return;
       }

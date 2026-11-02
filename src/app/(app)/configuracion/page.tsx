@@ -199,6 +199,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                 .filter(Boolean)
                 .join(" ")}
               initialPerfilPublico={user.perfilPublico}
+              perfilPublicado={user.perfilPublicadoAt !== null}
               lugares={lugares.map((l) => ({
                 ...l,
                 tieneHorarios: blocks.some((b) => b.lugarId === l.id),
@@ -209,6 +210,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
               initialReservaPublicaSemanas={user.reservaPublicaSemanas}
               initialPublicSlug={user.publicSlug}
+              fueraDelDirectorioMotivo={user.fueraDelDirectorioAt ? (user.fueraDelDirectorioMotivo ?? "") : null}
             />
           </TabsContent>
           <TabsContent value="seguridad" className="w-full">
