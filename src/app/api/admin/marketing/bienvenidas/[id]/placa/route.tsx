@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       tituloCortesia: true,
       especialidad: true,
       ciudad: true,
-      fotoPerfilBase64: true,
+      fotoPublicaBase64: true,
       reservaPublicaHabilitada: true,
       lugaresDeTrabajo: {
         where: { deletedAt: null, perfilVisible: true },
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const iniciales = `${medico.nombre.charAt(0)}${medico.apellido.charAt(0)}`.toUpperCase();
   // Satori solo decodifica PNG/JPEG; Mi perfil solo deja subir esos dos, pero
   // si llegara otro formato se cae a las iniciales en vez de romper la imagen.
-  const foto = medico.fotoPerfilBase64;
+  const foto = medico.fotoPublicaBase64;
   const fotoValida = foto && /^data:image\/(png|jpe?g);base64,/i.test(foto) ? foto : null;
 
   const tamanoNombre = nombre.length > 26 ? 66 : nombre.length > 20 ? 76 : 86;

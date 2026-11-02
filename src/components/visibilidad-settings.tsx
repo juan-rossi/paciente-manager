@@ -31,6 +31,7 @@ import {
   type RedSocial,
 } from "@/lib/redes-sociales";
 import { RED_SOCIAL_ICONS } from "@/components/redes-sociales-icons";
+import { AvisoModeracion, estadoAviso, type EstadoAvisoModeracion } from "@/components/aviso-moderacion";
 
 // Orden en el form: primero las redes más usadas, la comunidad de WhatsApp
 // en el medio (en el perfil público va destacada, ver PerfilShell).
@@ -65,6 +66,9 @@ type Props = {
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
   lugares: LugarResumen[];
   initialBiografia: string | null;
+  // Si la biografía/foto cargadas todavía esperan revisión (o se rechazaron)
+  // para el perfil público.
+  initialModeracion: { biografia: EstadoAvisoModeracion; foto: EstadoAvisoModeracion };
   initialRedes: RedesSociales;
   initialReservaPublicaHabilitada: boolean;
   initialReservaPublicaSemanas: number;
@@ -76,6 +80,7 @@ export function VisibilidadSettings({
   initialPerfilPublico,
   lugares,
   initialBiografia,
+  initialModeracion,
   initialRedes,
   initialReservaPublicaHabilitada,
   initialReservaPublicaSemanas,
@@ -85,6 +90,7 @@ export function VisibilidadSettings({
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
+  const [moderacion, setModeracion] = useState(initialModeracion);
   const [redes, setRedes] = useState(() => redesATexto(initialRedes));
   // El error de una red se muestra recién al salir del campo (mientras se
   // escribe un link, a medias, siempre es inválido).
@@ -191,6 +197,12 @@ export function VisibilidadSettings({
         JSON.stringify({ ...JSON.parse(visibilidadSnapshot), redes: redesGuardadas }),
       );
       setPublicSlug(data.publicSlug);
+      // `null` = el campo no se publica (perfil apagado): se conserva el aviso
+      // que hubiera, sigue valiendo para cuando se vuelva a publicar.
+      setModeracion((prev) => ({
+        biografia: data.moderacion.biografia === null ? prev.biografia : estadoAviso(data.moderacion.biografia),
+        foto: data.moderacion.foto === null ? prev.foto : estadoAviso(data.moderacion.foto),
+      }));
       router.refresh();
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -440,6 +452,7 @@ export function VisibilidadSettings({
                 value={biografia}
                 onChange={(e) => setBiografia(e.target.value)}
               />
+              <AvisoModeracion campo="biografia" estado={moderacion.biografia} />
             </div>
 
             <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
@@ -488,6 +501,7 @@ export function VisibilidadSettings({
           </div>
         )}
 
+        {perfilPublico && <AvisoModeracion campo="foto" estado={moderacion.foto} />}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end border-t border-dashed border-border pt-3">
           <Button

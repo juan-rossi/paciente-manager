@@ -13,10 +13,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
       publicSlug: slug,
       OR: [{ perfilPublico: true }, { reservaPublicaHabilitada: true }],
     },
-    select: { fotoPerfilBase64: true },
+    select: { fotoPublicaBase64: true },
   });
 
-  const match = doctor?.fotoPerfilBase64?.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  const match = doctor?.fotoPublicaBase64?.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
   if (!match) return new Response(null, { status: 404 });
 
   return new Response(Buffer.from(match[2], "base64"), {

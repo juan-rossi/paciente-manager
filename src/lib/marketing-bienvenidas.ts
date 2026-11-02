@@ -40,8 +40,10 @@ const ELEGIBLE: Prisma.UserWhereInput = {
   nombre: { not: "" },
   apellido: { not: "" },
   nroMatricula: { not: "" },
-  fotoPerfilBase64: { not: null },
-  biografia: { not: null },
+  // Lo que se publica en redes es lo mismo que el directorio: la versión ya
+  // moderada (ver `src/lib/moderacion.ts`).
+  fotoPublicaBase64: { not: null },
+  biografiaPublica: { not: null },
   lugaresDeTrabajo: { some: { deletedAt: null, bloques: { some: {} } } },
 };
 
@@ -51,7 +53,7 @@ const SELECT = {
   apellido: true,
   tituloCortesia: true,
   especialidad: true,
-  biografia: true,
+  biografiaPublica: true,
   ciudad: true,
   publicSlug: true,
   reservaPublicaHabilitada: true,
@@ -102,7 +104,7 @@ export async function getBienvenidas(estado: EstadoBienvenida): Promise<Bienveni
     orderBy: { createdAt: "desc" },
   });
   // Una biografía de solo espacios no cuenta como completa.
-  return filas.filter((m) => m.biografia?.trim()).map(aBienvenida);
+  return filas.filter((m) => m.biografiaPublica?.trim()).map(aBienvenida);
 }
 
 export async function contarBienvenidas(): Promise<{ pendientes: number; publicadas: number }> {
@@ -128,7 +130,7 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
         tituloCortesia: true,
         especialidad: true,
         nroMatricula: true,
-        biografia: true,
+        biografiaPublica: true,
         perfilPublico: true,
         lugaresDeTrabajo: {
           where: { deletedAt: null },
@@ -138,7 +140,7 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({
-      where: { role: "DOCTOR", fotoPerfilBase64: { not: null } },
+      where: { role: "DOCTOR", fotoPublicaBase64: { not: null } },
       select: { id: true },
     }),
   ]);
@@ -152,7 +154,7 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
       faltantes.push("Perfil incompleto");
     }
     if (!idsConFoto.has(m.id)) faltantes.push("Sin foto de perfil");
-    if (!m.biografia?.trim()) faltantes.push("Sin biografía");
+    if (!m.biografiaPublica?.trim()) faltantes.push("Sin biografía");
     if (!m.lugaresDeTrabajo.some((l) => l._count.bloques > 0)) faltantes.push("Sin lugar con horarios");
     if (faltantes.length > 0) {
       excluidos.push({ id: m.id, nombreCompleto: nombreConTitulo(m), faltantes });

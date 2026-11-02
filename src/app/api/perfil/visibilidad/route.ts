@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { visibilidadSchema } from "@/lib/perfil-schema";
 import { generateUniquePublicSlug } from "@/lib/public-slug";
+import { sincronizarCampoPublico } from "@/lib/moderacion";
 import { RED_SOCIAL_CAMPO, REDES_SOCIALES, redesDeUsuario } from "@/lib/redes-sociales";
 
 export async function PATCH(request: NextRequest) {
@@ -54,7 +55,15 @@ export async function PATCH(request: NextRequest) {
     }),
   ]);
 
+  // Solo llega a la API lo que difiere de lo ya publicado: la biografía si se
+  // editó, la foto si el perfil recién se hace público con una foto nueva. En
+  // serie, no con Promise.all: en paralelo, la base local de `prisma dev`
+  // (una sola conexión) mezclaba las queries y el create fallaba.
+  const moderacionBiografia = await sincronizarCampoPublico(user.id, "BIOGRAFIA");
+  const moderacionFoto = await sincronizarCampoPublico(user.id, "FOTO");
+
   return NextResponse.json({
+    moderacion: { biografia: moderacionBiografia, foto: moderacionFoto },
     perfilPublico: updated.perfilPublico,
     biografia: updated.biografia,
     // Ya normalizadas: el form las reemplaza para mostrar lo que se guardó.

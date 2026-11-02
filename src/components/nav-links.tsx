@@ -8,6 +8,7 @@ import {
   Megaphone,
   MessageCircle,
   Settings,
+  ShieldAlert,
   Sparkles,
   Stethoscope,
   Users,
@@ -26,6 +27,7 @@ const ICONS = {
   Wallet,
   Megaphone,
   Sparkles,
+  ShieldAlert,
 } satisfies Record<string, LucideIcon>;
 
 type NavLink = {

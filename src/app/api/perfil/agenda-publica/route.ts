@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { agendaPublicaSchema } from "@/lib/perfil-schema";
 import { generateUniquePublicSlug } from "@/lib/public-slug";
+import { sincronizarCampoPublico } from "@/lib/moderacion";
 
 // Toggle instantáneo (se guarda solo, sin pasar por "Guardar cambios") --
 // mismo criterio que `sobreturnosHabilitados`/`mensajeriaHabilitada`.
@@ -37,7 +38,14 @@ export async function PATCH(request: NextRequest) {
     });
   }
 
+  // La foto también se ve en la agenda pública: si nunca pasó por la
+  // moderación (p.ej. se subió con todo lo público apagado), pasa ahora.
+  const moderacionFoto = reservaPublicaHabilitada
+    ? await sincronizarCampoPublico(user.id, "FOTO")
+    : null;
+
   return NextResponse.json({
+    moderacion: { foto: moderacionFoto },
     reservaPublicaHabilitada: updated.reservaPublicaHabilitada,
     reservaPublicaSemanas: updated.reservaPublicaSemanas,
     publicSlug: updated.publicSlug,

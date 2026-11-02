@@ -20,9 +20,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     ? (
         await prisma.user.findUnique({
           where: { publicSlug: slug },
-          select: { fotoPerfilBase64: true },
+          select: { fotoPublicaBase64: true },
         })
-      )?.fotoPerfilBase64
+      )?.fotoPublicaBase64
     : null;
   const fotoValida = foto && /^data:image\/(png|jpe?g);base64,/i.test(foto) ? foto : null;
   const iniciales = doctor ? `${doctor.nombre.charAt(0)}${doctor.apellido.charAt(0)}`.toUpperCase() : "S";

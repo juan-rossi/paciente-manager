@@ -267,3 +267,30 @@ export function AdminBienvenidasSkeleton() {
     </SkeletonExit>
   );
 }
+
+export function AdminModeracionSkeleton() {
+  return (
+    <SkeletonExit>
+      <div className="flex flex-col gap-6">
+        <AdminTitle title="Moderación" subtitleWidth="w-96 max-w-full" />
+        {Array.from({ length: 2 }, (_, i) => (
+          <Card key={i}>
+            <CardContent className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+                <Skeleton className="h-9 w-56" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Skeleton className="h-56" />
+                <Skeleton className="h-56" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </SkeletonExit>
+  );
+}

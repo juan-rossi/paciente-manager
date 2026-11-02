@@ -29,11 +29,14 @@ import {
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import { AvisoModeracion, estadoAviso, type EstadoAvisoModeracion } from "@/components/aviso-moderacion";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
 type Props = {
   initialFotoPerfilBase64: string | null;
+  // Si la foto cargada todavía espera revisión (o se rechazó) para el perfil público.
+  initialModeracionFoto: EstadoAvisoModeracion;
   initialTituloCortesia: TituloCortesia | null;
   initialNombre: string;
   initialApellido: string;
@@ -46,6 +49,7 @@ type Props = {
 
 export function MiPerfilSettings({
   initialFotoPerfilBase64,
+  initialModeracionFoto,
   initialTituloCortesia,
   initialNombre,
   initialApellido,
@@ -60,6 +64,7 @@ export function MiPerfilSettings({
   const [fotoPerfilBase64, setFotoPerfilBase64] = useState(initialFotoPerfilBase64);
   const [fotoSaving, setFotoSaving] = useState(false);
   const [fotoError, setFotoError] = useState<string | null>(null);
+  const [moderacionFoto, setModeracionFoto] = useState(initialModeracionFoto);
 
   const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">(
     initialTituloCortesia ?? ""
@@ -141,6 +146,7 @@ export function MiPerfilSettings({
         return;
       }
       setFotoPerfilBase64(dataUrl);
+      setModeracionFoto(estadoAviso(data.moderacion));
       router.refresh();
     } catch {
       setFotoError("No se pudo conectar con el servidor.");
@@ -159,6 +165,7 @@ export function MiPerfilSettings({
         return;
       }
       setFotoPerfilBase64(null);
+      setModeracionFoto(null);
       router.refresh();
     } catch {
       setFotoError("No se pudo conectar con el servidor.");
@@ -260,6 +267,7 @@ export function MiPerfilSettings({
             {fotoError && <p className="text-xs text-destructive">{fotoError}</p>}
           </div>
         </div>
+        <AvisoModeracion campo="foto" estado={moderacionFoto} />
 
         <div className="grid grid-cols-[7.5rem_1fr_1fr] gap-3">
           <div className="flex flex-col gap-1.5">

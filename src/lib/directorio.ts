@@ -15,8 +15,10 @@ const doctorPublicoSelect = {
   apellido: true,
   especialidad: true,
   ciudad: true,
-  biografia: true,
-  fotoPerfilBase64: true,
+  // Siempre la versión ya moderada, nunca lo último que cargó el médico
+  // (ver `src/lib/moderacion.ts`).
+  biografiaPublica: true,
+  fotoPublicaBase64: true,
   reservaPublicaHabilitada: true,
 } as const;
 
@@ -39,8 +41,8 @@ function pickDoctorPublico(row: {
   apellido: string;
   especialidad: Especialidad | null;
   ciudad: string | null;
-  biografia: string | null;
-  fotoPerfilBase64: string | null;
+  biografiaPublica: string | null;
+  fotoPublicaBase64: string | null;
   reservaPublicaHabilitada: boolean;
   destacado: boolean;
   prepagas: { prepaga: { nombre: string } }[];
@@ -53,8 +55,8 @@ function pickDoctorPublico(row: {
     apellido: row.apellido,
     especialidad: row.especialidad,
     ciudad: row.ciudad,
-    biografia: row.biografia,
-    fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPerfilBase64),
+    biografia: row.biografiaPublica,
+    fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPublicaBase64),
     reservaPublicaHabilitada: row.reservaPublicaHabilitada,
     destacado: row.destacado,
     prepagas: row.destacado ? row.prepagas.map(({ prepaga }) => prepaga.nombre) : [],
@@ -378,14 +380,15 @@ export async function getDoctorPublicoPorSlug(slug: string) {
   });
   if (!doctor) return null;
 
-  const { trialEndsAt, planEndsAt, fotoPerfilBase64, ...resto } = doctor;
+  const { trialEndsAt, planEndsAt, fotoPublicaBase64, biografiaPublica, ...resto } = doctor;
   const activo = esActivo({ trialEndsAt, planEndsAt });
   // Sin plan activo y sin perfil público, el link directo a la agenda deja de
   // ser un motivo para exponer la página.
   if (!activo && !resto.perfilPublico) return null;
   return {
     ...resto,
-    fotoUrl: fotoUrlDe(resto.publicSlug, fotoPerfilBase64),
+    biografia: biografiaPublica,
+    fotoUrl: fotoUrlDe(resto.publicSlug, fotoPublicaBase64),
     reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo,
   };
 }
