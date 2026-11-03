@@ -92,7 +92,8 @@ export function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" 
 }
 
 function resumenDe(doctor: DoctorListRow): MedicoResumen {
-  const activo = esActivo(doctor);
+  // Un suspendido no puede entrar a la plataforma: cuenta como inactivo aunque su plan siga vigente.
+  const activo = esActivo(doctor) && !doctor.suspendidoAt;
   const vencimiento = fechaVencimientoRelevante(doctor);
   const { label, esTrial } = planLabelDe(doctor);
   return {
@@ -336,9 +337,11 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
     historial.push({
       fecha: null,
       titulo: "Cuenta inactiva",
-      descripcion: resumen.esTrial
-        ? "El trial venció sin conversión a plan pago."
-        : "La suscripción venció sin renovación registrada.",
+      descripcion: doctor.suspendidoAt
+        ? "La cuenta está suspendida por moderación."
+        : resumen.esTrial
+          ? "El trial venció sin conversión a plan pago."
+          : "La suscripción venció sin renovación registrada.",
     });
   }
 
