@@ -5,7 +5,7 @@ import { dateParamToDateBA, formatDateParamBA } from "@/lib/timezone";
 
 /**
  * Reporte de uso y costo de las funciones de IA Premium (dictado y resumen)
- * para el panel admin (`/admin/costos-ia`, Dashboard y ficha del médico).
+ * para el panel admin (`/admin/finanzas/costos-ia`, Dashboard y ficha del médico).
  * Lee la tabla `UsoIA` (una fila por pedido, ver `src/lib/ia-costos.ts`) y
  * agrupa en JS por médico y mes -- mismo criterio que `admin-metrics.ts`
  * mientras el volumen sea chico.
@@ -193,7 +193,7 @@ function porcentajeDelPlan(costoUsd: number, cotizacion: Cotizacion | null, prec
 }
 
 // ---------------------------------------------------------------------------
-// Pantalla /admin/costos-ia
+// Pantalla /admin/finanzas/costos-ia
 // ---------------------------------------------------------------------------
 
 export type FilaMedicoCostosIA = {

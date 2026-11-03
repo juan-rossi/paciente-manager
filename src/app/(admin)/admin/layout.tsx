@@ -9,8 +9,8 @@ import { prisma } from "@/lib/prisma";
 const ADMIN_NAV_LINKS = [
   { href: "/admin", label: "Dashboard", icon: "LayoutDashboard" as const },
   { href: "/admin/medicos", label: "Médicos", icon: "Stethoscope" as const, matchPrefixes: ["/admin/medicos"] },
-  { href: "/admin/gastos", label: "Gastos", icon: "Wallet" as const },
-  { href: "/admin/costos-ia", label: "Costos IA", icon: "Sparkles" as const },
+  // Dashboard financiero, Gastos y Costos IA (submenú lateral en finanzas/layout.tsx).
+  { href: "/admin/finanzas", label: "Finanzas", icon: "Wallet" as const, matchPrefixes: ["/admin/finanzas"] },
   // Directo a la primera pestaña: /admin/marketing redirige en el servidor y,
   // al no tener loading.tsx, la pantalla quedaba congelada hasta el redirect.
   { href: "/admin/marketing/bienvenidas", label: "Marketing", icon: "Megaphone" as const, matchPrefixes: ["/admin/marketing"] },

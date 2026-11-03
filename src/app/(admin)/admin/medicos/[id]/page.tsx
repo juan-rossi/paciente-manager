@@ -171,7 +171,7 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
                   <Sparkles className="size-3.5 text-primary" />
                   Uso de IA
                 </h2>
-                <Link href="/admin/costos-ia" className="text-xs font-medium text-primary hover:underline">
+                <Link href="/admin/finanzas/costos-ia" className="text-xs font-medium text-primary hover:underline">
                   Ver costos IA
                 </Link>
               </div>

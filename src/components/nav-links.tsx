@@ -49,7 +49,7 @@ type Props = {
 export function NavLinks({ links, className, activeVariant = "underline" }: Props) {
   const pathname = usePathname();
 
-  // Con rutas anidadas (ej. "/admin" y "/admin/gastos"), el link padre
+  // Con rutas anidadas (ej. "/admin" y "/admin/finanzas"), el link padre
   // también matchea por prefijo cualquier hijo -- sin desempate, "Dashboard"
   // quedaba marcado activo en todas las subpáginas del panel admin. Gana
   // el match más específico (el prefijo más largo), no el primero.

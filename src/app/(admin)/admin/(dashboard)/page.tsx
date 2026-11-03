@@ -91,7 +91,7 @@ export default async function AdminDashboardPage() {
                   ? `${formatNumero((costoIAArs / data.mrrEstimado) * 100, 1)} % del MRR`
                   : `≈ ${formatMoneyARS(costoIAArs)} ARS`
             }
-            href="/admin/costos-ia"
+            href="/admin/finanzas/costos-ia"
           />
         </div>
 
