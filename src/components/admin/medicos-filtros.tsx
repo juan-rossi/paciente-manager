@@ -21,6 +21,11 @@ const VENCIMIENTOS = [
   { value: "30", label: "Vence en 30 días" },
   { value: "VENCIDO", label: "Ya venció" },
 ];
+const SANCIONES = [
+  { value: "", label: "Sanción: todas" },
+  { value: "SUSPENSION", label: "Suspendidos" },
+  { value: "FUERA_DEL_DIRECTORIO", label: "Fuera del directorio" },
+];
 
 const SELECT_CLASS =
   "h-8 rounded-lg border border-input bg-white px-2.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -30,11 +35,13 @@ export function MedicosFiltros({
   estado,
   plan,
   vencimiento,
+  sancion,
 }: {
   q: string;
   estado: string;
   plan: string;
   vencimiento: string;
+  sancion: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -80,6 +87,13 @@ export function MedicosFiltros({
         className={SELECT_CLASS}
       >
         {VENCIMIENTOS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <select value={sancion} onChange={(e) => setParam("sancion", e.target.value)} className={SELECT_CLASS}>
+        {SANCIONES.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>

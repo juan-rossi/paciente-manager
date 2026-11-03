@@ -24,7 +24,7 @@ import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ q?: string; estado?: string; plan?: string; vencimiento?: string }>;
+type SearchParams = Promise<{ q?: string; estado?: string; plan?: string; vencimiento?: string; sancion?: string }>;
 
 export default async function AdminMedicosPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
@@ -33,6 +33,7 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
     estado: sp.estado === "ACTIVO" || sp.estado === "INACTIVO" ? sp.estado : undefined,
     plan: sp.plan === "TRIAL" || sp.plan === "BASICA" || sp.plan === "PREMIUM" ? sp.plan : undefined,
     vencimiento: sp.vencimiento === "7" || sp.vencimiento === "30" || sp.vencimiento === "VENCIDO" ? sp.vencimiento : undefined,
+    sancion: sp.sancion === "SUSPENSION" || sp.sancion === "FUERA_DEL_DIRECTORIO" ? sp.sancion : undefined,
   };
 
   const medicos = await getMedicos(filtros);
@@ -61,7 +62,7 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
         </div>
 
         <Suspense fallback={<div className="h-8" />}>
-          <MedicosFiltros q={sp.q ?? ""} estado={sp.estado ?? ""} plan={sp.plan ?? ""} vencimiento={sp.vencimiento ?? ""} />
+          <MedicosFiltros q={sp.q ?? ""} estado={sp.estado ?? ""} plan={sp.plan ?? ""} vencimiento={sp.vencimiento ?? ""} sancion={sp.sancion ?? ""} />
         </Suspense>
 
         <Table>

@@ -129,6 +129,11 @@ export function VisibilidadSettings({
   const esperandoModeracion =
     initialPerfilPublico && !perfilPublicado && !fueraDelDirectorio && (moderacion.biografia || moderacion.foto);
   const rechazado = moderacion.biografia === "rechazado" || moderacion.foto === "rechazado";
+  // Con el aviso general de arriba, el "pendiente" de cada campo sobra (y su
+  // "sigue mostrando la anterior" es falso: nunca hubo nada publicado). El
+  // rechazo sí se mantiene, para saber qué campo hay que corregir.
+  const avisoCampo = (estado: EstadoAvisoModeracion) =>
+    esperandoModeracion && estado === "pendiente" ? null : estado;
 
   function togglePerfilPublico(checked: boolean) {
     setPerfilPublico(checked);
@@ -502,7 +507,7 @@ export function VisibilidadSettings({
                 value={biografia}
                 onChange={(e) => setBiografia(e.target.value)}
               />
-              <AvisoModeracion campo="biografia" estado={moderacion.biografia} />
+              <AvisoModeracion campo="biografia" estado={avisoCampo(moderacion.biografia)} />
             </div>
 
             <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
@@ -551,7 +556,7 @@ export function VisibilidadSettings({
           </div>
         )}
 
-        {perfilPublico && <AvisoModeracion campo="foto" estado={moderacion.foto} />}
+        {perfilPublico && <AvisoModeracion campo="foto" estado={avisoCampo(moderacion.foto)} />}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end border-t border-dashed border-border pt-3">
           <Button

@@ -201,6 +201,7 @@ export type MedicosFiltros = {
   estado?: "ACTIVO" | "INACTIVO";
   plan?: "TRIAL" | "BASICA" | "PREMIUM";
   vencimiento?: "7" | "30" | "VENCIDO";
+  sancion?: TipoSancion;
 };
 
 export async function getMedicos(filtros: MedicosFiltros = {}): Promise<MedicoResumen[]> {
@@ -210,6 +211,7 @@ export async function getMedicos(filtros: MedicosFiltros = {}): Promise<MedicoRe
   return doctores
     .filter((d) => {
       if (filtros.estado && d.estado !== filtros.estado) return false;
+      if (filtros.sancion && d.sancion !== filtros.sancion) return false;
       if (filtros.plan === "TRIAL" && !d.esTrial) return false;
       if (filtros.plan === "BASICA" && (d.esTrial || d.tier !== "BASICA")) return false;
       if (filtros.plan === "PREMIUM" && (d.esTrial || d.tier !== "PREMIUM")) return false;
