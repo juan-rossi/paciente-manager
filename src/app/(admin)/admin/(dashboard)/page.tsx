@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, Clock, DollarSign, Mail, MinusCircle, Sparkles, TrendingUp } from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, CreditCard, DollarSign, Mail, MinusCircle, Sparkles, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,13 +27,15 @@ export default async function AdminDashboardPage() {
           <p className="mt-1 text-sm text-muted-foreground">Resumen del negocio · Semio 360</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {/* 12 columnas en desktop: fila de 4 (estado de la base) + fila de 3 (negocio), ambas a ancho completo. */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-12 lg:[&>*:nth-child(-n+4)]:col-span-3 lg:[&>*:nth-child(n+5)]:col-span-4">
           <KpiCard
             icon={CheckCircle2}
             label="Activos"
             value={String(data.activos)}
             sub={`de ${data.totalMedicos} médicos totales`}
             tone="success"
+            href="/admin/medicos?estado=ACTIVO"
           />
           <KpiCard
             icon={MinusCircle}
@@ -41,6 +43,14 @@ export default async function AdminDashboardPage() {
             value={String(data.inactivos)}
             sub="trial o plan vencido"
             tone="critical"
+            href="/admin/medicos?estado=INACTIVO"
+          />
+          <KpiCard
+            icon={CreditCard}
+            label="Usuarios pagos"
+            value={String(data.usuariosPagos)}
+            sub="con plan pago vigente"
+            href="/admin/medicos?estado=ACTIVO&tipo=PAGO"
           />
           <KpiCard
             icon={Clock}
@@ -70,20 +80,19 @@ export default async function AdminDashboardPage() {
                 : "")
             }
           />
-          <Link href="/admin/costos-ia" className="rounded-xl transition-shadow hover:shadow-md [&>*]:h-full">
-            <KpiCard
-              icon={Sparkles}
-              label={`Costo IA · ${labelMes(costoIA.mes).split(" ")[0].toLowerCase()}`}
-              value={formatUsd(costoIA.costoUsd)}
-              sub={
-                costoIAArs === null
-                  ? "sin cotización del dólar"
-                  : data.mrrEstimado > 0
-                    ? `${formatNumero((costoIAArs / data.mrrEstimado) * 100, 1)} % del MRR`
-                    : `≈ ${formatMoneyARS(costoIAArs)} ARS`
-              }
-            />
-          </Link>
+          <KpiCard
+            icon={Sparkles}
+            label={`Costo IA · ${labelMes(costoIA.mes).split(" ")[0].toLowerCase()}`}
+            value={formatUsd(costoIA.costoUsd)}
+            sub={
+              costoIAArs === null
+                ? "sin cotización del dólar"
+                : data.mrrEstimado > 0
+                  ? `${formatNumero((costoIAArs / data.mrrEstimado) * 100, 1)} % del MRR`
+                  : `≈ ${formatMoneyARS(costoIAArs)} ARS`
+            }
+            href="/admin/costos-ia"
+          />
         </div>
 
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
@@ -222,12 +231,14 @@ function KpiCard({
   value,
   sub,
   tone,
+  href,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub: string;
   tone?: "success" | "warning" | "critical";
+  href?: string;
 }) {
   const toneClass =
     tone === "success"
@@ -237,16 +248,26 @@ function KpiCard({
         : tone === "critical"
           ? "text-destructive"
           : "text-foreground";
-  return (
-    <Card>
+  const card = (
+    <Card className="h-full">
       <CardContent className="flex flex-col gap-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           <Icon className="size-3.5" />
           {label}
+          {href && <ChevronRight className="ml-auto size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />}
         </div>
         <div className={`font-heading text-2xl font-semibold ${toneClass}`}>{value}</div>
         <div className="text-xs text-muted-foreground">{sub}</div>
       </CardContent>
     </Card>
+  );
+  if (!href) return card;
+  return (
+    <Link
+      href={href}
+      className="group rounded-xl transition-shadow outline-none hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      {card}
+    </Link>
   );
 }

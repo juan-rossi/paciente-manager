@@ -18,6 +18,7 @@ import { getMedicoDetalle, formatDiasParaVencer, formatFechaCorta } from "@/lib/
 import { formatNumero, formatUsd, getUsoIAMedico, MESES_PROMEDIO } from "@/lib/admin-costos-ia";
 import { TopeIAForm } from "@/components/admin/costos-ia-controles";
 import { BonificadoBadge } from "@/components/admin/bonificado-badge";
+import { EstadoMedicoBadge } from "@/components/admin/estado-medico-badge";
 import { BonificadoSwitch } from "@/components/admin/bonificado-switch";
 import { LevantarSancionButton } from "@/components/admin/sancion-button";
 import { SANCION_LABELS } from "@/lib/sanciones";
@@ -55,19 +56,13 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="font-heading text-lg font-semibold">{medico.nombreCompleto}</h1>
-                  {medico.estado === "ACTIVO" ? (
-                    <Badge
-                      variant="outline"
-                      className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
-                    >
-                      Activo
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">Inactivo</Badge>
-                  )}
+                  <EstadoMedicoBadge estado={medico.estado} />
                   <Badge variant="secondary">{medico.planLabel}</Badge>
                   {medico.bonificado && <BonificadoBadge />}
-                  {medico.sancion && <Badge variant="destructive">{SANCION_LABELS[medico.sancion]}</Badge>}
+                  {/* La suspensión ya se ve en el badge de estado. */}
+                  {medico.sancion === "FUERA_DEL_DIRECTORIO" && (
+                    <Badge variant="destructive">{SANCION_LABELS[medico.sancion]}</Badge>
+                  )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {medico.nroMatricula ? `MP ${medico.nroMatricula} · ` : ""}

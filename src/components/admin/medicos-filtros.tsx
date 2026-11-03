@@ -8,23 +8,24 @@ const ESTADOS = [
   { value: "", label: "Estado: todos" },
   { value: "ACTIVO", label: "Activo" },
   { value: "INACTIVO", label: "Inactivo" },
+  { value: "SUSPENDIDO", label: "Suspendido" },
 ];
 const PLANES = [
   { value: "", label: "Plan: todos" },
-  { value: "TRIAL", label: "Trial" },
   { value: "BASICA", label: "Básico" },
   { value: "PREMIUM", label: "Premium" },
+];
+const TIPOS = [
+  { value: "", label: "Tipo: todos" },
+  { value: "TRIAL", label: "Trial" },
+  { value: "PAGO", label: "Pago" },
+  { value: "BONIFICADO", label: "Bonificado" },
 ];
 const VENCIMIENTOS = [
   { value: "", label: "Vencimiento: todos" },
   { value: "7", label: "Vence en 7 días" },
   { value: "30", label: "Vence en 30 días" },
   { value: "VENCIDO", label: "Ya venció" },
-];
-const SANCIONES = [
-  { value: "", label: "Sanción: todas" },
-  { value: "SUSPENSION", label: "Suspendidos" },
-  { value: "FUERA_DEL_DIRECTORIO", label: "Fuera del directorio" },
 ];
 
 const SELECT_CLASS =
@@ -34,14 +35,14 @@ export function MedicosFiltros({
   q,
   estado,
   plan,
+  tipo,
   vencimiento,
-  sancion,
 }: {
   q: string;
   estado: string;
   plan: string;
+  tipo: string;
   vencimiento: string;
-  sancion: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -81,19 +82,19 @@ export function MedicosFiltros({
           </option>
         ))}
       </select>
+      <select value={tipo} onChange={(e) => setParam("tipo", e.target.value)} className={SELECT_CLASS}>
+        {TIPOS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
       <select
         value={vencimiento}
         onChange={(e) => setParam("vencimiento", e.target.value)}
         className={SELECT_CLASS}
       >
         {VENCIMIENTOS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <select value={sancion} onChange={(e) => setParam("sancion", e.target.value)} className={SELECT_CLASS}>
-        {SANCIONES.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>

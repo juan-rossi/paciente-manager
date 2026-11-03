@@ -59,7 +59,11 @@ function fetchDoctoresBase() {
   });
 }
 
-export type EstadoMedico = "ACTIVO" | "INACTIVO";
+// SUSPENDIDO gana sobre ACTIVO/INACTIVO: un suspendido no puede entrar a la
+// plataforma, tenga el plan vigente o no.
+export type EstadoMedico = "ACTIVO" | "INACTIVO" | "SUSPENDIDO";
+
+export type TipoMedico = "TRIAL" | "PAGO" | "BONIFICADO";
 
 export type MedicoResumen = {
   id: string;
@@ -75,7 +79,8 @@ export type MedicoResumen = {
   // Sanción vigente desde /admin/moderacion (ver `src/lib/sanciones.ts`).
   sancion: TipoSancion | null;
   planLabel: string; // "Trial · Premium", "Trial vencido · Básico", "Básico · 6 meses", ...
-  vencimiento: Date | null;
+  // Bonificado gana sobre Trial/Pago: no paga, sea cual sea el estado del plan.
+  tipo: TipoMedico;  vencimiento: Date | null;
   diasParaVencer: number | null; // negativo = ya venció
   pacientesCount: number;
   turnosCount: number;
@@ -92,8 +97,6 @@ export function planLabelDe(doctor: Pick<DoctorListRow, "plan" | "planDuracion" 
 }
 
 function resumenDe(doctor: DoctorListRow): MedicoResumen {
-  // Un suspendido no puede entrar a la plataforma: cuenta como inactivo aunque su plan siga vigente.
-  const activo = esActivo(doctor) && !doctor.suspendidoAt;
   const vencimiento = fechaVencimientoRelevante(doctor);
   const { label, esTrial } = planLabelDe(doctor);
   return {
@@ -102,12 +105,13 @@ function resumenDe(doctor: DoctorListRow): MedicoResumen {
     email: doctor.email,
     nroMatricula: doctor.nroMatricula,
     createdAt: doctor.createdAt,
-    estado: activo ? "ACTIVO" : "INACTIVO",
+    estado: doctor.suspendidoAt ? "SUSPENDIDO" : esActivo(doctor) ? "ACTIVO" : "INACTIVO",
     tier: doctor.plan,
     esTrial,
     bonificado: doctor.bonificado,
     sancion: doctor.suspendidoAt ? "SUSPENSION" : doctor.fueraDelDirectorioAt ? "FUERA_DEL_DIRECTORIO" : null,
     planLabel: label,
+    tipo: doctor.bonificado ? "BONIFICADO" : esTrial ? "TRIAL" : "PAGO",
     vencimiento,
     diasParaVencer: diasParaFecha(vencimiento),
     pacientesCount: doctor._count.pacientes,
@@ -134,6 +138,9 @@ export type DashboardData = {
   totalMedicos: number;
   activos: number;
   inactivos: number;
+  // Mismo criterio que el listado con `?estado=ACTIVO&tipo=PAGO`, así el
+  // número del KPI coincide con lo que se ve al hacer clic.
+  usuariosPagos: number;
   porVencerEn7Dias: MedicoResumen[];
   conversion: {
     convirtieron: number;
@@ -152,7 +159,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const doctores = doctoresRaw.map(resumenDe);
 
   const activos = doctores.filter((d) => d.estado === "ACTIVO").length;
-  const inactivos = doctores.length - activos;
+  const inactivos = doctores.filter((d) => d.estado === "INACTIVO").length;
+  const usuariosPagos = doctores.filter((d) => d.estado === "ACTIVO" && d.tipo === "PAGO").length;
 
   const porVencerEn7Dias = doctores
     .filter((d) => d.estado === "ACTIVO" && d.diasParaVencer !== null && d.diasParaVencer <= 7)
@@ -184,6 +192,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     totalMedicos: doctores.length,
     activos,
     inactivos,
+    usuariosPagos,
     porVencerEn7Dias,
     conversion: { convirtieron, vencieronSinConvertir, enTrialActualmente, porcentaje },
     mrrEstimado,
@@ -199,10 +208,10 @@ export async function getDashboardData(): Promise<DashboardData> {
 
 export type MedicosFiltros = {
   q?: string;
-  estado?: "ACTIVO" | "INACTIVO";
-  plan?: "TRIAL" | "BASICA" | "PREMIUM";
+  estado?: EstadoMedico;
+  plan?: "BASICA" | "PREMIUM";
+  tipo?: TipoMedico;
   vencimiento?: "7" | "30" | "VENCIDO";
-  sancion?: TipoSancion;
 };
 
 export async function getMedicos(filtros: MedicosFiltros = {}): Promise<MedicoResumen[]> {
@@ -211,11 +220,8 @@ export async function getMedicos(filtros: MedicosFiltros = {}): Promise<MedicoRe
 
   return doctores
     .filter((d) => {
-      if (filtros.estado && d.estado !== filtros.estado) return false;
-      if (filtros.sancion && d.sancion !== filtros.sancion) return false;
-      if (filtros.plan === "TRIAL" && !d.esTrial) return false;
-      if (filtros.plan === "BASICA" && (d.esTrial || d.tier !== "BASICA")) return false;
-      if (filtros.plan === "PREMIUM" && (d.esTrial || d.tier !== "PREMIUM")) return false;
+      if (filtros.estado && d.estado !== filtros.estado) return false;      if (filtros.plan && d.tier !== filtros.plan) return false;
+      if (filtros.tipo && d.tipo !== filtros.tipo) return false;
       if (filtros.vencimiento === "VENCIDO" && !(d.diasParaVencer !== null && d.diasParaVencer < 0)) return false;
       if (
         filtros.vencimiento === "7" &&
@@ -333,13 +339,17 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
         ? "Trial próximo a vencer, sin conversión a plan pago registrada todavía."
         : "La suscripción actual está por vencer.",
     });
+  } else if (resumen.estado === "SUSPENDIDO") {
+    historial.push({
+      fecha: null,
+      titulo: "Cuenta suspendida",
+      descripcion: "La cuenta está suspendida por moderación.",
+    });
   } else if (resumen.estado === "INACTIVO") {
     historial.push({
       fecha: null,
       titulo: "Cuenta inactiva",
-      descripcion: doctor.suspendidoAt
-        ? "La cuenta está suspendida por moderación."
-        : resumen.esTrial
+      descripcion: resumen.esTrial
           ? "El trial venció sin conversión a plan pago."
           : "La suscripción venció sin renovación registrada.",
     });

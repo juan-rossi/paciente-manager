@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { MedicosFiltros } from "@/components/admin/medicos-filtros";
 import { BonificadoBadge } from "@/components/admin/bonificado-badge";
+import { EstadoMedicoBadge } from "@/components/admin/estado-medico-badge";
 import { SANCION_LABELS } from "@/lib/sanciones";
 import {
   getMedicos,
@@ -24,17 +25,16 @@ import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ q?: string; estado?: string; plan?: string; vencimiento?: string; sancion?: string }>;
+type SearchParams = Promise<{ q?: string; estado?: string; plan?: string; tipo?: string; vencimiento?: string }>;
 
 export default async function AdminMedicosPage({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const filtros: MedicosFiltrosType = {
     q: sp.q,
-    estado: sp.estado === "ACTIVO" || sp.estado === "INACTIVO" ? sp.estado : undefined,
-    plan: sp.plan === "TRIAL" || sp.plan === "BASICA" || sp.plan === "PREMIUM" ? sp.plan : undefined,
-    vencimiento: sp.vencimiento === "7" || sp.vencimiento === "30" || sp.vencimiento === "VENCIDO" ? sp.vencimiento : undefined,
-    sancion: sp.sancion === "SUSPENSION" || sp.sancion === "FUERA_DEL_DIRECTORIO" ? sp.sancion : undefined,
-  };
+    estado: sp.estado === "ACTIVO" || sp.estado === "INACTIVO" || sp.estado === "SUSPENDIDO" ? sp.estado : undefined,
+    plan: sp.plan === "BASICA" || sp.plan === "PREMIUM" ? sp.plan : undefined,
+    tipo: sp.tipo === "TRIAL" || sp.tipo === "PAGO" || sp.tipo === "BONIFICADO" ? sp.tipo : undefined,
+    vencimiento: sp.vencimiento === "7" || sp.vencimiento === "30" || sp.vencimiento === "VENCIDO" ? sp.vencimiento : undefined,  };
 
   const medicos = await getMedicos(filtros);
   const requierenAtencion = medicos.filter(
@@ -62,7 +62,7 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
         </div>
 
         <Suspense fallback={<div className="h-8" />}>
-          <MedicosFiltros q={sp.q ?? ""} estado={sp.estado ?? ""} plan={sp.plan ?? ""} vencimiento={sp.vencimiento ?? ""} sancion={sp.sancion ?? ""} />
+          <MedicosFiltros q={sp.q ?? ""} estado={sp.estado ?? ""} plan={sp.plan ?? ""} tipo={sp.tipo ?? ""} vencimiento={sp.vencimiento ?? ""} />
         </Suspense>
 
         <Table>
@@ -71,6 +71,7 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
                 <TableHead>Médico</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Plan</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Alta</TableHead>
                 <TableHead>Vence</TableHead>
                 <TableHead>Uso</TableHead>
@@ -80,7 +81,7 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
             <TableBody>
               {medicos.length === 0 && (
                 <TableRow className="bg-white">
-                  <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8}className="py-8 text-center text-sm text-muted-foreground">
                     No hay médicos que coincidan con estos filtros.
                   </TableCell>
                 </TableRow>
@@ -96,23 +97,30 @@ export default async function AdminMedicosPage({ searchParams }: { searchParams:
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {m.estado === "ACTIVO" ? (
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
-                        >
-                          Activo
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">Inactivo</Badge>
-                      )}
+                      <EstadoMedicoBadge estado={m.estado} />
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary">{m.planLabel}</Badge>
-                        {m.bonificado && <BonificadoBadge />}
-                        {m.sancion && <Badge variant="destructive">{SANCION_LABELS[m.sancion]}</Badge>}
+                        <Badge variant="secondary">{m.tier === "PREMIUM" ? "Premium" : "Básico"}</Badge>
+                        {/* La suspensión ya se ve en Estado. */}
+                        {m.sancion === "FUERA_DEL_DIRECTORIO" && (
+                          <Badge variant="destructive">{SANCION_LABELS[m.sancion]}</Badge>
+                        )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {m.tipo === "BONIFICADO" ? (
+                        <BonificadoBadge />
+                      ) : m.tipo === "TRIAL" ? (
+                        <Badge variant="outline">Trial</Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-400"
+                        >
+                          Pago
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{formatFechaCorta(m.createdAt)}</TableCell>
                     <TableCell>
