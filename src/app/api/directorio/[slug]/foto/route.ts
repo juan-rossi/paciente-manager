@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SIN_SANCION } from "@/lib/sanciones";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     where: {
       role: "DOCTOR",
       publicSlug: slug,
-      OR: [{ perfilPublico: true }, { reservaPublicaHabilitada: true }],
+      OR: [{ perfilPublico: true, perfilPublicadoAt: { not: null } }, { reservaPublicaHabilitada: true }],
+      ...SIN_SANCION,
     },
-    select: { fotoPerfilBase64: true },
+    select: { fotoPublicaBase64: true },
   });
 
-  const match = doctor?.fotoPerfilBase64?.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  const match = doctor?.fotoPublicaBase64?.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
   if (!match) return new Response(null, { status: 404 });
 
   return new Response(Buffer.from(match[2], "base64"), {

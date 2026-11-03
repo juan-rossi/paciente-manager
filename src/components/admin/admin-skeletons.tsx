@@ -239,6 +239,46 @@ export function AdminCostosIASkeleton() {
   );
 }
 
+// Va dentro del layout de Finanzas (submenú lateral ya visible).
+export function AdminFinanzasSkeleton() {
+  return (
+    <SkeletonExit>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <AdminTitle title="Dashboard financiero" subtitleWidth="w-72" />
+          <Skeleton className="h-8 w-44" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <KpiSkeleton key={i} />
+          ))}
+        </div>
+        <Card className="py-0">
+          <CardContent className="flex flex-col gap-0 p-0">
+            <div className="border-b border-border px-5 py-4">
+              <h2 className="font-heading text-sm font-semibold">Estado de resultados</h2>
+              <Skeleton className="mt-2 h-3 w-48" />
+            </div>
+            <div className="flex flex-col gap-4 px-5 py-4">
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="flex items-center justify-between gap-6">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <KpiSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    </SkeletonExit>
+  );
+}
+
 export function AdminGastosSkeleton() {
   return (
     <SkeletonExit>
@@ -263,6 +303,33 @@ export function AdminBienvenidasSkeleton() {
           <Skeleton className="h-3.5 w-56" />
         </div>
         <TableSkeleton columns={["w-44", "w-28", "w-24", "w-20", "w-20", "ml-auto w-24"]} rows={6} />
+      </div>
+    </SkeletonExit>
+  );
+}
+
+export function AdminModeracionSkeleton() {
+  return (
+    <SkeletonExit>
+      <div className="flex flex-col gap-6">
+        <AdminTitle title="Moderación" subtitleWidth="w-96 max-w-full" />
+        {Array.from({ length: 2 }, (_, i) => (
+          <Card key={i}>
+            <CardContent className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-col gap-2">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+                <Skeleton className="h-9 w-56" />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Skeleton className="h-56" />
+                <Skeleton className="h-56" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </SkeletonExit>
   );

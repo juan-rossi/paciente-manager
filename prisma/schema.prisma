@@ -206,6 +206,13 @@ model User {
   declaracionProfesionalAt DateTime?
   fotoPerfilBase64         String?         @db.Text
   biografia                String?         @db.Text
+  // Lo que efectivamente ve el público (directorio, agenda pública, og:image)
+  // de la foto y la biografía de arriba: la versión que ya pasó la moderación
+  // (ver `src/lib/moderacion.ts`). `fotoPerfilBase64`/`biografia` son lo que
+  // el médico cargó y ve en la app; mientras un cambio espera revisión en
+  // /admin/moderacion, acá sigue la versión anterior.
+  fotoPublicaBase64        String?         @db.Text
+  biografiaPublica         String?         @db.Text
   // Solo tiene sentido cuando `perfilPublico` está habilitado -- ver
   // `AtencionTipo`. `nombreConsultorio` a su vez solo aplica cuando
   // `atencionTipo` es `CONSULTORIO`.
@@ -226,6 +233,13 @@ model User {
   // cuando este flag está en true, pero a nivel de schema quedan nullable --
   // mismo criterio que `tituloCortesia`/`especialidad`.
   perfilPublico            Boolean         @default(false)
+  // Primera vez que el perfil salió en el directorio, con la biografía y la
+  // foto ya aprobadas por la moderación (ver `marcarPerfilPublicado` en
+  // src/lib/moderacion.ts). Hasta entonces el perfil no se lista aunque
+  // `perfilPublico` esté prendido: un médico nuevo con contenido marcado no
+  // aparece hasta que un admin lo revise. Una vez seteado no se borra -- los
+  // cambios posteriores esperan revisión mostrando la versión anterior.
+  perfilPublicadoAt        DateTime?
   // Redes del médico para el perfil público -- solo se muestran con
   // `perfilPublico` activo. Se guardan ya normalizadas como URL completa
   // (ver `normalizarRedSocial` en src/lib/redes-sociales.ts).
@@ -324,6 +338,18 @@ model User {
   // marca desde la ficha del médico en /admin; el médico nunca lo ve.
   bonificado Boolean @default(false)
 
+  // Sanciones por mal uso, aplicadas desde /admin/moderacion (ver
+  // `src/lib/sanciones.ts`). Cuál corresponde depende del plan: a un médico
+  // en período de prueba se lo suspende (no puede entrar, ver `authorize()` y
+  // `sessionVersion`); a uno que paga solo se lo saca del directorio y de la
+  // agenda pública, y sigue usando la app. Las dos se levantan desde su ficha.
+  suspendidoAt             DateTime?
+  suspensionMotivo         String?
+  suspendidoPorId          String?
+  fueraDelDirectorioAt     DateTime?
+  fueraDelDirectorioMotivo String?
+  fueraDelDirectorioPorId  String?
+
   // Plan/duración elegidos en el checkout, todavía SIN confirmar por pago --
   // `plan`/`planDuracion` de arriba no se tocan hasta que el webhook reciba
   // un pago aprobado (ver `/api/mercadopago/webhook`). Evita que abandonar
@@ -369,6 +395,51 @@ model User {
   auditLogsComoActor    AuditLog[]           @relation("AuditActor")
   usosIA                UsoIA[]
   passwordResetTokens   PasswordResetToken[]
+  moderaciones          ModeracionPerfil[]
+}
+
+enum ModeracionCampo {
+  BIOGRAFIA
+  FOTO
+}
+
+enum ModeracionMotivo {
+  // La API de moderación lo marcó como inadecuado (ver `categorias`).
+  MARCADO
+  // La API no respondió (caída, timeout, sin API key): se revisa a mano.
+  API_NO_DISPONIBLE
+}
+
+enum ModeracionEstado {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+// Un cambio de foto o biografía del perfil público que no pudo publicarse
+// solo (ver `src/lib/moderacion.ts`) y espera que un admin lo apruebe en
+// /admin/moderacion. Hay a lo sumo un PENDIENTE por médico y campo: si el
+// médico vuelve a cambiar ese campo mientras tanto, se reemplaza el
+// contenido de la misma fila (`updatedAt` lo delata, para que el admin no
+// apruebe algo distinto de lo que vio).
+model ModeracionPerfil {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campo         ModeracionCampo
+  // Texto de la biografía o data URL de la foto, tal como lo cargó el médico.
+  contenido     String           @db.Text
+  motivo        ModeracionMotivo
+  // Categorías que marcó la API (p.ej. "sexual", "violence"); vacío si no respondió.
+  categorias    String[]
+  estado        ModeracionEstado @default(PENDIENTE)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  resueltaAt    DateTime?
+  resueltaPorId String?
+
+  @@index([estado, createdAt])
+  @@index([userId, campo])
 }
 
 // Link de "olvidé mi contraseña" (ver `src/lib/password-reset.ts`). Solo se

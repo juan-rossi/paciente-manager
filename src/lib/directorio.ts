@@ -6,6 +6,7 @@ import { esActivo, isPremium } from "@/lib/plan";
 import { fotoDoctorPath } from "@/lib/site-url";
 import { formatDateParamBA } from "@/lib/timezone";
 import { getDisponibilidadPublica } from "@/lib/public-booking";
+import { SIN_SANCION } from "@/lib/sanciones";
 
 const doctorPublicoSelect = {
   id: true,
@@ -15,8 +16,10 @@ const doctorPublicoSelect = {
   apellido: true,
   especialidad: true,
   ciudad: true,
-  biografia: true,
-  fotoPerfilBase64: true,
+  // Siempre la versión ya moderada, nunca lo último que cargó el médico
+  // (ver `src/lib/moderacion.ts`).
+  biografiaPublica: true,
+  fotoPublicaBase64: true,
   reservaPublicaHabilitada: true,
 } as const;
 
@@ -39,8 +42,8 @@ function pickDoctorPublico(row: {
   apellido: string;
   especialidad: Especialidad | null;
   ciudad: string | null;
-  biografia: string | null;
-  fotoPerfilBase64: string | null;
+  biografiaPublica: string | null;
+  fotoPublicaBase64: string | null;
   reservaPublicaHabilitada: boolean;
   destacado: boolean;
   prepagas: { prepaga: { nombre: string } }[];
@@ -53,8 +56,8 @@ function pickDoctorPublico(row: {
     apellido: row.apellido,
     especialidad: row.especialidad,
     ciudad: row.ciudad,
-    biografia: row.biografia,
-    fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPerfilBase64),
+    biografia: row.biografiaPublica,
+    fotoUrl: fotoUrlDe(row.publicSlug, row.fotoPublicaBase64),
     reservaPublicaHabilitada: row.reservaPublicaHabilitada,
     destacado: row.destacado,
     prepagas: row.destacado ? row.prepagas.map(({ prepaga }) => prepaga.nombre) : [],
@@ -161,7 +164,9 @@ export async function getDoctoresPublicos(filtros: {
     where: {
       role: "DOCTOR",
       perfilPublico: true,
+      perfilPublicadoAt: { not: null },
       publicSlug: { not: null },
+      ...SIN_SANCION,
       // Sin prácticas visibles no hay dirección ni teléfono para mostrar, así
       // que el perfil no se publica aunque tenga el toggle activo (ver la
       // alerta en "Información pública" de Mi perfil).
@@ -340,12 +345,14 @@ export async function getDoctorPublicoPorSlug(slug: string) {
     where: {
       role: "DOCTOR",
       publicSlug: slug,
-      OR: [{ perfilPublico: true }, { reservaPublicaHabilitada: true }],
+      OR: [{ perfilPublico: true, perfilPublicadoAt: { not: null } }, { reservaPublicaHabilitada: true }],
+      ...SIN_SANCION,
     },
     select: {
       ...doctorPublicoSelect,
       ...cuentaSelect,
       perfilPublico: true,
+      perfilPublicadoAt: true,
       whatsappComunidadUrl: true,
       instagramUrl: true,
       facebookUrl: true,
@@ -378,14 +385,19 @@ export async function getDoctorPublicoPorSlug(slug: string) {
   });
   if (!doctor) return null;
 
-  const { trialEndsAt, planEndsAt, fotoPerfilBase64, ...resto } = doctor;
+  const { trialEndsAt, planEndsAt, fotoPublicaBase64, biografiaPublica, perfilPublicadoAt, ...resto } = doctor;
   const activo = esActivo({ trialEndsAt, planEndsAt });
+  // Perfil prendido pero todavía sin aprobar la primera vez (ver
+  // `perfilPublicadoAt`): para la página es como si no fuera público -- solo
+  // queda la agenda, si está habilitada.
+  resto.perfilPublico = resto.perfilPublico && perfilPublicadoAt !== null;
   // Sin plan activo y sin perfil público, el link directo a la agenda deja de
   // ser un motivo para exponer la página.
   if (!activo && !resto.perfilPublico) return null;
   return {
     ...resto,
-    fotoUrl: fotoUrlDe(resto.publicSlug, fotoPerfilBase64),
+    biografia: biografiaPublica,
+    fotoUrl: fotoUrlDe(resto.publicSlug, fotoPublicaBase64),
     reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo,
   };
 }
@@ -397,7 +409,9 @@ export async function getSlugsPerfilesPublicos(): Promise<string[]> {
     where: {
       role: "DOCTOR",
       perfilPublico: true,
+      perfilPublicadoAt: { not: null },
       publicSlug: { not: null },
+      ...SIN_SANCION,
       lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
     },
     select: { publicSlug: true },

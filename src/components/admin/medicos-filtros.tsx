@@ -8,12 +8,18 @@ const ESTADOS = [
   { value: "", label: "Estado: todos" },
   { value: "ACTIVO", label: "Activo" },
   { value: "INACTIVO", label: "Inactivo" },
+  { value: "SUSPENDIDO", label: "Suspendido" },
 ];
 const PLANES = [
   { value: "", label: "Plan: todos" },
-  { value: "TRIAL", label: "Trial" },
   { value: "BASICA", label: "Básico" },
   { value: "PREMIUM", label: "Premium" },
+];
+const TIPOS = [
+  { value: "", label: "Tipo: todos" },
+  { value: "TRIAL", label: "Trial" },
+  { value: "PAGO", label: "Pago" },
+  { value: "BONIFICADO", label: "Bonificado" },
 ];
 const VENCIMIENTOS = [
   { value: "", label: "Vencimiento: todos" },
@@ -29,11 +35,13 @@ export function MedicosFiltros({
   q,
   estado,
   plan,
+  tipo,
   vencimiento,
 }: {
   q: string;
   estado: string;
   plan: string;
+  tipo: string;
   vencimiento: string;
 }) {
   const router = useRouter();
@@ -69,6 +77,13 @@ export function MedicosFiltros({
       </select>
       <select value={plan} onChange={(e) => setParam("plan", e.target.value)} className={SELECT_CLASS}>
         {PLANES.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <select value={tipo} onChange={(e) => setParam("tipo", e.target.value)} className={SELECT_CLASS}>
+        {TIPOS.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { Building2, Database, Eye, Lock, MessageSquare, Mic, Sparkles, User, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { getEstadoModeracionPerfil } from "@/lib/moderacion";
 import { reconciliarPreapprovalPendiente } from "@/lib/mp-reconciliar";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfiguracionTabs } from "@/components/configuracion-tabs";
@@ -75,7 +76,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // se completa acá, antes de leerlos, para que Mi perfil pueda mostrarlo.
   if (user.role === "DOCTOR") await ensureLugarSlugs(user.id);
 
-  const [blocks, secretarias, lugares, prepagas, prepagasDelDoctor] = await Promise.all([
+  const [blocks, secretarias, lugares, prepagas, prepagasDelDoctor, moderacion] = await Promise.all([
     prisma.workScheduleBlock.findMany({
       where: { userId: user.id },
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
@@ -87,6 +88,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
     }),
     prisma.prepaga.findMany({ select: { id: true, nombre: true, nombreCompleto: true }, orderBy: { nombre: "asc" } }),
     prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
+    getEstadoModeracionPerfil(user.id),
   ]);
 
   const initialSecretarias = secretarias.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }));
@@ -181,6 +183,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
           <TabsContent value="perfil" className="w-full">
             <MiPerfilSettings
               initialFotoPerfilBase64={user.fotoPerfilBase64}
+              initialModeracionFoto={moderacion.foto}
               initialTituloCortesia={user.tituloCortesia}
               initialNombre={user.nombre}
               initialApellido={user.apellido}
@@ -196,15 +199,18 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                 .filter(Boolean)
                 .join(" ")}
               initialPerfilPublico={user.perfilPublico}
+              perfilPublicado={user.perfilPublicadoAt !== null}
               lugares={lugares.map((l) => ({
                 ...l,
                 tieneHorarios: blocks.some((b) => b.lugarId === l.id),
               }))}
               initialBiografia={user.biografia}
+              initialModeracion={moderacion}
               initialRedes={redesDeUsuario(user)}
               initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}
               initialReservaPublicaSemanas={user.reservaPublicaSemanas}
               initialPublicSlug={user.publicSlug}
+              fueraDelDirectorioMotivo={user.fueraDelDirectorioAt ? (user.fueraDelDirectorioMotivo ?? "") : null}
             />
           </TabsContent>
           <TabsContent value="seguridad" className="w-full">

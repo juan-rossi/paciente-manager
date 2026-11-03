@@ -94,14 +94,15 @@ export default auth(async (request) => {
   }
 
   // Trial vencido o suscripción vencida (impago tras la gracia, ver
-  // `/api/mercadopago/webhook`) -- se consulta en vivo (no cacheado en la
+  // `/api/mercadopago/webhook`), o médico suspendido desde /admin/moderacion
+  // (su secretaria sigue pudiendo entrar, pero no a esa cuenta) -- se consulta en vivo (no cacheado en la
   // sesión) para que un pago recién confirmado desbloquee sin esperar a
   // que se cierre sesión. Se resuelve el tenant real de la cuenta (para
   // una secretaria, el médico que tiene activo).
   if (session && PLAN_GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     const actor = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, activeDoctorId: true, trialEndsAt: true, planEndsAt: true },
+      select: { role: true, activeDoctorId: true, trialEndsAt: true, planEndsAt: true, suspendidoAt: true },
     });
     if (actor) {
       const cuenta =
@@ -110,10 +111,10 @@ export default auth(async (request) => {
           : actor.activeDoctorId
             ? await prisma.user.findUnique({
                 where: { id: actor.activeDoctorId },
-                select: { trialEndsAt: true, planEndsAt: true },
+                select: { trialEndsAt: true, planEndsAt: true, suspendidoAt: true },
               })
             : null;
-      if (cuenta && !esActivo(cuenta)) {
+      if (cuenta && (!esActivo(cuenta) || cuenta.suspendidoAt)) {
         return NextResponse.redirect(new URL("/cuenta-inactiva", request.url));
       }
     }

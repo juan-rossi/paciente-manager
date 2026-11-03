@@ -4,12 +4,13 @@ import { UserChip } from "@/components/user-chip";
 import { NavLinks } from "@/components/nav-links";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
+import { prisma } from "@/lib/prisma";
 
 const ADMIN_NAV_LINKS = [
   { href: "/admin", label: "Dashboard", icon: "LayoutDashboard" as const },
   { href: "/admin/medicos", label: "Médicos", icon: "Stethoscope" as const, matchPrefixes: ["/admin/medicos"] },
-  { href: "/admin/gastos", label: "Gastos", icon: "Wallet" as const },
-  { href: "/admin/costos-ia", label: "Costos IA", icon: "Sparkles" as const },
+  // Dashboard financiero, Gastos y Costos IA (submenú lateral en finanzas/layout.tsx).
+  { href: "/admin/finanzas", label: "Finanzas", icon: "Wallet" as const, matchPrefixes: ["/admin/finanzas"] },
   // Directo a la primera pestaña: /admin/marketing redirige en el servidor y,
   // al no tener loading.tsx, la pantalla quedaba congelada hasta el redirect.
   { href: "/admin/marketing/bienvenidas", label: "Marketing", icon: "Megaphone" as const, matchPrefixes: ["/admin/marketing"] },
@@ -23,6 +24,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user || !isPlatformAdmin(user)) {
     redirect("/login");
   }
+
+  // El contador va en el propio link para que una revisión pendiente no pase
+  // desapercibida desde cualquier pantalla del panel.
+  const moderacionPendientes = await prisma.moderacionPerfil.count({ where: { estado: "PENDIENTE" } });
+  const navLinks = [
+    ...ADMIN_NAV_LINKS,
+    {
+      href: "/admin/moderacion",
+      label: moderacionPendientes > 0 ? `Moderación (${moderacionPendientes})` : "Moderación",
+      icon: "ShieldAlert" as const,
+    },
+  ];
 
   // Un ADMIN de plataforma pura no tiene tenant/dashboard al que volver
   // (ver getTenantId()); un médico/secretaria con el flag `isAdmin` sí.
@@ -44,7 +57,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             {/* Solo dos secciones -- se muestran siempre (sin el "hidden
                 sm:flex" del nav de la app de consultorio) en vez de armar un
                 menú mobile aparte para dos links. */}
-            <NavLinks links={ADMIN_NAV_LINKS} className="flex flex-wrap gap-4" />
+            <NavLinks links={navLinks} className="flex flex-wrap gap-4" />
           </div>
           <UserChip
             nombreConTitulo={`${user.nombre} ${user.apellido}`.trim()}

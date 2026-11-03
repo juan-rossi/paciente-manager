@@ -17,6 +17,13 @@ class DemasiadosIntentos extends CredentialsSignin {
   code = "rate_limited";
 }
 
+// Médico suspendido desde /admin/moderacion (ver `src/lib/sanciones.ts`).
+// Solo se informa después de validar la contraseña, para no revelarle a
+// cualquiera qué cuentas están suspendidas.
+class CuentaSuspendida extends CredentialsSignin {
+  code = "suspended";
+}
+
 // Hash bcrypt de una contraseña aleatoria descartada: se compara contra él cuando el
 // email no existe para que la respuesta tarde lo mismo que con un email
 // real (si no, midiendo el tiempo se podría averiguar qué emails tienen
@@ -60,6 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) return null;
+        if (user.suspendidoAt) throw new CuentaSuspendida();
 
         return { id: user.id, email: user.email, name: user.nombre, role: user.role };
       },
@@ -97,6 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing?.suspendidoAt) return "/login?error=Suspendida";
       if (existing) return true;
 
       // Primer login con Google y el email no existe todavía: se autoregistra

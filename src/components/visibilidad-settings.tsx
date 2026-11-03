@@ -11,6 +11,7 @@ import {
   Link2,
   Loader2,
   Save,
+  ShieldX,
   TriangleAlert,
 } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
@@ -31,6 +32,7 @@ import {
   type RedSocial,
 } from "@/lib/redes-sociales";
 import { RED_SOCIAL_ICONS } from "@/components/redes-sociales-icons";
+import { AvisoModeracion, estadoAviso, type EstadoAvisoModeracion } from "@/components/aviso-moderacion";
 
 // Orden en el form: primero las redes más usadas, la comunidad de WhatsApp
 // en el medio (en el perfil público va destacada, ver PerfilShell).
@@ -60,31 +62,46 @@ type Props = {
   // "Dr. Juan Pérez" -- para el texto al compartir el link de la agenda.
   nombreMedico: string;
   initialPerfilPublico: boolean;
+  // Si el perfil ya salió alguna vez en el directorio (ver
+  // `perfilPublicadoAt`). Se lee de las props: tras guardar, el refresh trae
+  // el valor nuevo.
+  perfilPublicado: boolean;
   // Prácticas activas del médico -- de acá salen consultorio, dirección y
   // teléfono del perfil público. Se leen siempre de las props (no de estado
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
   lugares: LugarResumen[];
   initialBiografia: string | null;
+  // Si la biografía/foto cargadas todavía esperan revisión (o se rechazaron)
+  // para el perfil público.
+  initialModeracion: { biografia: EstadoAvisoModeracion; foto: EstadoAvisoModeracion };
   initialRedes: RedesSociales;
   initialReservaPublicaHabilitada: boolean;
   initialReservaPublicaSemanas: number;
   initialPublicSlug: string | null;
+  // Motivo, si un admin lo sacó del directorio (ver `src/lib/sanciones.ts`):
+  // perfil y agenda pública quedan apagados y no los puede prender.
+  fueraDelDirectorioMotivo: string | null;
 };
 
 export function VisibilidadSettings({
   nombreMedico,
   initialPerfilPublico,
+  perfilPublicado,
   lugares,
   initialBiografia,
+  initialModeracion,
   initialRedes,
   initialReservaPublicaHabilitada,
   initialReservaPublicaSemanas,
   initialPublicSlug,
+  fueraDelDirectorioMotivo,
 }: Props) {
+  const fueraDelDirectorio = fueraDelDirectorioMotivo !== null;
   const router = useRouter();
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
+  const [moderacion, setModeracion] = useState(initialModeracion);
   const [redes, setRedes] = useState(() => redesATexto(initialRedes));
   // El error de una red se muestra recién al salir del campo (mientras se
   // escribe un link, a medias, siempre es inválido).
@@ -107,6 +124,16 @@ export function VisibilidadSettings({
     lugares.filter((l) => l.perfilVisible).map((l) => l.id),
   );
   const sinLugaresVisibles = !sinPracticas && lugaresVisibles.length === 0;
+  // Primera publicación frenada por la moderación: se avisa recién con el
+  // perfil ya guardado como público (antes de guardar no se moderó nada).
+  const esperandoModeracion =
+    initialPerfilPublico && !perfilPublicado && !fueraDelDirectorio && (moderacion.biografia || moderacion.foto);
+  const rechazado = moderacion.biografia === "rechazado" || moderacion.foto === "rechazado";
+  // Con el aviso general de arriba, el "pendiente" de cada campo sobra (y su
+  // "sigue mostrando la anterior" es falso: nunca hubo nada publicado). El
+  // rechazo sí se mantiene, para saber qué campo hay que corregir.
+  const avisoCampo = (estado: EstadoAvisoModeracion) =>
+    esperandoModeracion && estado === "pendiente" ? null : estado;
 
   function togglePerfilPublico(checked: boolean) {
     setPerfilPublico(checked);
@@ -191,6 +218,12 @@ export function VisibilidadSettings({
         JSON.stringify({ ...JSON.parse(visibilidadSnapshot), redes: redesGuardadas }),
       );
       setPublicSlug(data.publicSlug);
+      // `null` = el campo no se publica (perfil apagado): se conserva el aviso
+      // que hubiera, sigue valiendo para cuando se vuelva a publicar.
+      setModeracion((prev) => ({
+        biografia: data.moderacion.biografia === null ? prev.biografia : estadoAviso(data.moderacion.biografia),
+        foto: data.moderacion.foto === null ? prev.foto : estadoAviso(data.moderacion.foto),
+      }));
       router.refresh();
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -335,6 +368,21 @@ export function VisibilidadSettings({
   return (
     <div className="flex w-full flex-col gap-5">
       <SettingsSection title="Información pública" icon={Globe2}>
+        {fueraDelDirectorio && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-destructive"
+          >
+            <ShieldX className="mt-0.5 size-4 shrink-0" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold">Tu perfil fue quitado del directorio</span>
+              <span className="text-xs">Motivo: {fueraDelDirectorioMotivo}</span>
+              <span className="text-xs">
+                Si creés que es un error, escribinos a contacto@semio360.com.
+              </span>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-semibold">Perfil público</span>
@@ -344,8 +392,9 @@ export function VisibilidadSettings({
             </p>
           </div>
           <Switch
-            checked={perfilPublico}
+            checked={perfilPublico && !fueraDelDirectorio}
             onCheckedChange={togglePerfilPublico}
+            disabled={fueraDelDirectorio}
           />
         </div>
 
@@ -375,7 +424,25 @@ export function VisibilidadSettings({
                   Configurar prácticas
                 </Button>
               </div>
-            ) : (
+            ) : esperandoModeracion ? (
+              <div
+                role="status"
+                className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+              >
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">
+                    Tu perfil todavía no aparece en el directorio
+                  </span>
+                  <span className="text-xs">
+                    {rechazado
+                      ? "Parte de tu información pública no fue aprobada. Modificala para que se vuelva a revisar y tu perfil se publique."
+                      : "Se publicará cuando un administrador revise tu información pública."}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+            {!sinPracticas && (
               variosLugares && (
                 <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
                   <div className="flex items-center justify-between gap-2">
@@ -440,6 +507,7 @@ export function VisibilidadSettings({
                 value={biografia}
                 onChange={(e) => setBiografia(e.target.value)}
               />
+              <AvisoModeracion campo="biografia" estado={avisoCampo(moderacion.biografia)} />
             </div>
 
             <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
@@ -488,6 +556,7 @@ export function VisibilidadSettings({
           </div>
         )}
 
+        {perfilPublico && <AvisoModeracion campo="foto" estado={avisoCampo(moderacion.foto)} />}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end border-t border-dashed border-border pt-3">
           <Button
@@ -517,9 +586,9 @@ export function VisibilidadSettings({
             </p>
           </div>
           <Switch
-            checked={reservaPublicaHabilitada}
+            checked={reservaPublicaHabilitada && !fueraDelDirectorio}
             onCheckedChange={handleToggleReservaPublica}
-            disabled={agendaPublicaSaving}
+            disabled={agendaPublicaSaving || fueraDelDirectorio}
           />
         </div>
         {agendaPublicaError && (

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SIN_SANCION } from "@/lib/sanciones";
 import type { Prisma } from "@/generated/prisma/client";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { absoluteUrl } from "@/lib/site-url";
@@ -34,14 +35,18 @@ export type MedicoExcluido = { id: string; nombreCompleto: string; faltantes: st
 const ELEGIBLE: Prisma.UserWhereInput = {
   role: "DOCTOR",
   perfilPublico: true,
+  perfilPublicadoAt: { not: null },
   publicSlug: { not: null },
+  ...SIN_SANCION,
   tituloCortesia: { not: null },
   especialidad: { not: null },
   nombre: { not: "" },
   apellido: { not: "" },
   nroMatricula: { not: "" },
-  fotoPerfilBase64: { not: null },
-  biografia: { not: null },
+  // Lo que se publica en redes es lo mismo que el directorio: la versión ya
+  // moderada (ver `src/lib/moderacion.ts`).
+  fotoPublicaBase64: { not: null },
+  biografiaPublica: { not: null },
   lugaresDeTrabajo: { some: { deletedAt: null, bloques: { some: {} } } },
 };
 
@@ -51,7 +56,7 @@ const SELECT = {
   apellido: true,
   tituloCortesia: true,
   especialidad: true,
-  biografia: true,
+  biografiaPublica: true,
   ciudad: true,
   publicSlug: true,
   reservaPublicaHabilitada: true,
@@ -102,7 +107,7 @@ export async function getBienvenidas(estado: EstadoBienvenida): Promise<Bienveni
     orderBy: { createdAt: "desc" },
   });
   // Una biografía de solo espacios no cuenta como completa.
-  return filas.filter((m) => m.biografia?.trim()).map(aBienvenida);
+  return filas.filter((m) => m.biografiaPublica?.trim()).map(aBienvenida);
 }
 
 export async function contarBienvenidas(): Promise<{ pendientes: number; publicadas: number }> {
@@ -128,8 +133,9 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
         tituloCortesia: true,
         especialidad: true,
         nroMatricula: true,
-        biografia: true,
+        biografiaPublica: true,
         perfilPublico: true,
+        perfilPublicadoAt: true,
         lugaresDeTrabajo: {
           where: { deletedAt: null },
           select: { _count: { select: { bloques: true } } },
@@ -138,7 +144,7 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({
-      where: { role: "DOCTOR", fotoPerfilBase64: { not: null } },
+      where: { role: "DOCTOR", fotoPublicaBase64: { not: null } },
       select: { id: true },
     }),
   ]);
@@ -148,11 +154,12 @@ export async function getExcluidos(): Promise<{ total: number; medicos: MedicoEx
   for (const m of medicos) {
     const faltantes: string[] = [];
     if (!m.perfilPublico) faltantes.push("Perfil no público");
+    else if (!m.perfilPublicadoAt) faltantes.push("Perfil esperando moderación");
     if (!m.tituloCortesia || !m.especialidad || !m.nroMatricula || !m.nombre || !m.apellido) {
       faltantes.push("Perfil incompleto");
     }
     if (!idsConFoto.has(m.id)) faltantes.push("Sin foto de perfil");
-    if (!m.biografia?.trim()) faltantes.push("Sin biografía");
+    if (!m.biografiaPublica?.trim()) faltantes.push("Sin biografía");
     if (!m.lugaresDeTrabajo.some((l) => l._count.bloques > 0)) faltantes.push("Sin lugar con horarios");
     if (faltantes.length > 0) {
       excluidos.push({ id: m.id, nombreCompleto: nombreConTitulo(m), faltantes });
