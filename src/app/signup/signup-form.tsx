@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -72,6 +73,7 @@ export function SignupForm() {
       : null,
   );
   const [loading, setLoading] = useState(false);
+  const enviandoRef = useRef(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   // Cada token de Turnstile sirve una sola vez: tras un intento fallido se
   // remonta el widget (cambiando su `key`) para que genere uno nuevo.
@@ -126,7 +128,15 @@ export function SignupForm() {
       return;
     }
 
+    // El estado `loading` tarda un render en deshabilitar el botón: el ref
+    // corta en seco un doble clic que llegue antes de ese render.
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setLoading(true);
+    // Si todo sale bien el botón queda deshabilitado hasta que termine la
+    // navegación al dashboard (que puede tardar unos segundos); sólo se
+    // rehabilita ante un error.
+    let exito = false;
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -159,6 +169,7 @@ export function SignupForm() {
         password,
         redirect: false,
       });
+      exito = true;
       if (!loginResponse || loginResponse.error) {
         // La cuenta se creó bien; si el auto-login falla por algún motivo,
         // que entre a mano en vez de mostrar un error confuso.
@@ -172,7 +183,10 @@ export function SignupForm() {
       setError("No se pudo conectar con el servidor.");
       renovarTurnstile();
     } finally {
-      setLoading(false);
+      if (!exito) {
+        enviandoRef.current = false;
+        setLoading(false);
+      }
     }
   }
 
@@ -363,7 +377,12 @@ export function SignupForm() {
 
           <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={loading || !aceptado}>
+          <Button
+            type="submit"
+            disabled={loading || !aceptado}
+            aria-busy={loading}
+          >
+            {loading && <Loader2 className="size-4 animate-spin" />}
             {loading ? "Creando cuenta..." : "Crear cuenta gratis"}
           </Button>
 
@@ -376,7 +395,7 @@ export function SignupForm() {
             type="button"
             variant="outline"
             onClick={handleGoogleSignUp}
-            disabled={!aceptado}
+            disabled={loading || !aceptado}
           >
             <GoogleIcon />
             Continuar con Google
