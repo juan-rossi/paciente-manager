@@ -38,17 +38,23 @@ export function FinalCTA() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lee una API del navegador una sola vez al montar
-    setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    setReducedMotion(
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
   }, []);
 
   useEffect(() => {
     if (reducedMotion !== false || !sectionRef.current) return;
 
     let ctx: ReturnType<typeof import("gsap").gsap.context> | undefined;
+    // Si se navega antes de que resuelvan los imports, no armar el pin sobre
+    // un nodo ya desmontado (el cleanup corrió con ctx todavía undefined).
+    let cancelled = false;
 
     (async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+      if (cancelled || !sectionRef.current) return;
       gsap.registerPlugin(ScrollTrigger);
 
       ctx = gsap.context(() => {
@@ -87,7 +93,10 @@ export function FinalCTA() {
       }, sectionRef);
     })();
 
-    return () => ctx?.revert();
+    return () => {
+      cancelled = true;
+      ctx?.revert();
+    };
   }, [reducedMotion]);
 
   if (reducedMotion) {
@@ -98,38 +107,51 @@ export function FinalCTA() {
     );
   }
 
+  // El <div> envolvente es a propósito: `pin: true` mete la <section> dentro
+  // de un pin-spacer creado por GSAP. Sin este wrapper, al navegar con
+  // next/link (ej. footer -> /terminos o /directorio) React intenta sacar la
+  // <section> de <main>, ya no es hija directa y tira "removeChild" (pantalla
+  // rota). Con el wrapper, React remueve un nodo que sigue siendo suyo.
   return (
-    <section ref={sectionRef} className="relative overflow-hidden border-t border-border/60">
-      <div className="flex h-screen items-center justify-center">
-        <div className="relative flex size-full max-w-3xl items-center justify-center">
-          {MODULES.map((m, i) => (
+    <div>
+      <section
+        ref={sectionRef}
+        className="relative overflow-hidden border-t border-border/60"
+      >
+        <div className="flex h-screen items-center justify-center">
+          <div className="relative flex size-full max-w-3xl items-center justify-center">
+            {MODULES.map((m, i) => (
+              <div
+                key={m.label}
+                ref={(el) => {
+                  moduleRefs.current[i] = el;
+                }}
+                className="absolute flex flex-col items-center gap-1.5"
+                style={{ transform: `translate(${m.x}px, ${m.y}px)` }}
+              >
+                <span className="flex size-12 items-center justify-center rounded-xl border border-border/60 bg-card text-primary shadow-md">
+                  <m.icon className="size-5" />
+                </span>
+                <span className="rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm">
+                  {m.label}
+                </span>
+              </div>
+            ))}
+
             <div
-              key={m.label}
-              ref={(el) => {
-                moduleRefs.current[i] = el;
-              }}
-              className="absolute flex flex-col items-center gap-1.5"
-              style={{ transform: `translate(${m.x}px, ${m.y}px)` }}
+              ref={centerRef}
+              className="absolute flex flex-col items-center gap-2"
             >
-              <span className="flex size-12 items-center justify-center rounded-xl border border-border/60 bg-card text-primary shadow-md">
-                <m.icon className="size-5" />
-              </span>
-              <span className="rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm">
-                {m.label}
-              </span>
+              <Semio360Mark className="size-16 drop-shadow-xl" />
             </div>
-          ))}
 
-          <div ref={centerRef} className="absolute flex flex-col items-center gap-2">
-            <Semio360Mark className="size-16 drop-shadow-xl" />
-          </div>
-
-          <div ref={headlineRef} className="absolute px-4">
-            <FinalHeadline visible />
+            <div ref={headlineRef} className="absolute px-4">
+              <FinalHeadline visible />
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
@@ -147,7 +169,11 @@ function FinalHeadline({ visible }: { visible: boolean }) {
         <br />
         Una sola plataforma.
       </h2>
-      <Button size="lg" nativeButton={false} render={<Link href="/signup?plan=PREMIUM" />}>
+      <Button
+        size="lg"
+        nativeButton={false}
+        render={<Link href="/signup?plan=PREMIUM" />}
+      >
         Empezar con Semio360
       </Button>
     </motion.div>
