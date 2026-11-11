@@ -177,6 +177,7 @@ export function MiPracticaSettings({
         return;
       }
       setSavedDurationMinutes(data.slotDurationMinutes);
+      router.refresh();
     } finally {
       setSavingDuration(false);
     }
@@ -201,6 +202,7 @@ export function MiPracticaSettings({
       setRescheduledCount((data.rescheduled ?? []).length);
       setReschedulePreview(null);
       setPendingDuration(null);
+      router.refresh();
     } finally {
       setApplyingReschedule(false);
     }
@@ -227,6 +229,7 @@ export function MiPracticaSettings({
         return;
       }
       setSobreturnosHabilitados(data.sobreturnosHabilitados);
+      router.refresh();
     } catch {
       setSobreturnosHabilitados(previous);
       setSobreturnosError("No se pudo conectar con el servidor.");
@@ -400,6 +403,10 @@ export function MiPracticaSettings({
           : [...prev, data.block]
       );
       setBlockOpen(false);
+      // Las tabs de Configuración se desmontan al salir: sin refresh, al volver
+      // se remonta con los `initialBlocks` viejos del server (y Visibilidad no
+      // se entera de que el lugar ya tiene horarios).
+      router.refresh();
     } finally {
       setSavingBlock(false);
     }
@@ -420,6 +427,7 @@ export function MiPracticaSettings({
       }
       setBlocks((prev) => prev.filter((b) => b.id !== deleteBlockTarget.id));
       setDeleteBlockTarget(null);
+      router.refresh();
     } finally {
       setDeletingBlock(false);
     }
@@ -443,7 +451,11 @@ export function MiPracticaSettings({
               value={slotDurationMinutes}
               onChange={(e) => setSlotDurationMinutes(Number(e.target.value))}
             />
-            <Button type="button" onClick={handleGuardarDuracion} disabled={savingDuration}>
+            <Button
+              type="button"
+              onClick={handleGuardarDuracion}
+              disabled={savingDuration || slotDurationMinutes === savedDurationMinutes}
+            >
               {savingDuration ? "Guardando..." : "Guardar"}
             </Button>
           </div>

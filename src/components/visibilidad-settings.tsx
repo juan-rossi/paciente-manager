@@ -558,20 +558,25 @@ export function VisibilidadSettings({
 
         {perfilPublico && <AvisoModeracion campo="foto" estado={avisoCampo(moderacion.foto)} />}
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end border-t border-dashed border-border pt-3">
-          <Button
-            type="button"
-            onClick={handleGuardar}
-            disabled={saving || !hayCambios}
-          >
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            {saving ? "Guardando..." : "Guardar cambios"}
-          </Button>
-        </div>
+        {/* Con el perfil apagado (y sin cambios pendientes) no hay nada que
+            guardar: el botón aparece al prenderlo, o si se acaba de apagar
+            un perfil que estaba guardado como público. */}
+        {(perfilPublico || hayCambios) && (
+          <div className="flex justify-end border-t border-dashed border-border pt-3">
+            <Button
+              type="button"
+              onClick={handleGuardar}
+              disabled={saving || !hayCambios}
+            >
+              {saving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Save className="size-4" />
+              )}
+              {saving ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </div>
+        )}
       </SettingsSection>
 
       <SettingsSection title="Agenda pública" icon={CalendarDays}>
