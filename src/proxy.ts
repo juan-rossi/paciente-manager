@@ -92,7 +92,9 @@ export default auth(async (request) => {
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
-  if (AUTH_ENTRY_PAGES.includes(pathname) && session) {
+  // La home ("/") con sesión también: redirigir acá evita que se pinte el
+  // layout de marketing vacío mientras la página resuelve el redirect.
+  if ((AUTH_ENTRY_PAGES.includes(pathname) || pathname === "/") && session) {
     return NextResponse.redirect(new URL(homeFor(session.user.role), request.url));
   }
 
@@ -128,6 +130,7 @@ export default auth(async (request) => {
 
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/patients/:path*",
     "/turnos/:path*",

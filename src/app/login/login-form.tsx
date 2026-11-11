@@ -35,7 +35,10 @@ export function LoginForm() {
 
   function destinationAfterLogin() {
     const from = searchParams.get("from");
-    return from && from.startsWith("/") ? from : "/";
+    // No "/": ahí se pinta el layout de marketing vacío mientras la home
+    // redirige. `/dashboard` lo resuelve el proxy según el rol (secretaria →
+    // /turnos, admin → /admin, perfil incompleto → /onboarding).
+    return from && from.startsWith("/") && !from.startsWith("//") ? from : "/dashboard";
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
