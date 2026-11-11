@@ -27,13 +27,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // El contador va en el propio link para que una revisión pendiente no pase
   // desapercibida desde cualquier pantalla del panel.
-  const moderacionPendientes = await prisma.moderacionPerfil.count({ where: { estado: "PENDIENTE" } });
+  const [moderacionPendientes, soporteSinLeer] = await Promise.all([
+    prisma.moderacionPerfil.count({ where: { estado: "PENDIENTE" } }),
+    prisma.ticketSoporte.count({ where: { noLeidoAdmin: true } }),
+  ]);
   const navLinks = [
     ...ADMIN_NAV_LINKS,
     {
       href: "/admin/moderacion",
       label: moderacionPendientes > 0 ? `Moderación (${moderacionPendientes})` : "Moderación",
       icon: "ShieldAlert" as const,
+    },
+    {
+      href: "/admin/soporte",
+      label: soporteSinLeer > 0 ? `Soporte (${soporteSinLeer})` : "Soporte",
+      icon: "LifeBuoy" as const,
     },
   ];
 

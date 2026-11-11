@@ -12,6 +12,8 @@ import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { isPlatformAdmin } from "@/lib/admin-access";
 import { formatNombreConTitulo } from "@/lib/titulo-cortesia";
 import { resolveActiveLugarId } from "@/lib/tenant";
+import { SoporteHeaderButton } from "@/components/soporte/soporte-header-button";
+import { formatFechaTicket } from "@/lib/soporte";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -83,6 +85,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : [];
   const activeLugarId = user ? await resolveActiveLugarId(user) : undefined;
 
+  // Ícono de "Sugerencias y soporte": los últimos mensajes propios y cuántos
+  // tienen una respuesta del equipo sin abrir.
+  const [ticketsSoporte, soporteNoLeidos] = user
+    ? await Promise.all([
+        prisma.ticketSoporte.findMany({
+          where: { autorId: user.id },
+          orderBy: [{ noLeidoAutor: "desc" }, { updatedAt: "desc" }],
+          take: 3,
+          select: { id: true, asunto: true, estado: true, noLeidoAutor: true, updatedAt: true },
+        }),
+        prisma.ticketSoporte.count({ where: { autorId: user.id, noLeidoAutor: true } }),
+      ])
+    : [[], 0];
+
   // La mensajería es una configuración del médico (tenant) -- una
   // secretaria hereda la del médico que tiene activo en el selector.
   const mensajeriaHabilitada = isDoctor
@@ -144,7 +160,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
             <NavLinks links={navLinks} />
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6">
             {user && doctoresAsignados.length >= 2 && (
               <div className="hidden sm:block">
                 <DoctorSwitcher doctores={doctoresAsignados} activeDoctorId={user.activeDoctorId ?? ""} />
@@ -154,6 +170,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <div className="hidden sm:block">
                 <LugarSwitcher lugares={lugaresAsignados} activeLugarId={activeLugarId ?? ""} />
               </div>
+            )}
+            {user && (
+              <SoporteHeaderButton
+                noLeidos={soporteNoLeidos}
+                tickets={ticketsSoporte.map((t) => ({
+                  id: t.id,
+                  asunto: t.asunto,
+                  estado: t.estado,
+                  noLeido: t.noLeidoAutor,
+                  fechaTexto: formatFechaTicket(t.updatedAt),
+                }))}
+              />
             )}
             {user && nombreConTitulo && (
               <div className="hidden sm:block">

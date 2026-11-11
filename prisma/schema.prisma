@@ -396,6 +396,9 @@ model User {
   usosIA                UsoIA[]
   passwordResetTokens   PasswordResetToken[]
   moderaciones          ModeracionPerfil[]
+  ticketsSoporte        TicketSoporte[]      @relation("TicketAutor")
+  ticketsDelConsultorio TicketSoporte[]      @relation("TicketDoctor")
+  mensajesSoporte       TicketMensaje[]
 }
 
 enum ModeracionCampo {
@@ -1088,4 +1091,65 @@ model DoctorPrepaga {
 
   @@id([doctorId, prepagaId])
   @@index([prepagaId])
+}
+
+enum TicketTipo {
+  SUGERENCIA
+  PROBLEMA
+  OTRO
+}
+
+enum TicketEstado {
+  NUEVO
+  EN_REVISION
+  PLANIFICADO
+  RESUELTO
+  DESCARTADO
+}
+
+// Sugerencia o reporte de problema que un médico o secretaria manda desde la
+// app (ícono de "Sugerencias y soporte" del header, ver
+// `src/components/soporte/soporte-header-button.tsx`). Se gestiona y se
+// responde desde /admin/soporte. Cada usuario ve solo los propios.
+model TicketSoporte {
+  id           String          @id @default(cuid())
+  tipo         TicketTipo
+  estado       TicketEstado    @default(NUEVO)
+  asunto       String
+  autorId      String
+  autor        User            @relation("TicketAutor", fields: [autorId], references: [id], onDelete: Cascade)
+  // Consultorio desde el que escribió (el propio médico, o el médico activo
+  // de la secretaria). Solo contexto para el admin.
+  doctorId     String?
+  doctor       User?           @relation("TicketDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
+  // Pantalla desde la que abrió el formulario (p.ej. "/turnos").
+  pantalla     String?
+  userAgent    String?
+  // Hay una respuesta del equipo que el autor todavía no abrió (contador del
+  // header) / un mensaje del autor que el equipo todavía no abrió.
+  noLeidoAutor Boolean         @default(false)
+  noLeidoAdmin Boolean         @default(true)
+  mensajes     TicketMensaje[]
+  createdAt    DateTime        @default(now())
+  // Último mensaje o cambio de estado -- ordena las bandejas.
+  updatedAt    DateTime        @updatedAt
+
+  @@index([autorId, updatedAt])
+  @@index([estado, updatedAt])
+}
+
+model TicketMensaje {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    TicketSoporte @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  autorId   String
+  autor     User          @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  // Escrito por el equipo de Semio 360 desde /admin/soporte.
+  esEquipo  Boolean       @default(false)
+  // Nota interna del equipo: el autor del ticket nunca la ve.
+  interno   Boolean       @default(false)
+  cuerpo    String        @db.Text
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
 }

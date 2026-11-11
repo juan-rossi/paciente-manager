@@ -13,6 +13,7 @@ const PROTECTED_PREFIXES = [
   "/onboarding",
   "/admin",
   "/cuenta-inactiva",
+  "/soporte",
 ];
 const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
 // Rutas que requieren una cuenta al día (trial vigente o suscripción paga
@@ -30,6 +31,8 @@ const APP_PREFIXES = [
   "/recordatorios",
   "/configuracion",
   "/onboarding",
+  // Sin plan-gate: con la cuenta vencida también pueden escribirnos.
+  "/soporte",
 ];
 const AUTH_ENTRY_PAGES = ["/login", "/signup"];
 
@@ -133,6 +136,7 @@ export const config = {
     "/onboarding",
     "/admin/:path*",
     "/cuenta-inactiva",
+    "/soporte/:path*",
     "/login",
     "/signup",
   ],
