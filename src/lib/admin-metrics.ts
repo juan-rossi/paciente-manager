@@ -260,6 +260,7 @@ export type MedicoDetalle = MedicoResumen & {
   usoMensual: { mes: string; pacientes: number }[];
   secretarias: string[];
   sancionDetalle: { desde: Date; motivo: string; porNombre: string | null } | null;
+  prioridadDirectorio: number;
 };
 
 export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null> {
@@ -277,6 +278,7 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       planDuracion: true,
       planEndsAt: true,
       bonificado: true,
+      prioridadDirectorio: true,
       suspendidoAt: true,
       suspensionMotivo: true,
       suspendidoPorId: true,
@@ -385,7 +387,15 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       }
     : null;
 
-  return { ...resumen, ultimaActividad, historial, usoMensual, secretarias, sancionDetalle };
+  return {
+    ...resumen,
+    ultimaActividad,
+    historial,
+    usoMensual,
+    secretarias,
+    sancionDetalle,
+    prioridadDirectorio: doctor.prioridadDirectorio,
+  };
 }
 
 function restarMeses(fecha: Date, meses: number): Date {

@@ -338,6 +338,14 @@ model User {
   // marca desde la ficha del médico en /admin; el médico nunca lo ve.
   bonificado Boolean @default(false)
 
+  // Prioridad manual en el Directorio de profesionales: mayor número = más
+  // arriba. Es el primer criterio de orden dentro de los resultados que
+  // matchean los filtros (antes que destacado/distancia/alfabético, ver
+  // `getDoctoresPublicos`); 0 = sin prioridad. No mete en el listado a quien
+  // no cumple los filtros. Se edita desde la ficha del médico en /admin; el
+  // médico nunca lo ve.
+  prioridadDirectorio Int @default(0)
+
   // Sanciones por mal uso, aplicadas desde /admin/moderacion (ver
   // `src/lib/sanciones.ts`). Cuál corresponde depende del plan: a un médico
   // en período de prueba se lo suspende (no puede entrar, ver `authorize()` y

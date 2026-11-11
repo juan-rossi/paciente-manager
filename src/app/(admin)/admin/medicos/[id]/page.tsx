@@ -20,6 +20,7 @@ import { TopeIAForm } from "@/components/admin/costos-ia-controles";
 import { BonificadoBadge } from "@/components/admin/bonificado-badge";
 import { EstadoMedicoBadge } from "@/components/admin/estado-medico-badge";
 import { BonificadoSwitch } from "@/components/admin/bonificado-switch";
+import { PrioridadDirectorioForm } from "@/components/admin/prioridad-directorio-form";
 import { LevantarSancionButton } from "@/components/admin/sancion-button";
 import { SANCION_LABELS } from "@/lib/sanciones";
 import { PageEnter } from "@/components/page-transition";
@@ -158,8 +159,11 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
         </div>
 
         <Card>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
             <BonificadoSwitch doctorId={id} bonificado={medico.bonificado} />
+            <div className="border-t border-border pt-4">
+              <PrioridadDirectorioForm doctorId={id} prioridadDirectorio={medico.prioridadDirectorio} />
+            </div>
           </CardContent>
         </Card>
 

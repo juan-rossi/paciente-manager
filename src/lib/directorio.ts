@@ -153,6 +153,10 @@ function tienePunto(p: {
 // por `FACTOR_DISTANCIA_DESTACADO`; sin búsqueda, van todos primero, en un
 // orden que rota cada día (ver `rotacionDelDia`) para que el alfabético no
 // favorezca siempre al mismo.
+//
+// Antes que todo eso pesa `prioridadDirectorio` (mayor primero), que se carga a
+// mano desde la ficha del médico en /admin. Solo reordena: el filtro por
+// especialidad y el radio máximo se aplican igual.
 export async function getDoctoresPublicos(filtros: {
   especialidad?: string;
   lat?: number;
@@ -177,6 +181,7 @@ export async function getDoctoresPublicos(filtros: {
       ...doctorPublicoSelect,
       ...cuentaSelect,
       plan: true,
+      prioridadDirectorio: true,
       slotDurationMinutes: true,
       reservaPublicaSemanas: true,
       prepagas: {
@@ -222,13 +227,19 @@ export async function getDoctoresPublicos(filtros: {
   });
 
   const agendaPorId = new Map(candidatos.map((d) => [d.id, d]));
+  // Prioridad manual cargada desde /admin (ver `prioridadDirectorio` en el
+  // schema): primer criterio de orden en los dos modos. Queda fuera de
+  // `DoctorPublico` para que no viaje al cliente.
+  const prioridadPorId = new Map(candidatos.map((d) => [d.id, d.prioridadDirectorio]));
+  const porPrioridad = (a: { id: string }, b: { id: string }) =>
+    (prioridadPorId.get(b.id) ?? 0) - (prioridadPorId.get(a.id) ?? 0);
   return conProximoTurno(ordenar(), agendaPorId);
 
   function ordenar(): Omit<DoctorPublico, "proximoTurno">[] {
     if (!buscandoPorUbicacion) {
       const hoy = formatDateParamBA(new Date());
-      // `sort` es estable: los no destacados quedan en el orden por apellido de
-      // la query.
+      // `sort` es estable: a igual prioridad, los no destacados quedan en el
+      // orden por apellido de la query.
       return doctores
         .map((doctor) => ({
           ...pickDoctorPublico(doctor),
@@ -238,6 +249,7 @@ export async function getDoctoresPublicos(filtros: {
         }))
         .sort(
           (a, b) =>
+            porPrioridad(a, b) ||
             Number(b.destacado) - Number(a.destacado) ||
             (a.destacado ? rotacionDelDia(a.id, hoy) - rotacionDelDia(b.id, hoy) : 0)
         );
@@ -292,7 +304,7 @@ export async function getDoctoresPublicos(filtros: {
           doctor.distanciaKm !== null
       )
       .filter((doctor) => doctor.distanciaKm <= RADIO_MAXIMO_KM)
-      .sort((a, b) => distanciaParaOrdenar(a) - distanciaParaOrdenar(b));
+      .sort((a, b) => porPrioridad(a, b) || distanciaParaOrdenar(a) - distanciaParaOrdenar(b));
   }
 }
 
