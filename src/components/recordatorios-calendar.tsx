@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, Mail, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Loader2, Mail, MessageCircle, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,9 @@ type Props = {
   initialDiasConHorario: DiaSemana[];
   initialSinConfigurar: boolean;
   mensajeTemplate: string;
+  // Config del médico (Mensajería): "Enviar WhatsApp" también marca el
+  // turno como enviado, y el botón aparte "Marcar como enviado" se oculta.
+  autoMarcarEnviado: boolean;
 };
 
 export function RecordatoriosCalendar({
@@ -38,6 +41,7 @@ export function RecordatoriosCalendar({
   initialDiasConHorario,
   initialSinConfigurar,
   mensajeTemplate,
+  autoMarcarEnviado,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -62,6 +66,25 @@ export function RecordatoriosCalendar({
     } finally {
       setMarcandoId(null);
     }
+  }
+
+  function setEnviado(id: string, value: boolean) {
+    setTurnos((prev) => prev.map((t) => (t.id === id ? { ...t, recordatorioEnviado: value } : t)));
+  }
+
+  // Auto-marcado: el link de WhatsApp sigue abriéndose normalmente (no se
+  // frena la navegación); el estado se actualiza optimista y se revierte si
+  // el PATCH falla.
+  async function handleEnviarYMarcar(id: string) {
+    setEnviado(id, true);
+    const response = await fetch(`/api/turnos/${id}/recordatorio`, { method: "PATCH" }).catch(() => null);
+    if (!response?.ok) setEnviado(id, false);
+  }
+
+  async function handleDesmarcar(id: string) {
+    setEnviado(id, false);
+    const response = await fetch(`/api/turnos/${id}/recordatorio`, { method: "DELETE" }).catch(() => null);
+    if (!response?.ok) setEnviado(id, true);
   }
 
   async function loadTurnos(date: Date) {
@@ -186,37 +209,59 @@ export function RecordatoriosCalendar({
                         Confirmado
                       </Badge>
                     ) : turno.recordatorioEnviado ? (
-                      <Badge className="h-auto gap-1 self-center bg-primary px-2.5 pt-1.5 pb-1 leading-none text-primary-foreground">
+                      <Badge
+                        className="h-auto cursor-pointer gap-1 self-center bg-primary px-2.5 pt-1.5 pb-1 leading-none text-primary-foreground hover:bg-primary/85"
+                        title="Tocá para desmarcar"
+                        render={
+                          <button
+                            type="button"
+                            aria-label={`Desmarcar recordatorio enviado a ${turno.nombreYApellido}`}
+                            onClick={() => handleDesmarcar(turno.id)}
+                          />
+                        }
+                      >
                         <Mail className="size-3" data-icon="inline-start" />
                         Enviado
+                        <X className="size-3 opacity-70" data-icon="inline-end" />
                       </Badge>
                     ) : (
                       <>
                         <Button
                           size="icon-sm"
                           variant="outline"
-                          aria-label="Enviar por WhatsApp"
+                          aria-label={autoMarcarEnviado ? "Enviar por WhatsApp y marcar como enviado" : "Enviar por WhatsApp"}
                           className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
                           nativeButton={false}
-                          render={<a href={href} target="_blank" rel="noopener noreferrer" />}
+                          render={
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={autoMarcarEnviado ? () => handleEnviarYMarcar(turno.id) : undefined}
+                            />
+                          }
                         >
                           <MessageCircle className="size-3.5" />
-                          <span className="hidden sm:inline">Enviar WhatsApp</span>
+                          <span className="hidden sm:inline">
+                            {autoMarcarEnviado ? "Enviar y marcar" : "Enviar WhatsApp"}
+                          </span>
                         </Button>
-                        <Button
-                          size="icon-sm"
-                          aria-label="Marcar como enviado"
-                          className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
-                          disabled={marcando}
-                          onClick={() => handleMarcarNotificado(turno.id)}
-                        >
-                          {marcando ? (
-                            <Loader2 className="size-3.5 animate-spin" />
-                          ) : (
-                            <Check className="size-3.5" />
-                          )}
-                          <span className="hidden sm:inline">{marcando ? "Marcando..." : "Marcar como enviado"}</span>
-                        </Button>
+                        {!autoMarcarEnviado && (
+                          <Button
+                            size="icon-sm"
+                            aria-label="Marcar como enviado"
+                            className="sm:h-7 sm:w-auto sm:gap-1 sm:px-2.5"
+                            disabled={marcando}
+                            onClick={() => handleMarcarNotificado(turno.id)}
+                          >
+                            {marcando ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Check className="size-3.5" />
+                            )}
+                            <span className="hidden sm:inline">{marcando ? "Marcando..." : "Marcar como enviado"}</span>
+                          </Button>
+                        )}
                       </>
                     )}
                   </li>

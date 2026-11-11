@@ -66,6 +66,7 @@ const VARIABLES_APLAZAMIENTO: TemplateVariable[] = [
 type Props = {
   initialMensajeTemplate: string;
   initialMensajeriaHabilitada: boolean;
+  initialRecordatorioAutoEnviado: boolean;
   initialMensajeTemplateCancelado: string;
   initialMensajeTemplateAplazado: string;
 };
@@ -73,12 +74,16 @@ type Props = {
 export function MessagingSettings({
   initialMensajeTemplate,
   initialMensajeriaHabilitada,
+  initialRecordatorioAutoEnviado,
   initialMensajeTemplateCancelado,
   initialMensajeTemplateAplazado,
 }: Props) {
   const router = useRouter();
   const [mensajeriaHabilitada, setMensajeriaHabilitada] = useState(initialMensajeriaHabilitada);
   const [mensajeTemplate, setMensajeTemplate] = useState(initialMensajeTemplate);
+  const [recordatorioAutoEnviado, setRecordatorioAutoEnviado] = useState(
+    initialRecordatorioAutoEnviado
+  );
   const [mensajeTemplateCancelado, setMensajeTemplateCancelado] = useState(
     initialMensajeTemplateCancelado
   );
@@ -100,6 +105,7 @@ export function MessagingSettings({
         body: JSON.stringify({
           mensajeTemplate,
           mensajeriaHabilitada,
+          recordatorioAutoEnviado,
           mensajeTemplateCancelado,
           mensajeTemplateAplazado,
         }),
@@ -166,6 +172,24 @@ export function MessagingSettings({
               </Button>
             )}
           </TemplateEditor>
+
+          <div className="flex items-start justify-between gap-4 border-t border-dashed border-border pt-4">
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="recordatorio-auto-enviado">Marcar como enviado al abrir WhatsApp</Label>
+              <p className="text-xs text-muted-foreground">
+                En Recordatorios, tocar &quot;Enviar y marcar&quot; abre el chat y deja el turno como{" "}
+                <strong>Enviado</strong>, sin un segundo click. Si te equivocás, tocá la insignia para
+                desmarcarlo.
+              </p>
+            </div>
+            <Switch
+              id="recordatorio-auto-enviado"
+              className="mt-0.5 shrink-0"
+              checked={recordatorioAutoEnviado}
+              onCheckedChange={setRecordatorioAutoEnviado}
+              disabled={!mensajeriaHabilitada}
+            />
+          </div>
         </div>
       </SettingsSection>
 

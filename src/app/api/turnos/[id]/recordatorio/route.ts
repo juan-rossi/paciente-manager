@@ -10,7 +10,19 @@ type RouteParams = { params: Promise<{ id: string }> };
 // turno confirmado cualquiera: deja registro de que ya se le avisó, sin
 // sacarlo de la lista del día. Mismo criterio de ownership que el resto de
 // las rutas de turnos (una secretaria solo toca turnos de su lugar activo).
+//
+// PATCH marca el recordatorio como enviado; DELETE lo desmarca (tocar la
+// insignia "Enviado" en Recordatorios, p.ej. si con el auto-marcado se abrió
+// WhatsApp pero el mensaje nunca se mandó).
 export async function PATCH(_request: NextRequest, { params }: RouteParams) {
+  return setRecordatorioEnviado(params, true);
+}
+
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  return setRecordatorioEnviado(params, false);
+}
+
+async function setRecordatorioEnviado(params: RouteParams["params"], value: boolean) {
   const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
 
@@ -34,7 +46,7 @@ export async function PATCH(_request: NextRequest, { params }: RouteParams) {
 
   await prisma.turno.update({
     where: { id },
-    data: { recordatorioEnviado: true },
+    data: { recordatorioEnviado: value },
   });
 
   return NextResponse.json({ ok: true });

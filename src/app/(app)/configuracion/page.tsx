@@ -166,6 +166,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessagingSettings
               initialMensajeTemplate={user.mensajeTemplate}
               initialMensajeriaHabilitada={user.mensajeriaHabilitada}
+              initialRecordatorioAutoEnviado={user.recordatorioAutoEnviado}
               initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
               initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
             />

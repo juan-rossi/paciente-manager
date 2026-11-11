@@ -26,6 +26,7 @@ export default async function RecordatoriosPage() {
     select: {
       mensajeriaHabilitada: true,
       mensajeTemplate: true,
+      recordatorioAutoEnviado: true,
       mensajeTemplateCancelado: true,
       mensajeTemplateAplazado: true,
     },
@@ -63,6 +64,7 @@ export default async function RecordatoriosPage() {
           initialDiasConHorario={diasConHorario}
           initialSinConfigurar={sinConfigurar}
           mensajeTemplate={doctor.mensajeTemplate}
+          autoMarcarEnviado={doctor.recordatorioAutoEnviado}
         />
       </div>
     </PageEnter>

@@ -278,6 +278,9 @@ model User {
   // Apaga la mensajería de la cuenta -- con esto en false, el item
   // "Recordatorios" del menú superior se oculta (ver `(app)/layout.tsx`).
   mensajeriaHabilitada     Boolean         @default(true)
+  // En Recordatorios, tocar "Enviar WhatsApp" ya deja el turno como
+  // `recordatorioEnviado` (sin el botón aparte "Marcar como enviado").
+  recordatorioAutoEnviado  Boolean         @default(false)
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
   sobreturnosHabilitados   Boolean         @default(false)
