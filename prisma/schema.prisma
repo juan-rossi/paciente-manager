@@ -280,7 +280,9 @@ model User {
   mensajeriaHabilitada     Boolean         @default(true)
   // En Recordatorios, tocar "Enviar WhatsApp" ya deja el turno como
   // `recordatorioEnviado` (sin el botón aparte "Marcar como enviado").
-  recordatorioAutoEnviado  Boolean         @default(false)
+  // Activado por defecto para cuentas nuevas; las que ya existían al
+  // agregarse la opción quedaron en false (ver migraciones).
+  recordatorioAutoEnviado  Boolean         @default(true)
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
   sobreturnosHabilitados   Boolean         @default(false)
