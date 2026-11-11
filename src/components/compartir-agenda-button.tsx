@@ -11,6 +11,10 @@ type Props = {
   variant?: React.ComponentProps<typeof Button>["variant"];
   size?: React.ComponentProps<typeof Button>["size"];
   className?: string;
+  // Por defecto el mensaje invita a sacar turno; el link del perfil (que no
+  // siempre tiene agenda) usa otro texto.
+  texto?: string;
+  titulo?: string;
 };
 
 // Comparte el link público de reserva. En móvil abre el selector nativo
@@ -23,13 +27,15 @@ export function CompartirAgendaButton({
   variant = "outline",
   size = "sm",
   className,
+  texto,
+  titulo = "Turnos online",
 }: Props) {
-  const text = `Sacá turno online con ${nombreMedico}${lugarNombre ? ` en ${lugarNombre}` : ""}:`;
+  const text = texto ?? `Sacá turno online con ${nombreMedico}${lugarNombre ? ` en ${lugarNombre}` : ""}:`;
 
   async function handleClick() {
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: "Turnos online", text, url });
+        await navigator.share({ title: titulo, text, url });
       } catch {
         // El usuario cerró el selector (AbortError) -- no es un error.
       }

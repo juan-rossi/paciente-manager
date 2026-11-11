@@ -317,6 +317,15 @@ export function VisibilidadSettings({
   const publicLink = publicSlug
     ? `${origin ?? "semio360.com"}/directorio/${publicSlug}`
     : null;
+  // El link del perfil se muestra solo si de verdad está en el directorio:
+  // guardado como público (props del server, se actualizan tras el refresh),
+  // ya aprobado alguna vez, sin sanción y con algún lugar visible.
+  const perfilEnDirectorio =
+    initialPerfilPublico &&
+    perfilPublicado &&
+    !fueraDelDirectorio &&
+    !sinPracticas &&
+    lugares.some((l) => l.perfilVisible);
 
   async function handleToggleReservaLugar(lugarId: string, checked: boolean) {
     const previous = reservaPorLugar[lugarId];
@@ -553,6 +562,40 @@ export function VisibilidadSettings({
                 );
               })}
             </div>
+
+            {perfilEnDirectorio && publicLink && (
+              <div className="flex flex-col gap-1.5 border-t border-dashed border-border pt-3">
+                <span className="text-sm font-semibold">Link de tu perfil</span>
+                <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 py-1.5 pr-1.5 pl-3">
+                  <Link2 className="size-4 shrink-0 text-primary" />
+                  <span className="flex-1 truncate font-mono text-xs text-primary">
+                    {publicLink}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleCopiar("perfil", publicLink)}
+                  >
+                    {copiado === "perfil" ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <Copy className="size-4" />
+                    )}
+                    {copiado === "perfil" ? "¡Copiado!" : "Copiar"}
+                  </Button>
+                  <CompartirAgendaButton
+                    url={publicLink}
+                    nombreMedico={nombreMedico}
+                    titulo="Perfil profesional"
+                    texto={`Conocé el perfil de ${nombreMedico} en Semio360:`}
+                    variant="outline"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Así te ven los pacientes en el directorio.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
