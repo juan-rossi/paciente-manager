@@ -8,6 +8,11 @@ export const SITE_NAME = "Semio360";
 // Grafías con las que la gente busca la marca: Google trata "Semio360" y
 // "Semio 360" como consultas distintas, así que se declaran ambas.
 export const SITE_ALTERNATE_NAMES = ["Semio 360", "semio360.com"];
+// Perfiles oficiales de la marca: van en `sameAs` del JSON-LD y en el footer.
+export const SITE_SOCIAL_PROFILES = [
+  { label: "Instagram", url: "https://www.instagram.com/semio360" },
+  { label: "LinkedIn", url: "https://www.linkedin.com/company/semio360" },
+];
 export const SITE_DESCRIPTION =
   "Software para consultorios médicos: turnos, historia clínica electrónica y dictado de la consulta, conforme a la Ley 26.529.";
 
@@ -55,6 +60,7 @@ export function organizationJsonLd() {
     logo: absoluteUrl("/icon.png"),
     email: "contacto@semio360.com",
     description: SITE_DESCRIPTION,
+    sameAs: SITE_SOCIAL_PROFILES.map((p) => p.url),
   };
 }
 

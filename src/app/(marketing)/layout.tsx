@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Semio360Mark } from "@/components/brand/logo";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { MarketingMotion } from "@/components/marketing/marketing-motion";
+import { SITE_SOCIAL_PROFILES } from "@/lib/seo";
 
 // Mismas secciones que el header; solo existen en el home, de ahí el `/#id`.
 const FOOTER_PRODUCT_LINKS = [
@@ -56,6 +57,18 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                   contacto@semio360.com
                 </a>
               </li>
+              {SITE_SOCIAL_PROFILES.map((perfil) => (
+                <li key={perfil.url}>
+                  <a
+                    href={perfil.url}
+                    target="_blank"
+                    rel="me noopener noreferrer"
+                    className="font-medium text-[#4f46e5] hover:text-[#3730a3]"
+                  >
+                    {perfil.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </nav>
         </div>
