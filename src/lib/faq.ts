@@ -3,7 +3,7 @@
 export const FAQS = [
   {
     q: "¿Qué es Semio360?",
-    a: "Una plataforma en la nube para gestionar tu consultorio: turnos, historia clínica y evolución de tus pacientes, todo en un mismo lugar.",
+    a: "Semio360 (o Semio 360) es una plataforma en la nube para gestionar tu consultorio: turnos, historia clínica y evolución de tus pacientes, todo en un mismo lugar.",
   },
   {
     q: "¿Cómo empiezo?",
