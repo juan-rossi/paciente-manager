@@ -24,8 +24,10 @@ export const metadata: Metadata = {
     absolute: "Semio360 — Software para consultorios médicos: turnos e historia clínica",
   },
   description:
-    "Software para médicos en Argentina: agenda de turnos, historia clínica electrónica y dictado de la consulta con transcripción. Ley 26.529. Prueba gratis sin tarjeta: 60 días Básico, 30 días Premium.",
+    "Semio 360: software para médicos en Argentina con agenda de turnos, historia clínica electrónica y dictado de la consulta con transcripción. Ley 26.529. Prueba gratis sin tarjeta: 60 días Básico, 30 días Premium.",
   keywords: [
+    "Semio360",
+    "Semio 360",
     "software para consultorio médico",
     "historia clínica electrónica",
     "sistema de turnos para médicos",

@@ -5,6 +5,9 @@ import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 
 export const SITE_NAME = "Semio360";
+// Grafías con las que la gente busca la marca: Google trata "Semio360" y
+// "Semio 360" como consultas distintas, así que se declaran ambas.
+export const SITE_ALTERNATE_NAMES = ["Semio 360", "semio360.com"];
 export const SITE_DESCRIPTION =
   "Software para consultorios médicos: turnos, historia clínica electrónica y dictado de la consulta, conforme a la Ley 26.529.";
 
@@ -47,6 +50,7 @@ export function organizationJsonLd() {
     "@type": "Organization",
     "@id": `${url}/#organization`,
     name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAMES,
     url,
     logo: absoluteUrl("/icon.png"),
     email: "contacto@semio360.com",
@@ -65,6 +69,7 @@ export function homeJsonLd() {
         "@id": `${url}/#website`,
         url,
         name: SITE_NAME,
+        alternateName: SITE_ALTERNATE_NAMES,
         inLanguage: "es-AR",
         publisher: { "@id": `${url}/#organization` },
       },
@@ -72,6 +77,7 @@ export function homeJsonLd() {
         "@type": "SoftwareApplication",
         "@id": `${url}/#software`,
         name: SITE_NAME,
+        alternateName: SITE_ALTERNATE_NAMES,
         applicationCategory: "HealthApplication",
         operatingSystem: "Web",
         inLanguage: "es-AR",

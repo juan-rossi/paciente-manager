@@ -16,7 +16,7 @@ export function GET() {
 Sitio: ${absoluteUrl("/")}
 
 ## Qué es
-Semio360 es una plataforma en la nube para gestionar un consultorio médico: turnos, historia clínica y evolución de los pacientes en un mismo lugar. Funciona en el navegador, sin instalación.
+Semio360 (también escrito "Semio 360") es una plataforma en la nube para gestionar un consultorio médico: turnos, historia clínica y evolución de los pacientes en un mismo lugar. Funciona en el navegador, sin instalación.
 
 ## Funciones
 - Historia clínica electrónica: ficha única por paciente con datos personales, antecedentes, evolución y consentimientos informados, registrada de forma cronológica conforme a la Ley 26.529.
