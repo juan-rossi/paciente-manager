@@ -28,7 +28,12 @@ import {
   TITULO_CORTESIA_OPTIONS,
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
-import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import {
+  ESPECIALIDAD_OPTIONS,
+  especialidadCompatibleConTitulo,
+  especialidadesParaTitulo,
+  type Especialidad,
+} from "@/lib/especialidad";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
@@ -40,6 +45,14 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
   const [especialidad, setEspecialidad] = useState<Especialidad | "">("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Od./Odont. ven solo especialidades odontológicas; el resto, solo las
+  // no odontológicas.
+  const especialidadOptions = especialidadesParaTitulo(tituloCortesia);
+
+  function cambiarTitulo(nuevo: TituloCortesia) {
+    setTituloCortesia(nuevo);
+    if (!especialidadCompatibleConTitulo(nuevo, especialidad)) setEspecialidad("");
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -106,7 +119,7 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
               <Label htmlFor="tituloCortesia">Título</Label>
               <Select
                 value={tituloCortesia}
-                onValueChange={(v) => setTituloCortesia(v as TituloCortesia)}
+                onValueChange={(v) => cambiarTitulo(v as TituloCortesia)}
               >
                 <SelectTrigger id="tituloCortesia" className="w-full">
                   <SelectValue>
@@ -145,8 +158,8 @@ export function OnboardingForm({ initialApellido }: { initialApellido: string })
           <div className="flex flex-col gap-2">
             <Label htmlFor="especialidad">Especialidad</Label>
             <Combobox
-              items={ESPECIALIDAD_OPTIONS}
-              value={ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ?? null}
+              items={especialidadOptions}
+              value={especialidadOptions.find((o) => o.value === especialidad) ?? null}
               onValueChange={(item) =>
                 setEspecialidad((item as EspecialidadOption | null)?.value ?? "")
               }

@@ -42,7 +42,12 @@ import {
   TITULO_CORTESIA_OPTIONS,
   type TituloCortesia,
 } from "@/lib/titulo-cortesia";
-import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
+import {
+  ESPECIALIDAD_OPTIONS,
+  especialidadCompatibleConTitulo,
+  especialidadesParaTitulo,
+  type Especialidad,
+} from "@/lib/especialidad";
 import { SIGNUP_PLAN_COOKIE, TRIAL_DIAS } from "@/lib/plan";
 import { TerminosContenido } from "@/components/legal/terminos-contenido";
 import {
@@ -84,6 +89,14 @@ export function SignupForm() {
     setTurnstileKey((k) => k + 1);
   }
   const aceptado = aceptaTerminos && declaracionProfesional;
+  // Od./Odont. ven solo especialidades odontológicas; el resto, solo las
+  // no odontológicas.
+  const especialidadOptions = especialidadesParaTitulo(tituloCortesia);
+
+  function cambiarTitulo(nuevo: TituloCortesia) {
+    setTituloCortesia(nuevo);
+    if (!especialidadCompatibleConTitulo(nuevo, especialidad)) setEspecialidad("");
+  }
   const nombrePlan = planElegido === "PREMIUM" ? "Premium" : "Básico";
   const diasTrial = TRIAL_DIAS[planElegido];
   const beneficios = [
@@ -228,7 +241,7 @@ export function SignupForm() {
               <Label htmlFor="tituloCortesia">Título</Label>
               <Select
                 value={tituloCortesia}
-                onValueChange={(v) => setTituloCortesia(v as TituloCortesia)}
+                onValueChange={(v) => cambiarTitulo(v as TituloCortesia)}
               >
                 <SelectTrigger id="tituloCortesia" className="w-full">
                   <SelectValue>
@@ -278,9 +291,9 @@ export function SignupForm() {
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Label htmlFor="especialidad">Especialidad</Label>
               <Combobox
-                items={ESPECIALIDAD_OPTIONS}
+                items={especialidadOptions}
                 value={
-                  ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ??
+                  especialidadOptions.find((o) => o.value === especialidad) ??
                   null
                 }
                 onValueChange={(item) =>

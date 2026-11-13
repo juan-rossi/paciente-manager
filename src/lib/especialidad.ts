@@ -1,3 +1,5 @@
+import type { TituloCortesia } from "@/lib/titulo-cortesia";
+
 export type Especialidad =
   | "CLINICA_MEDICA"
   | "MEDICINA_FAMILIAR_GENERAL"
@@ -143,3 +145,25 @@ export const ESPECIALIDAD_OPTIONS = ESPECIALIDAD_VALUES.map((value) => ({
   label: ESPECIALIDAD_LABELS[value],
   odontologica: ESPECIALIDADES_ODONTOLOGICAS.has(value),
 }));
+
+// Títulos que identifican a un odontólogo. En el registro, el título decide
+// qué especialidades se ofrecen: Od./Odont. ven solo las odontológicas; el
+// resto (o sin título elegido), solo las no odontológicas.
+const TITULOS_ODONTOLOGICOS: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["OD", "ODONT"]);
+
+export function esTituloOdontologico(titulo: TituloCortesia | null | undefined | ""): boolean {
+  return !!titulo && TITULOS_ODONTOLOGICOS.has(titulo);
+}
+
+export function especialidadesParaTitulo(titulo: TituloCortesia | null | undefined | "") {
+  const odontologo = esTituloOdontologico(titulo);
+  return ESPECIALIDAD_OPTIONS.filter((o) => o.odontologica === odontologo);
+}
+
+export function especialidadCompatibleConTitulo(
+  titulo: TituloCortesia | null | undefined | "",
+  especialidad: Especialidad | null | undefined | "",
+): boolean {
+  if (!especialidad) return true;
+  return esOdontologica(especialidad) === esTituloOdontologico(titulo);
+}
