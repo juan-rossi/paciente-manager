@@ -5,7 +5,7 @@ import { patientSchema } from "@/lib/patient-schema";
 import { findDniConflict } from "@/lib/dni-conflict";
 import { calcularDiffAnterior, registrarAuditoria } from "@/lib/audit-log";
 
-const patientUpdateSchema = patientSchema.omit({ evoluciones: true });
+const patientUpdateSchema = patientSchema.omit({ evoluciones: true, odontogramaInicial: true });
 
 type RouteParams = { params: Promise<{ id: string }> };
 

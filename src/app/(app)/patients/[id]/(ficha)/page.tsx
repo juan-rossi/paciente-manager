@@ -48,6 +48,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const consentimientoIds = (
     await prisma.consentimientoInformado.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((c) => c.id);
+  const odontogramaIds = (
+    await prisma.patientOdontograma.findMany({ where: { patientId: id }, select: { id: true } })
+  ).map((o) => o.id);
 
   const auditEntries = await prisma.auditLog.findMany({
     where: {
@@ -59,6 +62,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
           : []),
         ...(consentimientoIds.length > 0
           ? [{ entidad: "CONSENTIMIENTO" as const, entidadId: { in: consentimientoIds } }]
+          : []),
+        ...(odontogramaIds.length > 0
+          ? [{ entidad: "ODONTOGRAMA" as const, entidadId: { in: odontogramaIds } }]
           : []),
       ],
     },

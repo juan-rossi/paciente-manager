@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
 type AuditAccion = "CREAR" | "MODIFICAR" | "ELIMINAR" | "RESTAURAR" | "EXPORTAR";
-type AuditEntidad = "PACIENTE" | "EVOLUCION" | "CONSENTIMIENTO";
+type AuditEntidad = "PACIENTE" | "EVOLUCION" | "CONSENTIMIENTO" | "ODONTOGRAMA";
 
 type RegistrarAuditoriaParams = {
   doctorId: string;

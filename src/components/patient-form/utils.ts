@@ -1,6 +1,7 @@
 import { ANTECEDENTES_ORDEN } from "./constants";
-import type { AntecedenteValue, EvolucionValue, PatientFormValues } from "./types";
+import type { AntecedenteValue, EvolucionValue, OdontogramaValue, PatientFormValues } from "./types";
 import { todayPartsBA } from "@/lib/timezone";
+import { parseDatos } from "@/lib/odontograma";
 
 const TEXT_FIELDS = [
   "nombreYApellido",
@@ -233,4 +234,19 @@ export function calcularEdad(fechaNacimiento: string): string {
     edad -= 1;
   }
   return edad >= 0 ? String(edad) : "";
+}
+
+// Un PatientOdontograma (de Prisma o de la API) -> valor del formulario.
+// Vive acá y no en odontograma-tab.tsx porque lo usa también la página de
+// edición (server component).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function odontogramaFromApi(o: any): OdontogramaValue {
+  const fecha = typeof o.fecha === "string" ? o.fecha : new Date(o.fecha).toISOString();
+  return {
+    id: o.id,
+    tipo: o.tipo,
+    fecha: fecha.slice(0, 10),
+    nota: o.nota ?? "",
+    datos: parseDatos(o.datos),
+  };
 }
