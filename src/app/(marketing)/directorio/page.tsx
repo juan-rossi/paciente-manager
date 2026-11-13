@@ -50,7 +50,7 @@ export default async function DirectorioPage({ searchParams }: Props) {
             .map((d) => ({ nombre: nombreDoctor(d), path: `/directorio/${encodeURIComponent(d.publicSlug!)}` }))
         )}
       />
-      <section className="relative overflow-hidden pt-16 sm:pt-20">
+      <section className="relative overflow-hidden pt-6 sm:pt-20">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10"
@@ -59,7 +59,7 @@ export default async function DirectorioPage({ searchParams }: Props) {
               "radial-gradient(55% 60% at 50% 0%, color-mix(in oklch, var(--primary) 16%, transparent), transparent)",
           }}
         />
-        <div className="mx-auto max-w-2xl px-4 pb-14">
+        <div className="mx-auto max-w-2xl px-4 pb-9 sm:pb-14">
           <SectionHeading
             as="h1"
             kicker="Directorio Semio360"
@@ -70,7 +70,7 @@ export default async function DirectorioPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="border-t border-border/60 bg-muted/20 py-16 sm:py-20">
+      <section className="border-t border-border/60 bg-muted/20 pt-9 pb-10 sm:py-20">
         <div className="mx-auto max-w-6xl px-4">
           {doctores.length === 0 ? (
             <p className="py-12 text-center text-muted-foreground">

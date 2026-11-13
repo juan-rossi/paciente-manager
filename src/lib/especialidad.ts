@@ -43,11 +43,20 @@ export type Especialidad =
   | "REUMATOLOGIA_INFANTIL"
   | "ALERGIA_E_INMUNOLOGIA_INFANTIL"
   | "INFECTOLOGIA_INFANTIL"
-  | "PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE";
+  | "PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE"
+  | "ODONTOLOGIA_GENERAL"
+  | "ORTODONCIA"
+  | "ENDODONCIA"
+  | "PERIODONCIA"
+  | "IMPLANTOLOGIA"
+  | "PROTESIS_REHABILITACION_ORAL"
+  | "ODONTOPEDIATRIA"
+  | "CIRUGIA_BUCOMAXILOFACIAL"
+  | "ESTETICA_DENTAL";
 
 // El orden acá define el orden del <select> -- generales primero, después
-// las más específicas, y las subespecialidades pediátricas al final (mismo
-// orden en el que las pidió el usuario).
+// las más específicas, después las subespecialidades pediátricas (mismo
+// orden en el que las pidió el usuario) y por último el bloque de odontología.
 export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   CLINICA_MEDICA: "Clínica Médica",
   MEDICINA_FAMILIAR_GENERAL: "Medicina Familiar / Medicina General",
@@ -94,11 +103,43 @@ export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   ALERGIA_E_INMUNOLOGIA_INFANTIL: "Alergia e Inmunología Infantil",
   INFECTOLOGIA_INFANTIL: "Infectología Infantil",
   PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE: "Psiquiatría Infantil y Adolescente",
+  // Odontología: bloque aparte al final, general primero.
+  ODONTOLOGIA_GENERAL: "Odontología General",
+  ORTODONCIA: "Ortodoncia y Ortopedia Dentomaxilar",
+  ENDODONCIA: "Endodoncia",
+  PERIODONCIA: "Periodoncia",
+  IMPLANTOLOGIA: "Implantología",
+  PROTESIS_REHABILITACION_ORAL: "Prótesis Dental / Rehabilitación Oral",
+  ODONTOPEDIATRIA: "Odontopediatría",
+  CIRUGIA_BUCOMAXILOFACIAL: "Cirugía y Traumatología Bucomaxilofacial",
+  ESTETICA_DENTAL: "Estética Dental / Odontología Restauradora",
 };
 
 export const ESPECIALIDAD_VALUES = Object.keys(ESPECIALIDAD_LABELS) as Especialidad[];
 
+// Especialidades odontológicas. La historia clínica de estos profesionales
+// se va a comportar distinto (odontograma, etc.), así que cualquier lógica
+// que dependa de "es odontólogo" tiene que pasar por esOdontologica() y no
+// comparar valores sueltos. Si se agrega una especialidad odontológica nueva,
+// sumarla acá.
+export const ESPECIALIDADES_ODONTOLOGICAS: ReadonlySet<Especialidad> = new Set<Especialidad>([
+  "ODONTOLOGIA_GENERAL",
+  "ORTODONCIA",
+  "ENDODONCIA",
+  "PERIODONCIA",
+  "IMPLANTOLOGIA",
+  "PROTESIS_REHABILITACION_ORAL",
+  "ODONTOPEDIATRIA",
+  "CIRUGIA_BUCOMAXILOFACIAL",
+  "ESTETICA_DENTAL",
+]);
+
+export function esOdontologica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad != null && ESPECIALIDADES_ODONTOLOGICAS.has(especialidad);
+}
+
 export const ESPECIALIDAD_OPTIONS = ESPECIALIDAD_VALUES.map((value) => ({
   value,
   label: ESPECIALIDAD_LABELS[value],
+  odontologica: ESPECIALIDADES_ODONTOLOGICAS.has(value),
 }));

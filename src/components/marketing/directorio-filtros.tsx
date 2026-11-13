@@ -77,7 +77,7 @@ export function DirectorioFiltros() {
   }
 
   return (
-    <div className="mx-auto mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-lg shadow-primary/10 sm:flex-row sm:flex-wrap">
+    <div className="mx-auto mt-4 sm:mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-lg shadow-primary/10 sm:flex-row sm:flex-wrap">
       <Combobox
         items={ESPECIALIDAD_OPTIONS}
         value={ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ?? null}
