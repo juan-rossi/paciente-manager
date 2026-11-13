@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -32,6 +32,7 @@ export function LoginForm() {
     return OAUTH_ERROR_MESSAGES[oauthError] ?? "No se pudo iniciar sesión.";
   });
   const [loading, setLoading] = useState(false);
+  const [isNavigating, startTransition] = useTransition();
 
   function destinationAfterLogin() {
     const from = searchParams.get("from");
@@ -64,14 +65,22 @@ export function LoginForm() {
         return;
       }
 
-      router.replace(destinationAfterLogin());
-      router.refresh();
+      // La navegación renderiza el layout de la app en el servidor antes de
+      // pintar nada: dentro de una transición, `isNavigating` mantiene el
+      // botón en "Ingresando..." hasta que el dashboard está listo, en vez de
+      // volver a "Ingresar" y dejar la pantalla congelada.
+      startTransition(() => {
+        router.replace(destinationAfterLogin());
+        router.refresh();
+      });
     } catch {
       setError("No se pudo conectar con el servidor.");
     } finally {
       setLoading(false);
     }
   }
+
+  const busy = loading || isNavigating;
 
   function handleGoogleSignIn() {
     setError(null);
@@ -134,8 +143,8 @@ export function LoginForm() {
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={loading} className="mt-2">
-            {loading ? "Ingresando..." : "Ingresar"}
+          <Button type="submit" disabled={busy} className="mt-2">
+            {busy ? "Ingresando..." : "Ingresar"}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
