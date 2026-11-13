@@ -77,7 +77,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-5 py-6 text-xs sm:flex-row sm:gap-4 sm:px-4">
             <span>© {new Date().getFullYear()} Semio360</span>
             <span className="hidden sm:inline">·</span>
-            <span>semio360.com · semio360.com.ar</span>
+            <span>semio360.com</span>
           </div>
         </div>
       </footer>
