@@ -94,17 +94,15 @@ function isFieldInvalid(values: PatientFormValues, field: (typeof REQUIRED_FIELD
   return false;
 }
 
-const TAB_ORDER_CREATE = [
-  "datos-personales",
-  "consulta-inicial",
-  "antecedentes",
-  "examen-fisico",
-  "diagnostico",
-] as const;
-
+// odontogramaHabilitado == "el médico es odontólogo" (ver esOdontologica()):
+// a esos se les muestra el odontograma y se les oculta el examen físico.
 function tabOrderFor(mode: "create" | "edit", odontograma: boolean): readonly string[] {
   return [
-    ...TAB_ORDER_CREATE,
+    "datos-personales",
+    "consulta-inicial",
+    "antecedentes",
+    ...(odontograma ? [] : ["examen-fisico"]),
+    "diagnostico",
     ...(odontograma ? ["odontograma"] : []),
     ...(mode === "edit" ? ["evolucion"] : []),
   ];
@@ -278,10 +276,12 @@ export function PatientForm({
             <History className="size-4" />
             Antecedentes Personales
           </TabsTrigger>
-          <TabsTrigger value="examen-fisico">
-            <Stethoscope className="size-4" />
-            Exámen Físico
-          </TabsTrigger>
+          {!odontogramaHabilitado && (
+            <TabsTrigger value="examen-fisico">
+              <Stethoscope className="size-4" />
+              Exámen Físico
+            </TabsTrigger>
+          )}
           <TabsTrigger value="diagnostico">
             <ClipboardCheck className="size-4" />
             Diagnóstico
@@ -322,13 +322,15 @@ export function PatientForm({
             <History className="size-[18px]" />
             Antecedentes
           </TabsTrigger>
-          <TabsTrigger
-            value="examen-fisico"
-            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
-          >
-            <Stethoscope className="size-[18px]" />
-            Exámen Físico
-          </TabsTrigger>
+          {!odontogramaHabilitado && (
+            <TabsTrigger
+              value="examen-fisico"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <Stethoscope className="size-[18px]" />
+              Exámen Físico
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="diagnostico"
             className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
@@ -377,9 +379,11 @@ export function PatientForm({
             <TabsContent value="antecedentes">
               <AntecedentesTab values={values} onAntecedenteChange={handleAntecedenteChange} />
             </TabsContent>
-            <TabsContent value="examen-fisico">
-              <ExamenFisicoTab values={values} onChange={handleChange} />
-            </TabsContent>
+            {!odontogramaHabilitado && (
+              <TabsContent value="examen-fisico">
+                <ExamenFisicoTab values={values} onChange={handleChange} />
+              </TabsContent>
+            )}
             <TabsContent value="diagnostico">
               <DiagnosticoTab values={values} onChange={handleChange} />
             </TabsContent>
