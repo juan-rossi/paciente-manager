@@ -77,11 +77,14 @@ export function Hero() {
                     {wi < line.length - 1 && " "}
                   </Fragment>
                 ))}
+                {/* Sin este espacio, el texto crudo queda "consultorio.Más". */}
+                {li < HEADLINE.length - 1 && " "}
               </span>
             ))}
           </motion.h1>
           <motion.p variants={blurIn} className="max-w-md text-lg text-muted-foreground text-balance">
-            Gestioná turnos, pacientes e historias clínicas desde un solo lugar.
+            Software para consultorios médicos: gestioná turnos, pacientes e historias clínicas desde un
+            solo lugar.
           </motion.p>
           <motion.div
             variants={blurIn}

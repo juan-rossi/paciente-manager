@@ -32,7 +32,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </div>
 
           <nav aria-label="Explorar" className="flex flex-col gap-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1b2233]">Explorar</h4>
+            {/* <p> y no <h4>: un h4 suelto en el footer rompe la jerarquía de títulos. */}
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#1b2233]">Explorar</p>
             <ul className="flex flex-col gap-3">
               {FOOTER_PRODUCT_LINKS.map((link) => (
                 <li key={link.href}>
@@ -45,7 +46,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           </nav>
 
           <nav aria-label="Contacto" className="flex flex-col gap-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#1b2233]">Contacto</h4>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#1b2233]">Contacto</p>
             <ul className="flex flex-col gap-3">
               <li>
                 <Link href="/terminos" className="font-medium text-[#4f46e5] hover:text-[#3730a3]">
