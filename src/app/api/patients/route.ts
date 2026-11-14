@@ -17,31 +17,59 @@ const listSelect = {
   updatedAt: true,
 } satisfies Prisma.PatientSelect;
 
+const RECIENTES = 20;
+
 export async function GET(request: NextRequest) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+
+  if (!q) {
+    return NextResponse.json({ patients: await pacientesRecientes(user.id, tenantId) });
+  }
 
   const patients = await prisma.patient.findMany({
     where: {
       doctorId: tenantId,
       deletedAt: null,
-      ...(q
-        ? {
-            OR: [
-              { nroDocumento: { contains: q, mode: "insensitive" } },
-              { nombreYApellido: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
+      OR: [
+        { nroDocumento: { contains: q, mode: "insensitive" } },
+        { nombreYApellido: { contains: q, mode: "insensitive" } },
+      ],
     },
     select: listSelect,
-    orderBy: q ? { nombreYApellido: "asc" } : { updatedAt: "desc" },
-    take: q ? 50 : 10,
+    orderBy: { nombreYApellido: "asc" },
+    take: 50,
   });
 
   return NextResponse.json({ patients });
+}
+
+// Sin filtro: los últimos pacientes cuyo detalle abrió este usuario (crear o
+// editar también terminan en el detalle). Si todavía vio menos de
+// `RECIENTES`, se completa con los últimos creados/editados del tenant.
+async function pacientesRecientes(userId: string, tenantId: string) {
+  const vistos = await prisma.pacienteVisto.findMany({
+    where: { userId, patient: { doctorId: tenantId, deletedAt: null } },
+    orderBy: { vistoAt: "desc" },
+    take: RECIENTES,
+    select: { patient: { select: listSelect } },
+  });
+  const patients = vistos.map((v) => v.patient);
+  if (patients.length >= RECIENTES) return patients;
+
+  const relleno = await prisma.patient.findMany({
+    where: {
+      doctorId: tenantId,
+      deletedAt: null,
+      id: { notIn: patients.map((p) => p.id) },
+    },
+    select: listSelect,
+    orderBy: { updatedAt: "desc" },
+    take: RECIENTES - patients.length,
+  });
+  return [...patients, ...relleno];
 }
 
 export async function POST(request: NextRequest) {

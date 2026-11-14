@@ -19,9 +19,14 @@ import { PageEnter } from "@/components/page-transition";
 // lista de "últimos pacientes" en vez de consultarla en cada request.
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const user = await getCurrentUser();
   if (!user) return null;
+  const { tab } = await searchParams;
 
   const hoy = new Date();
   const tenantId = getTenantId(user);
@@ -64,6 +69,7 @@ export default async function DashboardPage() {
           <TrialPorTerminarAviso diasRestantesDeTrial={diasTrial} trialEndsAt={user.trialEndsAt.toISOString()} />
         )}
         <DashboardTabs
+          initialTab={tab === "buscar" ? "buscar" : "turnos"}
           initialDate={formatDateParamBA(hoy)}
           initialTurnos={turnos}
           diasConHorario={diasConHorario}

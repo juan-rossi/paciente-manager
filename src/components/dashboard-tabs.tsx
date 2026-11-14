@@ -10,7 +10,10 @@ import { TurnosPorDia } from "@/components/turnos-por-dia";
 import type { DiaSemana } from "@/lib/slots";
 import type { TurnoDelDia } from "@/lib/turnos-del-dia";
 
+export type DashboardTab = "turnos" | "buscar";
+
 type Props = {
+  initialTab: DashboardTab;
   initialDate: string;
   initialTurnos: TurnoDelDia[];
   diasConHorario: DiaSemana[];
@@ -25,8 +28,10 @@ type Props = {
 // Componente cliente separado del server component de la página únicamente
 // porque el estado vacío de "Por turnos" necesita cambiar a la pestaña
 // "Buscar paciente" mediante código (el acceso rápido "Buscar paciente"),
-// algo que un <Tabs defaultValue> sin controlar no permite.
+// algo que un <Tabs defaultValue> sin controlar no permite. La pestaña inicial
+// llega del server (`?tab=buscar`) para sobrevivir a un refresh sin parpadeo.
 export function DashboardTabs({
+  initialTab,
   initialDate,
   initialTurnos,
   diasConHorario,
@@ -37,10 +42,21 @@ export function DashboardTabs({
   sugerirCompletarBiografia,
   sugerirCargarPrepagas,
 }: Props) {
-  const [tab, setTab] = useState("turnos");
+  const [tab, setTabState] = useState<DashboardTab>(initialTab);
+
+  // La pestaña se refleja en la URL (`?tab=buscar`) para que un refresh deje
+  // al usuario donde estaba. `replaceState` evita una navegación de Next
+  // (no hace falta volver a pedir la página) y no ensucia el historial.
+  function setTab(value: DashboardTab) {
+    setTabState(value);
+    const url = new URL(window.location.href);
+    if (value === "buscar") url.searchParams.set("tab", "buscar");
+    else url.searchParams.delete("tab");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }
 
   return (
-    <Tabs value={tab} onValueChange={(value) => setTab(value as string)}>
+    <Tabs value={tab} onValueChange={(value) => setTab(value as DashboardTab)}>
       <div className="flex items-center justify-between gap-2">
         <TabsList>
           <TabsTrigger value="turnos" className="px-2.5 py-1 text-xs sm:px-3.5 sm:py-1.5 sm:text-sm">

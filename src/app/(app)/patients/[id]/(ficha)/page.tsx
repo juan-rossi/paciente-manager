@@ -38,6 +38,16 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     notFound();
   }
 
+  // Alimenta "últimos pacientes vistos" de la búsqueda. Si falla no debe
+  // romper la ficha: es solo una comodidad de navegación.
+  await prisma.pacienteVisto
+    .upsert({
+      where: { userId_patientId: { userId: user.id, patientId: id } },
+      create: { userId: user.id, patientId: id },
+      update: { vistoAt: new Date() },
+    })
+    .catch((error) => console.error("No se pudo registrar el paciente visto", error));
+
   // Para el historial de auditoría hace falta buscar TODAS las evoluciones y
   // consentimientos que alguna vez tuvo este paciente (incluidos los
   // eliminados), no solo los activos -- si no, un registro borrado

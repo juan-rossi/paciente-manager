@@ -415,6 +415,7 @@ model User {
   turnosDelDoctor       Turno[]              @relation("TurnoDoctor")
   auditLogsDelTenant    AuditLog[]           @relation("AuditDoctor")
   auditLogsComoActor    AuditLog[]           @relation("AuditActor")
+  pacientesVistos       PacienteVisto[]
   usosIA                UsoIA[]
   passwordResetTokens   PasswordResetToken[]
   moderaciones          ModeracionPerfil[]
@@ -952,10 +953,27 @@ model Patient {
   turnos          Turno[]
   consentimientos ConsentimientoInformado[]
   odontogramas    PatientOdontograma[]
+  vistos          PacienteVisto[]
 
   @@index([doctorId])
   @@index([doctorId, nroDocumento])
   @@index([doctorId, nombreYApellido])
+}
+
+// Último acceso de cada usuario (médico o secretaria) al detalle de cada
+// paciente -- alimenta la lista de "últimos pacientes vistos" que muestra la
+// búsqueda de pacientes cuando no hay filtro. Una fila por par usuario/paciente
+// (upsert al entrar al detalle), no un historial: para trazabilidad clínica
+// está `AuditLog`.
+model PacienteVisto {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  vistoAt   DateTime @default(now())
+
+  @@id([userId, patientId])
+  @@index([userId, vistoAt])
 }
 
 model PatientAntecedente {

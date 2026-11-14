@@ -43,30 +43,40 @@ export function PatientSearch() {
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (trimmed === "") {
-      // Limpia resultados stale de una búsqueda previa; sin esto, tipear un
-      // nuevo filtro después de borrar todo mostraría por un instante los
-      // resultados de la búsqueda anterior mientras arranca el debounce.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPatients([]);
-      setLoading(false);
-      return;
-    }
+    // Sin filtro, la API devuelve los últimos 20 pacientes vistos
+    // (ver `pacientesRecientes`). Se pide sin debounce: no hay tipeo que esperar.
+    const isRecent = trimmed === "";
 
+    // Limpia resultados stale del modo anterior (búsqueda ↔ recientes); sin
+    // esto se verían por un instante mientras arranca el fetch/debounce.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPatients([]);
     setLoading(true);
-    const timer = setTimeout(async () => {
-      sessionStorage.setItem(QUERY_STORAGE_KEY, query);
-      try {
-        const response = await fetch(`/api/patients?q=${encodeURIComponent(trimmed)}`);
-        const data = await response.json();
-        setPatients(data.patients ?? []);
-      } finally {
-        setLoading(false);
-      }
-    }, SEARCH_DEBOUNCE_MS);
+    let cancelled = false;
+    const timer = setTimeout(
+      async () => {
+        if (isRecent) sessionStorage.removeItem(QUERY_STORAGE_KEY);
+        else sessionStorage.setItem(QUERY_STORAGE_KEY, query);
+        try {
+          const response = await fetch(
+            `/api/patients?q=${encodeURIComponent(trimmed)}`,
+          );
+          const data = await response.json();
+          if (!cancelled) setPatients(data.patients ?? []);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      },
+      isRecent ? 0 : SEARCH_DEBOUNCE_MS,
+    );
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [query]);
+
+  const isRecent = query.trim() === "";
 
   return (
     <Card>
@@ -90,6 +100,12 @@ export function PatientSearch() {
           onChange={(event) => setQuery(event.target.value)}
         />
 
+        {isRecent && (
+          <p className="-mb-2 text-sm font-medium text-muted-foreground">
+            Últimos pacientes vistos
+          </p>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -99,35 +115,38 @@ export function PatientSearch() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {query.trim() === "" && (
+            {patients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
-                  Escribí un DNI, nombre o apellido para buscar.
+                <TableCell
+                  colSpan={3}
+                  className="text-center text-muted-foreground"
+                >
+                  {loading
+                    ? isRecent
+                      ? "Cargando..."
+                      : "Buscando..."
+                    : isRecent
+                      ? "Todavía no hay pacientes cargados."
+                      : "No se encontraron pacientes."}
                 </TableCell>
               </TableRow>
             )}
-            {query.trim() !== "" && patients.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
-                  {loading ? "Buscando..." : "No se encontraron pacientes."}
+            {patients.map((patient) => (
+              <TableRow key={patient.id}>
+                <TableCell className="font-medium">
+                  <Link
+                    href={`/patients/${patient.id}`}
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    {patient.nombreYApellido}
+                  </Link>
+                </TableCell>
+                <TableCell>{patient.nroDocumento ?? "—"}</TableCell>
+                <TableCell className="hidden sm:table-cell">
+                  {patient.telefono ?? "—"}
                 </TableCell>
               </TableRow>
-            )}
-            {query.trim() !== "" &&
-              patients.map((patient) => (
-                <TableRow key={patient.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/patients/${patient.id}`}
-                      className="text-foreground underline-offset-4 hover:underline"
-                    >
-                      {patient.nombreYApellido}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{patient.nroDocumento ?? "—"}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{patient.telefono ?? "—"}</TableCell>
-                </TableRow>
-              ))}
+            ))}
           </TableBody>
         </Table>
       </CardContent>
