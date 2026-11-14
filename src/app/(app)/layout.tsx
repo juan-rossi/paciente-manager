@@ -18,56 +18,58 @@ import { formatFechaTicket } from "@/lib/soporte";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   const isDoctor = user?.role === "DOCTOR";
+  const isSecretary = user?.role === "SECRETARY";
 
-  // Una secretaria puede asistir a más de un médico -- si es el caso, se
-  // muestra el selector para elegir a cuál está atendiendo ahora.
-  const doctoresAsignados =
-    user && user.role === "SECRETARY"
-      ? await prisma.user.findMany({
-          where: {
-            role: "DOCTOR",
-            doctorAsignaciones: { some: { secretariaId: user.id, aceptadaAt: { not: null } } },
-          },
-          select: {
-            id: true,
-            nombre: true,
-            apellido: true,
-            tituloCortesia: true,
-            mensajeriaHabilitada: true,
-          },
-          orderBy: { nombre: "asc" },
-        })
-      : [];
+  // Las queries del header son independientes entre sí: van en paralelo para
+  // no sumar round-trips a la DB en cada navegación (se nota sobre todo justo
+  // después del login, cuando nada de esto está cacheado).
+  const [doctoresAsignados, lugaresAsignados, invitacionesRaw, activeLugarId, [ticketsSoporte, soporteNoLeidos]] =
+    await Promise.all([
+      // Una secretaria puede asistir a más de un médico -- si es el caso, se
+      // muestra el selector para elegir a cuál está atendiendo ahora.
+      user && isSecretary
+        ? prisma.user.findMany({
+            where: {
+              role: "DOCTOR",
+              doctorAsignaciones: { some: { secretariaId: user.id, aceptadaAt: { not: null } } },
+            },
+            select: {
+              id: true,
+              nombre: true,
+              apellido: true,
+              tituloCortesia: true,
+              mensajeriaHabilitada: true,
+            },
+            orderBy: { nombre: "asc" },
+          })
+        : [],
 
-  // Dentro del médico activo, una secretaria puede tener más de un lugar
-  // asignado -- si es el caso, se muestra el selector para elegir cuál está
-  // administrando ahora (ver `resolveActiveLugarId`, que también
-  // autocorrige `activeLugarId` si el guardado ya no es válido).
-  const lugaresAsignados =
-    user && user.role === "SECRETARY" && user.activeDoctorId
-      ? await prisma.lugarDeTrabajo.findMany({
-          where: {
-            deletedAt: null,
-            secretariasConAcceso: {
-              some: {
-                doctorSecretaria: {
-                  doctorId: user.activeDoctorId,
-                  secretariaId: user.id,
-                  aceptadaAt: { not: null },
+      // Dentro del médico activo, una secretaria puede tener más de un lugar
+      // asignado -- si es el caso, se muestra el selector para elegir cuál está
+      // administrando ahora (ver `resolveActiveLugarId`, que también
+      // autocorrige `activeLugarId` si el guardado ya no es válido).
+      user && isSecretary && user.activeDoctorId
+        ? prisma.lugarDeTrabajo.findMany({
+            where: {
+              deletedAt: null,
+              secretariasConAcceso: {
+                some: {
+                  doctorSecretaria: {
+                    doctorId: user.activeDoctorId,
+                    secretariaId: user.id,
+                    aceptadaAt: { not: null },
+                  },
                 },
               },
             },
-          },
-          select: { id: true, tipo: true, nombre: true },
-          orderBy: { createdAt: "asc" },
-        })
-      : [];
+            select: { id: true, tipo: true, nombre: true },
+            orderBy: { createdAt: "asc" },
+          })
+        : [],
 
-  // Médicos que la sumaron y todavía no aceptó (ver `DoctorSecretaria.aceptadaAt`).
-  const invitaciones =
-    user && user.role === "SECRETARY"
-      ? (
-          await prisma.doctorSecretaria.findMany({
+      // Médicos que la sumaron y todavía no aceptó (ver `DoctorSecretaria.aceptadaAt`).
+      user && isSecretary
+        ? prisma.doctorSecretaria.findMany({
             where: { secretariaId: user.id, aceptadaAt: null },
             select: {
               id: true,
@@ -75,29 +77,32 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             },
             orderBy: { createdAt: "asc" },
           })
-        ).map((inv) => ({
-          id: inv.id,
-          nombreMedico: formatNombreConTitulo(
-            inv.doctor.tituloCortesia,
-            `${inv.doctor.nombre} ${inv.doctor.apellido}`.trim()
-          ),
-        }))
-      : [];
-  const activeLugarId = user ? await resolveActiveLugarId(user) : undefined;
+        : [],
 
-  // Ícono de "Sugerencias y soporte": los últimos mensajes propios y cuántos
-  // tienen una respuesta del equipo sin abrir.
-  const [ticketsSoporte, soporteNoLeidos] = user
-    ? await Promise.all([
-        prisma.ticketSoporte.findMany({
-          where: { autorId: user.id },
-          orderBy: [{ noLeidoAutor: "desc" }, { updatedAt: "desc" }],
-          take: 3,
-          select: { id: true, asunto: true, estado: true, noLeidoAutor: true, updatedAt: true },
-        }),
-        prisma.ticketSoporte.count({ where: { autorId: user.id, noLeidoAutor: true } }),
-      ])
-    : [[], 0];
+      user ? resolveActiveLugarId(user) : undefined,
+
+      // Ícono de "Sugerencias y soporte": los últimos mensajes propios y cuántos
+      // tienen una respuesta del equipo sin abrir.
+      user
+        ? Promise.all([
+            prisma.ticketSoporte.findMany({
+              where: { autorId: user.id },
+              orderBy: [{ noLeidoAutor: "desc" }, { updatedAt: "desc" }],
+              take: 3,
+              select: { id: true, asunto: true, estado: true, noLeidoAutor: true, updatedAt: true },
+            }),
+            prisma.ticketSoporte.count({ where: { autorId: user.id, noLeidoAutor: true } }),
+          ])
+        : ([[], 0] as const),
+    ]);
+
+  const invitaciones = invitacionesRaw.map((inv) => ({
+    id: inv.id,
+    nombreMedico: formatNombreConTitulo(
+      inv.doctor.tituloCortesia,
+      `${inv.doctor.nombre} ${inv.doctor.apellido}`.trim()
+    ),
+  }));
 
   // La mensajería es una configuración del médico (tenant) -- una
   // secretaria hereda la del médico que tiene activo en el selector.

@@ -568,6 +568,7 @@ enum AuditEntidad {
   PACIENTE
   EVOLUCION
   CONSENTIMIENTO
+  ODONTOGRAMA
 }
 
 // Ley 26.529 art. 13: la historia clínica digital requiere controles de
@@ -950,6 +951,7 @@ model Patient {
   evoluciones     PatientEvolucion[]
   turnos          Turno[]
   consentimientos ConsentimientoInformado[]
+  odontogramas    PatientOdontograma[]
 
   @@index([doctorId])
   @@index([doctorId, nroDocumento])
@@ -981,6 +983,32 @@ model PatientEvolucion {
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
   // se borra físicamente, se oculta.
   deletedAt        DateTime?
+}
+
+enum OdontogramaTipo {
+  INICIAL
+  CONTROL
+}
+
+// Odontograma (solo médicos con especialidad odontológica, ver
+// src/lib/especialidad.ts esOdontologica()). Cada fila es un snapshot del
+// estado de la boca en una visita: uno INICIAL (cómo llegó el paciente) y
+// N de CONTROL. `datos` tiene la forma DatosOdontograma de
+// src/lib/odontograma.ts, validada con zod en la API.
+model PatientOdontograma {
+  id        String          @id @default(cuid())
+  patientId String
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  tipo      OdontogramaTipo
+  fecha     DateTime
+  nota      String?
+  datos     Json
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  // Mismo criterio que PatientEvolucion: nunca se borra físicamente.
+  deletedAt DateTime?
+
+  @@index([patientId, fecha])
 }
 
 enum ConsentimientoTipo {

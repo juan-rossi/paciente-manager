@@ -9,6 +9,7 @@ import {
   ClipboardList,
   History,
   Save,
+  Smile,
   Stethoscope,
   TrendingUp,
   User,
@@ -29,10 +30,17 @@ import { AntecedentesTab } from "./antecedentes-tab";
 import { ExamenFisicoTab } from "./examen-fisico-tab";
 import { DiagnosticoTab } from "./diagnostico-tab";
 import { EvolucionTab } from "./evolucion-tab";
+import {
+  OdontogramaHistorialTab,
+  OdontogramaInicialTab,
+  odontogramaVacio,
+} from "./odontograma-tab";
+import { tieneMarcas } from "@/lib/odontograma";
 import { emptyPatientFormValues } from "./utils";
 import type {
   AntecedenteValue,
   EvolucionValue,
+  OdontogramaValue,
   PatientFormValues,
   ResumenAutomatico,
 } from "./types";
@@ -46,6 +54,9 @@ type Props = {
   initialEvolucionesEliminadas?: EvolucionValue[];
   transcripcionHabilitada?: boolean;
   resumenAutomatico?: ResumenAutomatico;
+  // Solo médicos con especialidad odontológica (ver esOdontologica()).
+  odontogramaHabilitado?: boolean;
+  initialOdontogramas?: OdontogramaValue[];
 };
 
 const REQUIRED_FIELDS = [
@@ -83,15 +94,19 @@ function isFieldInvalid(values: PatientFormValues, field: (typeof REQUIRED_FIELD
   return false;
 }
 
-const TAB_ORDER_CREATE = [
-  "datos-personales",
-  "consulta-inicial",
-  "antecedentes",
-  "examen-fisico",
-  "diagnostico",
-] as const;
-
-const TAB_ORDER_EDIT = [...TAB_ORDER_CREATE, "evolucion"] as const;
+// odontogramaHabilitado == "el médico es odontólogo" (ver esOdontologica()):
+// a esos se les muestra el odontograma y se les oculta el examen físico.
+function tabOrderFor(mode: "create" | "edit", odontograma: boolean): readonly string[] {
+  return [
+    "datos-personales",
+    "consulta-inicial",
+    "antecedentes",
+    ...(odontograma ? [] : ["examen-fisico"]),
+    "diagnostico",
+    ...(odontograma ? ["odontograma"] : []),
+    ...(mode === "edit" ? ["evolucion"] : []),
+  ];
+}
 
 export function PatientForm({
   mode,
@@ -101,6 +116,8 @@ export function PatientForm({
   initialEvolucionesEliminadas,
   transcripcionHabilitada = false,
   resumenAutomatico,
+  odontogramaHabilitado = false,
+  initialOdontogramas = [],
 }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
@@ -109,6 +126,9 @@ export function PatientForm({
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones ?? []);
   const [evolucionesEliminadas, setEvolucionesEliminadas] = useState<EvolucionValue[]>(
     initialEvolucionesEliminadas ?? []
+  );
+  const [odontogramaInicial, setOdontogramaInicial] = useState<OdontogramaValue>(() =>
+    odontogramaVacio("INICIAL")
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +159,7 @@ export function PatientForm({
     }));
   }
 
-  const tabOrder: readonly string[] = mode === "edit" ? TAB_ORDER_EDIT : TAB_ORDER_CREATE;
+  const tabOrder = tabOrderFor(mode, odontogramaHabilitado);
   const currentTabIndex = tabOrder.indexOf(activeTab);
 
   function handlePrevious() {
@@ -193,6 +213,15 @@ export function PatientForm({
       ...values,
       estadoCivil: values.estadoCivil || null,
       evoluciones: [],
+      ...(mode === "create" && odontogramaHabilitado && tieneMarcas(odontogramaInicial.datos)
+        ? {
+            odontogramaInicial: {
+              fecha: odontogramaInicial.fecha,
+              nota: odontogramaInicial.nota,
+              datos: odontogramaInicial.datos,
+            },
+          }
+        : {}),
       ...(options?.resolveDniConflict ? { resolveDniConflict: true } : {}),
     };
 
@@ -247,14 +276,22 @@ export function PatientForm({
             <History className="size-4" />
             Antecedentes Personales
           </TabsTrigger>
-          <TabsTrigger value="examen-fisico">
-            <Stethoscope className="size-4" />
-            Exámen Físico
-          </TabsTrigger>
+          {!odontogramaHabilitado && (
+            <TabsTrigger value="examen-fisico">
+              <Stethoscope className="size-4" />
+              Exámen Físico
+            </TabsTrigger>
+          )}
           <TabsTrigger value="diagnostico">
             <ClipboardCheck className="size-4" />
             Diagnóstico
           </TabsTrigger>
+          {odontogramaHabilitado && (
+            <TabsTrigger value="odontograma">
+              <Smile className="size-4" />
+              Odontograma
+            </TabsTrigger>
+          )}
           {mode === "edit" && (
             <TabsTrigger value="evolucion">
               <TrendingUp className="size-4" />
@@ -285,13 +322,15 @@ export function PatientForm({
             <History className="size-[18px]" />
             Antecedentes
           </TabsTrigger>
-          <TabsTrigger
-            value="examen-fisico"
-            className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
-          >
-            <Stethoscope className="size-[18px]" />
-            Exámen Físico
-          </TabsTrigger>
+          {!odontogramaHabilitado && (
+            <TabsTrigger
+              value="examen-fisico"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <Stethoscope className="size-[18px]" />
+              Exámen Físico
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="diagnostico"
             className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
@@ -299,6 +338,15 @@ export function PatientForm({
             <ClipboardCheck className="size-[18px]" />
             Diagnóstico
           </TabsTrigger>
+          {odontogramaHabilitado && (
+            <TabsTrigger
+              value="odontograma"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <Smile className="size-[18px]" />
+              Odontograma
+            </TabsTrigger>
+          )}
           {mode === "edit" && (
             <TabsTrigger
               value="evolucion"
@@ -331,12 +379,26 @@ export function PatientForm({
             <TabsContent value="antecedentes">
               <AntecedentesTab values={values} onAntecedenteChange={handleAntecedenteChange} />
             </TabsContent>
-            <TabsContent value="examen-fisico">
-              <ExamenFisicoTab values={values} onChange={handleChange} />
-            </TabsContent>
+            {!odontogramaHabilitado && (
+              <TabsContent value="examen-fisico">
+                <ExamenFisicoTab values={values} onChange={handleChange} />
+              </TabsContent>
+            )}
             <TabsContent value="diagnostico">
               <DiagnosticoTab values={values} onChange={handleChange} />
             </TabsContent>
+            {odontogramaHabilitado && (
+              <TabsContent value="odontograma">
+                {mode === "edit" && patientId ? (
+                  <OdontogramaHistorialTab
+                    patientId={patientId}
+                    initialOdontogramas={initialOdontogramas}
+                  />
+                ) : (
+                  <OdontogramaInicialTab value={odontogramaInicial} onChange={setOdontogramaInicial} />
+                )}
+              </TabsContent>
+            )}
             {mode === "edit" && (
               <TabsContent value="evolucion">
                 <EvolucionTab

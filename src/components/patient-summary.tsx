@@ -52,6 +52,9 @@ const AUDIT_LABELS: Record<string, string> = {
   ELIMINAR_CONSENTIMIENTO: "eliminó un consentimiento informado",
   RESTAURAR_CONSENTIMIENTO: "restauró un consentimiento informado",
   EXPORTAR_CONSENTIMIENTO: "imprimió el consentimiento informado para su firma",
+  CREAR_ODONTOGRAMA: "registró un odontograma",
+  MODIFICAR_ODONTOGRAMA: "modificó un odontograma",
+  ELIMINAR_ODONTOGRAMA: "eliminó un odontograma",
 };
 
 // Los timestamps de auditoría son instantes reales (no fechas de calendario

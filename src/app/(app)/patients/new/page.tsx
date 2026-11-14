@@ -4,6 +4,8 @@ import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientForm } from "@/components/patient-form/patient-form";
 import { emptyPatientFormValues } from "@/components/patient-form/utils";
 import { PageEnter } from "@/components/page-transition";
+import { getTenantId } from "@/lib/tenant";
+import { tenantEsOdontologo } from "@/lib/odontograma-server";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -23,6 +25,8 @@ export default async function NewPatientPage({
   initialValues.nroDocumento = firstString(params.nroDocumento) ?? "";
   initialValues.telefono = firstString(params.telefono) ?? "";
   initialValues.obraSocial = firstString(params.obraSocial) ?? "";
+  const odontogramaHabilitado =
+    user && user.role !== "ADMIN" ? await tenantEsOdontologo(getTenantId(user)) : false;
 
   return (
     <PageEnter>
@@ -33,6 +37,7 @@ export default async function NewPatientPage({
           initialValues={initialValues}
           transcripcionHabilitada={user ? isPremium(user) && esActivo(user) : false}
           resumenAutomatico={user ? await getResumenAutomatico(user) : undefined}
+          odontogramaHabilitado={odontogramaHabilitado}
         />
       </div>
     </PageEnter>

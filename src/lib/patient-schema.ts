@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { dniSchema } from "@/lib/dni";
+import { odontogramaInputSchema } from "@/lib/odontograma";
 
 const optionalString = z
   .string()
@@ -167,6 +168,11 @@ export const patientSchema = z.object({
 
   antecedentes: z.array(antecedenteSchema).default([]),
   evoluciones: z.array(evolucionSchema).default([]),
+
+  // Solo en el alta y solo para odontólogos (la API lo ignora si el tenant
+  // no tiene especialidad odontológica). En edición, el odontograma se guarda
+  // por su cuenta en /api/patients/[id]/odontogramas.
+  odontogramaInicial: odontogramaInputSchema.omit({ tipo: true }).nullable().optional(),
 });
 
 export type PatientInput = z.infer<typeof patientSchema>;

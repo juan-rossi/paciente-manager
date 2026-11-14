@@ -125,3 +125,13 @@ export type ResumenAutomatico = {
   antecedentes: boolean;
   evoluciones: boolean;
 };
+
+// Un snapshot del odontograma tal como lo usa el formulario (fecha ISO
+// "YYYY-MM-DD", como las evoluciones). Sin `id` = todavía no se guardó.
+export type OdontogramaValue = {
+  id?: string;
+  tipo: import("@/lib/odontograma").OdontogramaTipo;
+  fecha: string;
+  nota: string;
+  datos: import("@/lib/odontograma").DatosOdontograma;
+};

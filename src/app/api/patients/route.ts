@@ -5,6 +5,8 @@ import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 import { findDniConflict } from "@/lib/dni-conflict";
 import { registrarAuditoria } from "@/lib/audit-log";
+import { tieneMarcas } from "@/lib/odontograma";
+import { tenantEsOdontologo } from "@/lib/odontograma-server";
 
 const listSelect = {
   id: true,
@@ -59,7 +61,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { antecedentes, evoluciones, ...patientFields } = parsed.data;
+  const { antecedentes, evoluciones, odontogramaInicial, ...patientFields } = parsed.data;
+  const guardarOdontograma =
+    odontogramaInicial != null &&
+    tieneMarcas(odontogramaInicial.datos) &&
+    (await tenantEsOdontologo(tenantId));
 
   let conflict = null;
   if (patientFields.nroDocumento) {
@@ -113,6 +119,25 @@ export async function POST(request: NextRequest) {
       entidad: "PACIENTE",
       entidadId: created.id,
     });
+
+    if (guardarOdontograma && odontogramaInicial) {
+      const odontograma = await tx.patientOdontograma.create({
+        data: {
+          patientId: created.id,
+          tipo: "INICIAL",
+          fecha: new Date(odontogramaInicial.fecha),
+          nota: odontogramaInicial.nota ?? null,
+          datos: odontogramaInicial.datos,
+        },
+      });
+      await registrarAuditoria(tx, {
+        doctorId: tenantId,
+        actorId: user.id,
+        accion: "CREAR",
+        entidad: "ODONTOGRAMA",
+        entidadId: odontograma.id,
+      });
+    }
 
     return created;
   });
