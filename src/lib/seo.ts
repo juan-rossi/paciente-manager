@@ -1,4 +1,4 @@
-import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
+import { ESPECIALIDAD_LABELS, especialidadPath, type Especialidad } from "@/lib/especialidad";
 import { FAQS } from "@/lib/faq";
 import type { RedesSociales } from "@/lib/redes-sociales";
 import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
@@ -128,20 +128,25 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
   };
 }
 
-export function directorioJsonLd(doctores: { nombre: string; path: string }[]) {
+export function directorioJsonLd(doctores: { nombre: string; path: string }[], especialidad?: Especialidad) {
+  const pagina = especialidad
+    ? { name: `${ESPECIALIDAD_LABELS[especialidad]}: médicos y turnos online`, path: especialidadPath(especialidad) }
+    : { name: "Directorio de médicos", path: "/directorio" };
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "CollectionPage",
-        name: "Directorio de médicos",
-        url: absoluteUrl("/directorio"),
+        name: pagina.name,
+        url: absoluteUrl(pagina.path),
         inLanguage: "es-AR",
         isPartOf: { "@id": `${getSiteUrl()}/#website` },
+        ...(especialidad ? { about: { "@type": "MedicalSpecialty", name: ESPECIALIDAD_LABELS[especialidad] } } : {}),
       },
       breadcrumbJsonLd([
         { name: "Inicio", path: "/" },
         { name: "Directorio", path: "/directorio" },
+        ...(especialidad ? [{ name: ESPECIALIDAD_LABELS[especialidad], path: especialidadPath(especialidad) }] : []),
       ]),
       {
         "@type": "ItemList",
@@ -208,7 +213,7 @@ export function perfilJsonLd(d: {
         { name: "Inicio", path: "/" },
         { name: "Directorio", path: "/directorio" },
         ...(d.especialidad
-          ? [{ name: ESPECIALIDAD_LABELS[d.especialidad], path: `/directorio?especialidad=${d.especialidad}` }]
+          ? [{ name: ESPECIALIDAD_LABELS[d.especialidad], path: especialidadPath(d.especialidad) }]
           : []),
         { name: d.nombre, path: `/directorio/${encodeURIComponent(d.slug)}` },
       ]),

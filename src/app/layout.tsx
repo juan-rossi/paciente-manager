@@ -19,6 +19,8 @@ const sora = Sora({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // No se usa en la landing: precargarla ahí solo compite con el LCP.
+  preload: false,
 });
 
 export const metadata: Metadata = {

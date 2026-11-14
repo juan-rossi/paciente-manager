@@ -119,6 +119,26 @@ export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
 
 export const ESPECIALIDAD_VALUES = Object.keys(ESPECIALIDAD_LABELS) as Especialidad[];
 
+// Segmento de URL legible de cada especialidad para las páginas indexables del
+// directorio (`/directorio/especialidad/cardiologia`). Se deriva del enum, así
+// que una especialidad nueva tiene su página sin tocar nada más -- pero
+// renombrar un valor del enum cambia su URL (y rompe los links ya indexados).
+export function especialidadSlug(especialidad: Especialidad): string {
+  return especialidad.toLowerCase().replace(/_/g, "-");
+}
+
+export function especialidadDesdeSlug(slug: string): Especialidad | null {
+  return ESPECIALIDAD_VALUES.find((e) => especialidadSlug(e) === slug) ?? null;
+}
+
+export function especialidadPath(especialidad: Especialidad): string {
+  return `/directorio/especialidad/${especialidadSlug(especialidad)}`;
+}
+
+export function esEspecialidad(value: string): value is Especialidad {
+  return value in ESPECIALIDAD_LABELS;
+}
+
 // Especialidades odontológicas. La historia clínica de estos profesionales
 // se va a comportar distinto (odontograma, etc.), así que cualquier lógica
 // que dependa de "es odontólogo" tiene que pasar por esOdontologica() y no

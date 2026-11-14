@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 
+// Segmentos fijos bajo `/directorio/` que no pueden ser el slug de un médico.
+const SLUGS_RESERVADOS = new Set(["especialidad"]);
+
 export function slugifyNombre(nombre: string, apellido: string): string {
   const base = `${nombre} ${apellido}`
     .toLowerCase()
@@ -69,7 +72,12 @@ export async function generateUniquePublicSlug(nombre: string, apellido: string)
   const base = slugifyNombre(nombre, apellido);
   let slug = base;
   let suffix = 1;
-  while (await prisma.user.findFirst({ where: { publicSlug: slug }, select: { id: true } })) {
+  // `/directorio/especialidad/...` es una ruta fija: un perfil con ese slug
+  // quedaría tapado por ella.
+  while (
+    SLUGS_RESERVADOS.has(slug) ||
+    (await prisma.user.findFirst({ where: { publicSlug: slug }, select: { id: true } }))
+  ) {
     suffix += 1;
     slug = `${base}-${suffix}`;
   }

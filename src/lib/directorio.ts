@@ -1,5 +1,6 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import type { Especialidad } from "@/lib/especialidad";
+import { ESPECIALIDAD_VALUES, type Especialidad } from "@/lib/especialidad";
 import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
 import { esActivo, isPremium } from "@/lib/plan";
@@ -413,6 +414,34 @@ export async function getDoctorPublicoPorSlug(slug: string) {
     reservaPublicaHabilitada: resto.reservaPublicaHabilitada && activo,
   };
 }
+
+// Especialidades con al menos un perfil publicado (mismo criterio que
+// `getDoctoresPublicos`), en el orden de `ESPECIALIDAD_LABELS`. Alimenta los
+// links internos del directorio y el sitemap: una página de especialidad
+// vacía no se enlaza ni se indexa.
+// `cache`: la piden la metadata y la página en el mismo request.
+export const getEspecialidadesConMedicos = cache(async function getEspecialidadesConMedicos(): Promise<
+  { especialidad: Especialidad; cantidad: number }[]
+> {
+  const grupos = await prisma.user.groupBy({
+    by: ["especialidad"],
+    where: {
+      role: "DOCTOR",
+      perfilPublico: true,
+      perfilPublicadoAt: { not: null },
+      publicSlug: { not: null },
+      especialidad: { not: null },
+      ...SIN_SANCION,
+      lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
+    },
+    _count: { _all: true },
+  });
+  const cantidadPor = new Map(grupos.map((g) => [g.especialidad, g._count._all]));
+  return ESPECIALIDAD_VALUES.filter((e) => cantidadPor.has(e)).map((especialidad) => ({
+    especialidad,
+    cantidad: cantidadPor.get(especialidad)!,
+  }));
+});
 
 // Slugs de los perfiles que se publican en el sitemap: los mismos que lista
 // `getDoctoresPublicos` (perfil público activado y al menos un lugar visible).

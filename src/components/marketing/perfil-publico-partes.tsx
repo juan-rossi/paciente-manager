@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Building2, ChevronRight, MapPin, Phone } from "lucide-react";
-import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
+import { ESPECIALIDAD_LABELS, especialidadPath, type Especialidad } from "@/lib/especialidad";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { RED_SOCIAL_LABELS, type RedesSociales, type RedSocial } from "@/lib/redes-sociales";
 import { cn } from "@/lib/utils";
@@ -180,7 +180,7 @@ export function PerfilShell({
           <>
             <ChevronRight className="size-3.5 opacity-60" />
             <Link
-              href={`/directorio?especialidad=${doctor.especialidad}`}
+              href={especialidadPath(doctor.especialidad)}
               className="transition-colors hover:text-primary hover:underline"
             >
               {ESPECIALIDAD_LABELS[doctor.especialidad]}

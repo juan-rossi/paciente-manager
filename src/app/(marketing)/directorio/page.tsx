@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { SectionHeading } from "@/components/marketing/section-heading";
-import { DirectorioFiltros } from "@/components/marketing/directorio-filtros";
-import { DoctorCard } from "@/components/marketing/doctor-card";
+import { permanentRedirect } from "next/navigation";
+import { DirectorioVista } from "@/components/marketing/directorio-vista";
 import { JsonLd } from "@/components/seo/json-ld";
-import { getDoctoresPublicos } from "@/lib/directorio";
+import { getDoctoresPublicos, getEspecialidadesConMedicos } from "@/lib/directorio";
 import { directorioJsonLd, nombreDoctor } from "@/lib/seo";
-import { ESPECIALIDAD_LABELS, type Especialidad } from "@/lib/especialidad";
+import { esEspecialidad, especialidadPath } from "@/lib/especialidad";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +14,16 @@ type Props = {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const params = await searchParams;
-  const filtrado = !!(params.especialidad || params.ciudad || params.lat || params.lng);
-  const esp = params.especialidad ? ESPECIALIDAD_LABELS[params.especialidad as Especialidad] : undefined;
-  const title = esp ? `${esp}: médicos y turnos online` : "Directorio de médicos: encontrá tu especialista";
-  const description = esp
-    ? `Médicos de ${esp} en Argentina. Mirá perfiles, coberturas y lugares de atención, y reservá turno online.`
-    : "Directorio de médicos con perfil verificado en Argentina. Filtrá por especialidad y ciudad, mirá coberturas y reservá turno online.";
+  const filtrado = !!(params.ciudad || params.lat || params.lng);
+  const title = "Directorio de médicos: encontrá tu especialista";
+  const description =
+    "Directorio de médicos con perfil verificado en Argentina. Filtrá por especialidad y ciudad, mirá coberturas y reservá turno online.";
   return {
     title,
     description,
-    // Las vistas filtradas son combinaciones infinitas de la misma lista:
-    // se consolidan en /directorio y no se indexan.
+    // Las vistas filtradas por ciudad son combinaciones infinitas de la misma
+    // lista: se consolidan en /directorio y no se indexan. Las indexables por
+    // especialidad viven en /directorio/especialidad/[especialidad].
     alternates: { canonical: "/directorio" },
     ...(filtrado ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, url: "/directorio", siteName: "Semio360", locale: "es_AR", type: "website", images: ["/opengraph-image"] },
@@ -35,11 +33,25 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function DirectorioPage({ searchParams }: Props) {
   const params = await searchParams;
-  const especialidad = params.especialidad || undefined;
+
+  // URL vieja (`?especialidad=CARDIOLOGIA`, ya enlazada e indexada): 301 a la
+  // página de la especialidad, conservando el filtro por ciudad.
+  if (params.especialidad && esEspecialidad(params.especialidad)) {
+    const resto = new URLSearchParams();
+    if (params.ciudad) resto.set("ciudad", params.ciudad);
+    if (params.lat) resto.set("lat", params.lat);
+    if (params.lng) resto.set("lng", params.lng);
+    const qs = resto.toString();
+    permanentRedirect(`${especialidadPath(params.especialidad)}${qs ? `?${qs}` : ""}`);
+  }
+
   const lat = params.lat ? Number(params.lat) : undefined;
   const lng = params.lng ? Number(params.lng) : undefined;
 
-  const doctores = await getDoctoresPublicos({ especialidad, lat, lng });
+  const [doctores, especialidades] = await Promise.all([
+    getDoctoresPublicos({ lat, lng }),
+    getEspecialidadesConMedicos(),
+  ]);
 
   return (
     <>
@@ -50,46 +62,13 @@ export default async function DirectorioPage({ searchParams }: Props) {
             .map((d) => ({ nombre: nombreDoctor(d), path: `/directorio/${encodeURIComponent(d.publicSlug!)}` }))
         )}
       />
-      <section className="relative overflow-hidden pt-6 sm:pt-20">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(55% 60% at 50% 0%, color-mix(in oklch, var(--primary) 16%, transparent), transparent)",
-          }}
-        />
-        <div className="mx-auto max-w-2xl px-4 pb-9 sm:pb-14">
-          <SectionHeading
-            as="h1"
-            kicker="Directorio Semio360"
-            title="El médico que buscás, a un clic de distancia"
-            description="Explorá perfiles verificados, filtrá por especialidad y ciudad, y reservá turno online cuando esté disponible."
-          />
-          <DirectorioFiltros />
-        </div>
-      </section>
-
-      <section className="border-t border-border/60 bg-muted/20 pt-9 pb-10 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          {doctores.length === 0 ? (
-            <p className="py-12 text-center text-muted-foreground">
-              No encontramos médicos con esos filtros. Probá con otra especialidad o ciudad.
-            </p>
-          ) : (
-            // `grid-cols-1` (minmax(0, 1fr)) y `min-w-0`, no el track implícito:
-            // un nombre largo sin cortes estiraba la columna más allá del
-            // viewport en mobile y con ella toda la página.
-            <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {doctores.map((doctor) => (
-                <li key={doctor.id} className="flex min-w-0">
-                  <DoctorCard doctor={doctor} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+      <DirectorioVista
+        kicker="Directorio Semio360"
+        titulo="El médico que buscás, a un clic de distancia"
+        descripcion="Explorá perfiles verificados, filtrá por especialidad y ciudad, y reservá turno online cuando esté disponible."
+        doctores={doctores}
+        especialidades={especialidades}
+      />
     </>
   );
 }

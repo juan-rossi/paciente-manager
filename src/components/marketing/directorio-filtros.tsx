@@ -11,7 +11,7 @@ import {
   ComboboxContent,
   ComboboxItem,
 } from "@/components/ui/combobox";
-import { ESPECIALIDAD_OPTIONS } from "@/lib/especialidad";
+import { ESPECIALIDAD_OPTIONS, esEspecialidad, especialidadPath, type Especialidad } from "@/lib/especialidad";
 import { CiudadAutocomplete, type CiudadResult } from "@/components/marketing/ciudad-autocomplete";
 
 // "Todas las especialidades" no es una opción de la lista, sino el estado
@@ -23,11 +23,13 @@ const TODAS = "__todas__";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
-export function DirectorioFiltros() {
+// La especialidad viaja en el path (`/directorio/especialidad/cardiologia`,
+// la página indexable), no en el query string: la recibe la página por prop.
+export function DirectorioFiltros({ especialidadActual }: { especialidadActual?: Especialidad }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [especialidad, setEspecialidad] = useState(searchParams.get("especialidad") ?? TODAS);
+  const [especialidad, setEspecialidad] = useState<string>(especialidadActual ?? TODAS);
   const [ciudad, setCiudad] = useState(searchParams.get("ciudad") ?? "");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(() => {
     const lat = searchParams.get("lat");
@@ -40,7 +42,10 @@ export function DirectorioFiltros() {
   // cuando se dispara la búsqueda.
   function buscar(next: { especialidad: string; ciudad: string; coords: { lat: number; lng: number } | null }) {
     const params = new URLSearchParams();
-    if (next.especialidad !== TODAS) params.set("especialidad", next.especialidad);
+    const base =
+      next.especialidad !== TODAS && esEspecialidad(next.especialidad)
+        ? especialidadPath(next.especialidad)
+        : "/directorio";
     // Solo filtra por distancia cuando la ciudad se eligió de la lista de
     // sugerencias (tenemos coordenadas) -- texto libre sin seleccionar no
     // alcanza para calcular distancias, así que se ignora.
@@ -50,7 +55,7 @@ export function DirectorioFiltros() {
       params.set("lng", String(next.coords.lng));
     }
     const qs = params.toString();
-    router.push(`/directorio${qs ? `?${qs}` : ""}`);
+    router.push(`${base}${qs ? `?${qs}` : ""}`);
   }
 
   function handleEspecialidadChange(value: string) {

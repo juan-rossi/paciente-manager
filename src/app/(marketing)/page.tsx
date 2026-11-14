@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/session";
 import { Hero } from "@/components/marketing/hero";
 import { ScrollToHash } from "@/components/marketing/scroll-to-hash";
 import { DirectorioBanner } from "@/components/marketing/directorio-banner";
@@ -16,8 +14,6 @@ import { FAQ } from "@/components/marketing/faq";
 import { FinalCTA } from "@/components/marketing/final-cta";
 import { JsonLd } from "@/components/seo/json-ld";
 import { homeJsonLd } from "@/lib/seo";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
@@ -56,12 +52,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function MarketingHomePage() {
-  const user = await getCurrentUser();
-  if (user) {
-    redirect(user.role === "DOCTOR" ? "/dashboard" : "/turnos");
-  }
-
+// Página estática (servida desde el CDN): el redirect de usuarios con sesión
+// ya lo hace `src/proxy.ts` antes de llegar acá, así que no hace falta leer la
+// sesión ni ir a la base en cada visita -- mejora TTFB/LCP (Core Web Vitals).
+export default function MarketingHomePage() {
   return (
     <>
       <JsonLd data={homeJsonLd()} />
