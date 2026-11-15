@@ -123,6 +123,11 @@ export function PatientForm({
   const [values, setValues] = useState<PatientFormValues>(
     initialValues ?? emptyPatientFormValues()
   );
+  // Snapshot de lo que vino del servidor, para habilitar "Guardar" en edición
+  // solo cuando hay cambios. Evoluciones y odontogramas se guardan por su
+  // cuenta (no viajan en este PATCH), así que alcanza con comparar `values`.
+  const [initialSnapshot] = useState(() => JSON.stringify(values));
+  const isDirty = mode === "create" || JSON.stringify(values) !== initialSnapshot;
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones ?? []);
   const [evolucionesEliminadas, setEvolucionesEliminadas] = useState<EvolucionValue[]>(
     initialEvolucionesEliminadas ?? []
@@ -439,7 +444,7 @@ export function PatientForm({
         </div>
         <div className="flex items-center gap-3">
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button onClick={() => handleSubmit()} disabled={saving}>
+          <Button onClick={() => handleSubmit()} disabled={saving || !isDirty}>
             <Save className="size-4" />
             {saving ? "Guardando..." : "Guardar"}
           </Button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { Loader2, Plus, Save, Smile, Trash2, Undo2 } from "lucide-react";
+import { Loader2, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -96,13 +96,14 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
   const fechaId = useId();
   const notaId = useId();
   const [guardados, setGuardados] = useState(() => ordenar(initialOdontogramas));
+  // Sin odontogramas guardados se arranca directo con uno inicial limpio.
   const [seleccion, setSeleccion] = useState<string | null>(
-    () => guardados[guardados.length - 1]?.id ?? null
+    () => guardados[guardados.length - 1]?.id ?? NUEVO
   );
-  const [borrador, setBorrador] = useState<OdontogramaValue | null>(
-    () => guardados[guardados.length - 1] ?? null
+  const [borrador, setBorrador] = useState<OdontogramaValue>(
+    () => guardados[guardados.length - 1] ?? odontogramaVacio("INICIAL")
   );
-  const [comparar, setComparar] = useState(false);
+  const [comparar, setComparar] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
@@ -111,19 +112,23 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
   const [pendiente, setPendiente] = useState<(() => void) | null>(null);
 
   const original = seleccion === NUEVO ? null : guardados.find((o) => o.id === seleccion) ?? null;
-  const sucio = borrador !== null && (original === null || !mismoContenido(borrador, original));
+  const sucio = original
+    ? !mismoContenido(borrador, original)
+    : // Inicial en blanco: recién hay algo que guardar cuando se carga algún dato.
+      guardados.length > 0 ||
+      borrador.nota.trim() !== "" ||
+      diffOdontograma(datosVacios(), borrador.datos).size > 0;
 
   // Snapshot anterior al seleccionado (para "comparar"): el último guardado
   // antes que él; para una visita nueva, el último guardado.
   const anterior = useMemo(() => {
-    if (!borrador) return null;
     if (seleccion === NUEVO) return guardados[guardados.length - 1] ?? null;
     const idx = guardados.findIndex((o) => o.id === seleccion);
     return idx > 0 ? guardados[idx - 1] : null;
-  }, [borrador, seleccion, guardados]);
+  }, [seleccion, guardados]);
 
   const resaltadas = useMemo(
-    () => (comparar && anterior && borrador ? diffOdontograma(anterior.datos, borrador.datos) : undefined),
+    () => (comparar && anterior ? diffOdontograma(anterior.datos, borrador.datos) : undefined),
     [comparar, anterior, borrador]
   );
 
@@ -136,6 +141,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     protegerCambios(() => {
       setSeleccion(o.id ?? null);
       setBorrador(o);
+      setComparar(true);
       setError(null);
     });
   }
@@ -155,19 +161,19 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     });
   }
 
+  function mostrarUltimo(lista: OdontogramaValue[]) {
+    const ultimo = lista[lista.length - 1];
+    setBorrador(ultimo ?? odontogramaVacio("INICIAL"));
+    setSeleccion(ultimo?.id ?? NUEVO);
+  }
+
   function descartar() {
-    if (original) {
-      setBorrador(original);
-    } else {
-      const ultimo = guardados[guardados.length - 1] ?? null;
-      setBorrador(ultimo);
-      setSeleccion(ultimo?.id ?? null);
-    }
+    if (original) setBorrador(original);
+    else mostrarUltimo(guardados);
     setError(null);
   }
 
   async function guardar() {
-    if (!borrador) return;
     setSaving(true);
     setError(null);
     try {
@@ -217,9 +223,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       }
       const restantes = guardados.filter((o) => o.id !== original.id);
       setGuardados(restantes);
-      const ultimo = restantes[restantes.length - 1] ?? null;
-      setSeleccion(ultimo?.id ?? null);
-      setBorrador(ultimo);
+      mostrarUltimo(restantes);
       setComparar(false);
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -267,7 +271,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
                 />
               </li>
             ))}
-            {seleccion === NUEVO && borrador && (
+            {seleccion === NUEVO && (
               <li>
                 <ChipVisita
                   activo
@@ -281,85 +285,71 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
         </nav>
       )}
 
-      {!borrador ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-6 py-12 text-center">
-          <div className="flex size-11 items-center justify-center rounded-full bg-muted">
-            <Smile className="size-5 text-muted-foreground" />
+      <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:p-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={fechaId}>Fecha de la visita</Label>
+            <DateInput
+              id={fechaId}
+              className="w-44"
+              value={borrador.fecha}
+              onChange={(fecha) => setBorrador({ ...borrador, fecha })}
+            />
           </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Todavía no hay odontograma</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Empezá registrando cómo llegó el paciente a la primera consulta.
+          {!tieneInicial && borrador.tipo === "CONTROL" && (
+            <p className="max-w-56 pb-2 text-xs text-muted-foreground">
+              No hay odontograma inicial: esta visita se guarda como control.
             </p>
-          </div>
-          <Button type="button" onClick={registrarVisita}>
-            <Plus className="size-4" />
-            Cargar odontograma inicial
+          )}
+          {anterior && (
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <Switch checked={comparar} onCheckedChange={setComparar} />
+              Resaltar cambios vs. {formatFechaCorta(anterior.fecha)}
+            </label>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {original?.id && !sucio && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setConfirmarEliminar(true)}
+            >
+              <Trash2 className="size-4" />
+              Eliminar
+            </Button>
+          )}
+          {sucio && (
+            <Button type="button" variant="outline" onClick={descartar} disabled={saving}>
+              <Undo2 className="size-4" />
+              Descartar
+            </Button>
+          )}
+          <Button type="button" onClick={guardar} disabled={!sucio || saving}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {saving
+              ? "Guardando..."
+              : seleccion !== NUEVO
+                ? "Guardar cambios"
+                : borrador.tipo === "INICIAL"
+                  ? "Guardar odontograma"
+                  : "Guardar visita"}
           </Button>
         </div>
-      ) : (
-        <>
-          <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:p-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={fechaId}>Fecha de la visita</Label>
-                <DateInput
-                  id={fechaId}
-                  className="w-44"
-                  value={borrador.fecha}
-                  onChange={(fecha) => setBorrador({ ...borrador, fecha })}
-                />
-              </div>
-              {!tieneInicial && borrador.tipo === "CONTROL" && (
-                <p className="max-w-56 pb-2 text-xs text-muted-foreground">
-                  No hay odontograma inicial: esta visita se guarda como control.
-                </p>
-              )}
-              {anterior && (
-                <label className="flex items-center gap-2 pb-2 text-sm">
-                  <Switch checked={comparar} onCheckedChange={setComparar} />
-                  Resaltar cambios vs. {formatFechaCorta(anterior.fecha)}
-                </label>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {original?.id && !sucio && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => setConfirmarEliminar(true)}
-                >
-                  <Trash2 className="size-4" />
-                  Eliminar
-                </Button>
-              )}
-              {sucio && (
-                <Button type="button" variant="outline" onClick={descartar} disabled={saving}>
-                  <Undo2 className="size-4" />
-                  Descartar
-                </Button>
-              )}
-              <Button type="button" onClick={guardar} disabled={!sucio || saving}>
-                {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                {saving ? "Guardando..." : seleccion === NUEVO ? "Guardar visita" : "Guardar cambios"}
-              </Button>
-            </div>
-          </div>
+      </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <OdontogramaEditor
-            key={seleccion ?? "ninguno"}
-            datos={borrador.datos}
-            onChange={(datos) => setBorrador({ ...borrador, datos })}
-            nota={borrador.nota}
-            onNotaChange={(nota) => setBorrador({ ...borrador, nota })}
-            resaltadas={resaltadas}
-            notaId={notaId}
-          />
-        </>
-      )}
+      <OdontogramaEditor
+        key={seleccion ?? "ninguno"}
+        datos={borrador.datos}
+        onChange={(datos) => setBorrador({ ...borrador, datos })}
+        nota={borrador.nota}
+        onNotaChange={(nota) => setBorrador({ ...borrador, nota })}
+        resaltadas={resaltadas}
+        notaId={notaId}
+      />
 
       <Dialog open={confirmarEliminar} onOpenChange={(open) => !open && setConfirmarEliminar(false)}>
         <DialogContent>
