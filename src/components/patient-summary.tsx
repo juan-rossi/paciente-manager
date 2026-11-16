@@ -25,6 +25,7 @@ import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
 import type { TurnoDiff } from "@/lib/patient-turno-diff";
 import { describirDatosOdontograma } from "@/lib/odontograma";
+import { AuditHistoryList } from "@/components/audit-history-list";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
   include: { antecedentes: true; evoluciones: true; consentimientos: true };
@@ -293,8 +294,8 @@ export function PatientSummary({
           {auditEntries.length > 0 && (
             <div className="order-last lg:order-none">
               <FormSection title="Historial de auditoría" icon={ScrollText} contentClassName="bg-card">
-              <div className="col-span-full flex flex-col divide-y divide-border">
-                {auditEntries.map((entry) => {
+              <AuditHistoryList
+                items={auditEntries.map((entry) => {
                   const clave = `${entry.accion}_${entry.entidad}`;
                   const actorNombre = `${entry.actor.nombre} ${entry.actor.apellido}`.trim();
                   const detalle = entry.detalleAnterior as Record<string, unknown> | null;
@@ -330,7 +331,7 @@ export function PatientSummary({
                     </div>
                   );
                 })}
-              </div>
+              />
               </FormSection>
             </div>
           )}
