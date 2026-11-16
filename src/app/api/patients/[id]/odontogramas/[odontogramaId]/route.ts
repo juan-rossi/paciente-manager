@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { calcularDiffAnterior, registrarAuditoria } from "@/lib/audit-log";
-import { odontogramaInputSchema } from "@/lib/odontograma";
+import { datosAnterioresCambiados, odontogramaInputSchema } from "@/lib/odontograma";
 import { verificarAccesoOdontograma, YA_HAY_INICIAL } from "@/lib/odontograma-server";
 
 type RouteParams = { params: Promise<{ id: string; odontogramaId: string }> };
@@ -54,7 +54,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   });
 
   // Ley 26.529 art. 13: se guarda el estado anterior de lo que cambió.
-  const detalleAnterior = calcularDiffAnterior(antes as Record<string, unknown>, despues);
+  // `datos` va aparte: se compara por marcas (jsonb reordena claves) y se
+  // guardan solo las piezas que cambiaron, no el odontograma entero.
+  const { tipo, fecha, nota } = despues;
+  const diffCampos = calcularDiffAnterior(antes as Record<string, unknown>, { tipo, fecha, nota }) as
+    | Record<string, unknown>
+    | null;
+  const datosAnteriores = datosAnterioresCambiados(antes.datos, despues.datos);
+  const detalleAnterior =
+    diffCampos || datosAnteriores
+      ? { ...diffCampos, ...(datosAnteriores ? { datos: datosAnteriores } : {}) }
+      : null;
   if (detalleAnterior) {
     await registrarAuditoria(prisma, {
       doctorId: tenantId,

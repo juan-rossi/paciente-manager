@@ -24,6 +24,7 @@ import { ConsentimientoManager, type ConsentimientoValue } from "@/components/co
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
 import type { TurnoDiff } from "@/lib/patient-turno-diff";
+import { describirDatosOdontograma } from "@/lib/odontograma";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
   include: { antecedentes: true; evoluciones: true; consentimientos: true };
@@ -94,6 +95,8 @@ const CAMPO_LABELS: Record<string, string> = {
   contenidoDictado: "Dictado",
   revocadoEn: "Fecha de revocación",
   revocadoMotivo: "Motivo de revocación",
+  datos: "Piezas que cambiaron (estado anterior)",
+  nota: "Nota",
 };
 
 function humanizarCampo(campo: string): string {
@@ -102,7 +105,12 @@ function humanizarCampo(campo: string): string {
   return espaciado.charAt(0).toUpperCase() + espaciado.slice(1);
 }
 
-function formatDetalleValor(value: unknown): string {
+function formatDetalleValor(entidad: string, campo: string, value: unknown): string {
+  if (entidad === "ODONTOGRAMA" && campo === "datos") return describirDatosOdontograma(value);
+  if (entidad === "ODONTOGRAMA" && campo === "tipo") {
+    if (value === "INICIAL") return "Inicial";
+    if (value === "CONTROL") return "Control";
+  }
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
@@ -111,6 +119,7 @@ function formatDetalleValor(value: unknown): string {
       return fecha.toLocaleDateString("es-AR", { timeZone: "UTC" });
     }
   }
+  if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
@@ -138,6 +147,7 @@ export function PatientSummary({
   auditEntries = [],
   transcripcionHabilitada = false,
   resumirEvolucionesAlTerminar = false,
+  evolucionHabilitada = true,
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
@@ -145,6 +155,8 @@ export function PatientSummary({
   auditEntries?: AuditEntry[];
   transcripcionHabilitada?: boolean;
   resumirEvolucionesAlTerminar?: boolean;
+  // false para odontólogos (ver esOdontologica()): no usan evolución clínica.
+  evolucionHabilitada?: boolean;
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
@@ -308,7 +320,7 @@ export function PatientSummary({
                                   {humanizarCampo(campo)}
                                 </dt>
                                 <dd className="whitespace-pre-wrap text-xs">
-                                  {formatDetalleValor(valor)}
+                                  {formatDetalleValor(entry.entidad, campo, valor)}
                                 </dd>
                               </div>
                             ))}
@@ -356,16 +368,18 @@ export function PatientSummary({
             </FormSection>
           )}
 
-          <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
-            <div className="col-span-full">
-              <EvolucionManager
-                patientId={patient.id}
-                initialEvoluciones={evolucionValues}
-                transcripcionHabilitada={transcripcionHabilitada}
-                resumirAlTerminar={resumirEvolucionesAlTerminar}
-              />
-            </div>
-          </FormSection>
+          {evolucionHabilitada && (
+            <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
+              <div className="col-span-full">
+                <EvolucionManager
+                  patientId={patient.id}
+                  initialEvoluciones={evolucionValues}
+                  transcripcionHabilitada={transcripcionHabilitada}
+                  resumirAlTerminar={resumirEvolucionesAlTerminar}
+                />
+              </div>
+            </FormSection>
+          )}
 
           <FormSection
             title="Consentimientos Informados"

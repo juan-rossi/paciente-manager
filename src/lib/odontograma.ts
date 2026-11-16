@@ -379,3 +379,55 @@ export function describirItem(item: ItemPlan): string {
   const base = `${item.pieza} · ${CODIGO_INFO[item.codigo].label}`;
   return item.cara ? `${base} (${CARA_LABELS[item.cara]})` : base;
 }
+
+// ---------------------------------------------------------------------------
+// Auditoría
+// ---------------------------------------------------------------------------
+
+// Ley 26.529 art. 13: estado ANTERIOR de solo las piezas que cambiaron, con la
+// misma forma que `datos` (una pieza que antes no tenía marcas va como `{}`).
+// Devuelve `null` si las marcas son las mismas -- la comparación es semántica,
+// no textual: jsonb reordena las claves al guardar, así que un
+// `JSON.stringify` daría "cambió" aunque el odontograma sea idéntico.
+export function datosAnterioresCambiados(
+  antesRaw: unknown,
+  despues: DatosOdontograma
+): DatosOdontograma | null {
+  const antes = parseDatos(antesRaw);
+  const cambiadas = diffOdontograma(antes, despues);
+  if (cambiadas.size === 0) return null;
+  const piezas: Record<string, EstadoPieza> = {};
+  for (const pieza of [...cambiadas].sort(
+    (a, b) => (ORDEN_PIEZA.get(a) ?? 0) - (ORDEN_PIEZA.get(b) ?? 0)
+  )) {
+    piezas[pieza] = antes.piezas[pieza] ?? {};
+  }
+  return { version: 1, piezas };
+}
+
+// Texto legible de un `datos` (completo o parcial) para el historial de
+// auditoría: una línea por pieza, ej. "16: Caries en Oclusal (requerida)".
+export function describirDatosOdontograma(raw: unknown): string {
+  const parsed = datosOdontogramaSchema.safeParse(raw);
+  if (!parsed.success) return "—";
+  // Las claves salen del JSON crudo: el schema descarta piezas vacías, y acá
+  // una pieza `{}` significa "antes no tenía marcas".
+  const crudas = (raw as { piezas?: Record<string, unknown> }).piezas ?? {};
+  const piezas = Object.keys(crudas).filter((p) => PIEZAS_VALIDAS.has(p)).sort(
+    (a, b) => (ORDEN_PIEZA.get(a) ?? 0) - (ORDEN_PIEZA.get(b) ?? 0)
+  );
+  if (piezas.length === 0) return "Sin marcas";
+  return piezas
+    .map((pieza) => {
+      const estado = parsed.data.piezas[pieza] ?? {};
+      const marcas = [
+        ...(estado.pieza ?? []).map((m) => `${CODIGO_INFO[m.codigo].label} (${m.tipo})`),
+        ...CARAS.flatMap((cara) => {
+          const m = estado.caras?.[cara];
+          return m ? [`${CODIGO_INFO[m.codigo].label} en ${CARA_LABELS[cara]} (${m.tipo})`] : [];
+        }),
+      ];
+      return `${pieza}: ${marcas.length > 0 ? marcas.join(", ") : "sin marcas"}`;
+    })
+    .join("\n");
+}

@@ -1161,6 +1161,26 @@ model DoctorPrepaga {
   @@index([prepagaId])
 }
 
+// Catálogo de prácticas odontológicas: Nomenclador Nacional de Prestaciones
+// Odontológicas (sistema de obras sociales), tomado de la codificación
+// publicada por FOPBA (act. abril 2006), sin las prestaciones que esa misma
+// fuente marca como "no incluidas en el Nomenclador Nacional". Se carga en la
+// migración 20261115210000_practica_odontologica.
+model PracticaOdontologica {
+  id          String   @id @default(cuid())
+  // "01.01", "04.01.05", ... — mismo formato que usan las obras sociales.
+  codigo      String   @unique
+  descripcion String
+  // Número de capítulo (1 = Consultas ... 10 = Cirugía).
+  capitulo    Int
+  // Agrupación dentro del capítulo cuando la tiene (ej. "Prótesis fija").
+  subgrupo    String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([capitulo])
+}
+
 enum TicketTipo {
   SUGERENCIA
   PROBLEMA

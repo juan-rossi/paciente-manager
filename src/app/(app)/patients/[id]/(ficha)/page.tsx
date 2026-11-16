@@ -8,6 +8,7 @@ import { PatientSummary } from "@/components/patient-summary";
 import { patientFromApi } from "@/components/patient-form/utils";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
 import { PageEnter } from "@/components/page-transition";
+import { tenantEsOdontologo } from "@/lib/odontograma-server";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -96,6 +97,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
 
   const { values: patientValues } = patientFromApi(patient);
   const resumenAutomatico = await getResumenAutomatico(user);
+  const esOdontologo = await tenantEsOdontologo(tenantId);
 
   return (
     <PageEnter>
@@ -106,6 +108,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         auditEntries={auditEntries}
         transcripcionHabilitada={isPremium(user) && esActivo(user)}
         resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
+        evolucionHabilitada={!esOdontologo}
       />
     </PageEnter>
   );

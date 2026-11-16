@@ -95,7 +95,8 @@ function isFieldInvalid(values: PatientFormValues, field: (typeof REQUIRED_FIELD
 }
 
 // odontogramaHabilitado == "el médico es odontólogo" (ver esOdontologica()):
-// a esos se les muestra el odontograma y se les oculta el examen físico.
+// a esos se les muestra el odontograma y se les ocultan el examen físico y
+// la evolución clínica.
 function tabOrderFor(mode: "create" | "edit", odontograma: boolean): readonly string[] {
   return [
     "datos-personales",
@@ -104,7 +105,7 @@ function tabOrderFor(mode: "create" | "edit", odontograma: boolean): readonly st
     ...(odontograma ? [] : ["examen-fisico"]),
     "diagnostico",
     ...(odontograma ? ["odontograma"] : []),
-    ...(mode === "edit" ? ["evolucion"] : []),
+    ...(mode === "edit" && !odontograma ? ["evolucion"] : []),
   ];
 }
 
@@ -165,6 +166,7 @@ export function PatientForm({
   }
 
   const tabOrder = tabOrderFor(mode, odontogramaHabilitado);
+  const evolucionHabilitada = mode === "edit" && !odontogramaHabilitado;
   const currentTabIndex = tabOrder.indexOf(activeTab);
 
   function handlePrevious() {
@@ -297,7 +299,7 @@ export function PatientForm({
               Odontograma
             </TabsTrigger>
           )}
-          {mode === "edit" && (
+          {evolucionHabilitada && (
             <TabsTrigger value="evolucion">
               <TrendingUp className="size-4" />
               Evolución Clínica
@@ -352,7 +354,7 @@ export function PatientForm({
               Odontograma
             </TabsTrigger>
           )}
-          {mode === "edit" && (
+          {evolucionHabilitada && (
             <TabsTrigger
               value="evolucion"
               className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
@@ -404,7 +406,7 @@ export function PatientForm({
                 )}
               </TabsContent>
             )}
-            {mode === "edit" && (
+            {evolucionHabilitada && (
               <TabsContent value="evolucion">
                 <EvolucionTab
                   patientId={patientId}
