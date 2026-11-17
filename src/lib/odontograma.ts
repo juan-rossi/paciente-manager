@@ -375,6 +375,51 @@ export function diffOdontograma(antes: DatosOdontograma, despues: DatosOdontogra
   return cambiadas;
 }
 
+export type ResumenMarca = { texto: string; tipo: TipoMarca };
+
+// Marcas de una pieza en texto corto, agrupando las caras con la misma marca:
+// ej. [{ texto: "Corona", tipo: "existente" }, { texto: "Caries (O, V)", tipo: "requerida" }].
+export function resumenPieza(estado: EstadoPieza | undefined): ResumenMarca[] {
+  if (!estado) return [];
+  const resumen: ResumenMarca[] = (estado.pieza ?? []).map((m) => ({
+    texto: CODIGO_INFO[m.codigo].label,
+    tipo: m.tipo,
+  }));
+  const porMarca = new Map<string, { marca: Marca<CodigoCara>; caras: Cara[] }>();
+  for (const cara of CARAS) {
+    const m = estado.caras?.[cara];
+    if (!m) continue;
+    const clave = `${m.codigo}:${m.tipo}`;
+    const grupo = porMarca.get(clave) ?? { marca: m, caras: [] };
+    grupo.caras.push(cara);
+    porMarca.set(clave, grupo);
+  }
+  for (const { marca, caras } of porMarca.values()) {
+    resumen.push({ texto: `${CODIGO_INFO[marca.codigo].label} (${caras.join(", ")})`, tipo: marca.tipo });
+  }
+  return resumen;
+}
+
+export type CambioPieza = {
+  pieza: string;
+  tipo: "nuevo" | "quitado" | "modificado";
+  // Estado resultante (o el anterior, si la pieza quedó sin marcas).
+  marcas: ResumenMarca[];
+};
+
+// Qué piezas cambiaron entre dos snapshots y cómo quedaron, en el orden de la ficha.
+export function cambiosEntre(antes: DatosOdontograma, despues: DatosOdontograma): CambioPieza[] {
+  return [...diffOdontograma(antes, despues)]
+    .sort((a, b) => (ORDEN_PIEZA.get(a) ?? 0) - (ORDEN_PIEZA.get(b) ?? 0))
+    .map((pieza) => {
+      const previas = resumenPieza(antes.piezas[pieza]);
+      const actuales = resumenPieza(despues.piezas[pieza]);
+      if (previas.length === 0) return { pieza, tipo: "nuevo", marcas: actuales };
+      if (actuales.length === 0) return { pieza, tipo: "quitado", marcas: previas };
+      return { pieza, tipo: "modificado", marcas: actuales };
+    });
+}
+
 export function describirItem(item: ItemPlan): string {
   const base = `${item.pieza} · ${CODIGO_INFO[item.codigo].label}`;
   return item.cara ? `${base} (${CARA_LABELS[item.cara]})` : base;

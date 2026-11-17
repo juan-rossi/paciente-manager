@@ -6,42 +6,27 @@ import { DienteSvg } from "./diente-svg";
 
 type Props = {
   datos: DatosOdontograma;
+  // Modo pincel: cada cara aplica la marca directo y el número, a la pieza.
   onCaraClick?: (pieza: number, cara: Cara) => void;
   onPiezaClick?: (pieza: number) => void;
+  // Modo selección: toda la pieza es un botón (abre el popover de edición).
+  onDienteClick?: (pieza: number, elemento: HTMLElement) => void;
+  seleccionada?: number | null;
   resaltadas?: ReadonlySet<string>;
 };
 
 // Mismo layout que la ficha en papel: permanentes arriba, temporales debajo,
 // cada dentición con la cruz que separa los cuatro cuadrantes.
-export function OdontogramaGrid({
-  datos,
-  onCaraClick,
-  onPiezaClick,
-  resaltadas,
-}: Props) {
+export function OdontogramaGrid(props: Props) {
   return (
     <>
       <p className="mb-1 text-center text-[11px] text-muted-foreground sm:hidden">
         Deslizá hacia los costados para ver todas las piezas.
       </p>
       <div className="-mx-1 overflow-x-auto px-1 pb-1">
-        <div className="mx-auto flex w-max flex-col items-center gap-6 py-2">
-          <Denticion
-            titulo="Permanente"
-            arcada={ARCADAS.permanente}
-            datos={datos}
-            onCaraClick={onCaraClick}
-            onPiezaClick={onPiezaClick}
-            resaltadas={resaltadas}
-          />
-          <Denticion
-            titulo="Temporal"
-            arcada={ARCADAS.temporal}
-            datos={datos}
-            onCaraClick={onCaraClick}
-            onPiezaClick={onPiezaClick}
-            resaltadas={resaltadas}
-          />
+        <div className="mx-auto flex w-max flex-col items-center gap-5 py-1">
+          <Denticion titulo="Permanente" arcada={ARCADAS.permanente} {...props} />
+          <Denticion titulo="Temporal" arcada={ARCADAS.temporal} {...props} />
         </div>
       </div>
     </>
@@ -84,11 +69,7 @@ function Denticion({
           className="border-r-2 pt-1.5 pr-1.5"
           {...rest}
         />
-        <Hemiarcada
-          piezas={arcada.inferior[1]}
-          className="pt-1.5 pl-1.5"
-          {...rest}
-        />
+        <Hemiarcada piezas={arcada.inferior[1]} className="pt-1.5 pl-1.5" {...rest} />
       </div>
     </section>
   );
@@ -101,6 +82,8 @@ function Hemiarcada({
   datos,
   onCaraClick,
   onPiezaClick,
+  onDienteClick,
+  seleccionada,
   resaltadas,
 }: {
   piezas: readonly number[];
@@ -110,6 +93,30 @@ function Hemiarcada({
   return (
     <div className={cn("flex gap-0.5 border-foreground/60", className)}>
       {piezas.map((numero) => {
+        const estado = datos.piezas[String(numero)];
+        const resaltada = resaltadas?.has(String(numero));
+
+        if (onDienteClick) {
+          const activa = seleccionada === numero;
+          return (
+            <button
+              key={numero}
+              type="button"
+              onClick={(e) => onDienteClick(numero, e.currentTarget)}
+              aria-label={`Editar pieza ${numero}`}
+              aria-expanded={activa}
+              className={cn(
+                "flex flex-col items-center gap-0.5 rounded-md outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+                activa && "bg-primary/10 ring-2 ring-primary"
+              )}
+            >
+              {superior && <Numero numero={numero} />}
+              <DienteSvg numero={numero} estado={estado} resaltada={resaltada} />
+              {!superior && <Numero numero={numero} />}
+            </button>
+          );
+        }
+
         const label = onPiezaClick ? (
           <button
             type="button"
@@ -121,25 +128,29 @@ function Hemiarcada({
             {numero}
           </button>
         ) : (
-          <span className="px-1 text-[11px] leading-4 font-medium text-muted-foreground tabular-nums">
-            {numero}
-          </span>
+          <Numero numero={numero} />
         );
         return (
           <div key={numero} className="flex flex-col items-center gap-0.5">
             {superior && label}
             <DienteSvg
               numero={numero}
-              estado={datos.piezas[String(numero)]}
-              resaltada={resaltadas?.has(String(numero))}
-              onCaraClick={
-                onCaraClick ? (cara) => onCaraClick(numero, cara) : undefined
-              }
+              estado={estado}
+              resaltada={resaltada}
+              onCaraClick={onCaraClick ? (cara) => onCaraClick(numero, cara) : undefined}
             />
             {!superior && label}
           </div>
         );
       })}
     </div>
+  );
+}
+
+function Numero({ numero }: { numero: number }) {
+  return (
+    <span className="px-1 text-[11px] leading-4 font-medium text-muted-foreground tabular-nums">
+      {numero}
+    </span>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { Loader2, Plus, Save, Trash2, Undo2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Save, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatDateParamBA } from "@/lib/timezone";
 import { datosVacios, diffOdontograma } from "@/lib/odontograma";
 import { OdontogramaEditor } from "@/components/odontograma/odontograma-editor";
+import { OdontogramaVista } from "@/components/odontograma/odontograma-vista";
 import { PracticasVisita } from "@/components/odontograma/practicas-visita";
 import type { PracticaVisita } from "@/lib/practica-odontologica";
 import { DateInput } from "./date-input";
@@ -106,6 +107,9 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     () => guardados[guardados.length - 1] ?? odontogramaVacio("INICIAL")
   );
   const [comparar, setComparar] = useState(true);
+  // La ficha abre en lectura; se edita una visita a la vez. Sin nada guardado
+  // se arranca directo editando el inicial.
+  const [editando, setEditando] = useState(() => initialOdontogramas.length === 0);
   // Prácticas del nomenclador por visita (id del odontograma). Se guardan por
   // su cuenta, así que viven aparte del borrador de la visita.
   const [practicasPorVisita, setPracticasPorVisita] = useState<Record<string, PracticaVisita[]>>(
@@ -149,6 +153,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       setSeleccion(o.id ?? null);
       setBorrador(o);
       setComparar(true);
+      setEditando(false);
       setError(null);
     });
   }
@@ -164,6 +169,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       );
       setSeleccion(NUEVO);
       setComparar(Boolean(ultimo));
+      setEditando(true);
       setError(null);
     });
   }
@@ -174,9 +180,19 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     setSeleccion(ultimo?.id ?? NUEVO);
   }
 
-  function descartar() {
-    if (original) setBorrador(original);
-    else mostrarUltimo(guardados);
+  // Sale de la edición volviendo a lo guardado (pide confirmación si hay cambios).
+  function cancelarEdicion() {
+    protegerCambios(() => {
+      if (original) setBorrador(original);
+      else mostrarUltimo(guardados);
+      setEditando(false);
+      setError(null);
+    });
+  }
+
+  // Inicial todavía sin guardar: no hay a dónde volver, solo se limpia.
+  function descartarInicial() {
+    setBorrador(odontogramaVacio("INICIAL"));
     setError(null);
   }
 
@@ -209,6 +225,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       setGuardados((prev) => ordenar([...prev.filter((o) => o.id !== guardado.id), guardado]));
       setSeleccion(guardado.id ?? null);
       setBorrador(guardado);
+      setEditando(false);
     } catch {
       setError("No se pudo conectar con el servidor.");
     } finally {
@@ -232,6 +249,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       setGuardados(restantes);
       mostrarUltimo(restantes);
       setComparar(false);
+      setEditando(restantes.length === 0);
     } catch {
       setError("No se pudo conectar con el servidor.");
     } finally {
@@ -252,115 +270,135 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     ? `${chipSeleccionado.titulo} · ${formatFechaCorta(chipSeleccionado.valor.fecha)}`
     : "";
 
+  const puedeSalir = guardados.length > 0;
+
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-base font-semibold">Odontograma</h3>
-          <p className="text-sm text-muted-foreground">
-            Estado inicial y cómo queda la boca después de cada visita. Se guarda con su propio botón.
-          </p>
-        </div>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <h3 className="text-base font-semibold">Odontograma</h3>
         {guardados.length > 0 && (
-          <Button type="button" onClick={registrarVisita} disabled={seleccion === NUEVO}>
-            <Plus className="size-4" />
-            Registrar visita
-          </Button>
+          <nav aria-label="Visitas" className="-my-1 min-w-0 flex-1 overflow-x-auto py-1">
+            <ol className="flex w-max items-center gap-1.5">
+              {chips.map(({ key, valor, titulo }) => (
+                <li key={key}>
+                  <ChipVisita
+                    activo={seleccion === key}
+                    titulo={titulo}
+                    fecha={formatFechaCorta(valor.fecha)}
+                    onClick={() => seleccion !== key && seleccionar(valor)}
+                  />
+                </li>
+              ))}
+              {seleccion === NUEVO && (
+                <li>
+                  <ChipVisita
+                    activo
+                    nuevo
+                    titulo={borrador.tipo === "INICIAL" ? "Inicial" : "Nueva visita"}
+                    fecha={formatFechaCorta(borrador.fecha)}
+                  />
+                </li>
+              )}
+            </ol>
+          </nav>
+        )}
+        {!editando && (
+          <div className="ml-auto flex items-center gap-2">
+            {original?.id && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive"
+                title="Eliminar esta visita"
+                aria-label="Eliminar esta visita"
+                onClick={() => setConfirmarEliminar(true)}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={() => setEditando(true)}>
+              <Pencil className="size-4" />
+              Editar
+            </Button>
+            <Button type="button" onClick={registrarVisita}>
+              <Plus className="size-4" />
+              Registrar visita
+            </Button>
+          </div>
         )}
       </header>
 
-      {guardados.length > 0 && (
-        <nav aria-label="Visitas" className="-mx-1 overflow-x-auto px-1">
-          <ol className="flex w-max items-center gap-2 pb-1">
-            {chips.map(({ key, valor, titulo }) => (
-              <li key={key}>
-                <ChipVisita
-                  activo={seleccion === key}
-                  titulo={titulo}
-                  fecha={formatFechaCorta(valor.fecha)}
-                  onClick={() => seleccionar(valor)}
-                />
-              </li>
-            ))}
-            {seleccion === NUEVO && (
-              <li>
-                <ChipVisita
-                  activo
-                  nuevo
-                  titulo={borrador.tipo === "INICIAL" ? "Inicial" : "Nueva visita"}
-                  fecha={formatFechaCorta(borrador.fecha)}
-                />
-              </li>
-            )}
-          </ol>
-        </nav>
-      )}
-
-      <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:p-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor={fechaId}>Fecha de la visita</Label>
+      {editando && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor={fechaId} className="text-muted-foreground">
+              Fecha
+            </Label>
             <DateInput
               id={fechaId}
-              className="w-44"
+              className="w-40"
               value={borrador.fecha}
               onChange={(fecha) => setBorrador({ ...borrador, fecha })}
             />
           </div>
           {!tieneInicial && borrador.tipo === "CONTROL" && (
-            <p className="max-w-56 pb-2 text-xs text-muted-foreground">
+            <p className="max-w-64 text-xs text-muted-foreground">
               No hay odontograma inicial: esta visita se guarda como control.
             </p>
           )}
           {anterior && (
-            <label className="flex items-center gap-2 pb-2 text-sm">
+            <label className="flex items-center gap-2 text-sm">
               <Switch checked={comparar} onCheckedChange={setComparar} />
               Resaltar cambios vs. {formatFechaCorta(anterior.fecha)}
             </label>
           )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {original?.id && !sucio && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              onClick={() => setConfirmarEliminar(true)}
-            >
-              <Trash2 className="size-4" />
-              Eliminar
+          <div className="ml-auto flex items-center gap-2">
+            {puedeSalir ? (
+              <Button type="button" variant="ghost" onClick={cancelarEdicion} disabled={saving}>
+                Cancelar
+              </Button>
+            ) : (
+              sucio && (
+                <Button type="button" variant="ghost" onClick={descartarInicial} disabled={saving}>
+                  <Undo2 className="size-4" />
+                  Descartar
+                </Button>
+              )
+            )}
+            <Button type="button" onClick={guardar} disabled={!sucio || saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+              {saving
+                ? "Guardando..."
+                : seleccion !== NUEVO
+                  ? "Guardar cambios"
+                  : borrador.tipo === "INICIAL"
+                    ? "Guardar odontograma"
+                    : "Guardar visita"}
             </Button>
-          )}
-          {sucio && (
-            <Button type="button" variant="outline" onClick={descartar} disabled={saving}>
-              <Undo2 className="size-4" />
-              Descartar
-            </Button>
-          )}
-          <Button type="button" onClick={guardar} disabled={!sucio || saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            {saving
-              ? "Guardando..."
-              : seleccion !== NUEVO
-                ? "Guardar cambios"
-                : borrador.tipo === "INICIAL"
-                  ? "Guardar odontograma"
-                  : "Guardar visita"}
-          </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <OdontogramaEditor
-        key={`editor-${seleccion ?? "ninguno"}`}
-        datos={borrador.datos}
-        onChange={(datos) => setBorrador({ ...borrador, datos })}
-        nota={borrador.nota}
-        onNotaChange={(nota) => setBorrador({ ...borrador, nota })}
-        resaltadas={resaltadas}
-        notaId={notaId}
-      />
+      {editando ? (
+        <OdontogramaEditor
+          key={`editor-${seleccion ?? "ninguno"}`}
+          datos={borrador.datos}
+          onChange={(datos) => setBorrador({ ...borrador, datos })}
+          nota={borrador.nota}
+          onNotaChange={(nota) => setBorrador({ ...borrador, nota })}
+          resaltadas={resaltadas}
+          notaId={notaId}
+        />
+      ) : (
+        <OdontogramaVista
+          datos={borrador.datos}
+          nota={borrador.nota}
+          anterior={anterior ? { datos: anterior.datos, fecha: formatFechaCorta(anterior.fecha) } : null}
+        />
+      )}
       <PracticasVisita
         key={`practicas-${original?.id ?? "nueva"}`}
         patientId={patientId}
@@ -443,7 +481,7 @@ function ChipVisita({
       onClick={onClick}
       aria-current={activo ? "step" : undefined}
       className={cn(
-        "flex flex-col items-start rounded-lg border px-3 py-1.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "flex items-baseline gap-1.5 rounded-lg border px-2.5 py-1 text-left whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
         activo
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
