@@ -64,9 +64,20 @@ export function Hero() {
           </motion.span>
           <motion.h1
             variants={stagger}
-            aria-label="Tu consultorio. Más simple. Más conectado."
+            aria-label="Turnos e historia clínica para médicos. Tu consultorio. Más simple. Más conectado."
             className="max-w-xl font-heading text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]"
           >
+            {/* Línea con las palabras clave dentro del <h1> (visible, no sr-only):
+                el slogan solo no comparte vocabulario con el resto de la página
+                y los auditores SEO marcan el H1 como "poco relacionado". */}
+            <motion.span
+              variants={blurIn}
+              aria-hidden
+              className="mb-4 block font-sans text-sm font-bold tracking-wide text-primary uppercase"
+            >
+              Turnos e historia clínica para médicos
+              <span className="sr-only">.</span>
+            </motion.span>{" "}
             {HEADLINE.map((line, li) => (
               <span key={li} aria-hidden className="block">
                 {line.map(({ w, hl }, wi) => (

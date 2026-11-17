@@ -26,7 +26,7 @@ const LAYERS = [
   },
   {
     icon: ScrollText,
-    title: "Auditoría de cada cambio",
+    title: "Registro de auditoría",
     text: "Toda alta, edición o eliminación queda registrada -- quién, qué y cuándo -- conservando el valor anterior de lo modificado.",
   },
   {
