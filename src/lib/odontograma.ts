@@ -139,12 +139,16 @@ export const CODIGO_INFO: Record<CodigoOdonto, { label: string; simbolo: string;
 // Datos
 // ---------------------------------------------------------------------------
 
+// Tipos que se eligen al marcar el odontograma (y los únicos que se guardan).
 export const TIPOS_MARCA = ["existente", "requerida"] as const;
-export type TipoMarca = (typeof TIPOS_MARCA)[number];
+// "realizada" (verde) no se guarda: se deriva en pantalla de las prácticas
+// cargadas en la visita sobre una prestación requerida (ver aplicarPracticas).
+export type TipoMarca = (typeof TIPOS_MARCA)[number] | "realizada";
 
 export const TIPO_MARCA_LABELS: Record<TipoMarca, string> = {
   existente: "Prestación existente",
   requerida: "Prestación requerida",
+  realizada: "Prestación realizada",
 };
 
 export type Marca<C extends CodigoOdonto = CodigoOdonto> = { codigo: C; tipo: TipoMarca };
@@ -318,6 +322,40 @@ export function marcarRealizada(datos: DatosOdontograma, item: ItemPlan): DatosO
 // Derivados
 // ---------------------------------------------------------------------------
 
+// Práctica cargada en una visita, en lo que importa para el odontograma.
+type PracticaEnPieza = { pieza: string | null; caras: readonly Cara[] };
+
+// Pasa a `tipo` las prestaciones requeridas sobre las que se cargó una
+// práctica: si la práctica indica caras, solo las requeridas en esas caras;
+// si no, todas las requeridas de la pieza. Las prácticas de boca completa no
+// tocan nada.
+// - "realizada": para mostrar en verde lo hecho en esta visita.
+// - "existente": al arrancar la visita siguiente, lo hecho ya es existente.
+export function aplicarPracticas(
+  datos: DatosOdontograma,
+  practicas: readonly PracticaEnPieza[],
+  tipo: "realizada" | "existente"
+): DatosOdontograma {
+  let piezas = datos.piezas;
+  for (const { pieza, caras } of practicas) {
+    const estado = pieza ? piezas[pieza] : undefined;
+    if (!pieza || !estado) continue;
+    const todas = caras.length === 0;
+    const nuevasCaras: EstadoPieza["caras"] = { ...estado.caras };
+    for (const cara of CARAS) {
+      const m = nuevasCaras[cara];
+      if (m?.tipo === "requerida" && (todas || caras.includes(cara))) nuevasCaras[cara] = { ...m, tipo };
+    }
+    const siguiente: EstadoPieza = { ...estado, caras: estado.caras ? nuevasCaras : undefined };
+    if (estado.pieza) {
+      siguiente.pieza = estado.pieza.map((m) => (todas && m.tipo === "requerida" ? { ...m, tipo } : m));
+    }
+    if (!siguiente.caras) delete siguiente.caras;
+    piezas = { ...piezas, [pieza]: siguiente };
+  }
+  return piezas === datos.piezas ? datos : { ...datos, piezas };
+}
+
 // Prestaciones requeridas (azul), en el orden de la ficha.
 export function planDeTratamiento(datos: DatosOdontograma): ItemPlan[] {
   const items: ItemPlan[] = [];
@@ -340,12 +378,12 @@ export function planDeTratamiento(datos: DatosOdontograma): ItemPlan[] {
 const AUSENCIA: ReadonlySet<CodigoOdonto> = new Set(["AUSENTE", "EXTRACCION"]);
 
 // Piezas permanentes presentes: 32 menos las marcadas como ausentes o ya
-// extraídas (en rojo -- una extracción requerida todavía está en boca).
+// extraídas (en rojo o verde -- una extracción requerida todavía está en boca).
 export function contarDientesExistentes(datos: DatosOdontograma): number {
   let ausentes = 0;
   for (const pieza of PIEZAS_PERMANENTES) {
     const marcas = datos.piezas[String(pieza)]?.pieza ?? [];
-    if (marcas.some((m) => AUSENCIA.has(m.codigo) && m.tipo === "existente")) ausentes++;
+    if (marcas.some((m) => AUSENCIA.has(m.codigo) && m.tipo !== "requerida")) ausentes++;
   }
   return PIEZAS_PERMANENTES.length - ausentes;
 }

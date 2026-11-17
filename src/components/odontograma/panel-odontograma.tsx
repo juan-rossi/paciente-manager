@@ -137,6 +137,10 @@ export function Leyenda({ mostrarCambios }: { mostrarCambios: boolean }) {
         Prestación requerida
       </span>
       <span className="inline-flex items-center gap-1.5">
+        <span className="size-2.5 rounded-sm" style={{ background: COLOR_TIPO.realizada }} />
+        Prestación realizada
+      </span>
+      <span className="inline-flex items-center gap-1.5">
         <span
           className="size-2.5 rounded-sm border border-border"
           style={{

@@ -9,7 +9,7 @@ import { patientFromApi } from "@/components/patient-form/utils";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
 import { PageEnter } from "@/components/page-transition";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
-import { parseDatos } from "@/lib/odontograma";
+import { aplicarPracticas, parseDatos } from "@/lib/odontograma";
 import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import type { OdontogramaResumenProps } from "@/components/odontograma/odontograma-resumen";
 
@@ -139,7 +139,15 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
             practicas: ultima.practicas.map(practicaVisitaFromDb),
           }
         : null,
-      anterior: anterior ? { datos: parseDatos(anterior.datos) } : null,
+      anterior: anterior
+        ? {
+            datos: aplicarPracticas(
+              parseDatos(anterior.datos),
+              anterior.practicas.map(practicaVisitaFromDb),
+              "existente"
+            ),
+          }
+        : null,
     };
   }
 

@@ -3,7 +3,12 @@ import { Pencil, Plus, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/patient-form/fields";
 import { formatFechaCorta } from "@/components/patient-form/utils";
-import { diffOdontograma, type DatosOdontograma, type OdontogramaTipo } from "@/lib/odontograma";
+import {
+  aplicarPracticas,
+  diffOdontograma,
+  type DatosOdontograma,
+  type OdontogramaTipo,
+} from "@/lib/odontograma";
 import type { PracticaVisita } from "@/lib/practica-odontologica";
 import { OdontogramaGrid } from "./odontograma-grid";
 import { Leyenda, PlanTratamiento } from "./panel-odontograma";
@@ -21,7 +26,8 @@ export type OdontogramaResumenProps = {
   patientId: string;
   // null = el paciente todavía no tiene odontograma.
   ultima: VisitaResumen | null;
-  // Visita guardada antes que la última, para resaltar lo que cambió.
+  // Visita guardada antes que la última, para resaltar lo que cambió. Con lo
+  // hecho en ella ya pasado a existente (ver aplicarPracticas).
   anterior: { datos: DatosOdontograma } | null;
   totalVisitas: number;
 };
@@ -48,7 +54,9 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
     );
   }
 
-  const resaltadas = anterior ? diffOdontograma(anterior.datos, ultima.datos) : undefined;
+  // Las requeridas con práctica cargada en esta visita se ven en verde.
+  const datos = aplicarPracticas(ultima.datos, ultima.practicas, "realizada");
+  const resaltadas = anterior ? diffOdontograma(anterior.datos, datos) : undefined;
   const nota = ultima.nota.trim();
 
   return (
@@ -72,7 +80,7 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
     >
       <div className="flex flex-col">
         <div className="min-w-0 p-4 sm:p-5">
-          <OdontogramaGrid datos={ultima.datos} resaltadas={resaltadas} />
+          <OdontogramaGrid datos={datos} resaltadas={resaltadas} />
           <Leyenda mostrarCambios={Boolean(resaltadas && resaltadas.size > 0)} />
         </div>
 
@@ -109,7 +117,7 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
             )}
           </section>
 
-          <PlanTratamiento datos={ultima.datos} />
+          <PlanTratamiento datos={datos} />
 
           {nota && (
             <section className="flex flex-col gap-2">

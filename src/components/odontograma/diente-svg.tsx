@@ -13,10 +13,11 @@ import {
 } from "@/lib/odontograma";
 
 // Convención de la ficha en papel: rojo = prestación existente, azul =
-// prestación requerida.
+// prestación requerida. Verde = requerida que se hizo en esta visita.
 export const COLOR_TIPO: Record<TipoMarca, string> = {
   existente: "#dc2626",
   requerida: "#2563eb",
+  realizada: "#16a34a",
 };
 
 // Geometría (viewBox 40x50): pieza de 4..36, cara central de 14..26 y una
@@ -115,7 +116,7 @@ export function DienteSvg({ numero, estado, onCaraClick, resaltada, className }:
       aria-label={interactivo ? undefined : `Pieza ${numero}`}
     >
       <defs>
-        {(["existente", "requerida"] as const).map((tipo) => (
+        {(["existente", "requerida", "realizada"] as const).map((tipo) => (
           <pattern
             key={tipo}
             id={`${patternId}-${tipo}`}

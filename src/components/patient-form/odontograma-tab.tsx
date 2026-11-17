@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { formatDateParamBA } from "@/lib/timezone";
-import { datosVacios, diffOdontograma } from "@/lib/odontograma";
+import { aplicarPracticas, datosVacios, diffOdontograma } from "@/lib/odontograma";
 import { OdontogramaEditor } from "@/components/odontograma/odontograma-editor";
 import { OdontogramaVista } from "@/components/odontograma/odontograma-vista";
 import { PracticasVisita } from "@/components/odontograma/practicas-visita";
@@ -22,6 +22,8 @@ import type { PracticaVisita } from "@/lib/practica-odontologica";
 import { DateInput } from "./date-input";
 import { formatFechaCorta, odontogramaFromApi } from "./utils";
 import type { OdontogramaValue } from "./types";
+
+const SIN_PRACTICAS: PracticaVisita[] = [];
 
 function hoy() {
   return formatDateParamBA(new Date());
@@ -138,9 +140,24 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     return idx > 0 ? guardados[idx - 1] : null;
   }, [seleccion, guardados]);
 
+  // La visita anterior tal como quedó: lo que se hizo en ella ya es existente
+  // (así arranca la visita siguiente), para no resaltarlo como cambio.
+  const anteriorDatos = useMemo(
+    () =>
+      anterior
+        ? aplicarPracticas(anterior.datos, (anterior.id && practicasPorVisita[anterior.id]) || [], "existente")
+        : null,
+    [anterior, practicasPorVisita]
+  );
+
+  const practicasSeleccion = (original?.id && practicasPorVisita[original.id]) || SIN_PRACTICAS;
+  // Lo que se muestra fuera del editor: las requeridas con práctica cargada en
+  // esta visita, en verde. No se guarda; sale de las prácticas.
+  const datosVista = aplicarPracticas(borrador.datos, practicasSeleccion, "realizada");
+
   const resaltadas = useMemo(
-    () => (comparar && anterior ? diffOdontograma(anterior.datos, borrador.datos) : undefined),
-    [comparar, anterior, borrador]
+    () => (comparar && anteriorDatos ? diffOdontograma(anteriorDatos, borrador.datos) : undefined),
+    [comparar, anteriorDatos, borrador]
   );
 
   function protegerCambios(accion: () => void) {
@@ -164,7 +181,17 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       // Una visita nueva arranca con el estado en que quedó la anterior.
       setBorrador(
         ultimo
-          ? { tipo: "CONTROL", fecha: hoy(), nota: "", datos: ultimo.datos }
+          ? {
+              tipo: "CONTROL",
+              fecha: hoy(),
+              nota: "",
+              // Lo hecho en la visita anterior ya es existente (rojo).
+              datos: aplicarPracticas(
+                ultimo.datos,
+                (ultimo.id && practicasPorVisita[ultimo.id]) || [],
+                "existente"
+              ),
+            }
           : odontogramaVacio("INICIAL")
       );
       setSeleccion(NUEVO);
@@ -394,9 +421,13 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
         />
       ) : (
         <OdontogramaVista
-          datos={borrador.datos}
+          datos={datosVista}
           nota={borrador.nota}
-          anterior={anterior ? { datos: anterior.datos, fecha: formatFechaCorta(anterior.fecha) } : null}
+          anterior={
+            anterior && anteriorDatos
+              ? { datos: anteriorDatos, fecha: formatFechaCorta(anterior.fecha) }
+              : null
+          }
         />
       )}
       <PracticasVisita
@@ -404,8 +435,8 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
         patientId={patientId}
         odontogramaId={original?.id ?? null}
         visitaLabel={visitaLabel}
-        datos={borrador.datos}
-        practicas={(original?.id && practicasPorVisita[original.id]) || []}
+        datos={datosVista}
+        practicas={practicasSeleccion}
         onChange={(actualizar) => {
           const id = original?.id;
           if (!id) return;
