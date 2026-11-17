@@ -93,7 +93,7 @@ export function TrustSecurity() {
                 <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <layer.icon className="size-4.5" />
                 </span>
-                <h3 className="text-sm font-semibold">{layer.title}</h3>
+                <p className="text-sm font-semibold">{layer.title}</p>
                 <p className="text-xs text-muted-foreground">{layer.text}</p>
               </motion.div>
             ))}

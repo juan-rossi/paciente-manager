@@ -172,7 +172,7 @@ function FinalHeadline({ visible }: { visible: boolean }) {
       <Button
         size="lg"
         nativeButton={false}
-        render={<Link href="/signup?plan=PREMIUM" />}
+        render={<Link href="/signup?plan=PREMIUM" rel="nofollow" />}
       >
         Empezar con Semio360
       </Button>

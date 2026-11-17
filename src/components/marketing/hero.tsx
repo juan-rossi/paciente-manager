@@ -104,7 +104,7 @@ export function Hero() {
             <Button
               size="lg"
               nativeButton={false}
-              render={<Link href="/signup?plan=PREMIUM" />}
+              render={<Link href="/signup?plan=PREMIUM" rel="nofollow" />}
               className={cn(CTA_MOTION, "hover:shadow-lg hover:shadow-primary/25")}
             >
               Probar Semio360

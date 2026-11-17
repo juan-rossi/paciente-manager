@@ -86,8 +86,8 @@ export function SiteHeader() {
           >
             Iniciar sesión
           </Button>
-          <Button size="sm" nativeButton={false} render={<Link href="/signup?plan=PREMIUM" />}>
-            Probar Semio360
+          <Button size="sm" nativeButton={false} render={<Link href="/signup?plan=PREMIUM" rel="nofollow" />}>
+            Empezar gratis
           </Button>
 
           <Popover open={open} onOpenChange={setOpen}>

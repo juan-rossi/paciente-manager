@@ -26,10 +26,16 @@ function AccordionItem({ className, ...props }: AccordionPrimitive.Item.Props) {
 function AccordionTrigger({
   className,
   children,
+  headerRender,
   ...props
-}: AccordionPrimitive.Trigger.Props) {
+}: AccordionPrimitive.Trigger.Props & {
+  // Por defecto el header es un <h3>. En listas largas (FAQ de la landing)
+  // conviene un <div>: cada pregunta como encabezado infla la cantidad de
+  // H de la página y los auditores SEO lo marcan.
+  headerRender?: AccordionPrimitive.Header.Props["render"]
+}) {
   return (
-    <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Header className="flex" render={headerRender}>
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(

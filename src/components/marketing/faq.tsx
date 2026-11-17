@@ -10,7 +10,7 @@ export function FAQ() {
         <Accordion className="rounded-2xl border border-border/60 bg-card px-5">
           {FAQS.map((item) => (
             <AccordionItem key={item.q} value={item.q}>
-              <AccordionTrigger className="text-base">{item.q}</AccordionTrigger>
+              <AccordionTrigger className="text-base" headerRender={<div />}>{item.q}</AccordionTrigger>
               <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
             </AccordionItem>
           ))}

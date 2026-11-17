@@ -71,7 +71,7 @@ export function Pricing() {
                 className="mt-auto"
                 variant={plan.featured ? "default" : "outline"}
                 nativeButton={false}
-                render={<Link href={`/signup?plan=${plan.key}`} />}
+                render={<Link href={`/signup?plan=${plan.key}`} rel="nofollow" />}
               >
                 Probar {TRIAL_DIAS[plan.key]} días gratis
               </Button>
