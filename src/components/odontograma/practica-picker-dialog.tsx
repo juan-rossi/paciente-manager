@@ -259,7 +259,7 @@ export function PracticaPickerDialog({ open, onOpenChange, subtitulo, onAgregar 
     <Dialog open={open} onOpenChange={(o) => !guardando && onOpenChange(o)}>
       <DialogContent
         initialFocus={inputRef}
-        className="flex max-h-[min(88dvh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+        className="flex max-h-[min(88dvh,760px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl"
       >
         <div className="flex flex-col gap-3 border-b border-border px-5 pt-5 pb-3">
           <div className="flex flex-col gap-0.5 pr-8">
@@ -288,7 +288,7 @@ export function PracticaPickerDialog({ open, onOpenChange, subtitulo, onAgregar 
             />
           </div>
           {practicas && (
-            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Filtrar por capítulo">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por capítulo">
               <ChipCapitulo activo={capitulo === null} onClick={() => setCapitulo(null)}>
                 Todos · {coincidencias.length}
               </ChipCapitulo>
