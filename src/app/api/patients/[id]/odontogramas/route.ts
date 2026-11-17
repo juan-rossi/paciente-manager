@@ -18,6 +18,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const odontogramas = await prisma.patientOdontograma.findMany({
     where: { patientId: id, deletedAt: null },
     orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+    include: {
+      practicas: { where: { deletedAt: null }, orderBy: { createdAt: "asc" } },
+    },
   });
 
   return NextResponse.json({ odontogramas });

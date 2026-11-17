@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   History,
+  ListChecks,
   Save,
   Smile,
   Stethoscope,
@@ -30,6 +31,7 @@ import { AntecedentesTab } from "./antecedentes-tab";
 import { ExamenFisicoTab } from "./examen-fisico-tab";
 import { DiagnosticoTab } from "./diagnostico-tab";
 import { EvolucionTab } from "./evolucion-tab";
+import { HistorialPracticasTab } from "./historial-practicas-tab";
 import {
   OdontogramaHistorialTab,
   OdontogramaInicialTab,
@@ -105,6 +107,7 @@ function tabOrderFor(mode: "create" | "edit", odontograma: boolean): readonly st
     ...(odontograma ? [] : ["examen-fisico"]),
     "diagnostico",
     ...(odontograma ? ["odontograma"] : []),
+    ...(mode === "edit" && odontograma ? ["historial-practicas"] : []),
     ...(mode === "edit" && !odontograma ? ["evolucion"] : []),
   ];
 }
@@ -167,6 +170,7 @@ export function PatientForm({
 
   const tabOrder = tabOrderFor(mode, odontogramaHabilitado);
   const evolucionHabilitada = mode === "edit" && !odontogramaHabilitado;
+  const historialPracticasHabilitado = mode === "edit" && odontogramaHabilitado;
   const currentTabIndex = tabOrder.indexOf(activeTab);
 
   function handlePrevious() {
@@ -299,6 +303,12 @@ export function PatientForm({
               Odontograma
             </TabsTrigger>
           )}
+          {historialPracticasHabilitado && (
+            <TabsTrigger value="historial-practicas">
+              <ListChecks className="size-4" />
+              Historial de Prácticas
+            </TabsTrigger>
+          )}
           {evolucionHabilitada && (
             <TabsTrigger value="evolucion">
               <TrendingUp className="size-4" />
@@ -354,6 +364,15 @@ export function PatientForm({
               Odontograma
             </TabsTrigger>
           )}
+          {historialPracticasHabilitado && (
+            <TabsTrigger
+              value="historial-practicas"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <ListChecks className="size-[18px]" />
+              Historial de Prácticas
+            </TabsTrigger>
+          )}
           {evolucionHabilitada && (
             <TabsTrigger
               value="evolucion"
@@ -404,6 +423,11 @@ export function PatientForm({
                 ) : (
                   <OdontogramaInicialTab value={odontogramaInicial} onChange={setOdontogramaInicial} />
                 )}
+              </TabsContent>
+            )}
+            {historialPracticasHabilitado && patientId && (
+              <TabsContent value="historial-practicas">
+                <HistorialPracticasTab patientId={patientId} />
               </TabsContent>
             )}
             {evolucionHabilitada && (
