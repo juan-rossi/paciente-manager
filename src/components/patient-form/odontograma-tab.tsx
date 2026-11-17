@@ -404,6 +404,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
         patientId={patientId}
         odontogramaId={original?.id ?? null}
         visitaLabel={visitaLabel}
+        datos={borrador.datos}
         practicas={(original?.id && practicasPorVisita[original.id]) || []}
         onChange={(actualizar) => {
           const id = original?.id;

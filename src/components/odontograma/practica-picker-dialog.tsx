@@ -5,7 +5,15 @@ import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { ARCADAS, CARAS, CARA_LABELS, type Cara } from "@/lib/odontograma";
+import {
+  ARCADAS,
+  CARAS,
+  CARA_LABELS,
+  CODIGO_INFO,
+  planDeTratamiento,
+  type Cara,
+  type DatosOdontograma,
+} from "@/lib/odontograma";
 import {
   CAPITULOS,
   esBusquedaPorCodigo,
@@ -140,11 +148,26 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   // Ej. "Visita 2 · 16/11/2026".
   subtitulo: string;
+  // Estado de la visita: las piezas con prestaciones requeridas (plan de
+  // tratamiento) se listan primero en el selector de pieza.
+  datos?: DatosOdontograma;
   // Guarda la práctica. Devuelve un mensaje de error, o null si salió bien.
   onAgregar: (practica: PracticaCatalogo, pieza: string | null, caras: Cara[]) => Promise<string | null>;
 };
 
-export function PracticaPickerDialog({ open, onOpenChange, subtitulo, onAgregar }: Props) {
+export function PracticaPickerDialog({ open, onOpenChange, subtitulo, datos, onAgregar }: Props) {
+  // Pieza -> prestaciones requeridas (sin repetir), en el orden de la ficha.
+  const requeridas = useMemo(() => {
+    const m = new Map<string, string[]>();
+    if (!datos) return m;
+    for (const item of planDeTratamiento(datos)) {
+      const labels = m.get(item.pieza) ?? [];
+      const label = CODIGO_INFO[item.codigo].label;
+      if (!labels.includes(label)) labels.push(label);
+      m.set(item.pieza, labels);
+    }
+    return m;
+  }, [datos]);
   const { practicas, error: errorCatalogo, reintentar } = useCatalogo(open);
   const inputRef = useRef<HTMLInputElement>(null);
   const listaRef = useRef<HTMLDivElement>(null);
@@ -408,7 +431,7 @@ export function PracticaPickerDialog({ open, onOpenChange, subtitulo, onAgregar 
             )}
           </p>
           <div className="flex flex-wrap items-end gap-4">
-            <div className="flex w-36 flex-col gap-1.5">
+            <div className="flex w-44 flex-col gap-1.5">
               <label htmlFor={piezaId} className="text-xs font-medium text-muted-foreground">
                 Pieza
               </label>
@@ -422,15 +445,24 @@ export function PracticaPickerDialog({ open, onOpenChange, subtitulo, onAgregar 
                 className={SELECT_CLASS}
               >
                 <option value="">Boca completa</option>
+                {requeridas.size > 0 && (
+                  <optgroup label="Con prestaciones requeridas">
+                    {[...requeridas].map(([p, labels]) => (
+                      <option key={p} value={p}>
+                        {p} · {labels.join(", ")}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 <optgroup label="Permanentes">
-                  {PIEZAS_PERMANENTES.map((p) => (
+                  {PIEZAS_PERMANENTES.filter((p) => !requeridas.has(String(p))).map((p) => (
                     <option key={p} value={String(p)}>
                       {p}
                     </option>
                   ))}
                 </optgroup>
                 <optgroup label="Temporales">
-                  {PIEZAS_TEMPORALES.map((p) => (
+                  {PIEZAS_TEMPORALES.filter((p) => !requeridas.has(String(p))).map((p) => (
                     <option key={p} value={String(p)}>
                       {p}
                     </option>

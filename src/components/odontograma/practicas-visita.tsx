@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CARA_LABELS, type Cara } from "@/lib/odontograma";
+import { CARA_LABELS, type Cara, type DatosOdontograma } from "@/lib/odontograma";
 import type { PracticaCatalogo, PracticaVisita } from "@/lib/practica-odontologica";
 import { PracticaPickerDialog } from "./practica-picker-dialog";
 
@@ -21,6 +21,8 @@ type Props = {
   odontogramaId: string | null;
   // Ej. "Visita 2 · 16/11/2026", para el subtítulo del modal.
   visitaLabel: string;
+  // Estado actual de la visita, para ofrecer primero las piezas con prestaciones requeridas.
+  datos: DatosOdontograma;
   practicas: PracticaVisita[];
   onChange: (actualizar: (prev: PracticaVisita[]) => PracticaVisita[]) => void;
 };
@@ -29,7 +31,7 @@ function describirCaras(caras: Cara[]) {
   return caras.map((c) => CARA_LABELS[c]).join(", ");
 }
 
-export function PracticasVisita({ patientId, odontogramaId, visitaLabel, practicas, onChange }: Props) {
+export function PracticasVisita({ patientId, odontogramaId, visitaLabel, datos, practicas, onChange }: Props) {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [aEliminar, setAEliminar] = useState<PracticaVisita | null>(null);
   const [eliminando, setEliminando] = useState(false);
@@ -165,6 +167,7 @@ export function PracticasVisita({ patientId, odontogramaId, visitaLabel, practic
           open={modalAbierto}
           onOpenChange={setModalAbierto}
           subtitulo={visitaLabel}
+          datos={datos}
           onAgregar={agregar}
         />
       )}
