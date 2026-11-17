@@ -70,13 +70,14 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
         </span>
       }
     >
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_19rem]">
+      <div className="flex flex-col">
         <div className="min-w-0 p-4 sm:p-5">
           <OdontogramaGrid datos={ultima.datos} resaltadas={resaltadas} />
           <Leyenda mostrarCambios={Boolean(resaltadas && resaltadas.size > 0)} />
         </div>
 
-        <aside className="flex flex-col gap-5 border-t border-border/60 p-4 sm:p-5 xl:border-t-0 xl:border-l">
+        {/* Resumen de la visita debajo del gráfico, en columnas que se apilan en pantallas chicas. */}
+        <div className="grid grid-cols-1 gap-5 border-t border-border/60 p-4 sm:p-5 md:grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] md:items-start">
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between">
               <h4 className="text-sm font-semibold">Realizado en esta visita</h4>
@@ -89,7 +90,7 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
                 Sin prácticas registradas.
               </p>
             ) : (
-              <ul className="flex max-h-60 flex-col divide-y divide-border overflow-y-auto rounded-lg border border-border">
+              <ul className="flex max-h-60 flex-col divide-y divide-border overflow-y-auto rounded-lg border border-border bg-card">
                 {ultima.practicas.map((p) => (
                   <li key={p.id} className="flex items-baseline gap-2 px-3 py-2 text-xs">
                     <span className="shrink-0 rounded bg-muted px-1 font-mono text-[11px] text-muted-foreground tabular-nums">
@@ -113,12 +114,12 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
           {nota && (
             <section className="flex flex-col gap-2">
               <h4 className="text-sm font-semibold">Observaciones</h4>
-              <p className="border-l-2 border-border pl-3 text-sm whitespace-pre-wrap text-muted-foreground">
+              <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm whitespace-pre-wrap text-muted-foreground">
                 {nota}
               </p>
             </section>
           )}
-        </aside>
+        </div>
       </div>
     </FormSection>
   );

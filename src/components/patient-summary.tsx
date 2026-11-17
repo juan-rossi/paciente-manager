@@ -168,7 +168,8 @@ export function PatientSummary({
   // false para odontólogos (ver esOdontologica()): no usan evolución clínica.
   evolucionHabilitada?: boolean;
   // Solo odontólogos: última visita del odontograma. Cambia la disposición de
-  // la ficha (odontograma a lo ancho; consentimientos y auditoría plegados).
+  // la ficha (columna lateral de datos clínicos + odontograma; consentimientos
+  // y auditoría plegados).
   odontograma?: OdontogramaResumenProps | null;
 }) {
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
@@ -222,6 +223,21 @@ export function PatientSummary({
         </Button>
       </div>
     </div>
+  );
+
+  // Ficha odontológica: la información va en la columna lateral angosta, así
+  // que usa 2 columnas fijas en vez de la grilla de 12.
+  const informacionCompacta = odontograma && (
+    <FormSection title="Información del Paciente" icon={IdCard} contentClassName="bg-card">
+      <div className="col-span-full grid grid-cols-2 gap-x-4 gap-y-3">
+        <InfoField label="Nombre y Apellido" value={patient.nombreYApellido} className="col-span-2" />
+        <InfoField label="Edad" value={edad ? `${edad} años` : null} />
+        <InfoField label="DNI" value={patient.nroDocumento} />
+        <InfoField label="Teléfono" value={patient.telefono} className="col-span-2" />
+        <InfoField label="Obra Social" value={patient.obraSocial} />
+        <InfoField label="Nro Obra Social" value={patient.obraSocialNro} />
+      </div>
+    </FormSection>
   );
 
   const informacion = (
@@ -370,19 +386,21 @@ export function PatientSummary({
       <div className="flex flex-col gap-6">
         {encabezado}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-          <div className="flex min-w-0 flex-col gap-6">
-            {informacion}
-            {diferenciasTurno}
-            {antecedentes}
-          </div>
-          <div className="flex min-w-0 flex-col gap-6">
+        {diferenciasTurno}
+
+        {/* Columna lateral (25%) con los datos clínicos y el odontograma (75%).
+            Debajo de xl se apilan y las tarjetas laterales pasan a una grilla. */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,3fr)] xl:items-start">
+          <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2 md:items-start xl:flex xl:flex-col xl:items-stretch">
+            {informacionCompacta}
             {consultaInicial}
+            {antecedentes}
             {diagnostico}
           </div>
+          <div className="min-w-0">
+            <OdontogramaResumen {...odontograma} />
+          </div>
         </div>
-
-        <OdontogramaResumen {...odontograma} />
 
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start">
           <SeccionPlegable
