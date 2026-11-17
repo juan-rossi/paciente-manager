@@ -32,6 +32,7 @@ import {
   OdontogramaResumen,
   type OdontogramaResumenProps,
 } from "@/components/odontograma/odontograma-resumen";
+import { OdontogramaVisitas } from "@/components/odontograma/odontograma-visitas";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
   include: { antecedentes: true; evoluciones: true; consentimientos: true };
@@ -397,8 +398,9 @@ export function PatientSummary({
             {antecedentes}
             {diagnostico}
           </div>
-          <div className="min-w-0">
+          <div className="flex min-w-0 flex-col gap-6">
             <OdontogramaResumen {...odontograma} />
+            <OdontogramaVisitas visitas={odontograma.historial} />
           </div>
         </div>
 

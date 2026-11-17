@@ -12,6 +12,7 @@ import {
 import type { PracticaVisita } from "@/lib/practica-odontologica";
 import { OdontogramaGrid } from "./odontograma-grid";
 import { Leyenda, PlanTratamiento } from "./panel-odontograma";
+import type { VisitaHistorial } from "./odontograma-visitas";
 
 export type VisitaResumen = {
   tipo: OdontogramaTipo;
@@ -30,6 +31,8 @@ export type OdontogramaResumenProps = {
   // hecho en ella ya pasado a existente (ver aplicarPracticas).
   anterior: { datos: DatosOdontograma } | null;
   totalVisitas: number;
+  // Todas las visitas, de la más reciente a la más vieja (ver OdontogramaVisitas).
+  historial: VisitaHistorial[];
 };
 
 // Tarjeta del detalle de paciente (solo odontólogos): el estado de la boca en

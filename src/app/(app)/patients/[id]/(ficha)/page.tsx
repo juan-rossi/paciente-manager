@@ -130,6 +130,15 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     odontograma = {
       patientId: id,
       totalVisitas: visitas.length,
+      historial: visitas
+        .map((v) => ({
+          id: v.id,
+          tipo: v.tipo,
+          fecha: v.fecha.toISOString().slice(0, 10),
+          nota: v.nota ?? "",
+          practicas: v.practicas.map(practicaVisitaFromDb),
+        }))
+        .reverse(),
       ultima: ultima
         ? {
             tipo: ultima.tipo,
