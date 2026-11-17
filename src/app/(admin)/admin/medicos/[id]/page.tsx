@@ -23,6 +23,7 @@ import { BonificadoSwitch } from "@/components/admin/bonificado-switch";
 import { PrioridadDirectorioForm } from "@/components/admin/prioridad-directorio-form";
 import { LevantarSancionButton } from "@/components/admin/sancion-button";
 import { SANCION_LABELS } from "@/lib/sanciones";
+import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,12 @@ export default async function AdminMedicoDetallePage({ params }: Props) {
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
+                  {medico.especialidad ? (
+                    <span className="font-medium text-foreground">{ESPECIALIDAD_LABELS[medico.especialidad]}</span>
+                  ) : (
+                    <span className="italic">Sin especialidad</span>
+                  )}
+                  {" · "}
                   {medico.nroMatricula ? `MP ${medico.nroMatricula} · ` : ""}
                   {medico.email}
                 </p>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/plan";
 import { TIME_ZONE } from "@/lib/timezone";
 import type { TipoSancion } from "@/lib/sancion-email";
+import type { Especialidad } from "@/lib/especialidad";
 
 /**
  * Capa de datos del panel owner/admin (`/admin`) -- consultas cross-tenant
@@ -261,6 +262,7 @@ export type MedicoDetalle = MedicoResumen & {
   secretarias: string[];
   sancionDetalle: { desde: Date; motivo: string; porNombre: string | null } | null;
   prioridadDirectorio: number;
+  especialidad: Especialidad | null;
 };
 
 export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null> {
@@ -272,6 +274,7 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
       apellido: true,
       email: true,
       nroMatricula: true,
+      especialidad: true,
       createdAt: true,
       plan: true,
       trialEndsAt: true,
@@ -395,6 +398,7 @@ export async function getMedicoDetalle(id: string): Promise<MedicoDetalle | null
     secretarias,
     sancionDetalle,
     prioridadDirectorio: doctor.prioridadDirectorio,
+    especialidad: doctor.especialidad,
   };
 }
 
