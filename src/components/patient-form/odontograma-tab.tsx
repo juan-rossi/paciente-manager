@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { formatDateParamBA } from "@/lib/timezone";
 import { datosVacios, diffOdontograma } from "@/lib/odontograma";
 import { OdontogramaEditor } from "@/components/odontograma/odontograma-editor";
+import { PracticasVisita } from "@/components/odontograma/practicas-visita";
+import type { PracticaVisita } from "@/lib/practica-odontologica";
 import { DateInput } from "./date-input";
 import { formatFechaCorta, odontogramaFromApi } from "./utils";
 import type { OdontogramaValue } from "./types";
@@ -104,6 +106,11 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     () => guardados[guardados.length - 1] ?? odontogramaVacio("INICIAL")
   );
   const [comparar, setComparar] = useState(true);
+  // Prácticas del nomenclador por visita (id del odontograma). Se guardan por
+  // su cuenta, así que viven aparte del borrador de la visita.
+  const [practicasPorVisita, setPracticasPorVisita] = useState<Record<string, PracticaVisita[]>>(
+    () => Object.fromEntries(initialOdontogramas.flatMap((o) => (o.id ? [[o.id, o.practicas ?? []]] : [])))
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
@@ -240,6 +247,10 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     titulo: o.tipo === "INICIAL" ? "Inicial" : `Visita ${++nroVisita}`,
   }));
   const tieneInicial = guardados.some((o) => o.tipo === "INICIAL");
+  const chipSeleccionado = chips.find((c) => c.key === seleccion);
+  const visitaLabel = chipSeleccionado
+    ? `${chipSeleccionado.titulo} · ${formatFechaCorta(chipSeleccionado.valor.fecha)}`
+    : "";
 
   return (
     <div className="flex flex-col gap-6">
@@ -342,13 +353,25 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <OdontogramaEditor
-        key={seleccion ?? "ninguno"}
+        key={`editor-${seleccion ?? "ninguno"}`}
         datos={borrador.datos}
         onChange={(datos) => setBorrador({ ...borrador, datos })}
         nota={borrador.nota}
         onNotaChange={(nota) => setBorrador({ ...borrador, nota })}
         resaltadas={resaltadas}
         notaId={notaId}
+      />
+      <PracticasVisita
+        key={`practicas-${original?.id ?? "nueva"}`}
+        patientId={patientId}
+        odontogramaId={original?.id ?? null}
+        visitaLabel={visitaLabel}
+        practicas={(original?.id && practicasPorVisita[original.id]) || []}
+        onChange={(actualizar) => {
+          const id = original?.id;
+          if (!id) return;
+          setPracticasPorVisita((prev) => ({ ...prev, [id]: actualizar(prev[id] ?? []) }));
+        }}
       />
 
       <Dialog open={confirmarEliminar} onOpenChange={(open) => !open && setConfirmarEliminar(false)}>

@@ -570,6 +570,7 @@ enum AuditEntidad {
   EVOLUCION
   CONSENTIMIENTO
   ODONTOGRAMA
+  PRACTICA_ODONTOLOGICA
 }
 
 // Ley 26.529 art. 13: la historia clínica digital requiere controles de
@@ -1014,19 +1015,45 @@ enum OdontogramaTipo {
 // N de CONTROL. `datos` tiene la forma DatosOdontograma de
 // src/lib/odontograma.ts, validada con zod en la API.
 model PatientOdontograma {
-  id        String          @id @default(cuid())
+  id        String                @id @default(cuid())
   patientId String
-  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient   Patient               @relation(fields: [patientId], references: [id], onDelete: Cascade)
   tipo      OdontogramaTipo
   fecha     DateTime
   nota      String?
   datos     Json
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
   // Mismo criterio que PatientEvolucion: nunca se borra físicamente.
   deletedAt DateTime?
+  practicas OdontogramaPractica[]
 
   @@index([patientId, fecha])
+}
+
+// Práctica del nomenclador realizada en una visita del odontograma, asociada
+// a una pieza dentaria (o a la boca completa: consulta, radiografía
+// extrabucal, prótesis completa, etc.). Se guarda por su cuenta, no con el
+// botón de guardar la visita.
+model OdontogramaPractica {
+  id            String               @id @default(cuid())
+  odontogramaId String
+  odontograma   PatientOdontograma   @relation(fields: [odontogramaId], references: [id], onDelete: Cascade)
+  practicaId    String
+  practica      PracticaOdontologica @relation(fields: [practicaId], references: [id], onDelete: Restrict)
+  // Notación FDI ("36", "51", ...). null = boca completa.
+  pieza         String?
+  // Caras tratadas (O/V/L/M/D), opcional y solo con pieza.
+  caras         String[]             @default([])
+  // Copia del nomenclador al momento de cargarla: si el catálogo cambia, lo
+  // registrado en la historia clínica no se reescribe.
+  codigo        String
+  descripcion   String
+  createdAt     DateTime             @default(now())
+  // Mismo criterio que el resto de la HC: nunca se borra físicamente.
+  deletedAt     DateTime?
+
+  @@index([odontogramaId])
 }
 
 enum ConsentimientoTipo {
@@ -1167,16 +1194,17 @@ model DoctorPrepaga {
 // fuente marca como "no incluidas en el Nomenclador Nacional". Se carga en la
 // migración 20261115210000_practica_odontologica.
 model PracticaOdontologica {
-  id          String   @id @default(cuid())
+  id          String                @id @default(cuid())
   // "01.01", "04.01.05", ... — mismo formato que usan las obras sociales.
-  codigo      String   @unique
+  codigo      String                @unique
   descripcion String
   // Número de capítulo (1 = Consultas ... 10 = Cirugía).
   capitulo    Int
   // Agrupación dentro del capítulo cuando la tiene (ej. "Prótesis fija").
   subgrupo    String?
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  activo      Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  usos        OdontogramaPractica[]
 
   @@index([capitulo])
 }

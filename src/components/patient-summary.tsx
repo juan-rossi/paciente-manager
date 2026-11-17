@@ -57,6 +57,8 @@ const AUDIT_LABELS: Record<string, string> = {
   CREAR_ODONTOGRAMA: "registró un odontograma",
   MODIFICAR_ODONTOGRAMA: "modificó un odontograma",
   ELIMINAR_ODONTOGRAMA: "eliminó un odontograma",
+  CREAR_PRACTICA_ODONTOLOGICA: "registró una práctica odontológica",
+  ELIMINAR_PRACTICA_ODONTOLOGICA: "eliminó una práctica odontológica",
 };
 
 // Los timestamps de auditoría son instantes reales (no fechas de calendario

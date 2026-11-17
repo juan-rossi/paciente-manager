@@ -62,6 +62,15 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const odontogramaIds = (
     await prisma.patientOdontograma.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((o) => o.id);
+  const practicaIds =
+    odontogramaIds.length > 0
+      ? (
+          await prisma.odontogramaPractica.findMany({
+            where: { odontogramaId: { in: odontogramaIds } },
+            select: { id: true },
+          })
+        ).map((p) => p.id)
+      : [];
 
   const auditEntries = await prisma.auditLog.findMany({
     where: {
@@ -76,6 +85,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
           : []),
         ...(odontogramaIds.length > 0
           ? [{ entidad: "ODONTOGRAMA" as const, entidadId: { in: odontogramaIds } }]
+          : []),
+        ...(practicaIds.length > 0
+          ? [{ entidad: "PRACTICA_ODONTOLOGICA" as const, entidadId: { in: practicaIds } }]
           : []),
       ],
     },

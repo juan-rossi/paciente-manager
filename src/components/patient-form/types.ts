@@ -134,4 +134,7 @@ export type OdontogramaValue = {
   fecha: string;
   nota: string;
   datos: import("@/lib/odontograma").DatosOdontograma;
+  // Prácticas del nomenclador cargadas en esta visita. Solo viene en la carga
+  // inicial de la página: se guardan por su cuenta, no con la visita.
+  practicas?: import("@/lib/practica-odontologica").PracticaVisita[];
 };

@@ -42,6 +42,9 @@ export default async function EditPatientPage({ params }: Props) {
     ? await prisma.patientOdontograma.findMany({
         where: { patientId: patient.id, deletedAt: null },
         orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+        include: {
+          practicas: { where: { deletedAt: null }, orderBy: { createdAt: "asc" } },
+        },
       })
     : [];
 

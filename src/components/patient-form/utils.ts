@@ -2,6 +2,7 @@ import { ANTECEDENTES_ORDEN } from "./constants";
 import type { AntecedenteValue, EvolucionValue, OdontogramaValue, PatientFormValues } from "./types";
 import { todayPartsBA } from "@/lib/timezone";
 import { parseDatos } from "@/lib/odontograma";
+import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 
 const TEXT_FIELDS = [
   "nombreYApellido",
@@ -248,5 +249,6 @@ export function odontogramaFromApi(o: any): OdontogramaValue {
     fecha: fecha.slice(0, 10),
     nota: o.nota ?? "",
     datos: parseDatos(o.datos),
+    ...(Array.isArray(o.practicas) ? { practicas: o.practicas.map(practicaVisitaFromDb) } : {}),
   };
 }
