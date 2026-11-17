@@ -214,7 +214,7 @@ export function BienvenidasScreen({ estado, medicos, conteo }: Props) {
                   key={placaUrl}
                   src={placaUrl}
                   alt={`Placa de bienvenida de ${abierto.nombreCompleto}`}
-                  className="aspect-square w-full rounded-lg border border-border bg-muted"
+                  className="aspect-[4/5] w-full rounded-lg border border-border bg-muted"
                 />
                 <div className="flex min-w-0 flex-col gap-3">
                   <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">

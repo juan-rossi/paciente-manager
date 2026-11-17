@@ -14,7 +14,9 @@ import {
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-const SIZE = 1080;
+// Vertical 4:5 (el máximo alto que Instagram muestra en el feed sin recortar).
+const WIDTH = 1080;
+const HEIGHT = 1350;
 
 const fontDir = join(process.cwd(), "src/assets/fonts");
 const [sora700, sora800, inter500, inter600, logo] = await Promise.all([
@@ -26,7 +28,7 @@ const [sora700, sora800, inter500, inter600, logo] = await Promise.all([
 ]);
 const LOGO_SRC = `data:image/png;base64,${logo.toString("base64")}`;
 
-// Pieza 1080x1080 para redes: fondo azul noche, foto circular, nombre,
+// Pieza vertical 1080x1350 para redes: fondo azul noche, foto circular, nombre,
 // especialidad, ciudades y un pie con línea divisoria, el logo completo (versión
 // para fondo oscuro) a la izquierda y la llamada a la acción a la derecha.
 // Maqueta en píxeles de la variación A2 aprobada en el diseño.
@@ -109,10 +111,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         <div
           style={{
             position: "absolute",
-            left: -130,
-            bottom: 151,
-            width: 389,
-            height: 389,
+            left: -150,
+            bottom: 190,
+            width: 440,
+            height: 440,
             borderRadius: 9999,
             border: "11px solid rgba(76,180,245,0.14)",
           }}
@@ -125,7 +127,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             alignItems: "center",
             justifyContent: "center",
             textAlign: "center",
-            padding: "43px 86px 32px",
+            padding: "60px 86px 40px",
           }}
         >
           <div
@@ -133,8 +135,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 291,
-              height: 291,
+              width: 360,
+              height: 360,
               borderRadius: 9999,
               border: "12px solid white",
               boxShadow: "0 0 0 13px rgba(10,155,255,0.45)",
@@ -142,12 +144,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               overflow: "hidden",
               fontFamily: "Sora",
               fontWeight: 800,
-              fontSize: 100,
+              fontSize: 124,
             }}
           >
             {fotoValida ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoValida} alt="" width={267} height={267} style={{ objectFit: "cover", borderRadius: 9999 }} />
+              <img src={fotoValida} alt="" width={336} height={336} style={{ objectFit: "cover", borderRadius: 9999 }} />
             ) : (
               iniciales
             )}
@@ -155,7 +157,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           <div
             style={{
               display: "flex",
-              marginTop: 32,
+              marginTop: 48,
               fontFamily: "Inter",
               fontWeight: 500,
               fontSize: 40,
@@ -168,7 +170,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             style={{
               display: "flex",
               justifyContent: "center",
-              marginTop: 22,
+              marginTop: 26,
               fontFamily: "Sora",
               fontWeight: 800,
               fontSize: tamanoNombre,
@@ -182,7 +184,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             <div
               style={{
                 display: "flex",
-                marginTop: 22,
+                marginTop: 34,
                 padding: "14px 37px",
                 borderRadius: 9999,
                 background: "linear-gradient(90deg, #0a9bff, #00b3c4)",
@@ -198,7 +200,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             <div
               style={{
                 display: "flex",
-                marginTop: 22,
+                marginTop: 28,
                 fontFamily: "Inter",
                 fontWeight: 500,
                 fontSize: 37,
@@ -240,8 +242,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       </div>
     ),
     {
-      width: SIZE,
-      height: SIZE,
+      width: WIDTH,
+      height: HEIGHT,
       fonts: [
         { name: "Sora", data: sora700, weight: 700, style: "normal" },
         { name: "Sora", data: sora800, weight: 800, style: "normal" },
