@@ -24,7 +24,7 @@ export function OdontogramaVista({ datos, nota, anterior }: Props) {
   );
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
       <div className="min-w-0 rounded-xl border border-border bg-card/50 p-3 sm:p-4">
         <OdontogramaGrid datos={datos} resaltadas={resaltadas} />
         <Leyenda mostrarCambios={Boolean(resaltadas && resaltadas.size > 0)} />

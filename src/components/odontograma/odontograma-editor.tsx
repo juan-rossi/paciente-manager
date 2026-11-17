@@ -60,7 +60,7 @@ export function OdontogramaEditor({ datos, onChange, nota, onNotaChange, resalta
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
       <div className="flex min-w-0 flex-col gap-2">
         <p className="text-xs text-muted-foreground">Hacé clic en una pieza para marcarla.</p>
         <div className="rounded-xl border border-border bg-card/50 p-3 sm:p-4">

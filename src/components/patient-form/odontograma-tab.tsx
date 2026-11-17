@@ -1,8 +1,20 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { Loader2, Pencil, Plus, Save, Trash2, Undo2 } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -304,30 +316,30 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <h3 className="text-base font-semibold">Odontograma</h3>
         {guardados.length > 0 && (
-          <nav aria-label="Visitas" className="-my-1 min-w-0 flex-1 overflow-x-auto py-1">
-            <ol className="flex w-max items-center gap-1.5">
-              {chips.map(({ key, valor, titulo }) => (
-                <li key={key}>
-                  <ChipVisita
-                    activo={seleccion === key}
-                    titulo={titulo}
-                    fecha={formatFechaCorta(valor.fecha)}
-                    onClick={() => seleccion !== key && seleccionar(valor)}
-                  />
-                </li>
-              ))}
-              {seleccion === NUEVO && (
-                <li>
-                  <ChipVisita
-                    activo
-                    nuevo
-                    titulo={borrador.tipo === "INICIAL" ? "Inicial" : "Nueva visita"}
-                    fecha={formatFechaCorta(borrador.fecha)}
-                  />
-                </li>
-              )}
-            </ol>
-          </nav>
+          <SelectorVisita
+            opciones={[
+              ...chips.map(({ key, valor, titulo }) => ({
+                key,
+                titulo,
+                fecha: formatFechaCorta(valor.fecha),
+              })),
+              ...(seleccion === NUEVO
+                ? [
+                    {
+                      key: NUEVO,
+                      titulo: borrador.tipo === "INICIAL" ? "Inicial" : "Nueva visita",
+                      fecha: formatFechaCorta(borrador.fecha),
+                      nuevo: true,
+                    },
+                  ]
+                : []),
+            ]}
+            actual={seleccion}
+            onSelect={(key) => {
+              const chip = chips.find((c) => c.key === key);
+              if (chip && chip.key !== seleccion) seleccionar(chip.valor);
+            }}
+          />
         )}
         {!editando && (
           <div className="ml-auto flex items-center gap-2">
@@ -494,34 +506,114 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
   );
 }
 
-function ChipVisita({
-  activo,
-  nuevo = false,
-  titulo,
-  fecha,
-  onClick,
+type OpcionVisita = { key: string; titulo: string; fecha: string; nuevo?: boolean };
+
+// Selector de ancho fijo: flechas para ir a la visita anterior/siguiente y un
+// menú con todas. Reemplaza la tira de chips, que con muchas visitas obligaba
+// a scrollear horizontalmente.
+function SelectorVisita({
+  opciones,
+  actual,
+  onSelect,
 }: {
-  activo: boolean;
-  nuevo?: boolean;
-  titulo: string;
-  fecha: string;
-  onClick?: () => void;
+  opciones: OpcionVisita[];
+  actual: string | null;
+  onSelect: (key: string) => void;
 }) {
+  const [abierto, setAbierto] = useState(false);
+  const idx = opciones.findIndex((o) => o.key === actual);
+  const sel = idx >= 0 ? opciones[idx] : null;
+  const previa = idx > 0 ? opciones[idx - 1] : null;
+  const siguiente = idx >= 0 && idx < opciones.length - 1 ? opciones[idx + 1] : null;
+
+  const flecha =
+    "flex h-8 w-8 items-center justify-center text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:bg-muted disabled:pointer-events-none disabled:opacity-35";
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={activo ? "step" : undefined}
-      className={cn(
-        "flex items-baseline gap-1.5 rounded-lg border px-2.5 py-1 text-left whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        activo
-          ? "border-primary bg-primary/10 text-foreground"
-          : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-        nuevo && "border-dashed"
+    <nav aria-label="Visitas" className="flex min-w-0 items-center gap-2.5">
+      <div
+        className={cn(
+          "flex min-w-0 items-stretch overflow-hidden rounded-lg border bg-card",
+          sel?.nuevo ? "border-dashed border-primary" : "border-border"
+        )}
+      >
+        <button
+          type="button"
+          className={flecha}
+          disabled={!previa}
+          onClick={() => previa && onSelect(previa.key)}
+          aria-label={previa ? `Ir a ${previa.titulo}` : "No hay visita anterior"}
+          title={previa ? `${previa.titulo} · ${previa.fecha}` : undefined}
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <Popover open={abierto} onOpenChange={setAbierto}>
+          <PopoverTrigger
+            type="button"
+            aria-label="Elegir visita"
+            className="flex min-w-0 items-baseline gap-2 border-x border-border px-3 py-1 text-left whitespace-nowrap transition-colors outline-none hover:bg-muted focus-visible:bg-muted aria-expanded:bg-muted"
+          >
+            <span className="truncate text-sm font-semibold">{sel?.titulo ?? "Elegir visita"}</span>
+            {sel && <span className="text-xs text-muted-foreground tabular-nums">{sel.fecha}</span>}
+            <ChevronDown className="size-3.5 shrink-0 self-center text-muted-foreground" />
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 gap-0 p-1.5">
+            <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground">
+              {opciones.length} {opciones.length === 1 ? "visita" : "visitas"}
+            </p>
+            <ul className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
+              {[...opciones].reverse().map((o) => {
+                const activa = o.key === actual;
+                return (
+                  <li key={o.key}>
+                    <button
+                      type="button"
+                      aria-current={activa ? "step" : undefined}
+                      onClick={() => {
+                        setAbierto(false);
+                        if (!activa) onSelect(o.key);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors outline-none hover:bg-muted focus-visible:bg-muted",
+                        activa && "bg-primary/10 font-semibold text-primary hover:bg-primary/15"
+                      )}
+                    >
+                      <span className="flex-1 truncate">
+                        {o.titulo}
+                        {o.nuevo && <span className="ml-1.5 text-xs font-normal">(sin guardar)</span>}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs tabular-nums",
+                          activa ? "text-primary" : "text-muted-foreground"
+                        )}
+                      >
+                        {o.fecha}
+                      </span>
+                      <Check className={cn("size-3.5 shrink-0", !activa && "invisible")} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </PopoverContent>
+        </Popover>
+        <button
+          type="button"
+          className={flecha}
+          disabled={!siguiente}
+          onClick={() => siguiente && onSelect(siguiente.key)}
+          aria-label={siguiente ? `Ir a ${siguiente.titulo}` : "No hay visita siguiente"}
+          title={siguiente ? `${siguiente.titulo} · ${siguiente.fecha}` : undefined}
+        >
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+      {idx >= 0 && opciones.length > 1 && (
+        <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">
+          {idx + 1} de {opciones.length}
+        </span>
       )}
-    >
-      <span className="text-xs font-semibold">{titulo}</span>
-      <span className="text-[11px] tabular-nums">{fecha}</span>
-    </button>
+    </nav>
   );
 }
