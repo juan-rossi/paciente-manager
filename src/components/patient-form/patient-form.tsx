@@ -81,6 +81,22 @@ const FIELD_TAB: Record<(typeof REQUIRED_FIELDS)[number], string> = {
   motivoConsulta: "consulta-inicial",
 };
 
+const FIELD_LABEL: Record<(typeof REQUIRED_FIELDS)[number], string> = {
+  nombreYApellido: "Nombre y Apellido",
+  fechaNacimiento: "Fecha de Nacimiento",
+  sexo: "Sexo",
+  nroDocumento: "Nro Documento",
+  domicilio: "Domicilio",
+  telefono: "Teléfono",
+  motivoConsulta: "Motivo de consulta",
+};
+
+// Nombrar los campos que faltan: un radio sin elegir (Sexo) o un campo de
+// otra pestaña (Motivo de consulta) no se notan con solo el borde rojo.
+function missingFieldsMessage(invalid: readonly (typeof REQUIRED_FIELDS)[number][], suffix = "") {
+  return `Completá los campos obligatorios: ${invalid.map((f) => FIELD_LABEL[f]).join(", ")}${suffix}.`;
+}
+
 function isFieldEmpty(values: PatientFormValues, field: (typeof REQUIRED_FIELDS)[number]) {
   const value = values[field];
   return typeof value === "string" ? value.trim().length === 0 : !value;
@@ -190,7 +206,7 @@ export function PatientForm({
       setError(
         invalid.length === 1 && invalid[0] === "nroDocumento" && !isFieldEmpty(values, "nroDocumento")
           ? DNI_ERROR_MESSAGE
-          : "Completá los campos obligatorios (*) antes de continuar."
+          : missingFieldsMessage(invalid, " antes de continuar")
       );
       return;
     }
@@ -209,7 +225,7 @@ export function PatientForm({
       setError(
         invalid.length === 1 && invalid[0] === "nroDocumento" && !isFieldEmpty(values, "nroDocumento")
           ? DNI_ERROR_MESSAGE
-          : "Completá los campos obligatorios (*)."
+          : missingFieldsMessage(invalid)
       );
       setActiveTab(FIELD_TAB[invalid[0]]);
       return;
