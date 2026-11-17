@@ -6,17 +6,26 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api-auth";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import {
+  esFormatoPlaca,
+  FORMATOS_PLACA,
   generoDeTitulo,
   nombreConTitulo,
   palabraBienvenida,
+  type FormatoPlaca,
   type GeneroPlaca,
 } from "@/lib/marketing-bienvenidas-texto";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// Vertical 4:5 (el máximo alto que Instagram muestra en el feed sin recortar).
-const WIDTH = 1080;
-const HEIGHT = 1350;
+// El diseño base es el vertical 1080x1350. Los otros formatos lo escalan:
+// el cuadrado lo achica para que entre en menos alto, y la historia lo agranda
+// y deja libres arriba y abajo las franjas que tapa la interfaz de Instagram
+// (barra de progreso y perfil arriba, caja de respuesta abajo).
+const LAYOUT: Record<FormatoPlaca, { escala: number; margenArriba: number; margenAbajo: number }> = {
+  cuadrado: { escala: 0.8, margenArriba: 40, margenAbajo: 50 },
+  vertical: { escala: 1, margenArriba: 60, margenAbajo: 65 },
+  historia: { escala: 1.15, margenArriba: 250, margenAbajo: 250 },
+};
 
 const fontDir = join(process.cwd(), "src/assets/fonts");
 const [sora700, sora800, inter500, inter600, logo] = await Promise.all([
@@ -28,7 +37,7 @@ const [sora700, sora800, inter500, inter600, logo] = await Promise.all([
 ]);
 const LOGO_SRC = `data:image/png;base64,${logo.toString("base64")}`;
 
-// Pieza vertical 1080x1350 para redes: fondo azul noche, foto circular, nombre,
+// Pieza para redes (cuadrada, vertical o historia): fondo azul noche, foto circular, nombre,
 // especialidad, ciudades y un pie con línea divisoria, el logo completo (versión
 // para fondo oscuro) a la izquierda y la llamada a la acción a la derecha.
 // Maqueta en píxeles de la variación A2 aprobada en el diseño.
@@ -63,6 +72,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       ? generoParam
       : generoDeTitulo(medico.tituloCortesia);
 
+  const formatoParam = request.nextUrl.searchParams.get("formato");
+  const formato: FormatoPlaca = esFormatoPlaca(formatoParam) ? formatoParam : "vertical";
+  const { width, height } = FORMATOS_PLACA[formato];
+  const { escala, margenArriba, margenAbajo } = LAYOUT[formato];
+  const px = (n: number) => Math.round(n * escala);
+
   const ciudades = [
     ...new Set(medico.lugaresDeTrabajo.map((l) => l.ciudad).filter((c): c is string => !!c)),
   ];
@@ -82,7 +97,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const foto = medico.fotoPublicaBase64;
   const fotoValida = foto && /^data:image\/(png|jpe?g);base64,/i.test(foto) ? foto : null;
 
-  const tamanoNombre = nombre.length > 26 ? 66 : nombre.length > 20 ? 76 : 86;
+  const tamanoNombre = px(nombre.length > 26 ? 66 : nombre.length > 20 ? 76 : 86);
 
   const image = new ImageResponse(
     (
@@ -100,23 +115,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         <div
           style={{
             position: "absolute",
-            right: -172,
-            top: -172,
-            width: 605,
-            height: 605,
+            right: px(-172),
+            top: px(-172),
+            width: px(605),
+            height: px(605),
             borderRadius: 9999,
-            border: "11px solid rgba(76,180,245,0.14)",
+            border: `${px(11)}px solid rgba(76,180,245,0.14)`,
           }}
         />
         <div
           style={{
             position: "absolute",
-            left: -150,
-            bottom: 190,
-            width: 440,
-            height: 440,
+            left: px(-150),
+            bottom: margenAbajo + px(125),
+            width: px(440),
+            height: px(440),
             borderRadius: 9999,
-            border: "11px solid rgba(76,180,245,0.14)",
+            border: `${px(11)}px solid rgba(76,180,245,0.14)`,
           }}
         />
         <div
@@ -127,7 +142,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             alignItems: "center",
             justifyContent: "center",
             textAlign: "center",
-            padding: "60px 86px 40px",
+            padding: `${margenArriba}px ${px(86)}px ${px(40)}px`,
           }}
         >
           <div
@@ -135,21 +150,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 360,
-              height: 360,
+              width: px(360),
+              height: px(360),
               borderRadius: 9999,
-              border: "12px solid white",
-              boxShadow: "0 0 0 13px rgba(10,155,255,0.45)",
+              border: `${px(12)}px solid white`,
+              boxShadow: `0 0 0 ${px(13)}px rgba(10,155,255,0.45)`,
               background: "#1b3f7a",
               overflow: "hidden",
               fontFamily: "Sora",
               fontWeight: 800,
-              fontSize: 124,
+              fontSize: px(124),
             }}
           >
             {fotoValida ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoValida} alt="" width={336} height={336} style={{ objectFit: "cover", borderRadius: 9999 }} />
+              <img src={fotoValida} alt="" width={px(336)} height={px(336)} style={{ objectFit: "cover", borderRadius: 9999 }} />
             ) : (
               iniciales
             )}
@@ -157,10 +172,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           <div
             style={{
               display: "flex",
-              marginTop: 48,
+              marginTop: px(48),
               fontFamily: "Inter",
               fontWeight: 500,
-              fontSize: 40,
+              fontSize: px(40),
               opacity: 0.85,
             }}
           >
@@ -170,12 +185,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             style={{
               display: "flex",
               justifyContent: "center",
-              marginTop: 26,
+              marginTop: px(26),
               fontFamily: "Sora",
               fontWeight: 800,
               fontSize: tamanoNombre,
               lineHeight: 1.05,
-              letterSpacing: -1.5,
+              letterSpacing: -1.5 * escala,
             }}
           >
             {nombre}
@@ -184,13 +199,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             <div
               style={{
                 display: "flex",
-                marginTop: 34,
-                padding: "14px 37px",
+                marginTop: px(34),
+                padding: `${px(14)}px ${px(37)}px`,
                 borderRadius: 9999,
                 background: "linear-gradient(90deg, #0a9bff, #00b3c4)",
                 fontFamily: "Sora",
                 fontWeight: 700,
-                fontSize: 39,
+                fontSize: px(39),
               }}
             >
               {especialidad}
@@ -200,10 +215,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             <div
               style={{
                 display: "flex",
-                marginTop: 28,
+                marginTop: px(28),
                 fontFamily: "Inter",
                 fontWeight: 500,
-                fontSize: 37,
+                fontSize: px(37),
                 opacity: 0.88,
               }}
             >
@@ -216,22 +231,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            margin: "0 76px 65px",
-            paddingTop: 39,
-            borderTop: "3px solid rgba(255,255,255,0.22)",
+            margin: `0 ${px(76)}px ${margenAbajo}px`,
+            paddingTop: px(39),
+            borderTop: `${Math.max(2, px(3))}px solid rgba(255,255,255,0.22)`,
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_SRC} alt="" width={389} height={104} />
+          <img src={LOGO_SRC} alt="" width={px(389)} height={px(104)} />
           <div
             style={{
               display: "flex",
               justifyContent: "flex-end",
               textAlign: "right",
-              maxWidth: 324,
+              maxWidth: px(324),
               fontFamily: "Inter",
               fontWeight: 600,
-              fontSize: 33,
+              fontSize: px(33),
               lineHeight: 1.3,
               color: "#7fd6ff",
             }}
@@ -242,8 +257,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       </div>
     ),
     {
-      width: WIDTH,
-      height: HEIGHT,
+      width,
+      height,
       fonts: [
         { name: "Sora", data: sora700, weight: 700, style: "normal" },
         { name: "Sora", data: sora800, weight: 800, style: "normal" },
@@ -253,7 +268,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       headers: {
         "Cache-Control": "private, no-store",
         ...(request.nextUrl.searchParams.get("descargar") === "1"
-          ? { "Content-Disposition": `attachment; filename="bienvenida-${id}.png"` }
+          ? { "Content-Disposition": `attachment; filename="bienvenida-${id}-${formato}.png"` }
           : {}),
       },
     }

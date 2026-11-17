@@ -2,6 +2,19 @@ import { TITULO_CORTESIA_LABELS, type TituloCortesia } from "@/lib/titulo-cortes
 
 export type GeneroPlaca = "MASCULINO" | "FEMENINO";
 
+// Formatos de la placa para redes: cuadrado y vertical para el feed (1:1 y
+// 4:5, el máximo alto que Instagram muestra sin recortar) e historia (9:16).
+export const FORMATOS_PLACA = {
+  cuadrado: { label: "Cuadrado", detalle: "1080 × 1080", width: 1080, height: 1080 },
+  vertical: { label: "Vertical", detalle: "1080 × 1350", width: 1080, height: 1350 },
+  historia: { label: "Historia", detalle: "1080 × 1920", width: 1080, height: 1920 },
+} as const;
+export type FormatoPlaca = keyof typeof FORMATOS_PLACA;
+
+export function esFormatoPlaca(valor: string | null): valor is FormatoPlaca {
+  return valor !== null && Object.hasOwn(FORMATOS_PLACA, valor);
+}
+
 const TITULOS_FEMENINOS: TituloCortesia[] = ["DRA", "BIOQCA", "KLGA"];
 const TITULOS_MASCULINOS: TituloCortesia[] = ["DR", "BIOQ", "KLGO"];
 

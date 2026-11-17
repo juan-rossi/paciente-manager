@@ -22,7 +22,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { textoBienvenida, type GeneroPlaca } from "@/lib/marketing-bienvenidas-texto";
+import {
+  FORMATOS_PLACA,
+  textoBienvenida,
+  type FormatoPlaca,
+  type GeneroPlaca,
+} from "@/lib/marketing-bienvenidas-texto";
 
 export type BienvenidaFila = {
   id: string;
@@ -43,6 +48,14 @@ type Props = {
   conteo: { pendientes: number; publicadas: number };
 };
 
+const ASPECTO_FORMATO: Record<FormatoPlaca, string> = {
+  cuadrado: "aspect-square w-full",
+  vertical: "aspect-[4/5] w-full",
+  // La historia es muy alta: se limita por alto para que no obligue a
+  // scrollear el diálogo para ver la placa entera.
+  historia: "mx-auto aspect-[9/16] h-[min(70vh,620px)] max-w-full",
+};
+
 const SELECT_CLASS =
   "h-8 rounded-lg border border-input bg-white px-2.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
@@ -50,6 +63,9 @@ export function BienvenidasScreen({ estado, medicos, conteo }: Props) {
   const router = useRouter();
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
   const [genero, setGenero] = useState<GeneroPlaca | "">("");
+  // No se guarda: es solo para qué red/ubicación se descarga la placa, y se
+  // mantiene entre médicos para preparar varias seguidas en el mismo formato.
+  const [formato, setFormato] = useState<FormatoPlaca>("vertical");
   const [guardando, setGuardando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,10 +91,12 @@ export function BienvenidasScreen({ estado, medicos, conteo }: Props) {
         genero: generoElegido,
       })
     : "";
+  const placaParams = new URLSearchParams({ formato });
+  if (generoElegido) placaParams.set("genero", generoElegido);
   const placaUrl = abierto
-    ? `/api/admin/marketing/bienvenidas/${abierto.id}/placa${generoElegido ? `?genero=${generoElegido}` : ""}`
+    ? `/api/admin/marketing/bienvenidas/${abierto.id}/placa?${placaParams}`
     : "";
-  const descargaUrl = `${placaUrl}${placaUrl.includes("?") ? "&" : "?"}descargar=1`;
+  const descargaUrl = `${placaUrl}&descargar=1`;
 
   async function copiar() {
     try {
@@ -214,11 +232,45 @@ export function BienvenidasScreen({ estado, medicos, conteo }: Props) {
                   key={placaUrl}
                   src={placaUrl}
                   alt={`Placa de bienvenida de ${abierto.nombreCompleto}`}
-                  className="aspect-[4/5] w-full rounded-lg border border-border bg-muted"
+                  className={cn(
+                    "rounded-lg border border-border bg-muted",
+                    ASPECTO_FORMATO[formato]
+                  )}
                 />
-                <div className="flex min-w-0 flex-col gap-3">
+                <div className="flex min-w-0 flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <span id="formato-placa" className="text-xs font-medium text-muted-foreground">
+                      Formato
+                    </span>
+                    <div
+                      role="radiogroup"
+                      aria-labelledby="formato-placa"
+                      className="grid grid-cols-3 gap-1 rounded-lg border border-border bg-card p-0.5"
+                    >
+                      {(Object.keys(FORMATOS_PLACA) as FormatoPlaca[]).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          role="radio"
+                          aria-checked={formato === f}
+                          onClick={() => setFormato(f)}
+                          className={cn(
+                            "flex flex-col items-center rounded-md px-2 py-1.5 transition-colors",
+                            formato === f
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          <span className="text-sm font-medium">{FORMATOS_PLACA[f].label}</span>
+                          <span className="text-[11px] tabular-nums opacity-80">
+                            {FORMATOS_PLACA[f].detalle}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-                    Forma de la placa
+                    Saludo
                     <select
                       className={SELECT_CLASS}
                       value={genero}
@@ -246,7 +298,7 @@ export function BienvenidasScreen({ estado, medicos, conteo }: Props) {
                   <div className="flex flex-wrap gap-2">
                     <a
                       href={descargaUrl}
-                      download={`bienvenida-${abierto.id}.png`}
+                      download={`bienvenida-${abierto.id}-${formato}.png`}
                       className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium transition-colors hover:bg-muted"
                     >
                       <Download className="size-3.5" />
