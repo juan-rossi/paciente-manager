@@ -7,6 +7,7 @@ import { calcularEdad } from "@/components/patient-form/utils";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import { ANTECEDENTES_ORDEN, ESTADO_CIVIL_OPTIONS } from "@/components/patient-form/constants";
 import { TIME_ZONE } from "@/lib/timezone";
+import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageEnter } from "@/components/page-transition";
@@ -109,6 +110,16 @@ export default async function HistoriaClinicaPage({ params }: Props) {
   });
 
   if (!patient) notFound();
+
+  // Visitas del odontograma (solo existen para odontólogos). Mismo orden que
+  // la ficha: el inicial primero, después por fecha.
+  const visitasOdontograma = (
+    await prisma.patientOdontograma.findMany({
+      where: { patientId: patient.id, deletedAt: null },
+      orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+      include: { practicas: { where: { deletedAt: null }, orderBy: { createdAt: "asc" } } },
+    })
+  ).sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === "INICIAL" ? -1 : 1));
 
   const doctor = await prisma.user.findUnique({
     where: { id: tenantId },
@@ -307,6 +318,46 @@ export default async function HistoriaClinicaPage({ params }: Props) {
                   </div>
                 </div>
               ))}
+            </div>
+          </Seccion>
+        )}
+
+        {visitasOdontograma.length > 0 && (
+          <Seccion titulo="Visitas odontológicas">
+            <div className="flex flex-col gap-3 text-sm">
+              {visitasOdontograma.map((v) => {
+                const nota = v.nota?.trim();
+                const practicas = v.practicas.map(practicaVisitaFromDb);
+                return (
+                  <div key={v.id} className="break-inside-avoid">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {formatFecha(v.fecha)} — {v.tipo === "INICIAL" ? "Inicial" : "Control"}
+                    </p>
+                    {nota && <p className="whitespace-pre-wrap">{nota}</p>}
+                    {practicas.length > 0 ? (
+                      <ul className="mt-1 flex flex-col gap-0.5">
+                        {practicas.map((p) => (
+                          <li key={p.id}>
+                            <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                              {p.codigo}
+                            </span>{" "}
+                            <strong className="tabular-nums">{p.pieza ?? "Boca completa"}</strong>
+                            {" · "}
+                            {p.descripcion}
+                            {p.caras.length > 0 && (
+                              <span className="text-muted-foreground"> ({p.caras.join(" ")})</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted-foreground italic">
+                        No se registraron prácticas en esta visita.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </Seccion>
         )}
