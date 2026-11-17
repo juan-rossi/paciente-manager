@@ -59,6 +59,9 @@ type Props = {
   // Solo médicos con especialidad odontológica (ver esOdontologica()).
   odontogramaHabilitado?: boolean;
   initialOdontogramas?: OdontogramaValue[];
+  // Pestaña con la que abre (ej. ?tab=odontograma desde el detalle). Se ignora
+  // si no existe para este modo/especialidad.
+  initialTab?: string;
 };
 
 const REQUIRED_FIELDS = [
@@ -138,6 +141,7 @@ export function PatientForm({
   resumenAutomatico,
   odontogramaHabilitado = false,
   initialOdontogramas = [],
+  initialTab,
 }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
@@ -160,7 +164,11 @@ export function PatientForm({
   const [dniConflict, setDniConflict] = useState<{ id: string; nombreYApellido: string } | null>(
     null
   );
-  const [activeTab, setActiveTab] = useState("datos-personales");
+  const [activeTab, setActiveTab] = useState(() =>
+    initialTab && tabOrderFor(mode, odontogramaHabilitado).includes(initialTab)
+      ? initialTab
+      : "datos-personales"
+  );
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
 
   function handleChange<K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) {

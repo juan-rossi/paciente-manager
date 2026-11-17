@@ -9,6 +9,9 @@ import { patientFromApi } from "@/components/patient-form/utils";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
 import { PageEnter } from "@/components/page-transition";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
+import { parseDatos } from "@/lib/odontograma";
+import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
+import type { OdontogramaResumenProps } from "@/components/odontograma/odontograma-resumen";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -111,6 +114,35 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const resumenAutomatico = await getResumenAutomatico(user);
   const esOdontologo = await tenantEsOdontologo(tenantId);
 
+  // Odontólogos: la ficha muestra la última visita del odontograma. Mismo
+  // orden que la pestaña de edición (el inicial primero, después por fecha).
+  let odontograma: OdontogramaResumenProps | null = null;
+  if (esOdontologo) {
+    const visitas = (
+      await prisma.patientOdontograma.findMany({
+        where: { patientId: id, deletedAt: null },
+        orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+        include: { practicas: { where: { deletedAt: null }, orderBy: { createdAt: "asc" } } },
+      })
+    ).sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === "INICIAL" ? -1 : 1));
+    const ultima = visitas.at(-1);
+    const anterior = visitas.at(-2);
+    odontograma = {
+      patientId: id,
+      totalVisitas: visitas.length,
+      ultima: ultima
+        ? {
+            tipo: ultima.tipo,
+            fecha: ultima.fecha.toISOString().slice(0, 10),
+            nota: ultima.nota ?? "",
+            datos: parseDatos(ultima.datos),
+            practicas: ultima.practicas.map(practicaVisitaFromDb),
+          }
+        : null,
+      anterior: anterior ? { datos: parseDatos(anterior.datos) } : null,
+    };
+  }
+
   return (
     <PageEnter>
       <PatientSummary
@@ -121,6 +153,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         transcripcionHabilitada={isPremium(user) && esActivo(user)}
         resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
         evolucionHabilitada={!esOdontologo}
+        odontograma={odontograma}
       />
     </PageEnter>
   );

@@ -13,13 +13,17 @@ import { PageEnter } from "@/components/page-transition";
 import { odontogramaFromApi } from "@/components/patient-form/utils";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+};
 
-export default async function EditPatientPage({ params }: Props) {
+export default async function EditPatientPage({ params, searchParams }: Props) {
   const user = await getCurrentUser();
   if (!user) notFound();
 
   const { id } = await params;
+  const { tab } = await searchParams;
 
   const patient = await prisma.patient.findFirst({
     where: { id, doctorId: getTenantId(user), deletedAt: null },
@@ -75,6 +79,7 @@ export default async function EditPatientPage({ params }: Props) {
           resumenAutomatico={resumenAutomatico}
           odontogramaHabilitado={odontogramaHabilitado}
           initialOdontogramas={odontogramas.map(odontogramaFromApi)}
+          initialTab={tab}
         />
       </div>
     </PageEnter>
