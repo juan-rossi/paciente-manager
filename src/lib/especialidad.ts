@@ -46,6 +46,7 @@ export type Especialidad =
   | "ALERGIA_E_INMUNOLOGIA_INFANTIL"
   | "INFECTOLOGIA_INFANTIL"
   | "PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE"
+  | "PSICOLOGIA"
   | "ODONTOLOGIA_GENERAL"
   | "ORTODONCIA"
   | "ENDODONCIA"
@@ -58,7 +59,8 @@ export type Especialidad =
 
 // El orden acá define el orden del <select> -- generales primero, después
 // las más específicas, después las subespecialidades pediátricas (mismo
-// orden en el que las pidió el usuario) y por último el bloque de odontología.
+// orden en el que las pidió el usuario), psicología y por último el bloque
+// de odontología.
 export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   CLINICA_MEDICA: "Clínica Médica",
   MEDICINA_FAMILIAR_GENERAL: "Medicina Familiar / Medicina General",
@@ -105,6 +107,9 @@ export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   ALERGIA_E_INMUNOLOGIA_INFANTIL: "Alergia e Inmunología Infantil",
   INFECTOLOGIA_INFANTIL: "Infectología Infantil",
   PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE: "Psiquiatría Infantil y Adolescente",
+  // Psicología no es una especialidad médica (es Lic. en Psicología): no
+  // confundir con Psiquiatría. Ver esPsicologia().
+  PSICOLOGIA: "Psicología",
   // Odontología: bloque aparte al final, general primero.
   ODONTOLOGIA_GENERAL: "Odontología General",
   ORTODONCIA: "Ortodoncia y Ortopedia Dentomaxilar",
@@ -160,24 +165,63 @@ export function esOdontologica(especialidad: Especialidad | null | undefined): b
   return especialidad != null && ESPECIALIDADES_ODONTOLOGICAS.has(especialidad);
 }
 
+// Psicología: no es médica, así que no usa el examen físico ni los signos
+// vitales. Igual que con odontología, cualquier lógica que dependa de "es
+// psicólogo" tiene que pasar por esPsicologia().
+export function esPsicologia(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "PSICOLOGIA";
+}
+
+// El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
+// tienen el odontograma en su lugar y los psicólogos no lo usan.
+export function usaExamenFisico(especialidad: Especialidad | null | undefined): boolean {
+  return !esOdontologica(especialidad) && !esPsicologia(especialidad);
+}
+
+// Grupo de profesión de cada especialidad. En el registro, el título de
+// cortesía decide qué grupos se ofrecen (ver gruposParaTitulo()).
+type GrupoEspecialidad = "MEDICA" | "ODONTOLOGICA" | "PSICOLOGIA";
+
+function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
+  if (esOdontologica(especialidad)) return "ODONTOLOGICA";
+  if (esPsicologia(especialidad)) return "PSICOLOGIA";
+  return "MEDICA";
+}
+
 export const ESPECIALIDAD_OPTIONS = ESPECIALIDAD_VALUES.map((value) => ({
   value,
   label: ESPECIALIDAD_LABELS[value],
-  odontologica: ESPECIALIDADES_ODONTOLOGICAS.has(value),
+  grupo: grupoDe(value),
 }));
 
-// Títulos que identifican a un odontólogo. En el registro, el título decide
-// qué especialidades se ofrecen: Od./Odont. ven solo las odontológicas; el
-// resto (o sin título elegido), solo las no odontológicas.
+// Títulos que identifican la profesión. En el registro, el título decide qué
+// especialidades se ofrecen:
+//  - Od./Odont. -> solo las odontológicas.
+//  - Psic./Psi. -> solo Psicología.
+//  - Dr./Dra./Méd./Med. -> solo las médicas.
+//  - El resto (Lic., Bioq., Klgo., Enf.) o sin título -> médicas y Psicología
+//    ("Lic." lo usan psicólogos, pero también nutricionistas, kinesiólogos...).
 const TITULOS_ODONTOLOGICOS: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["OD", "ODONT"]);
+const TITULOS_PSICOLOGIA: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["PSIC", "PSI"]);
+const TITULOS_MEDICOS: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>([
+  "DR",
+  "DRA",
+  "MED",
+  "MED_SIN_TILDE",
+]);
 
-export function esTituloOdontologico(titulo: TituloCortesia | null | undefined | ""): boolean {
-  return !!titulo && TITULOS_ODONTOLOGICOS.has(titulo);
+function gruposParaTitulo(
+  titulo: TituloCortesia | null | undefined | ""
+): ReadonlySet<GrupoEspecialidad> {
+  if (titulo && TITULOS_ODONTOLOGICOS.has(titulo)) return new Set(["ODONTOLOGICA"]);
+  if (titulo && TITULOS_PSICOLOGIA.has(titulo)) return new Set(["PSICOLOGIA"]);
+  if (titulo && TITULOS_MEDICOS.has(titulo)) return new Set(["MEDICA"]);
+  return new Set(["MEDICA", "PSICOLOGIA"]);
 }
 
 export function especialidadesParaTitulo(titulo: TituloCortesia | null | undefined | "") {
-  const odontologo = esTituloOdontologico(titulo);
-  return ESPECIALIDAD_OPTIONS.filter((o) => o.odontologica === odontologo);
+  const grupos = gruposParaTitulo(titulo);
+  return ESPECIALIDAD_OPTIONS.filter((o) => grupos.has(o.grupo));
 }
 
 export function especialidadCompatibleConTitulo(
@@ -185,5 +229,5 @@ export function especialidadCompatibleConTitulo(
   especialidad: Especialidad | null | undefined | "",
 ): boolean {
   if (!especialidad) return true;
-  return esOdontologica(especialidad) === esTituloOdontologico(titulo);
+  return gruposParaTitulo(titulo).has(grupoDe(especialidad));
 }

@@ -58,6 +58,8 @@ type Props = {
   resumenAutomatico?: ResumenAutomatico;
   // Solo médicos con especialidad odontológica (ver esOdontologica()).
   odontogramaHabilitado?: boolean;
+  // false para odontólogos y psicólogos (ver usaExamenFisico()).
+  examenFisicoHabilitado?: boolean;
   initialOdontogramas?: OdontogramaValue[];
   // Pestaña con la que abre (ej. ?tab=odontograma desde el detalle). Se ignora
   // si no existe para este modo/especialidad.
@@ -116,14 +118,19 @@ function isFieldInvalid(values: PatientFormValues, field: (typeof REQUIRED_FIELD
 }
 
 // odontogramaHabilitado == "el médico es odontólogo" (ver esOdontologica()):
-// a esos se les muestra el odontograma y se les ocultan el examen físico y
-// la evolución clínica.
-function tabOrderFor(mode: "create" | "edit", odontograma: boolean): readonly string[] {
+// a esos se les muestra el odontograma y se les oculta la evolución clínica.
+// El examen físico va aparte (examenFisicoHabilitado): tampoco lo ven los
+// psicólogos.
+function tabOrderFor(
+  mode: "create" | "edit",
+  odontograma: boolean,
+  examenFisico: boolean
+): readonly string[] {
   return [
     "datos-personales",
     "consulta-inicial",
     "antecedentes",
-    ...(odontograma ? [] : ["examen-fisico"]),
+    ...(examenFisico ? ["examen-fisico"] : []),
     "diagnostico",
     ...(odontograma ? ["odontograma"] : []),
     ...(mode === "edit" && odontograma ? ["historial-practicas"] : []),
@@ -140,6 +147,7 @@ export function PatientForm({
   transcripcionHabilitada = false,
   resumenAutomatico,
   odontogramaHabilitado = false,
+  examenFisicoHabilitado = true,
   initialOdontogramas = [],
   initialTab,
 }: Props) {
@@ -165,7 +173,7 @@ export function PatientForm({
     null
   );
   const [activeTab, setActiveTab] = useState(() =>
-    initialTab && tabOrderFor(mode, odontogramaHabilitado).includes(initialTab)
+    initialTab && tabOrderFor(mode, odontogramaHabilitado, examenFisicoHabilitado).includes(initialTab)
       ? initialTab
       : "datos-personales"
   );
@@ -192,7 +200,7 @@ export function PatientForm({
     }));
   }
 
-  const tabOrder = tabOrderFor(mode, odontogramaHabilitado);
+  const tabOrder = tabOrderFor(mode, odontogramaHabilitado, examenFisicoHabilitado);
   const evolucionHabilitada = mode === "edit" && !odontogramaHabilitado;
   const historialPracticasHabilitado = mode === "edit" && odontogramaHabilitado;
   const currentTabIndex = tabOrder.indexOf(activeTab);
@@ -311,7 +319,7 @@ export function PatientForm({
             <History className="size-4" />
             Antecedentes Personales
           </TabsTrigger>
-          {!odontogramaHabilitado && (
+          {examenFisicoHabilitado && (
             <TabsTrigger value="examen-fisico">
               <Stethoscope className="size-4" />
               Exámen Físico
@@ -363,7 +371,7 @@ export function PatientForm({
             <History className="size-[18px]" />
             Antecedentes
           </TabsTrigger>
-          {!odontogramaHabilitado && (
+          {examenFisicoHabilitado && (
             <TabsTrigger
               value="examen-fisico"
               className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
@@ -429,7 +437,7 @@ export function PatientForm({
             <TabsContent value="antecedentes">
               <AntecedentesTab values={values} onAntecedenteChange={handleAntecedenteChange} />
             </TabsContent>
-            {!odontogramaHabilitado && (
+            {examenFisicoHabilitado && (
               <TabsContent value="examen-fisico">
                 <ExamenFisicoTab values={values} onChange={handleChange} />
               </TabsContent>

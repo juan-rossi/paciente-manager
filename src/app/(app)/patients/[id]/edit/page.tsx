@@ -12,6 +12,7 @@ import { patientFromApi } from "@/components/patient-form/utils";
 import { PageEnter } from "@/components/page-transition";
 import { odontogramaFromApi } from "@/components/patient-form/utils";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
+import { tenantUsaExamenFisico } from "@/lib/especialidad-server";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -42,6 +43,7 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
   const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient);
   const resumenAutomatico = await getResumenAutomatico(user);
   const odontogramaHabilitado = await tenantEsOdontologo(patient.doctorId);
+  const examenFisicoHabilitado = await tenantUsaExamenFisico(patient.doctorId);
   const odontogramas = odontogramaHabilitado
     ? await prisma.patientOdontograma.findMany({
         where: { patientId: patient.id, deletedAt: null },
@@ -78,6 +80,7 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
           transcripcionHabilitada={isPremium(user) && esActivo(user)}
           resumenAutomatico={resumenAutomatico}
           odontogramaHabilitado={odontogramaHabilitado}
+          examenFisicoHabilitado={examenFisicoHabilitado}
           initialOdontogramas={odontogramas.map(odontogramaFromApi)}
           initialTab={tab}
         />
