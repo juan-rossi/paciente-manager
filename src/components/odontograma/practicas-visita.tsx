@@ -176,16 +176,21 @@ export function PracticasVisita({ patientId, odontogramaId, visitaLabel, datos, 
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Eliminar práctica</DialogTitle>
-            <DialogDescription>
-              {aEliminar && (
-                <>
-                  <span className="font-mono">{aEliminar.codigo}</span> {aEliminar.descripcion}
-                  {aEliminar.pieza ? ` · pieza ${aEliminar.pieza}` : " · boca completa"}. Queda
-                  registrada en el historial de auditoría.
-                </>
-              )}
-            </DialogDescription>
           </DialogHeader>
+          {aEliminar && (
+            <div className="space-y-3 py-1">
+              <div className="rounded-lg border bg-background px-3 py-2.5">
+                <p className="text-sm text-foreground">
+                  <span className="font-mono text-muted-foreground">{aEliminar.codigo}</span>{" "}
+                  {aEliminar.descripcion}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {aEliminar.pieza ? `Pieza ${aEliminar.pieza}` : "Boca completa"}
+                </p>
+              </div>
+              <DialogDescription>Queda registrada en el historial de auditoría.</DialogDescription>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAEliminar(null)} disabled={eliminando}>
               Cancelar
