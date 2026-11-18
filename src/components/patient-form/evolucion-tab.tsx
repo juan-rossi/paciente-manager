@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
+import { vocabularioEvolucion } from "./constants";
 import { formatFechaCorta, formatFechaRelativa } from "./utils";
 import { useCloudTranscription } from "./use-cloud-transcription";
 import { TITULO_YA_RESUMIDO, useResumenIA } from "./use-resumen-ia";
@@ -58,6 +59,8 @@ type Props = {
   transcripcionHabilitada?: boolean;
   // Resume solo apenas termina cada dictado (ver Configuración > Dictado e IA).
   resumirAlTerminar?: boolean;
+  // Psicología (ver esPsicologia()): cada entrada es una "sesión".
+  psicologia?: boolean;
 };
 
 export function EvolucionTab({
@@ -68,7 +71,9 @@ export function EvolucionTab({
   onChangeEvolucionesEliminadas,
   transcripcionHabilitada = false,
   resumirAlTerminar = false,
+  psicologia = false,
 }: Props) {
+  const voc = vocabularioEvolucion(psicologia);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -175,7 +180,7 @@ export function EvolucionTab({
           });
           const data = await response.json().catch(() => null);
           if (!response.ok) {
-            setError(data?.error ?? "No se pudo editar la evolución.");
+            setError(data?.error ?? `No se pudo editar ${voc.una}.`);
             return;
           }
           onChangeEvoluciones(
@@ -214,7 +219,7 @@ export function EvolucionTab({
         });
         const data = await response.json().catch(() => null);
         if (!response.ok) {
-          setError(data?.error ?? "No se pudo agregar la evolución.");
+          setError(data?.error ?? `No se pudo agregar ${voc.una}.`);
           return;
         }
         onChangeEvoluciones(
@@ -249,7 +254,7 @@ export function EvolucionTab({
         });
         const data = await response.json().catch(() => null);
         if (!response.ok) {
-          setError("No se pudo eliminar la evolución.");
+          setError(`No se pudo eliminar ${voc.una}.`);
           return;
         }
         // La evolución no se destruye (Ley 26.529) -- pasa a la lista de
@@ -277,7 +282,7 @@ export function EvolucionTab({
       );
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        setError("No se pudo restaurar la evolución.");
+        setError(`No se pudo restaurar ${voc.una}.`);
         return;
       }
       onChangeEvolucionesEliminadas?.(evolucionesEliminadas.filter((e) => e.id !== entry.id));
@@ -296,7 +301,7 @@ export function EvolucionTab({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
         {evoluciones.length === 0 && (
-          <p className="text-sm text-muted-foreground">Todavía no hay evoluciones cargadas.</p>
+          <p className="text-sm text-muted-foreground">{voc.vacio}</p>
         )}
         {evoluciones.map((entry, index) => (
           <Card key={entry.id ?? `local-${index}`}>
@@ -313,7 +318,7 @@ export function EvolucionTab({
                     type="button"
                     onClick={() => openEditDialog(entry, index)}
                     className="text-muted-foreground hover:text-foreground"
-                    aria-label="Editar evolución"
+                    aria-label={voc.editar}
                   >
                     <Pencil className="size-3.5" />
                   </button>
@@ -321,7 +326,7 @@ export function EvolucionTab({
                     type="button"
                     onClick={() => setDeleteIndex(index)}
                     className="text-muted-foreground hover:text-destructive"
-                    aria-label="Eliminar evolución"
+                    aria-label={voc.eliminar}
                   >
                     ✕
                   </button>
@@ -341,7 +346,7 @@ export function EvolucionTab({
               <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Trash2 className="size-3.5" />
               </span>
-              Evoluciones eliminadas ({evolucionesEliminadas.length})
+              {voc.eliminadas} ({evolucionesEliminadas.length})
             </span>
             <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
           </summary>
@@ -386,11 +391,11 @@ export function EvolucionTab({
         >
           <Button type="button" onClick={openAddDialog}>
             <Plus className="size-4" />
-            Nueva evolución
+            {voc.nueva}
           </Button>
           <DialogContent className="sm:max-w-xl" initialFocus={textareaRef}>
             <DialogHeader>
-              <DialogTitle>{isEditing ? "Editar evolución" : "Nueva evolución"}</DialogTitle>
+              <DialogTitle>{isEditing ? voc.editar : voc.nueva}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
@@ -399,7 +404,7 @@ export function EvolucionTab({
               </div>
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Label>Observación</Label>
+                  <Label>{voc.campo}</Label>
                   {transcripcionHabilitada && (
                     <div className="flex items-center gap-2">
                       {isRecording ? (
@@ -492,8 +497,8 @@ export function EvolucionTab({
                     disabled={resumen.resumiendo}
                     placeholder={
                       transcripcionHabilitada
-                        ? "Escribí la evolución del paciente o presioná «Dictar»..."
-                        : "Escribí la evolución del paciente..."
+                        ? `${voc.placeholder} o presioná «Dictar»...`
+                        : `${voc.placeholder}...`
                     }
                   />
                 )}
@@ -522,10 +527,10 @@ export function EvolucionTab({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar evolución</DialogTitle>
+            <DialogTitle>{voc.eliminar}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Esta evolución dejará de aparecer en la historia clínica. Por la Ley 26.529, el
+            {voc.esta} dejará de aparecer en la historia clínica. Por la Ley 26.529, el
             registro no se destruye: se conserva de forma segura.
           </p>
           {error && <p className="text-sm text-destructive">{error}</p>}

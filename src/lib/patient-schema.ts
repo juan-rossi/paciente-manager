@@ -37,6 +37,16 @@ export const TIPO_ANTECEDENTE_VALUES = [
   "CARDIOPATIAS",
   "NEUROLOGICAS",
   "ASMA",
+  "TRATAMIENTO_PSICOLOGICO_PREVIO",
+  "TRATAMIENTO_PSIQUIATRICO_PREVIO",
+  "MEDICACION_PSIQUIATRICA",
+  "INTERNACIONES_PSIQUIATRICAS",
+  "CONSUMO_SUSTANCIAS",
+  "AUTOLESIONES",
+  "INTENTOS_SUICIDIO",
+  "SALUD_MENTAL_FAMILIAR",
+  "SITUACIONES_TRAUMATICAS",
+  "ENFERMEDADES_MEDICAS",
   "OTROS",
 ] as const;
 
@@ -97,6 +107,14 @@ export const patientSchema = z.object({
   habitoAlcohol: z.boolean().default(false),
   habitoCigarrillos: z.boolean().default(false),
   habitoDrogas: z.boolean().default(false),
+
+  // Solo historia clínica de psicología (ver esPsicologia()).
+  derivadoPor: optionalString,
+  expectativasTratamiento: optionalString,
+  encuadre: optionalString,
+  grupoFamiliar: optionalString,
+  historiaVital: optionalString,
+  enfoqueTerapeutico: optionalString,
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca: optionalString,

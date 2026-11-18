@@ -46,7 +46,7 @@ const REGLAS_PSICOLOGIA = `Reglas:
 // Psicólogos: el dictado suele ser una sesión entera (hasta una hora), así
 // que el resumen es más largo y está organizado por apartados.
 const SYSTEM_PROMPTS_PSICOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
-  antecedentes: `Sos un asistente que redacta historias clínicas psicológicas. Vas a recibir la transcripción de un dictado de un psicólogo sobre los antecedentes de un consultante. Resumilo con lo clínicamente relevante: motivo de consulta, inicio y evolución de la problemática, historia personal y familiar, vínculos significativos, tratamientos psicológicos o psiquiátricos previos y medicación si la hubiera.
+  antecedentes: `Sos un asistente que redacta historias clínicas psicológicas. Vas a recibir la transcripción de un dictado de un psicólogo sobre la historia del problema actual de un consultante. Resumilo con lo clínicamente relevante: motivo de consulta, cuándo y cómo empezó la problemática, desencadenantes, cómo fue evolucionando, qué intentó para resolverla y cómo afecta su vida cotidiana. Si los menciona, incluí también historia personal y familiar, vínculos significativos, tratamientos psicológicos o psiquiátricos previos y medicación.
 
 ${REGLAS_PSICOLOGIA}`,
   evolucion: `Sos un asistente que redacta historias clínicas psicológicas. Vas a recibir la transcripción de una sesión o de un dictado de un psicólogo sobre la evolución de un consultante. Resumila con lo clínicamente relevante, en este orden y omitiendo los apartados sin información: temas trabajados en la sesión, relato del consultante, estado emocional y afectivo observado, intervenciones del terapeuta, acuerdos o tareas, y plan para la próxima sesión.

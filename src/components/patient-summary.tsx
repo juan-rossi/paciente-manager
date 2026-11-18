@@ -17,7 +17,12 @@ import { cn } from "@/lib/utils";
 import { TIME_ZONE } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import { FormSection } from "@/components/patient-form/fields";
-import { ANTECEDENTES_ORDEN } from "@/components/patient-form/constants";
+import {
+  ANTECEDENTE_LABELS,
+  ETIQUETAS_PSICOLOGIA,
+  etiquetasHistoriaClinica,
+  vocabularioEvolucion,
+} from "@/components/patient-form/constants";
 import { calcularEdad } from "@/components/patient-form/utils";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
@@ -41,8 +46,6 @@ type PatientWithRelations = Prisma.PatientGetPayload<{
 type AuditEntry = Prisma.AuditLogGetPayload<{
   include: { actor: { select: { nombre: true; apellido: true } } };
 }>;
-
-const ANTECEDENTE_LABELS = new Map(ANTECEDENTES_ORDEN.map((a) => [a.tipo, a.label]));
 
 // Ley 26.529 art. 13: texto legible para cada entrada del historial de
 // auditoría (quién hizo qué). Ver prisma/schema.prisma (modelo AuditLog).
@@ -100,6 +103,7 @@ const CAMPO_LABELS: Record<string, string> = {
   diagnosticoPresuntivo: "Diagnóstico Presuntivo",
   metodosComplementarios: "Métodos Complementarios",
   tratamiento: "Tratamiento",
+  ...ETIQUETAS_PSICOLOGIA,
   fecha: "Fecha",
   contenido: "Contenido",
   contenidoDictado: "Dictado",
@@ -133,6 +137,27 @@ function formatDetalleValor(entidad: string, campo: string, value: unknown): str
   return String(value);
 }
 
+// Un campo de texto libre de la ficha (motivo de consulta, diagnóstico...).
+// No pinta nada si está vacío.
+function Bloque({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value: string | null;
+  children?: ReactNode;
+}) {
+  if (!value?.trim()) return null;
+  return (
+    <div className="col-span-full flex flex-col gap-1">
+      <span className="text-xs font-bold text-foreground">{label}</span>
+      <p className="whitespace-pre-wrap text-sm">{value}</p>
+      {children}
+    </div>
+  );
+}
+
 function InfoField({
   label,
   value,
@@ -159,6 +184,7 @@ export function PatientSummary({
   resumirEvolucionesAlTerminar = false,
   evolucionHabilitada = true,
   odontograma = null,
+  psicologia = false,
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
@@ -172,15 +198,28 @@ export function PatientSummary({
   // la ficha (columna lateral de datos clínicos + odontograma; consentimientos
   // y auditoría plegados).
   odontograma?: OdontogramaResumenProps | null;
+  // Historia clínica de psicología (ver esPsicologia()): otros nombres y
+  // campos propios en consulta inicial, antecedentes y diagnóstico.
+  psicologia?: boolean;
 }) {
+  const etiquetas = etiquetasHistoriaClinica(psicologia);
+  const hay = (value: string | null) => Boolean(value?.trim());
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
-  const tieneConsultaInicial =
-    Boolean(patient.motivoConsulta?.trim()) || Boolean(patient.antecedentesEnfermedad?.trim());
-  const tieneDiagnostico =
-    Boolean(patient.diagnosticoPresuntivo?.trim()) ||
-    Boolean(patient.metodosComplementarios?.trim()) ||
-    Boolean(patient.tratamiento?.trim());
+  const tieneConsultaInicial = [
+    patient.motivoConsulta,
+    patient.antecedentesEnfermedad,
+    patient.derivadoPor,
+    patient.expectativasTratamiento,
+    patient.encuadre,
+  ].some(hay);
+  const tieneHistoriaPersonal = hay(patient.grupoFamiliar) || hay(patient.historiaVital);
+  const tieneDiagnostico = [
+    patient.diagnosticoPresuntivo,
+    patient.enfoqueTerapeutico,
+    patient.metodosComplementarios,
+    patient.tratamiento,
+  ].some(hay);
 
   const evolucionValues: EvolucionValue[] = patient.evoluciones.map((e) => ({
     id: e.id,
@@ -262,45 +301,37 @@ export function PatientSummary({
     <PatientTurnoDiffSection patientId={patient.id} patientValues={patientValues} diffs={diffs} />
   );
 
-  const antecedentes = antecedentesPositivos.length > 0 && (
+  const antecedentes = (antecedentesPositivos.length > 0 || tieneHistoriaPersonal) && (
     <FormSection title="Antecedentes Personales" icon={History} contentClassName="bg-card">
-      <div className="col-span-full flex flex-wrap gap-2">
-        {antecedentesPositivos.map((a) => {
-          const detalle = [a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).join(" · ");
-          return (
-            <span
-              key={a.tipo}
-              className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground"
-              title={detalle || undefined}
-            >
-              {ANTECEDENTE_LABELS.get(a.tipo) ?? a.tipo}
-            </span>
-          );
-        })}
-      </div>
+      {antecedentesPositivos.length > 0 && (
+        <div className="col-span-full flex flex-wrap gap-2">
+          {antecedentesPositivos.map((a) => {
+            const detalle = [a.fechaInicio, a.descripcion, a.medicacion, a.resolucion]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <span
+                key={a.tipo}
+                className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground"
+                title={detalle || undefined}
+              >
+                {ANTECEDENTE_LABELS.get(a.tipo) ?? a.tipo}
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <Bloque label={ETIQUETAS_PSICOLOGIA.grupoFamiliar} value={patient.grupoFamiliar} />
+      <Bloque label={ETIQUETAS_PSICOLOGIA.historiaVital} value={patient.historiaVital} />
     </FormSection>
   );
 
   const diagnostico = tieneDiagnostico && (
     <FormSection title="Diagnóstico" icon={ClipboardCheck} contentClassName="bg-card">
-      {Boolean(patient.diagnosticoPresuntivo?.trim()) && (
-        <div className="col-span-full flex flex-col gap-1">
-          <span className="text-xs font-bold text-foreground">Diagnóstico Presuntivo</span>
-          <p className="whitespace-pre-wrap text-sm">{patient.diagnosticoPresuntivo}</p>
-        </div>
-      )}
-      {Boolean(patient.metodosComplementarios?.trim()) && (
-        <div className="col-span-full flex flex-col gap-1">
-          <span className="text-xs font-bold text-foreground">Métodos Complementarios</span>
-          <p className="whitespace-pre-wrap text-sm">{patient.metodosComplementarios}</p>
-        </div>
-      )}
-      {Boolean(patient.tratamiento?.trim()) && (
-        <div className="col-span-full flex flex-col gap-1">
-          <span className="text-xs font-bold text-foreground">Tratamiento</span>
-          <p className="whitespace-pre-wrap text-sm">{patient.tratamiento}</p>
-        </div>
-      )}
+      <Bloque label={etiquetas.diagnosticoPresuntivo} value={patient.diagnosticoPresuntivo} />
+      <Bloque label={ETIQUETAS_PSICOLOGIA.enfoqueTerapeutico} value={patient.enfoqueTerapeutico} />
+      <Bloque label={etiquetas.tratamiento} value={patient.tratamiento} />
+      <Bloque label={etiquetas.metodosComplementarios} value={patient.metodosComplementarios} />
     </FormSection>
   );
 
@@ -317,7 +348,9 @@ export function PatientSummary({
                 {formatAuditFecha(entry.createdAt)}
               </span>
               <span>
-                <strong>{actorNombre}</strong> {AUDIT_LABELS[clave] ?? clave.toLowerCase()}.
+                <strong>{actorNombre}</strong> {(entry.entidad === "EVOLUCION"
+                  ? AUDIT_LABELS[clave]?.replace("una evolución clínica", vocabularioEvolucion(psicologia).una)
+                  : AUDIT_LABELS[clave]) ?? clave.toLowerCase()}.
               </span>
             </div>
             {detalle && Object.keys(detalle).length > 0 && (
@@ -356,21 +389,16 @@ export function PatientSummary({
         </span>
       }
     >
-      {Boolean(patient.motivoConsulta?.trim()) && (
-        <div className="col-span-full flex flex-col gap-1">
-          <span className="text-xs font-bold text-foreground">Motivo de Consulta</span>
-          <p className="whitespace-pre-wrap text-sm">{patient.motivoConsulta}</p>
-        </div>
-      )}
-      {Boolean(patient.antecedentesEnfermedad?.trim()) && (
-        <div className="col-span-full flex flex-col gap-1">
-          <span className="text-xs font-bold text-foreground">
-            Antecedentes de la enfermedad actual
-          </span>
-          <p className="whitespace-pre-wrap text-sm">{patient.antecedentesEnfermedad}</p>
-          <DictadoCompleto dictado={patient.antecedentesEnfermedadDictado} />
-        </div>
-      )}
+      <Bloque label={ETIQUETAS_PSICOLOGIA.derivadoPor} value={patient.derivadoPor} />
+      <Bloque label={etiquetas.motivoConsulta} value={patient.motivoConsulta} />
+      <Bloque label={etiquetas.antecedentesEnfermedad} value={patient.antecedentesEnfermedad}>
+        <DictadoCompleto dictado={patient.antecedentesEnfermedadDictado} />
+      </Bloque>
+      <Bloque
+        label={ETIQUETAS_PSICOLOGIA.expectativasTratamiento}
+        value={patient.expectativasTratamiento}
+      />
+      <Bloque label={ETIQUETAS_PSICOLOGIA.encuadre} value={patient.encuadre} />
     </FormSection>
   );
 
@@ -454,13 +482,18 @@ export function PatientSummary({
           {consultaInicial}
 
           {evolucionHabilitada && (
-            <FormSection title="Evolución Clínica" icon={NotebookPen} contentClassName="bg-card">
+            <FormSection
+              title={vocabularioEvolucion(psicologia).titulo}
+              icon={NotebookPen}
+              contentClassName="bg-card"
+            >
               <div className="col-span-full">
                 <EvolucionManager
                   patientId={patient.id}
                   initialEvoluciones={evolucionValues}
                   transcripcionHabilitada={transcripcionHabilitada}
                   resumirAlTerminar={resumirEvolucionesAlTerminar}
+                  psicologia={psicologia}
                 />
               </div>
             </FormSection>

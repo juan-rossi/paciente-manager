@@ -186,6 +186,17 @@ enum TipoAntecedente {
   CARDIOPATIAS
   NEUROLOGICAS
   ASMA
+  // Psicología (ver ANTECEDENTES_PSICOLOGIA en patient-form/constants.ts).
+  TRATAMIENTO_PSICOLOGICO_PREVIO
+  TRATAMIENTO_PSIQUIATRICO_PREVIO
+  MEDICACION_PSIQUIATRICA
+  INTERNACIONES_PSIQUIATRICAS
+  CONSUMO_SUSTANCIAS
+  AUTOLESIONES
+  INTENTOS_SUICIDIO
+  SALUD_MENTAL_FAMILIAR
+  SITUACIONES_TRAUMATICAS
+  ENFERMEDADES_MEDICAS
   OTROS
 }
 
@@ -877,6 +888,15 @@ model Patient {
   habitoAlcohol                 Boolean @default(false)
   habitoCigarrillos             Boolean @default(false)
   habitoDrogas                  Boolean @default(false)
+
+  // Consulta inicial / antecedentes / diagnóstico -- solo los usa la
+  // historia clínica de psicología (ver esPsicologia()).
+  derivadoPor             String?
+  expectativasTratamiento String?
+  encuadre                String?
+  grupoFamiliar           String?
+  historiaVital           String?
+  enfoqueTerapeutico      String?
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?

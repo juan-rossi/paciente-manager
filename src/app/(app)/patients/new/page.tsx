@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { esActivo, isPremium } from "@/lib/plan";
 import { getResumenAutomatico } from "@/lib/resumen-automatico";
@@ -6,7 +7,8 @@ import { emptyPatientFormValues } from "@/components/patient-form/utils";
 import { PageEnter } from "@/components/page-transition";
 import { getTenantId } from "@/lib/tenant";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
-import { tenantUsaExamenFisico } from "@/lib/especialidad-server";
+import { tenantEspecialidad } from "@/lib/especialidad-server";
+import { esPsicologia, usaExamenFisico } from "@/lib/especialidad";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -20,16 +22,19 @@ export default async function NewPatientPage({
   searchParams: SearchParams;
 }) {
   const user = await getCurrentUser();
+  // La historia clínica es solo del médico: una secretaria nunca la ve (el
+  // proxy ya la saca de /patients, esto es la segunda barrera).
+  if (!user || user.role !== "DOCTOR") notFound();
   const params = await searchParams;
-  const initialValues = emptyPatientFormValues();
+  const especialidad = await tenantEspecialidad(getTenantId(user));
+  const psicologia = esPsicologia(especialidad);
+  const initialValues = emptyPatientFormValues(psicologia);
   initialValues.nombreYApellido = firstString(params.nombreYApellido) ?? "";
   initialValues.nroDocumento = firstString(params.nroDocumento) ?? "";
   initialValues.telefono = firstString(params.telefono) ?? "";
   initialValues.obraSocial = firstString(params.obraSocial) ?? "";
-  const odontogramaHabilitado =
-    user && user.role !== "ADMIN" ? await tenantEsOdontologo(getTenantId(user)) : false;
-  const examenFisicoHabilitado =
-    user && user.role !== "ADMIN" ? await tenantUsaExamenFisico(getTenantId(user)) : true;
+  const odontogramaHabilitado = await tenantEsOdontologo(getTenantId(user));
+  const examenFisicoHabilitado = usaExamenFisico(especialidad);
 
   return (
     <PageEnter>
@@ -38,10 +43,11 @@ export default async function NewPatientPage({
         <PatientForm
           mode="create"
           initialValues={initialValues}
-          transcripcionHabilitada={user ? isPremium(user) && esActivo(user) : false}
-          resumenAutomatico={user ? await getResumenAutomatico(user) : undefined}
+          transcripcionHabilitada={isPremium(user) && esActivo(user)}
+          resumenAutomatico={await getResumenAutomatico(user)}
           odontogramaHabilitado={odontogramaHabilitado}
           examenFisicoHabilitado={examenFisicoHabilitado}
+          psicologia={psicologia}
         />
       </div>
     </PageEnter>

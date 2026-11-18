@@ -39,6 +39,7 @@ import {
 } from "./odontograma-tab";
 import { tieneMarcas } from "@/lib/odontograma";
 import { emptyPatientFormValues } from "./utils";
+import { vocabularioEvolucion } from "./constants";
 import type {
   AntecedenteValue,
   EvolucionValue,
@@ -60,6 +61,9 @@ type Props = {
   odontogramaHabilitado?: boolean;
   // false para odontólogos y psicólogos (ver usaExamenFisico()).
   examenFisicoHabilitado?: boolean;
+  // Historia clínica de psicología (ver esPsicologia()): cambia los campos de
+  // Consulta inicial, Antecedentes y Diagnóstico.
+  psicologia?: boolean;
   initialOdontogramas?: OdontogramaValue[];
   // Pestaña con la que abre (ej. ?tab=odontograma desde el detalle). Se ignora
   // si no existe para este modo/especialidad.
@@ -148,12 +152,13 @@ export function PatientForm({
   resumenAutomatico,
   odontogramaHabilitado = false,
   examenFisicoHabilitado = true,
+  psicologia = false,
   initialOdontogramas = [],
   initialTab,
 }: Props) {
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
-    initialValues ?? emptyPatientFormValues()
+    initialValues ?? emptyPatientFormValues(psicologia)
   );
   // Snapshot de lo que vino del servidor, para habilitar "Guardar" en edición
   // solo cuando hay cambios. Evoluciones y odontogramas se guardan por su
@@ -344,7 +349,7 @@ export function PatientForm({
           {evolucionHabilitada && (
             <TabsTrigger value="evolucion">
               <TrendingUp className="size-4" />
-              Evolución Clínica
+              {vocabularioEvolucion(psicologia).titulo}
             </TabsTrigger>
           )}
         </TabsList>
@@ -411,7 +416,7 @@ export function PatientForm({
               className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
             >
               <TrendingUp className="size-[18px]" />
-              Evolución Clínica
+              {vocabularioEvolucion(psicologia).titulo}
             </TabsTrigger>
           )}
         </TabsList>
@@ -432,10 +437,16 @@ export function PatientForm({
                 invalidFields={invalidFields}
                 transcripcionHabilitada={transcripcionHabilitada}
                 resumirAntecedentesAlTerminar={resumenAutomatico?.antecedentes}
+                psicologia={psicologia}
               />
             </TabsContent>
             <TabsContent value="antecedentes">
-              <AntecedentesTab values={values} onAntecedenteChange={handleAntecedenteChange} />
+              <AntecedentesTab
+                values={values}
+                onAntecedenteChange={handleAntecedenteChange}
+                onChange={handleChange}
+                psicologia={psicologia}
+              />
             </TabsContent>
             {examenFisicoHabilitado && (
               <TabsContent value="examen-fisico">
@@ -443,7 +454,7 @@ export function PatientForm({
               </TabsContent>
             )}
             <TabsContent value="diagnostico">
-              <DiagnosticoTab values={values} onChange={handleChange} />
+              <DiagnosticoTab values={values} onChange={handleChange} psicologia={psicologia} />
             </TabsContent>
             {odontogramaHabilitado && (
               <TabsContent value="odontograma">
@@ -472,6 +483,7 @@ export function PatientForm({
                   onChangeEvolucionesEliminadas={setEvolucionesEliminadas}
                   transcripcionHabilitada={transcripcionHabilitada}
                   resumirAlTerminar={resumenAutomatico?.evoluciones}
+                  psicologia={psicologia}
                 />
               </TabsContent>
             )}

@@ -39,6 +39,14 @@ export type PatientFormValues = {
   habitoCigarrillos: boolean;
   habitoDrogas: boolean;
 
+  // Solo historia clínica de psicología (ver esPsicologia()).
+  derivadoPor: string;
+  expectativasTratamiento: string;
+  encuadre: string;
+  grupoFamiliar: string;
+  historiaVital: string;
+  enfoqueTerapeutico: string;
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca: string;
   pulsoRadial: string;

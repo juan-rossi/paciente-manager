@@ -1,16 +1,58 @@
-import { TextAreaField } from "./fields";
+import { etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
+import { TextAreaField, TextField } from "./fields";
 import type { PatientFormValues } from "./types";
 
 type Props = {
   values: PatientFormValues;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
+  // Historia clínica de psicología (ver esPsicologia()): mismas columnas con
+  // otro nombre, más el enfoque terapéutico.
+  psicologia?: boolean;
 };
 
-export function DiagnosticoTab({ values, onChange }: Props) {
+export function DiagnosticoTab({ values, onChange, psicologia = false }: Props) {
+  const etiquetas = etiquetasHistoriaClinica(psicologia);
+
+  if (psicologia) {
+    return (
+      <div className="flex flex-col gap-6">
+        <TextAreaField
+          label={etiquetas.diagnosticoPresuntivo}
+          helpText="Hipótesis diagnóstica. Si usás DSM-5 o CIE-11, podés anotar el código."
+          value={values.diagnosticoPresuntivo}
+          onChange={(v) => onChange("diagnosticoPresuntivo", v)}
+          rows={4}
+        />
+        <div className="grid gap-6 md:grid-cols-2">
+          <TextField
+            label={ETIQUETAS_PSICOLOGIA.enfoqueTerapeutico}
+            helpText="Ej.: cognitivo-conductual, psicoanalítico, sistémico, integrativo."
+            value={values.enfoqueTerapeutico}
+            onChange={(v) => onChange("enfoqueTerapeutico", v)}
+          />
+        </div>
+        <TextAreaField
+          label={etiquetas.tratamiento}
+          helpText="Qué se busca lograr con el tratamiento y cómo se va a trabajar."
+          value={values.tratamiento}
+          onChange={(v) => onChange("tratamiento", v)}
+          rows={4}
+        />
+        <TextAreaField
+          label={etiquetas.metodosComplementarios}
+          helpText="Tests, escalas o técnicas proyectivas, con fecha y resultados."
+          value={values.metodosComplementarios}
+          onChange={(v) => onChange("metodosComplementarios", v)}
+          rows={4}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <TextAreaField
-        label="Diagnóstico Presuntivo"
+        label={etiquetas.diagnosticoPresuntivo}
         value={values.diagnosticoPresuntivo}
         onChange={(v) => onChange("diagnosticoPresuntivo", v)}
         rows={4}

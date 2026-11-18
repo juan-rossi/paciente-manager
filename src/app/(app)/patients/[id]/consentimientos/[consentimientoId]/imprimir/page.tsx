@@ -15,7 +15,9 @@ function formatFecha(fecha: Date): string {
 
 export default async function ImprimirConsentimientoPage({ params }: Props) {
   const user = await getCurrentUser();
-  if (!user) notFound();
+  // La historia clínica es solo del médico: una secretaria nunca la ve (el
+  // proxy ya la saca de /patients, esto es la segunda barrera).
+  if (!user || user.role !== "DOCTOR") notFound();
   const tenantId = getTenantId(user);
 
   const { id, consentimientoId } = await params;

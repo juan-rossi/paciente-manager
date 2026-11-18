@@ -12,7 +12,8 @@ import { patientFromApi } from "@/components/patient-form/utils";
 import { PageEnter } from "@/components/page-transition";
 import { odontogramaFromApi } from "@/components/patient-form/utils";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
-import { tenantUsaExamenFisico } from "@/lib/especialidad-server";
+import { tenantEspecialidad } from "@/lib/especialidad-server";
+import { esPsicologia, usaExamenFisico } from "@/lib/especialidad";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -21,7 +22,9 @@ type Props = {
 
 export default async function EditPatientPage({ params, searchParams }: Props) {
   const user = await getCurrentUser();
-  if (!user) notFound();
+  // La historia clínica es solo del médico: una secretaria nunca la ve (el
+  // proxy ya la saca de /patients, esto es la segunda barrera).
+  if (!user || user.role !== "DOCTOR") notFound();
 
   const { id } = await params;
   const { tab } = await searchParams;
@@ -40,10 +43,12 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient);
+  const especialidad = await tenantEspecialidad(patient.doctorId);
+  const psicologia = esPsicologia(especialidad);
+  const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient, psicologia);
   const resumenAutomatico = await getResumenAutomatico(user);
   const odontogramaHabilitado = await tenantEsOdontologo(patient.doctorId);
-  const examenFisicoHabilitado = await tenantUsaExamenFisico(patient.doctorId);
+  const examenFisicoHabilitado = usaExamenFisico(especialidad);
   const odontogramas = odontogramaHabilitado
     ? await prisma.patientOdontograma.findMany({
         where: { patientId: patient.id, deletedAt: null },
@@ -81,6 +86,7 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
           resumenAutomatico={resumenAutomatico}
           odontogramaHabilitado={odontogramaHabilitado}
           examenFisicoHabilitado={examenFisicoHabilitado}
+          psicologia={psicologia}
           initialOdontogramas={odontogramas.map(odontogramaFromApi)}
           initialTab={tab}
         />

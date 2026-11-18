@@ -6,6 +6,8 @@ import { esActivo, isPremium } from "@/lib/plan";
 import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientSummary } from "@/components/patient-summary";
 import { patientFromApi } from "@/components/patient-form/utils";
+import { tenantEspecialidad } from "@/lib/especialidad-server";
+import { esPsicologia } from "@/lib/especialidad";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
 import { PageEnter } from "@/components/page-transition";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
@@ -20,7 +22,9 @@ type Props = {
 
 export default async function PatientDetailPage({ params, searchParams }: Props) {
   const user = await getCurrentUser();
-  if (!user) notFound();
+  // La historia clínica es solo del médico: una secretaria nunca la ve (el
+  // proxy ya la saca de /patients, esto es la segunda barrera).
+  if (!user || user.role !== "DOCTOR") notFound();
   const tenantId = getTenantId(user);
 
   const { id } = await params;
@@ -110,7 +114,8 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     }
   }
 
-  const { values: patientValues } = patientFromApi(patient);
+  const psicologia = esPsicologia(await tenantEspecialidad(tenantId));
+  const { values: patientValues } = patientFromApi(patient, psicologia);
   const resumenAutomatico = await getResumenAutomatico(user);
   const esOdontologo = await tenantEsOdontologo(tenantId);
 
@@ -171,6 +176,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
         evolucionHabilitada={!esOdontologo}
         odontograma={odontograma}
+        psicologia={psicologia}
       />
     </PageEnter>
   );

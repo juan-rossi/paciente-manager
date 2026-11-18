@@ -16,6 +16,7 @@ import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { DictadoSettings } from "@/components/dictado-settings";
+import { esPsicologia } from "@/lib/especialidad";
 import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
@@ -178,6 +179,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                 initialResumenAutoAntecedentes={user.resumenAutoAntecedentes}
                 initialResumenAutoEvoluciones={user.resumenAutoEvoluciones}
                 transcripcionHabilitada={iaHabilitada}
+                psicologia={esPsicologia(user.especialidad)}
               />
             </TabsContent>
           )}

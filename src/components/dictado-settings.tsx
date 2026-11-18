@@ -17,6 +17,8 @@ type Props = {
   // El dictado es una función Premium: sin plan Premium vigente la opción se
   // muestra bloqueada.
   transcripcionHabilitada: boolean;
+  // Psicología (ver esPsicologia()): las evoluciones se llaman "sesiones".
+  psicologia?: boolean;
 };
 
 export function DictadoSettings({
@@ -24,6 +26,7 @@ export function DictadoSettings({
   initialResumenAutoAntecedentes,
   initialResumenAutoEvoluciones,
   transcripcionHabilitada,
+  psicologia = false,
 }: Props) {
   const [resumenAutomatico, setResumenAutomatico] = useState(initialResumenAutomatico);
   const [antecedentes, setAntecedentes] = useState(initialResumenAutoAntecedentes);
@@ -136,9 +139,11 @@ export function DictadoSettings({
               />
               <div className="flex flex-col gap-0.5">
                 <Label htmlFor="resumen-auto-evoluciones" className="font-normal">
-                  Evoluciones
+                  {psicologia ? "Sesiones" : "Evoluciones"}
                 </Label>
-                <p className="text-xs text-muted-foreground">Al agregar o editar una evolución.</p>
+                <p className="text-xs text-muted-foreground">
+                  Al agregar o editar {psicologia ? "una sesión" : "una evolución"}.
+                </p>
               </div>
             </div>
           </div>

@@ -5,7 +5,14 @@ import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { calcularEdad } from "@/components/patient-form/utils";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
-import { ANTECEDENTES_ORDEN, ESTADO_CIVIL_OPTIONS } from "@/components/patient-form/constants";
+import {
+  ANTECEDENTE_LABELS,
+  ESTADO_CIVIL_OPTIONS,
+  ETIQUETAS_PSICOLOGIA,
+  etiquetasHistoriaClinica,
+  vocabularioEvolucion,
+} from "@/components/patient-form/constants";
+import { esPsicologia } from "@/lib/especialidad";
 import { TIME_ZONE } from "@/lib/timezone";
 import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import { PrintButton } from "@/components/print-button";
@@ -16,7 +23,6 @@ type Props = { params: Promise<{ id: string }> };
 
 const SEXO_LABELS: Record<string, string> = { MASCULINO: "Masculino", FEMENINO: "Femenino" };
 const ESTADO_CIVIL_LABELS = new Map(ESTADO_CIVIL_OPTIONS.map((o) => [o.value, o.label]));
-const ANTECEDENTE_LABELS = new Map(ANTECEDENTES_ORDEN.map((a) => [a.tipo, a.label]));
 
 // `fechaNacimiento`/`evolucion.fecha` se guardan como medianoche UTC
 // representando un día calendario, no un instante real -- formatearlas en
@@ -95,7 +101,9 @@ function Seccion({
 
 export default async function HistoriaClinicaPage({ params }: Props) {
   const user = await getCurrentUser();
-  if (!user) notFound();
+  // La historia clínica es solo del médico: una secretaria nunca la ve (el
+  // proxy ya la saca de /patients, esto es la segunda barrera).
+  if (!user || user.role !== "DOCTOR") notFound();
   const tenantId = getTenantId(user);
 
   const { id } = await params;
@@ -123,8 +131,10 @@ export default async function HistoriaClinicaPage({ params }: Props) {
 
   const doctor = await prisma.user.findUnique({
     where: { id: tenantId },
-    select: { nombre: true, apellido: true, nroMatricula: true },
+    select: { nombre: true, apellido: true, nroMatricula: true, especialidad: true },
   });
+  const psicologia = esPsicologia(doctor?.especialidad);
+  const etiquetas = etiquetasHistoriaClinica(psicologia);
 
   // Ley 26.529 art. 14: deja registro de que se generó una copia de la
   // historia clínica (entregable al paciente dentro de las 48hs -- acá el
@@ -196,14 +206,20 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             { label: "AUTOVALIDO Total", value: patient.autoValidoTotal },
             { label: "Parcial", value: patient.autoValidoParcial },
             { label: "Dependiente", value: patient.dependiente },
-            { label: "Motivo de Consulta", value: patient.motivoConsulta },
-            { label: "Antecedentes de la enfermedad actual", value: patient.antecedentesEnfermedad },
+            { label: ETIQUETAS_PSICOLOGIA.derivadoPor, value: patient.derivadoPor },
+            { label: etiquetas.motivoConsulta, value: patient.motivoConsulta },
+            { label: etiquetas.antecedentesEnfermedad, value: patient.antecedentesEnfermedad },
             {
-              label: "Hábitos tóxicos",
+              label: ETIQUETAS_PSICOLOGIA.expectativasTratamiento,
+              value: patient.expectativasTratamiento,
+            },
+            { label: ETIQUETAS_PSICOLOGIA.encuadre, value: patient.encuadre },
+            {
+              label: etiquetas.habitos,
               value: [
                 patient.habitoAlcohol && "Alcohol",
-                patient.habitoCigarrillos && "Cigarrillos",
-                patient.habitoDrogas && "Drogas",
+                patient.habitoCigarrillos && (psicologia ? "Tabaco" : "Cigarrillos"),
+                patient.habitoDrogas && (psicologia ? "Otras sustancias" : "Drogas"),
               ]
                 .filter(Boolean)
                 .join(", ") || null,
@@ -217,21 +233,32 @@ export default async function HistoriaClinicaPage({ params }: Props) {
           )}
         </Seccion>
 
-        {patient.antecedentes.length > 0 && (
+        {(patient.antecedentes.length > 0 || patient.grupoFamiliar || patient.historiaVital) && (
           <Seccion titulo="Antecedentes personales">
-            <ul className="flex flex-col gap-2 text-sm">
-              {patient.antecedentes.map((a) => (
-                <li key={a.id}>
-                  <strong>{ANTECEDENTE_LABELS.get(a.tipo) ?? a.tipo}</strong>
-                  {[a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).length > 0 && (
-                    <span className="text-muted-foreground">
-                      {" — "}
-                      {[a.fechaInicio, a.medicacion, a.resolucion].filter(Boolean).join(" · ")}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div className="flex flex-col gap-3">
+              {patient.antecedentes.length > 0 && (
+                <ul className="flex flex-col gap-2 text-sm">
+                  {patient.antecedentes.map((a) => {
+                    const detalle = [a.fechaInicio, a.descripcion, a.medicacion, a.resolucion]
+                      .filter(Boolean)
+                      .join(" · ");
+                    return (
+                      <li key={a.id}>
+                        <strong>{ANTECEDENTE_LABELS.get(a.tipo) ?? a.tipo}</strong>
+                        {detalle && <span className="text-muted-foreground">{` — ${detalle}`}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {/* Solo historia clínica de psicología. */}
+              <Datos
+                fields={[
+                  { label: ETIQUETAS_PSICOLOGIA.grupoFamiliar, value: patient.grupoFamiliar },
+                  { label: ETIQUETAS_PSICOLOGIA.historiaVital, value: patient.historiaVital },
+                ]}
+              />
+            </div>
           </Seccion>
         )}
 
@@ -300,14 +327,15 @@ export default async function HistoriaClinicaPage({ params }: Props) {
         <Seccion
           titulo="Diagnóstico"
           fields={[
-            { label: "Diagnóstico Presuntivo", value: patient.diagnosticoPresuntivo },
-            { label: "Métodos Complementarios", value: patient.metodosComplementarios },
-            { label: "Tratamiento", value: patient.tratamiento },
+            { label: etiquetas.diagnosticoPresuntivo, value: patient.diagnosticoPresuntivo },
+            { label: ETIQUETAS_PSICOLOGIA.enfoqueTerapeutico, value: patient.enfoqueTerapeutico },
+            { label: etiquetas.tratamiento, value: patient.tratamiento },
+            { label: etiquetas.metodosComplementarios, value: patient.metodosComplementarios },
           ]}
         />
 
         {patient.evoluciones.length > 0 && (
-          <Seccion titulo="Evolución clínica">
+          <Seccion titulo={vocabularioEvolucion(psicologia).titulo}>
             <div className="flex flex-col gap-3 text-sm">
               {patient.evoluciones.map((e) => (
                 <div key={e.id} className="break-inside-avoid">

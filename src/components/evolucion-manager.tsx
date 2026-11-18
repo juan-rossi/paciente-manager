@@ -9,6 +9,7 @@ type Props = {
   initialEvoluciones: EvolucionValue[];
   transcripcionHabilitada?: boolean;
   resumirAlTerminar?: boolean;
+  psicologia?: boolean;
 };
 
 export function EvolucionManager({
@@ -16,6 +17,7 @@ export function EvolucionManager({
   initialEvoluciones,
   transcripcionHabilitada,
   resumirAlTerminar,
+  psicologia,
 }: Props) {
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones);
 
@@ -26,6 +28,7 @@ export function EvolucionManager({
       onChangeEvoluciones={setEvoluciones}
       transcripcionHabilitada={transcripcionHabilitada}
       resumirAlTerminar={resumirAlTerminar}
+      psicologia={psicologia}
     />
   );
 }
