@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePremiumDoctor } from "@/lib/ia-auth";
 import { registrarDictado } from "@/lib/ia-costos";
+import { esPsicologia } from "@/lib/especialidad";
 
 export const maxDuration = 60;
 
 const GROQ_TRANSCRIPTIONS_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
 
 // Vercel corta el body de una función en 4,5 MB; el cliente graba a ~24 kbps y
-// se detiene solo a los 10 minutos (≈1,8 MB), así que esto es solo un tope de
+// sube la grabación en segmentos de hasta 10 minutos (≈1,8 MB cada uno, aunque
+// un psicólogo dicte una hora entera), así que esto es solo un tope de
 // seguridad.
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 
@@ -16,6 +18,10 @@ const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 // pruebas del viejo transcriptor local (whisper.cpp, ya retirado).
 const PROMPT_CLINICO =
   "Evolución clínica en español. Antecedentes: hipertensión arterial, diabetes tipo 2, dislipemia, hipotiroidismo. Medicación habitual: enalapril, losartán, atorvastatina, metformina, paracetamol, ibuprofeno, amoxicilina, omeprazol, levotiroxina. El paciente refiere dolor, fiebre, cefalea y mareos. Se indica tratamiento y control en una semana.";
+
+// Para psicólogos: vocabulario de sesión en vez de fármacos.
+const PROMPT_PSICOLOGIA =
+  "Sesión de psicoterapia en español. El consultante refiere ansiedad, angustia, ataques de pánico, insomnio y dificultades en el vínculo con su pareja y su familia. Se trabaja el duelo, la autoestima y los pensamientos intrusivos. Se mantiene el encuadre, se acuerdan tareas y se pauta la próxima sesión.";
 
 export async function POST(request: NextRequest) {
   const { user, response } = await requirePremiumDoctor();
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
   // el reporte de costos del panel admin.
   groqForm.append("response_format", "verbose_json");
   groqForm.append("temperature", "0");
-  groqForm.append("prompt", PROMPT_CLINICO);
+  groqForm.append("prompt", esPsicologia(user.especialidad) ? PROMPT_PSICOLOGIA : PROMPT_CLINICO);
 
   try {
     const groqResponse = await fetch(GROQ_TRANSCRIPTIONS_URL, {

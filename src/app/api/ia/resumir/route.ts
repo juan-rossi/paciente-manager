@@ -3,11 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePremiumDoctor } from "@/lib/ia-auth";
 import { registrarResumen } from "@/lib/ia-costos";
+import { esPsicologia, limitesDictado } from "@/lib/especialidad";
 
-export const maxDuration = 60;
+// Una sesión de psicología de una hora son ~20k tokens de entrada y hasta 4k
+// de salida: con Haiku puede pasar los 60 segundos.
+export const maxDuration = 120;
 
 const resumirInput = z.object({
-  texto: z.string().trim().min(1, "No hay texto para resumir.").max(20_000),
+  // El máximo depende de la especialidad (ver limitesDictado()) y se chequea
+  // después de conocer al médico.
+  texto: z.string().trim().min(1, "No hay texto para resumir."),
   tipo: z.enum(["antecedentes", "evolucion"]),
 });
 
@@ -29,6 +34,26 @@ ${REGLAS_COMUNES}`,
 ${REGLAS_COMUNES}`,
 };
 
+const REGLAS_PSICOLOGIA = `Reglas:
+- No inventes ni infieras datos que no estén en el dictado. No agregues diagnósticos, hipótesis ni interpretaciones que el psicólogo no haya dicho. Si algo es ambiguo, dejalo como está.
+- Conservá exactos nombres, fechas, tiempos, frecuencias, medicación mencionada y las frases textuales del consultante que el psicólogo destaque (entre comillas).
+- El texto viene de un reconocimiento de voz: corregí solo errores de transcripción evidentes. Ante la duda, dejá la palabra como está.
+- Eliminá muletillas, repeticiones, autocorrecciones y frases que no aportan información clínica.
+- Usá lenguaje profesional conciso, en español rioplatense neutro, en tercera persona ("Consultante refiere...").
+- Texto plano: sin markdown, sin títulos con #, sin negritas. Podés usar guiones "- " para listar ítems y separar los apartados con una línea en blanco.
+- Respondé solo con el resumen, sin introducción ni comentarios.`;
+
+// Psicólogos: el dictado suele ser una sesión entera (hasta una hora), así
+// que el resumen es más largo y está organizado por apartados.
+const SYSTEM_PROMPTS_PSICOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas psicológicas. Vas a recibir la transcripción de un dictado de un psicólogo sobre los antecedentes de un consultante. Resumilo con lo clínicamente relevante: motivo de consulta, inicio y evolución de la problemática, historia personal y familiar, vínculos significativos, tratamientos psicológicos o psiquiátricos previos y medicación si la hubiera.
+
+${REGLAS_PSICOLOGIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas psicológicas. Vas a recibir la transcripción de una sesión o de un dictado de un psicólogo sobre la evolución de un consultante. Resumila con lo clínicamente relevante, en este orden y omitiendo los apartados sin información: temas trabajados en la sesión, relato del consultante, estado emocional y afectivo observado, intervenciones del terapeuta, acuerdos o tareas, y plan para la próxima sesión.
+
+${REGLAS_PSICOLOGIA}`,
+};
+
 export async function POST(request: NextRequest) {
   const { user, response } = await requirePremiumDoctor();
   if (response) return response;
@@ -47,14 +72,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const psicologia = esPsicologia(user.especialidad);
+  const limites = limitesDictado(user.especialidad);
+  if (parsed.data.texto.length > limites.maxCaracteresResumen) {
+    return NextResponse.json({ error: "El texto es demasiado largo para resumir." }, { status: 400 });
+  }
+
   try {
     // Se crea por pedido: el constructor falla sin ANTHROPIC_API_KEY, y a nivel de
     // módulo eso rompería el build en entornos sin la variable.
     const client = new Anthropic();
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPTS[parsed.data.tipo],
+      max_tokens: limites.maxTokensResumen,
+      system: (psicologia ? SYSTEM_PROMPTS_PSICOLOGIA : SYSTEM_PROMPTS)[parsed.data.tipo],
       messages: [{ role: "user", content: `<dictado>\n${parsed.data.texto}\n</dictado>` }],
     });
 

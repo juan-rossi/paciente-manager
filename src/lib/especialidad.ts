@@ -231,3 +231,13 @@ export function especialidadCompatibleConTitulo(
   if (!especialidad) return true;
   return gruposParaTitulo(titulo).has(grupoDe(especialidad));
 }
+
+// Límites del dictado por voz y del resumen con IA. Los psicólogos dictan
+// sesiones enteras (hasta una hora); el resto, notas de consulta (10 min).
+// El dictado largo se graba y sube en segmentos de 10 min (ver
+// use-cloud-transcription.ts), así que esto solo fija el total.
+export function limitesDictado(especialidad: Especialidad | null | undefined) {
+  return esPsicologia(especialidad)
+    ? { maxGrabacionSegundos: 60 * 60, maxCaracteresResumen: 100_000, maxTokensResumen: 4096 }
+    : { maxGrabacionSegundos: 10 * 60, maxCaracteresResumen: 20_000, maxTokensResumen: 1024 };
+}
