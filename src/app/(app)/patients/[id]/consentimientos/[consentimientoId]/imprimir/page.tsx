@@ -6,6 +6,7 @@ import { registrarAuditoria } from "@/lib/audit-log";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TIME_ZONE } from "@/lib/timezone";
+import { esMenorDeEdad } from "@/components/patient-form/utils";
 
 type Props = { params: Promise<{ id: string; consentimientoId: string }> };
 
@@ -33,6 +34,13 @@ export default async function ImprimirConsentimientoPage({ params }: Props) {
   });
 
   if (!consentimiento) notFound();
+
+  // Paciente menor de edad (o con responsable cargado): el consentimiento
+  // lleva también los datos y la firma del adulto responsable.
+  const patient = consentimiento.patient;
+  const conResponsable =
+    esMenorDeEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "") ||
+    Boolean(patient.responsableNombre?.trim());
 
   const doctor = await prisma.user.findUnique({
     where: { id: tenantId },
@@ -83,6 +91,24 @@ export default async function ImprimirConsentimientoPage({ params }: Props) {
             </p>
           </section>
 
+          {conResponsable && (
+            <section className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Adulto responsable (paciente menor de edad)
+              </span>
+              {patient.responsableNombre ? (
+                <p>
+                  {patient.responsableNombre}
+                  {patient.responsableVinculo ? ` (${patient.responsableVinculo})` : ""}
+                  {patient.responsableDni ? ` — DNI ${patient.responsableDni}` : ""}
+                </p>
+              ) : (
+                // Sin datos cargados: se completa a mano en el papel.
+                <div className="mt-4 border-b border-foreground">&nbsp;</div>
+              )}
+            </section>
+          )}
+
           <section className="flex flex-col gap-1 text-sm">
             <span className="text-xs font-semibold text-muted-foreground">
               Procedimiento / tratamiento
@@ -125,9 +151,17 @@ export default async function ImprimirConsentimientoPage({ params }: Props) {
             <div className="flex flex-col gap-8">
               <div className="border-b border-foreground pb-1">&nbsp;</div>
               <p className="text-xs text-muted-foreground">
-                Firma del paciente (o representante legal)
+                Firma del paciente{conResponsable ? "" : " (o representante legal)"}
               </p>
             </div>
+            {conResponsable && (
+              <div className="flex flex-col gap-8">
+                <div className="border-b border-foreground pb-1">&nbsp;</div>
+                <p className="text-xs text-muted-foreground">
+                  Firma y aclaración del adulto responsable
+                </p>
+              </div>
+            )}
             <div className="flex flex-col gap-8">
               <div className="border-b border-foreground pb-1">&nbsp;</div>
               <p className="text-xs text-muted-foreground">

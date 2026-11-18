@@ -1,4 +1,4 @@
-import { IdCard, Phone, ShieldPlus } from "lucide-react";
+import { IdCard, Phone, ShieldPlus, UserRound } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { ESTADO_CIVIL_OPTIONS } from "./constants";
 import { FormSection, TextField } from "./fields";
-import { calcularEdad } from "./utils";
+import { calcularEdad, esMenorDeEdad } from "./utils";
 import type { PatientFormValues } from "./types";
 
 type Props = {
@@ -162,6 +162,46 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
           invalid={invalidFields.has("telefonoEmergencia")}
         />
       </FormSection>
+
+      {/* Se muestra sola cuando la fecha de nacimiento da menos de 18 años. */}
+      {(esMenorDeEdad(values.fechaNacimiento) || values.responsableNombre) && (
+        <FormSection title="Adulto responsable" icon={UserRound}>
+          <p className="col-span-full -mt-1 text-xs text-muted-foreground">
+            Madre, padre, tutor o quien tenga a cargo al paciente. Firma el consentimiento informado.
+          </p>
+          <div className="lg:col-span-2">
+            <TextField
+              label="Nombre y apellido"
+              value={values.responsableNombre}
+              onChange={(v) => onChange("responsableNombre", v)}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <TextField
+              label="Vínculo"
+              value={values.responsableVinculo}
+              onChange={(v) => onChange("responsableVinculo", v)}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <TextField
+              label="DNI"
+              value={values.responsableDni}
+              onChange={(v) => onChange("responsableDni", v)}
+              numeric="digits"
+              maxLength={8}
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <TextField
+              label="Teléfono"
+              value={values.responsableTelefono}
+              onChange={(v) => onChange("responsableTelefono", v)}
+              numeric="phone"
+            />
+          </div>
+        </FormSection>
+      )}
 
       <FormSection title="Cobertura de salud" icon={ShieldPlus}>
         <div className="lg:col-span-2">

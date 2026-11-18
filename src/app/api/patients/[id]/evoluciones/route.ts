@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { registrarAuditoria } from "@/lib/audit-log";
+import { camposSesion, evolucionInput } from "@/lib/evolucion-schema";
 
 type RouteParams = { params: Promise<{ id: string }> };
-
-const evolucionInput = z.object({
-  fecha: z.string().trim().min(1, "La fecha es obligatoria."),
-  contenido: z.string().trim().min(1, "El contenido es obligatorio."),
-  // Dictado original cuando `contenido` es un resumen de IA. Sin el campo, no
-  // se toca; vacío, se borra.
-  contenidoDictado: z
-    .string()
-    .trim()
-    .transform((value) => (value.length === 0 ? null : value))
-    .nullable()
-    .optional(),
-});
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { user, tenantId, response } = await requireDoctor();
@@ -49,6 +36,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       fecha: new Date(parsed.data.fecha),
       contenido: parsed.data.contenido,
       contenidoDictado: parsed.data.contenidoDictado ?? null,
+      ...camposSesion(parsed.data),
     },
   });
 

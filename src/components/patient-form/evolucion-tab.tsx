@@ -1,7 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronDown, Loader2, Mic, MicOff, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  Loader2,
+  Lock,
+  Mic,
+  MicOff,
+  Pencil,
+  Plus,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,14 +25,90 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { EvolucionValue } from "./types";
-import { vocabularioEvolucion } from "./constants";
-import { formatFechaCorta, formatFechaRelativa } from "./utils";
+import {
+  ASISTENCIA_LABELS,
+  ASISTENCIA_SESION_OPTIONS,
+  MODALIDAD_LABELS,
+  MODALIDAD_SESION_OPTIONS,
+  NIVEL_RIESGO_OPTIONS,
+  RIESGO_LABELS,
+  numerarSesiones,
+  vocabularioEvolucion,
+  type AsistenciaSesion,
+  type ModalidadSesion,
+  type NivelRiesgo,
+} from "./constants";
+import { cn } from "@/lib/utils";
+import { camposSesionFromApi, formatFechaCorta, formatFechaRelativa } from "./utils";
 import { useCloudTranscription } from "./use-cloud-transcription";
 import { TITULO_YA_RESUMIDO, useResumenIA } from "./use-resumen-ia";
 import { DictadoCompleto } from "./dictado-completo";
 import { anexarTexto, formatElapsed, mensajeErrorDictado } from "./dictado-utils";
 import { DateInput } from "./date-input";
 import { formatDateParamBA } from "@/lib/timezone";
+
+// Selector de una opción entre pocas (asistencia, modalidad, riesgo), a la
+// vista y de un click. Con `opcional`, tocar la opción elegida la desmarca.
+function Segmentado<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  opcional = false,
+  claseElegida,
+}: {
+  label: string;
+  options: readonly { value: T; label: string }[];
+  value: T | null;
+  onChange: (value: T | null) => void;
+  opcional?: boolean;
+  claseElegida?: (value: T) => string | undefined;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label>{label}</Label>
+      <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1.5">
+        {options.map((o) => {
+          const elegida = value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={elegida}
+              onClick={() => onChange(elegida && opcional ? null : o.value)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                elegida
+                  ? (claseElegida?.(o.value) ?? "border-primary bg-primary text-primary-foreground")
+                  : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Colores del riesgo, elegido en el diálogo y como badge en cada sesión.
+const CLASE_RIESGO: Record<NivelRiesgo, string> = {
+  SIN_RIESGO: "border-emerald-600 bg-emerald-600 text-white",
+  BAJO: "border-sky-600 bg-sky-600 text-white",
+  MODERADO: "border-amber-500 bg-amber-500 text-white",
+  ALTO: "border-destructive bg-destructive text-white",
+};
+
+// En el diálogo alcanza con "Bajo", "Moderado"... (el label ya dice "Riesgo").
+const RIESGO_OPCIONES_CORTAS = NIVEL_RIESGO_OPTIONS.map((o) => ({
+  value: o.value,
+  label:
+    o.value === "SIN_RIESGO"
+      ? o.label
+      : o.label.replace("Riesgo ", "").replace(/^./, (c) => c.toUpperCase()),
+}));
 
 function sortByFechaAsc(evoluciones: EvolucionValue[]) {
   return [...evoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
@@ -36,6 +122,7 @@ function evolucionFromApi(e: any): EvolucionValue {
     fecha: e.fecha.slice(0, 10),
     contenido: e.contenido,
     contenidoDictado: e.contenidoDictado ?? null,
+    ...camposSesionFromApi(e),
   };
 }
 
@@ -81,6 +168,11 @@ export function EvolucionTab({
   const [contenido, setContenido] = useState("");
   // Texto original dictado, cuando `contenido` pasó a ser un resumen de IA.
   const [dictado, setDictado] = useState("");
+  // Solo sesiones de psicología.
+  const [asistencia, setAsistencia] = useState<AsistenciaSesion>("PRESENTE");
+  const [modalidad, setModalidad] = useState<ModalidadSesion | null>(null);
+  const [riesgo, setRiesgo] = useState<NivelRiesgo | null>(null);
+  const [notasPrivadas, setNotasPrivadas] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,6 +187,13 @@ export function EvolucionTab({
   const resumen = useResumenIA("evolucion");
 
   const isEditing = editingIndex !== null;
+  const numeros = psicologia ? numerarSesiones(evoluciones) : null;
+  // Sin notas solo se puede guardar una sesión a la que no vino.
+  const asistio = !psicologia || asistencia === "PRESENTE";
+  const puedeGuardar = contenido.trim().length > 0 || !asistio;
+  const sesion = psicologia
+    ? { asistencia, modalidad, riesgo, notasPrivadas: notasPrivadas.trim() || null }
+    : {};
   const isRecording =
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
@@ -106,6 +205,11 @@ export function EvolucionTab({
     setFecha(todayLocal());
     setContenido("");
     setDictado("");
+    setAsistencia("PRESENTE");
+    // La modalidad suele repetirse: arranca como la de la última sesión.
+    setModalidad(evoluciones.at(-1)?.modalidad ?? null);
+    setRiesgo(null);
+    setNotasPrivadas("");
     setError(null);
     resumen.limpiarError();
     resumen.marcarResumido("");
@@ -157,6 +261,10 @@ export function EvolucionTab({
     setFecha(entry.fecha);
     setContenido(entry.contenido);
     setDictado(entry.contenidoDictado ?? "");
+    setAsistencia(entry.asistencia ?? "PRESENTE");
+    setModalidad(entry.modalidad ?? null);
+    setRiesgo(entry.riesgo ?? null);
+    setNotasPrivadas(entry.notasPrivadas ?? "");
     setError(null);
     resumen.limpiarError();
     // Si la evolución guardada trae dictado, ese dictado ya se resumió.
@@ -165,7 +273,7 @@ export function EvolucionTab({
   }
 
   async function handleGuardar() {
-    if (!contenido.trim()) return;
+    if (!puedeGuardar) return;
     setError(null);
 
     if (isEditing) {
@@ -176,7 +284,7 @@ export function EvolucionTab({
           const response = await fetch(`/api/patients/${patientId}/evoluciones/${entry.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado }),
+            body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado, ...sesion }),
           });
           const data = await response.json().catch(() => null);
           if (!response.ok) {
@@ -199,7 +307,9 @@ export function EvolucionTab({
         onChangeEvoluciones(
           sortByFechaAsc(
             evoluciones.map((e, i) =>
-              i === editingIndex ? { ...e, fecha, contenido, contenidoDictado: dictado || null } : e
+              i === editingIndex
+                ? { ...e, fecha, contenido, contenidoDictado: dictado || null, ...sesion }
+                : e
             )
           )
         );
@@ -215,7 +325,7 @@ export function EvolucionTab({
         const response = await fetch(`/api/patients/${patientId}/evoluciones`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado }),
+          body: JSON.stringify({ fecha, contenido, contenidoDictado: dictado, ...sesion }),
         });
         const data = await response.json().catch(() => null);
         if (!response.ok) {
@@ -235,7 +345,10 @@ export function EvolucionTab({
       }
     } else {
       onChangeEvoluciones(
-        sortByFechaAsc([...evoluciones, { fecha, contenido, contenidoDictado: dictado || null }])
+        sortByFechaAsc([
+          ...evoluciones,
+          { fecha, contenido, contenidoDictado: dictado || null, ...sesion },
+        ])
       );
       setOpen(false);
       resetForm();
@@ -307,12 +420,28 @@ export function EvolucionTab({
           <Card key={entry.id ?? `local-${index}`}>
             <CardContent className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-bold">
-                  {formatFechaCorta(entry.fecha)}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    ({formatFechaRelativa(entry.fecha)})
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  {numeros?.has(entry) && (
+                    <span className="text-sm font-bold">Sesión {numeros.get(entry)}</span>
+                  )}
+                  <span className={cn("text-sm", numeros ? "text-muted-foreground" : "font-bold")}>
+                    {formatFechaCorta(entry.fecha)}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      ({formatFechaRelativa(entry.fecha)})
+                    </span>
                   </span>
-                </span>
+                  {entry.asistencia && entry.asistencia !== "PRESENTE" && (
+                    <Badge variant="secondary">{ASISTENCIA_LABELS.get(entry.asistencia)}</Badge>
+                  )}
+                  {entry.modalidad && (
+                    <Badge variant="outline">{MODALIDAD_LABELS.get(entry.modalidad)}</Badge>
+                  )}
+                  {entry.riesgo && (
+                    <Badge className={CLASE_RIESGO[entry.riesgo]}>
+                      {RIESGO_LABELS.get(entry.riesgo)}
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
@@ -332,8 +461,17 @@ export function EvolucionTab({
                   </button>
                 </div>
               </div>
-              <p className="whitespace-pre-wrap text-sm">{entry.contenido}</p>
+              {entry.contenido && <p className="whitespace-pre-wrap text-sm">{entry.contenido}</p>}
               <DictadoCompleto dictado={entry.contenidoDictado} />
+              {entry.notasPrivadas && (
+                <div className="flex flex-col gap-1 rounded-md bg-muted/60 p-3">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                    <Lock className="size-3" />
+                    Notas privadas
+                  </span>
+                  <p className="whitespace-pre-wrap text-sm">{entry.notasPrivadas}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -393,18 +531,54 @@ export function EvolucionTab({
             <Plus className="size-4" />
             {voc.nueva}
           </Button>
-          <DialogContent className="sm:max-w-xl" initialFocus={textareaRef}>
+          <DialogContent
+            className={psicologia ? "sm:max-w-2xl" : "sm:max-w-xl"}
+            initialFocus={textareaRef}
+          >
             <DialogHeader>
               <DialogTitle>{isEditing ? voc.editar : voc.nueva}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label>Fecha</Label>
-                <DateInput value={fecha} onChange={setFecha} />
-              </div>
+              {psicologia ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Fecha</Label>
+                    <DateInput value={fecha} onChange={setFecha} />
+                  </div>
+                  <Segmentado
+                    label="Asistencia"
+                    options={ASISTENCIA_SESION_OPTIONS}
+                    value={asistencia}
+                    onChange={(v) => setAsistencia(v ?? "PRESENTE")}
+                  />
+                  <Segmentado
+                    label="Modalidad"
+                    options={MODALIDAD_SESION_OPTIONS}
+                    value={modalidad}
+                    onChange={setModalidad}
+                    opcional
+                  />
+                  <Segmentado
+                    label="Riesgo"
+                    options={RIESGO_OPCIONES_CORTAS}
+                    value={riesgo}
+                    onChange={setRiesgo}
+                    opcional
+                    claseElegida={(v) => CLASE_RIESGO[v]}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Fecha</Label>
+                  <DateInput value={fecha} onChange={setFecha} />
+                </div>
+              )}
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Label>{voc.campo}</Label>
+                  <Label>
+                    {voc.campo}
+                    {!asistio && <span className="font-normal text-muted-foreground"> (opcional)</span>}
+                  </Label>
                   {transcripcionHabilitada && (
                     <div className="flex items-center gap-2">
                       {isRecording ? (
@@ -491,7 +665,10 @@ export function EvolucionTab({
                     // Crece con el texto (field-sizing-content) pero con tope:
                     // pasado el 50% del alto de pantalla scrollea el textarea,
                     // así el botón de guardar nunca queda fuera del viewport.
-                    className="max-h-[50dvh] min-h-[15rem] overflow-y-auto"
+                    className={cn(
+                      "overflow-y-auto",
+                      psicologia ? "max-h-[35dvh] min-h-[10rem]" : "max-h-[50dvh] min-h-[15rem]"
+                    )}
                     value={contenido}
                     onChange={(e) => setContenido(e.target.value)}
                     disabled={resumen.resumiendo}
@@ -506,12 +683,28 @@ export function EvolucionTab({
               {transcripcionHabilitada && (
                 <DictadoCompleto dictado={dictado} onRestaurar={handleRestaurarDictado} />
               )}
+              {psicologia && (
+                <div className="flex flex-col gap-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    <Lock className="size-3.5" />
+                    Notas privadas
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Hipótesis e impresiones personales. No salen en la copia para el paciente.
+                  </p>
+                  <Textarea
+                    rows={3}
+                    value={notasPrivadas}
+                    onChange={(e) => setNotasPrivadas(e.target.value)}
+                  />
+                </div>
+              )}
               {errorDictado && <p className="text-sm text-destructive">{errorDictado}</p>}
               {resumen.error && <p className="text-sm text-destructive">{resumen.error}</p>}
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>
-              <Button type="button" onClick={handleGuardar} disabled={saving || isRecording || ocupado || !contenido.trim()}>
+              <Button type="button" onClick={handleGuardar} disabled={saving || isRecording || ocupado || !puedeGuardar}>
                 {saving ? "Guardando..." : isEditing ? "Guardar" : "Agregar"}
               </Button>
             </DialogFooter>

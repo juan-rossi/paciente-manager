@@ -15,6 +15,10 @@ const TEXT_FIELDS = [
   "telefono",
   "contactoEmergencia",
   "telefonoEmergencia",
+  "responsableNombre",
+  "responsableVinculo",
+  "responsableDni",
+  "responsableTelefono",
   "autoValidoTotal",
   "autoValidoParcial",
   "dependiente",
@@ -170,6 +174,7 @@ export function patientFromApi(patient: any, psicologia = false): {
       fecha: toDateInputValue(e.fecha),
       contenido: e.contenido ?? "",
       contenidoDictado: e.contenidoDictado ?? null,
+      ...camposSesionFromApi(e),
       deletedAt: e.deletedAt ?? null,
     })
   );
@@ -259,4 +264,26 @@ export function odontogramaFromApi(o: any): OdontogramaValue {
     datos: parseDatos(o.datos),
     ...(Array.isArray(o.practicas) ? { practicas: o.practicas.map(practicaVisitaFromDb) } : {}),
   };
+}
+
+// Campos de sesión de psicología de una PatientEvolucion (de Prisma o de la
+// API) -> valor del formulario. Para el resto de las especialidades vienen
+// todos en null.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function camposSesionFromApi(e: any): Pick<
+  EvolucionValue,
+  "asistencia" | "modalidad" | "riesgo" | "notasPrivadas"
+> {
+  return {
+    asistencia: e.asistencia ?? null,
+    modalidad: e.modalidad ?? null,
+    riesgo: e.riesgo ?? null,
+    notasPrivadas: e.notasPrivadas ?? null,
+  };
+}
+
+// Menor de edad según la fecha de nacimiento ("YYYY-MM-DD"). Sin fecha, no.
+export function esMenorDeEdad(fechaNacimiento: string): boolean {
+  const edad = calcularEdad(fechaNacimiento);
+  return edad !== "" && Number(edad) < 18;
 }

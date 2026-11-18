@@ -11,6 +11,9 @@ import {
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
   vocabularioEvolucion,
+  ASISTENCIA_LABELS,
+  MODALIDAD_LABELS,
+  numerarSesiones,
 } from "@/components/patient-form/constants";
 import { esPsicologia } from "@/lib/especialidad";
 import { TIME_ZONE } from "@/lib/timezone";
@@ -149,6 +152,17 @@ export default async function HistoriaClinicaPage({ params }: Props) {
 
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "");
 
+  // Psicología: número de cada sesión (ver numerarSesiones()).
+  const numerosSesion = new Map<(typeof patient.evoluciones)[number], number>();
+  if (psicologia) {
+    const sesiones = patient.evoluciones.map((e) => ({
+      e,
+      fecha: e.fecha.toISOString(),
+      asistencia: e.asistencia,
+    }));
+    for (const [s, n] of numerarSesiones(sesiones)) numerosSesion.set(s.e, n);
+  }
+
   return (
     <PageEnter>
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 print:max-w-none print:px-0 print:py-0">
@@ -197,6 +211,10 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             { label: "Nro Obra Social", value: patient.obraSocialNro },
             { label: "Contacto de emergencia", value: patient.contactoEmergencia },
             { label: "Teléfono de emergencia", value: patient.telefonoEmergencia },
+            { label: "Responsable", value: patient.responsableNombre },
+            { label: "Vínculo del responsable", value: patient.responsableVinculo },
+            { label: "DNI del responsable", value: patient.responsableDni },
+            { label: "Teléfono del responsable", value: patient.responsableTelefono },
           ]}
         />
 
@@ -339,8 +357,18 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             <div className="flex flex-col gap-3 text-sm">
               {patient.evoluciones.map((e) => (
                 <div key={e.id} className="break-inside-avoid">
-                  <p className="text-xs font-semibold text-muted-foreground">{formatFecha(e.fecha)}</p>
-                  <p className="whitespace-pre-wrap">{e.contenido}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {[
+                      numerosSesion.has(e) ? `Sesión ${numerosSesion.get(e)}` : null,
+                      formatFecha(e.fecha),
+                      e.asistencia && e.asistencia !== "PRESENTE" ? ASISTENCIA_LABELS.get(e.asistencia) : null,
+                      e.modalidad ? MODALIDAD_LABELS.get(e.modalidad) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {/* El riesgo y las notas privadas del psicólogo no van en la copia. */}
+                  {e.contenido && <p className="whitespace-pre-wrap">{e.contenido}</p>}
                   <div className="mt-1 print:hidden">
                     <DictadoCompleto dictado={e.contenidoDictado} />
                   </div>

@@ -877,6 +877,13 @@ model Patient {
   contactoEmergencia String?
   telefonoEmergencia String?
 
+  // Adulto responsable, para pacientes menores de edad (firma el
+  // consentimiento informado junto con el paciente o en su nombre).
+  responsableNombre   String?
+  responsableVinculo  String?
+  responsableDni      String?
+  responsableTelefono String?
+
   // Consulta inicial
   autoValidoTotal               String?
   autoValidoParcial             String?
@@ -1027,9 +1034,36 @@ model PatientEvolucion {
   contenido        String
   // Dictado original cuando `contenido` es un resumen de IA.
   contenidoDictado String?
+
+  // Solo sesiones de psicología (ver esPsicologia()). En una sesión AUSENTE o
+  // CANCELADA `contenido` puede quedar vacío.
+  asistencia    AsistenciaSesion?
+  modalidad     ModalidadSesion?
+  riesgo        NivelRiesgo?
+  // No sale en la copia de la historia clínica para el paciente.
+  notasPrivadas String?
+
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
   // se borra físicamente, se oculta.
   deletedAt        DateTime?
+}
+
+enum AsistenciaSesion {
+  PRESENTE
+  AUSENTE
+  CANCELADA
+}
+
+enum ModalidadSesion {
+  PRESENCIAL
+  ONLINE
+}
+
+enum NivelRiesgo {
+  SIN_RIESGO
+  BAJO
+  MODERADO
+  ALTO
 }
 
 enum OdontogramaTipo {

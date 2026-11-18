@@ -96,6 +96,11 @@ export const patientSchema = z.object({
     .regex(/^\+?\d+$/, "El teléfono solo puede contener números y, opcionalmente, un + inicial."),
   contactoEmergencia: optionalString,
   telefonoEmergencia: optionalPhoneString,
+  // Solo menores de edad.
+  responsableNombre: optionalString,
+  responsableVinculo: optionalString,
+  responsableDni: optionalString,
+  responsableTelefono: optionalPhoneString,
 
   // Consulta inicial
   autoValidoTotal: optionalString,

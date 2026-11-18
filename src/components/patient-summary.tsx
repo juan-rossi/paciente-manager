@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import {
+  AlertTriangle,
   ClipboardCheck,
   ClipboardSignature,
   FileText,
@@ -21,9 +22,17 @@ import {
   ANTECEDENTE_LABELS,
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
+  ASISTENCIA_LABELS,
+  MODALIDAD_LABELS,
+  RIESGO_LABELS,
+  riesgoDestacado,
   vocabularioEvolucion,
 } from "@/components/patient-form/constants";
-import { calcularEdad } from "@/components/patient-form/utils";
+import {
+  calcularEdad,
+  camposSesionFromApi,
+  formatFechaCorta,
+} from "@/components/patient-form/utils";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
@@ -107,6 +116,10 @@ const CAMPO_LABELS: Record<string, string> = {
   fecha: "Fecha",
   contenido: "Contenido",
   contenidoDictado: "Dictado",
+  asistencia: "Asistencia",
+  modalidad: "Modalidad",
+  riesgo: "Riesgo",
+  notasPrivadas: "Notas privadas",
   revocadoEn: "Fecha de revocación",
   revocadoMotivo: "Motivo de revocación",
   datos: "Piezas que cambiaron (estado anterior)",
@@ -126,6 +139,13 @@ function formatDetalleValor(entidad: string, campo: string, value: unknown): str
     if (value === "CONTROL") return "Control";
   }
   if (value === null || value === undefined || value === "") return "—";
+  if (entidad === "EVOLUCION" && typeof value === "string") {
+    const etiqueta =
+      (campo === "asistencia" && ASISTENCIA_LABELS.get(value)) ||
+      (campo === "modalidad" && MODALIDAD_LABELS.get(value)) ||
+      (campo === "riesgo" && RIESGO_LABELS.get(value));
+    if (etiqueta) return etiqueta;
+  }
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
     const fecha = new Date(value);
@@ -226,7 +246,34 @@ export function PatientSummary({
     fecha: e.fecha.toISOString().slice(0, 10),
     contenido: e.contenido,
     contenidoDictado: e.contenidoDictado,
+    ...camposSesionFromApi(e),
   }));
+
+  // Psicología: el último riesgo registrado manda (si la sesión siguiente lo
+  // bajó, deja de alertar). Moderado o alto se avisa arriba de todo.
+  const ultimoRiesgo = psicologia
+    ? evolucionValues
+        .filter((e) => e.riesgo)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        .at(-1)
+    : undefined;
+  const alertaRiesgo = ultimoRiesgo && riesgoDestacado(ultimoRiesgo.riesgo) && (
+    <div
+      role="alert"
+      className={cn(
+        "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm",
+        ultimoRiesgo.riesgo === "ALTO"
+          ? "border-destructive/40 bg-destructive/10 text-destructive"
+          : "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+      )}
+    >
+      <AlertTriangle className="size-4 shrink-0" />
+      <span>
+        <strong>{RIESGO_LABELS.get(ultimoRiesgo.riesgo!)}</strong> registrado en la sesión del{" "}
+        {formatFechaCorta(ultimoRiesgo.fecha)}.
+      </span>
+    </div>
+  );
 
   const consentimientoValues: ConsentimientoValue[] = patient.consentimientos.map((c) => ({
     id: c.id,
@@ -267,6 +314,11 @@ export function PatientSummary({
 
   // Ficha odontológica: la información va en la columna lateral angosta, así
   // que usa 2 columnas fijas en vez de la grilla de 12.
+  // Menores de edad: adulto responsable (ver datos-personales-tab.tsx).
+  const responsable = patient.responsableNombre?.trim()
+    ? `${patient.responsableNombre}${patient.responsableVinculo ? ` (${patient.responsableVinculo})` : ""}`
+    : null;
+
   const informacionCompacta = odontograma && (
     <FormSection title="Información del Paciente" icon={IdCard} contentClassName="bg-card">
       <div className="col-span-full grid grid-cols-2 gap-x-4 gap-y-3">
@@ -276,6 +328,12 @@ export function PatientSummary({
         <InfoField label="Teléfono" value={patient.telefono} className="col-span-2" />
         <InfoField label="Obra Social" value={patient.obraSocial} />
         <InfoField label="Nro Obra Social" value={patient.obraSocialNro} />
+        {responsable && (
+          <>
+            <InfoField label="Responsable" value={responsable} className="col-span-2" />
+            <InfoField label="Tel. responsable" value={patient.responsableTelefono} className="col-span-2" />
+          </>
+        )}
       </div>
     </FormSection>
   );
@@ -293,6 +351,16 @@ export function PatientSummary({
         <InfoField label="Teléfono" value={patient.telefono} className="sm:col-span-3" />
         <InfoField label="Obra Social" value={patient.obraSocial} className="sm:col-span-6" />
         <InfoField label="Nro Obra Social" value={patient.obraSocialNro} className="sm:col-span-6" />
+        {responsable && (
+          <>
+            <InfoField label="Responsable" value={responsable} className="sm:col-span-6" />
+            <InfoField
+              label="Tel. responsable"
+              value={patient.responsableTelefono}
+              className="sm:col-span-6"
+            />
+          </>
+        )}
       </div>
     </FormSection>
   );
@@ -403,7 +471,11 @@ export function PatientSummary({
   );
 
   const consentimientos = (
-    <ConsentimientoManager patientId={patient.id} initialConsentimientos={consentimientoValues} />
+    <ConsentimientoManager
+      patientId={patient.id}
+      initialConsentimientos={consentimientoValues}
+      psicologia={psicologia}
+    />
   );
 
   if (odontograma) {
@@ -461,6 +533,8 @@ export function PatientSummary({
   return (
     <div className="flex flex-col gap-6">
       {encabezado}
+
+      {alertaRiesgo}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="contents lg:sticky lg:top-20 lg:-m-1 lg:flex lg:max-h-[calc(100vh-6rem)] lg:flex-col lg:gap-6 lg:self-start lg:overflow-y-auto lg:p-1 lg:*:shrink-0 subtle-scrollbar">

@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Plus,
   Printer,
+  Sparkles,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { PLANTILLA_PSICOTERAPIA } from "@/lib/consentimiento-plantillas";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -45,6 +47,8 @@ export type ConsentimientoValue = {
 type Props = {
   patientId: string;
   initialConsentimientos: ConsentimientoValue[];
+  // Psicología (ver esPsicologia()): ofrece la plantilla de psicoterapia.
+  psicologia?: boolean;
 };
 
 // `new Date().toISOString()` da la fecha en UTC, y los componentes LOCALES
@@ -56,7 +60,11 @@ function todayLocal() {
   return formatDateParamBA(new Date());
 }
 
-export function ConsentimientoManager({ patientId, initialConsentimientos }: Props) {
+export function ConsentimientoManager({
+  patientId,
+  initialConsentimientos,
+  psicologia = false,
+}: Props) {
   const [items, setItems] = useState<ConsentimientoValue[]>(initialConsentimientos);
   const activos = items.filter((c) => !c.deletedAt);
   const eliminados = items.filter((c) => c.deletedAt);
@@ -78,6 +86,12 @@ export function ConsentimientoManager({ patientId, initialConsentimientos }: Pro
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  function usarPlantillaPsicoterapia() {
+    setProcedimiento(PLANTILLA_PSICOTERAPIA.procedimiento);
+    setRiesgosBeneficios(PLANTILLA_PSICOTERAPIA.riesgosBeneficios);
+    setAlternativas(PLANTILLA_PSICOTERAPIA.alternativas);
+  }
 
   function resetForm() {
     setProcedimiento("");
@@ -321,23 +335,35 @@ export function ConsentimientoManager({ patientId, initialConsentimientos }: Pro
             <Plus className="size-4" />
             Nuevo consentimiento
           </Button>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className={psicologia ? "sm:max-w-2xl" : "sm:max-w-lg"}>
             <DialogHeader>
               <DialogTitle>Nuevo consentimiento informado</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-3">
+              {psicologia && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/60 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    Partí de un texto base para psicoterapia y ajustalo a tu encuadre.
+                  </p>
+                  <Button type="button" variant="outline" size="sm" onClick={usarPlantillaPsicoterapia}>
+                    <Sparkles className="size-3.5" />
+                    Usar plantilla
+                  </Button>
+                </div>
+              )}
               <div className="flex flex-col gap-1.5">
                 <Label>Procedimiento / tratamiento</Label>
                 <Input
                   value={procedimiento}
                   onChange={(e) => setProcedimiento(e.target.value)}
-                  placeholder="Ej. Biopsia de piel"
+                  placeholder={psicologia ? "Ej. Psicoterapia individual" : "Ej. Biopsia de piel"}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Riesgos, beneficios y consecuencias informadas</Label>
                 <Textarea
-                  rows={4}
+                  rows={psicologia ? 8 : 4}
+                  className={psicologia ? "max-h-[40dvh] overflow-y-auto" : undefined}
                   value={riesgosBeneficios}
                   onChange={(e) => setRiesgosBeneficios(e.target.value)}
                 />

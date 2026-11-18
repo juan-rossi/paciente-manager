@@ -26,6 +26,11 @@ export type PatientFormValues = {
   telefono: string;
   contactoEmergencia: string;
   telefonoEmergencia: string;
+  // Solo menores de edad.
+  responsableNombre: string;
+  responsableVinculo: string;
+  responsableDni: string;
+  responsableTelefono: string;
 
   // Consulta inicial
   autoValidoTotal: string;
@@ -125,6 +130,11 @@ export type EvolucionValue = {
   // Texto original dictado cuando `contenido` es un resumen de IA.
   contenidoDictado?: string | null;
   deletedAt?: string | null;
+  // Solo sesiones de psicología (ver esPsicologia()).
+  asistencia?: import("./constants").AsistenciaSesion | null;
+  modalidad?: import("./constants").ModalidadSesion | null;
+  riesgo?: import("./constants").NivelRiesgo | null;
+  notasPrivadas?: string | null;
 };
 
 // En qué campos se resume con IA apenas termina un dictado (ver
