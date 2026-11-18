@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SettingsSection } from "@/components/settings-section";
+import { etiquetasHistoriaClinica } from "@/components/patient-form/constants";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { cn } from "@/lib/utils";
 
@@ -124,7 +125,7 @@ export function DictadoSettings({
               />
               <div className="flex flex-col gap-0.5">
                 <Label htmlFor="resumen-auto-antecedentes" className="font-normal">
-                  Antecedentes de la enfermedad actual
+                  {etiquetasHistoriaClinica(psicologia).antecedentesEnfermedad}
                 </Label>
                 <p className="text-xs text-muted-foreground">En la consulta inicial del paciente.</p>
               </div>
