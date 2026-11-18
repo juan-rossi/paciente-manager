@@ -133,6 +133,7 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
   const [error, setError] = useState<string | null>(null);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [creandoVisita, setCreandoVisita] = useState(false);
   // Acción que quedó pendiente porque había cambios sin guardar.
   const [pendiente, setPendiente] = useState<(() => void) | null>(null);
 
@@ -190,27 +191,53 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
   function registrarVisita() {
     protegerCambios(() => {
       const ultimo = guardados[guardados.length - 1];
-      // Una visita nueva arranca con el estado en que quedó la anterior.
-      setBorrador(
-        ultimo
-          ? {
-              tipo: "CONTROL",
-              fecha: hoy(),
-              nota: "",
-              // Lo hecho en la visita anterior ya es existente (rojo).
-              datos: aplicarPracticas(
-                ultimo.datos,
-                (ultimo.id && practicasPorVisita[ultimo.id]) || [],
-                "existente"
-              ),
-            }
-          : odontogramaVacio("INICIAL")
-      );
-      setSeleccion(NUEVO);
-      setComparar(Boolean(ultimo));
-      setEditando(true);
-      setError(null);
+      if (!ultimo) {
+        // Sin nada guardado no hay de dónde copiar: se arranca el inicial en blanco.
+        setBorrador(odontogramaVacio("INICIAL"));
+        setSeleccion(NUEVO);
+        setComparar(false);
+        setEditando(true);
+        setError(null);
+        return;
+      }
+      // La visita se crea en la base al toque para poder cargarle prácticas
+      // sin tener que guardarla primero. Arranca con el estado en que quedó la
+      // anterior: lo hecho en ella ya es existente (rojo).
+      void crearVisita({
+        tipo: "CONTROL",
+        fecha: hoy(),
+        nota: "",
+        datos: aplicarPracticas(ultimo.datos, (ultimo.id && practicasPorVisita[ultimo.id]) || [], "existente"),
+      });
     });
+  }
+
+  async function crearVisita(nueva: OdontogramaValue) {
+    setCreandoVisita(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/patients/${patientId}/odontogramas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nueva),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo registrar la visita.");
+        return;
+      }
+      const creada = odontogramaFromApi(data.odontograma);
+      setGuardados((prev) => ordenar([...prev, creada]));
+      if (creada.id) setPracticasPorVisita((prev) => ({ ...prev, [creada.id!]: [] }));
+      setSeleccion(creada.id ?? null);
+      setBorrador(creada);
+      setComparar(true);
+      setEditando(true);
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setCreandoVisita(false);
+    }
   }
 
   function mostrarUltimo(lista: OdontogramaValue[]) {
@@ -360,9 +387,9 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
               <Pencil className="size-4" />
               Editar
             </Button>
-            <Button type="button" onClick={registrarVisita}>
-              <Plus className="size-4" />
-              Registrar visita
+            <Button type="button" onClick={registrarVisita} disabled={creandoVisita}>
+              {creandoVisita ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+              {creandoVisita ? "Registrando..." : "Registrar visita"}
             </Button>
           </div>
         )}
