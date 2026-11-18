@@ -25,6 +25,15 @@ export const perfilSchema = z.object({
   nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
   // Ids del catálogo `Prepaga` con las que trabaja el médico.
   prepagaIds: z.array(z.string()).max(500),
+  // Monto de la consulta particular en pesos (sin centavos); null = sin cargar.
+  montoConsultaParticular: z
+    .number({ message: "Ingresá un monto válido." })
+    .int("El monto no lleva centavos.")
+    .min(0, "El monto no puede ser negativo.")
+    .max(100_000_000, "El monto es demasiado alto.")
+    .nullable()
+    .optional()
+    .transform((v) => v ?? null),
 });
 
 // Acepta "@usuario" o el link tal cual y lo guarda como URL completa; vacío
@@ -60,6 +69,8 @@ export const visibilidadSchema = z.object({
   // oculto (`LugarDeTrabajo.perfilVisible`).
   lugaresVisibles: z.array(z.string()),
   redes: redesSocialesSchema,
+  // Muestra el monto de la consulta particular (Mi perfil) en el perfil público.
+  montoConsultaVisible: z.boolean().default(false),
 });
 
 // Valores fijos (no un número libre) para el horizonte de la agenda pública.

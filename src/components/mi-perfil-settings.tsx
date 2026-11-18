@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Briefcase, IdCard, ShieldCheck, X } from "lucide-react";
+import { Banknote, Briefcase, IdCard, Info, ShieldCheck, X } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ type Props = {
   initialApellido: string;
   initialEspecialidad: Especialidad | null;
   initialNroMatricula: string;
+  initialMontoConsultaParticular: number | null;
   // Catálogo completo de coberturas y las que ya eligió el médico.
   prepagas: { id: string; nombre: string; nombreCompleto: string | null }[];
   initialPrepagaIds: string[];
@@ -55,6 +56,7 @@ export function MiPerfilSettings({
   initialApellido,
   initialEspecialidad,
   initialNroMatricula,
+  initialMontoConsultaParticular,
   prepagas,
   initialPrepagaIds,
 }: Props) {
@@ -73,6 +75,15 @@ export function MiPerfilSettings({
   const [apellido, setApellido] = useState(initialApellido);
   const [especialidad, setEspecialidad] = useState<Especialidad | "">(initialEspecialidad ?? "");
   const [nroMatricula, setNroMatricula] = useState(initialNroMatricula);
+
+  // Monto de la consulta particular: se guarda solo con dígitos ("15000") y se
+  // muestra con separador de miles ("15.000").
+  const [montoConsulta, setMontoConsulta] = useState(
+    initialMontoConsultaParticular != null ? String(initialMontoConsultaParticular) : ""
+  );
+  const montoConsultaFormateado = montoConsulta
+    ? Number(montoConsulta).toLocaleString("es-AR")
+    : "";
 
   // Coberturas con las que trabaja -- se guardan con "Guardar cambios".
   const [prepagaIds, setPrepagaIds] = useState<string[]>(initialPrepagaIds);
@@ -104,6 +115,7 @@ export function MiPerfilSettings({
     apellido,
     especialidad,
     nroMatricula,
+    montoConsulta,
     prepagaIds: [...prepagaIds].sort(),
   });
   const [perfilGuardado, setPerfilGuardado] = useState(perfilSnapshot);
@@ -196,6 +208,7 @@ export function MiPerfilSettings({
           especialidad,
           nroMatricula,
           prepagaIds,
+          montoConsultaParticular: montoConsulta ? Number(montoConsulta) : null,
         }),
       });
       const data = await response.json();
@@ -403,6 +416,40 @@ export function MiPerfilSettings({
         </p>
       </SettingsSection>
 
+      <SettingsSection title="Consulta particular" icon={Banknote}>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="perfil-monto-consulta">Monto de la consulta particular</Label>
+          <div className="relative sm:max-w-xs">
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+              $
+            </span>
+            <Input
+              id="perfil-monto-consulta"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="0"
+              value={montoConsultaFormateado}
+              onChange={(e) => setMontoConsulta(e.target.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 9))}
+              className="pl-7 tabular-nums"
+              aria-describedby="perfil-monto-consulta-ayuda"
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Lo que cobrás a pacientes sin cobertura. Podés dejarlo vacío.
+          </span>
+        </div>
+        <div
+          id="perfil-monto-consulta-ayuda"
+          className="flex gap-2.5 rounded-lg bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"
+        >
+          <Info className="mt-px size-3.5 shrink-0" />
+          <p>
+            Cargar este monto no lo publica en tu perfil: para mostrarlo a tus pacientes, prendelo
+            en Información pública. Además, nos sirve como referencia para los reportes financieros que
+            sumemos más adelante.
+          </p>
+        </div>
+      </SettingsSection>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
       {Object.keys(fieldErrors).length > 0 && (

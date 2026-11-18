@@ -195,6 +195,13 @@ model User {
   nombre                   String
   apellido                 String          @default("")
   nroMatricula             String          @default("")
+  // Lo que cobra el médico por una consulta particular (sin cobertura), en
+  // pesos sin centavos. Se carga en Configuración > Mi perfil; null = no lo
+  // cargó. Solo se publica con `montoConsultaVisible`.
+  montoConsultaParticular  Int?
+  // Si el monto de arriba se muestra en el perfil público (Configuración >
+  // Información pública). Arranca apagado: cargar el monto no lo publica.
+  montoConsultaVisible     Boolean         @default(false)
   // Solo aplica a role DOCTOR -- se completa en el registro (`/signup` o
   // `/onboarding` post-Google) y se muestra antes del nombre en el header.
   tituloCortesia           TituloCortesia?

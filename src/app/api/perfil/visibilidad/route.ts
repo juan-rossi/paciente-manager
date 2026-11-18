@@ -48,6 +48,7 @@ export async function PATCH(request: NextRequest) {
       data: {
         perfilPublico: parsed.data.perfilPublico,
         biografia: parsed.data.biografia,
+        montoConsultaVisible: parsed.data.montoConsultaVisible,
         ...redes,
         publicSlug,
       },
@@ -79,6 +80,7 @@ export async function PATCH(request: NextRequest) {
     perfilPublico: updated.perfilPublico,
     perfilPublicado,
     biografia: updated.biografia,
+    montoConsultaVisible: updated.montoConsultaVisible,
     // Ya normalizadas: el form las reemplaza para mostrar lo que se guardó.
     redes: redesDeUsuario(updated),
     publicSlug: updated.publicSlug,

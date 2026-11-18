@@ -367,6 +367,8 @@ export async function getDoctorPublicoPorSlug(slug: string) {
       ...cuentaSelect,
       perfilPublico: true,
       perfilPublicadoAt: true,
+      montoConsultaParticular: true,
+      montoConsultaVisible: true,
       whatsappComunidadUrl: true,
       instagramUrl: true,
       facebookUrl: true,
@@ -460,4 +462,14 @@ export async function getSlugsPerfilesPublicos(): Promise<string[]> {
     orderBy: { apellido: "asc" },
   });
   return rows.map((r) => r.publicSlug!);
+}
+
+// Precio de la consulta particular para el perfil público: solo con el perfil
+// público prendido y si el médico eligió mostrarlo (arranca oculto).
+export function montoConsultaPublico(doctor: {
+  perfilPublico: boolean;
+  montoConsultaVisible: boolean;
+  montoConsultaParticular: number | null;
+}): number | null {
+  return doctor.perfilPublico && doctor.montoConsultaVisible ? doctor.montoConsultaParticular : null;
 }

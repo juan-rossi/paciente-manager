@@ -71,6 +71,10 @@ type Props = {
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
   lugares: LugarResumen[];
   initialBiografia: string | null;
+  // Se carga en "Mi perfil"; acá solo se decide si se publica. Se lee de las
+  // props para reflejar lo guardado allá tras un refresh. Null = sin cargar.
+  montoConsultaParticular: number | null;
+  initialMontoConsultaVisible: boolean;
   // Si la biografía/foto cargadas todavía esperan revisión (o se rechazaron)
   // para el perfil público.
   initialModeracion: { biografia: EstadoAvisoModeracion; foto: EstadoAvisoModeracion };
@@ -89,6 +93,8 @@ export function VisibilidadSettings({
   perfilPublicado,
   lugares,
   initialBiografia,
+  montoConsultaParticular,
+  initialMontoConsultaVisible,
   initialModeracion,
   initialRedes,
   initialReservaPublicaHabilitada,
@@ -101,6 +107,7 @@ export function VisibilidadSettings({
 
   const [perfilPublico, setPerfilPublico] = useState(initialPerfilPublico);
   const [biografia, setBiografia] = useState(initialBiografia ?? "");
+  const [montoConsultaVisible, setMontoConsultaVisible] = useState(initialMontoConsultaVisible);
   const [moderacion, setModeracion] = useState(initialModeracion);
   const [redes, setRedes] = useState(() => redesATexto(initialRedes));
   // El error de una red se muestra recién al salir del campo (mientras se
@@ -159,6 +166,7 @@ export function VisibilidadSettings({
   const visibilidadSnapshot = JSON.stringify({
     perfilPublico,
     biografia,
+    montoConsultaVisible,
     lugaresVisibles: [...lugaresVisibles].sort(),
     redes,
   });
@@ -203,7 +211,7 @@ export function VisibilidadSettings({
       const response = await fetch("/api/perfil/visibilidad", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ perfilPublico, biografia, lugaresVisibles, redes }),
+        body: JSON.stringify({ perfilPublico, biografia, montoConsultaVisible, lugaresVisibles, redes }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -517,6 +525,40 @@ export function VisibilidadSettings({
                 onChange={(e) => setBiografia(e.target.value)}
               />
               <AvisoModeracion campo="biografia" estado={avisoCampo(moderacion.biografia)} />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-t border-dashed border-border pt-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span id="perfil-monto-visible-label" className="text-sm font-semibold">
+                  Mostrar valor de la consulta particular
+                </span>
+                <p className="max-w-md text-xs text-muted-foreground">
+                  {montoConsultaParticular != null ? (
+                    <>
+                      Tus pacientes verán{" "}
+                      <span className="font-semibold text-foreground tabular-nums">
+                        $ {montoConsultaParticular.toLocaleString("es-AR")}
+                      </span>{" "}
+                      en tu perfil público.{" "}
+                    </>
+                  ) : (
+                    "Primero cargá el monto en Mi perfil. "
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => irAConfiguracionTab("perfil", "perfil-monto-consulta")}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    {montoConsultaParticular != null ? "Cambiar monto" : "Cargar monto"}
+                  </button>
+                </p>
+              </div>
+              <Switch
+                aria-labelledby="perfil-monto-visible-label"
+                checked={montoConsultaVisible && montoConsultaParticular != null}
+                onCheckedChange={setMontoConsultaVisible}
+                disabled={montoConsultaParticular == null}
+              />
             </div>
 
             <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">

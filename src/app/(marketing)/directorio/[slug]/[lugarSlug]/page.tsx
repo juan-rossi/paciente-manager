@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDoctorPublicoPorSlug } from "@/lib/directorio";
+import { getDoctorPublicoPorSlug, montoConsultaPublico } from "@/lib/directorio";
 import { getTurnoVigenteParaPerfil } from "@/lib/turno-cancelacion-publica";
 import { nombreDoctor } from "@/lib/seo";
 import { redesDeUsuario } from "@/lib/redes-sociales";
@@ -61,6 +61,7 @@ export default async function AgendaLugarPage({ params }: Props) {
       ciudad={lugar.ciudad ?? ""}
       biografia={doctor.perfilPublico ? doctor.biografia : null}
       redes={doctor.perfilPublico ? redesDeUsuario(doctor) : null}
+      montoConsulta={montoConsultaPublico(doctor)}
       prepagas={
         doctor.perfilPublico
           ? doctor.prepagas.map(({ prepaga }) =>

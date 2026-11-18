@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, ChevronRight, MapPin, Phone } from "lucide-react";
+import { Banknote, Building2, ChevronRight, MapPin, Phone } from "lucide-react";
 import { ESPECIALIDAD_LABELS, especialidadPath, type Especialidad } from "@/lib/especialidad";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { RED_SOCIAL_LABELS, type RedesSociales, type RedSocial } from "@/lib/redes-sociales";
@@ -146,6 +146,7 @@ export function PerfilShell({
   ciudad,
   biografia,
   redes,
+  montoConsulta,
   prepagas,
   apilado = false,
   children,
@@ -155,6 +156,8 @@ export function PerfilShell({
   biografia?: string | null;
   // Null cuando el perfil no es público: las redes no se muestran.
   redes?: RedesSociales | null;
+  // Precio de la consulta particular; null si el médico no lo muestra.
+  montoConsulta?: number | null;
   prepagas?: string[];
   // Sin calendario (cuenta inactiva o sin reservas online) no hay nada que
   // poner al lado del perfil: se apilan las secciones en una sola columna.
@@ -250,6 +253,17 @@ export function PerfilShell({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {montoConsulta != null && (
+            <div>
+              <h2 className="font-heading text-sm font-bold">Consulta particular</h2>
+              <p className="mt-2 flex items-center gap-1.5 text-sm">
+                <Banknote className="size-4 shrink-0 text-muted-foreground" />
+                <span className="font-semibold tabular-nums">$ {montoConsulta.toLocaleString("es-AR")}</span>
+                <span className="text-xs text-muted-foreground">· sin cobertura</span>
+              </p>
             </div>
           )}
         </aside>

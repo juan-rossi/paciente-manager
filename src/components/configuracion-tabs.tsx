@@ -18,7 +18,9 @@ import { Tabs } from "@/components/ui/tabs";
 import {
   CONFIGURACION_TAB_COOKIE,
   CONFIGURACION_TAB_EVENT,
+  enfocarCampoCuandoAparezca,
   esConfiguracionTab,
+  type IrATabDetalle,
   type ConfiguracionTab,
 } from "@/lib/configuracion-tabs";
 import { cn } from "@/lib/utils";
@@ -79,10 +81,11 @@ export function ConfiguracionTabs({ children, initialTab, tabsOcultas = [], ...p
 
   useEffect(() => {
     function handleIrATab(e: Event) {
-      const destino = (e as CustomEvent<string>).detail;
+      const { tab: destino, enfocarId } = (e as CustomEvent<IrATabDetalle>).detail;
       if (esConfiguracionTab(destino) && !tabsOcultas.includes(destino)) {
         setTab(destino);
         guardarTabEnCookie(destino);
+        if (enfocarId) enfocarCampoCuandoAparezca(enfocarId);
       }
     }
     window.addEventListener(CONFIGURACION_TAB_EVENT, handleIrATab);

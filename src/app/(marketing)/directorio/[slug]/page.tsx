@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Building2, MapPin, Phone } from "lucide-react";
-import { getDoctorPublicoPorSlug } from "@/lib/directorio";
+import { getDoctorPublicoPorSlug, montoConsultaPublico } from "@/lib/directorio";
 import { getTurnoVigenteParaPerfil } from "@/lib/turno-cancelacion-publica";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { descripcionPerfil, nombreDoctor, perfilJsonLd } from "@/lib/seo";
@@ -139,6 +139,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
       ciudad={ciudad}
       biografia={doctor.perfilPublico ? doctor.biografia : null}
       redes={doctor.perfilPublico ? redesDeUsuario(doctor) : null}
+      montoConsulta={montoConsultaPublico(doctor)}
       prepagas={prepagas}
       apilado={!hayCalendario}
     >

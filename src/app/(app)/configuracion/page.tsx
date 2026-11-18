@@ -190,6 +190,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               initialApellido={user.apellido}
               initialEspecialidad={user.especialidad}
               initialNroMatricula={user.nroMatricula}
+              initialMontoConsultaParticular={user.montoConsultaParticular}
               prepagas={prepagas}
               initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
             />
@@ -206,6 +207,8 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                 tieneHorarios: blocks.some((b) => b.lugarId === l.id),
               }))}
               initialBiografia={user.biografia}
+              montoConsultaParticular={user.montoConsultaParticular}
+              initialMontoConsultaVisible={user.montoConsultaVisible}
               initialModeracion={moderacion}
               initialRedes={redesDeUsuario(user)}
               initialReservaPublicaHabilitada={user.reservaPublicaHabilitada}

@@ -3,7 +3,17 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaClass: typeof PrismaClient | undefined;
 };
+
+// En dev el cliente se guarda en globalThis para no abrir conexiones nuevas en
+// cada hot reload. Pero después de `prisma generate` (p. ej. una migración que
+// agrega columnas) la clase cambia y la instancia vieja no conoce los campos
+// nuevos -- en ese caso se descarta y se crea otra, sin reiniciar `next dev`.
+if (globalForPrisma.prisma && globalForPrisma.prismaClass !== PrismaClient) {
+  void globalForPrisma.prisma.$disconnect().catch(() => {});
+  globalForPrisma.prisma = undefined;
+}
 
 // `prisma dev` (local) runs on PGlite, which is single-connection under the
 // hood: several heavy queries in parallel over separate connections make it
@@ -26,4 +36,5 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
+  globalForPrisma.prismaClass = PrismaClient;
 }

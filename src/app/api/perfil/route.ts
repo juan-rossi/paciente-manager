@@ -33,6 +33,7 @@ export async function PATCH(request: NextRequest) {
         apellido: parsed.data.apellido,
         especialidad: parsed.data.especialidad,
         nroMatricula: parsed.data.nroMatricula,
+        montoConsultaParticular: parsed.data.montoConsultaParticular,
       },
     }),
     prisma.doctorPrepaga.deleteMany({
@@ -50,5 +51,6 @@ export async function PATCH(request: NextRequest) {
     apellido: updated.apellido,
     especialidad: updated.especialidad,
     nroMatricula: updated.nroMatricula,
+    montoConsultaParticular: updated.montoConsultaParticular,
   });
 }
