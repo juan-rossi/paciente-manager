@@ -22,47 +22,47 @@ export type VisitaHistorial = {
 const VISIBLES = 5;
 
 // Tarjeta del detalle de paciente (solo odontólogos), debajo del odontograma:
-// las visitas de la más reciente a la más vieja, marcando cuáles tuvieron
-// prácticas (nodo verde) y cuáles no (nodo hueco).
-export function OdontogramaVisitas({ visitas }: { visitas: VisitaHistorial[] }) {
+// las visitas en las que se realizó al menos una práctica, de la más reciente a
+// la más vieja. Las visitas sin prácticas no se muestran.
+export function OdontogramaVisitas({
+  visitas: todas,
+}: {
+  visitas: VisitaHistorial[];
+}) {
   const [verTodas, setVerTodas] = useState(false);
+  const visitas = todas.filter((v) => v.practicas.length > 0);
   if (visitas.length === 0) return null;
 
-  const conPracticas = visitas.filter((v) => v.practicas.length > 0).length;
   const mostradas = verTodas ? visitas : visitas.slice(0, VISIBLES);
   const ocultas = visitas.length - mostradas.length;
 
   return (
     <FormSection
-      title="Historial de visitas"
+      title="Historial de prácticas realizadas"
       icon={History}
       contentClassName="bg-card sm:grid-cols-1 lg:grid-cols-1"
       headerExtra={
         <span className="text-xs font-normal text-muted-foreground tabular-nums">
-          {visitas.length} {visitas.length === 1 ? "visita" : "visitas"} · {conPracticas} con
-          prácticas
+          {visitas.length} {visitas.length === 1 ? "visita" : "visitas"}
         </span>
       }
     >
       <ol className="flex flex-col">
         {mostradas.map((v, i) => {
-          const tienePracticas = v.practicas.length > 0;
           const ultima = i === mostradas.length - 1;
           const nota = v.nota.trim();
           return (
             <li key={v.id} className={cn("relative pl-7", !ultima && "pb-5")}>
               {/* Línea que une los nodos. */}
               {!ultima && (
-                <span aria-hidden className="absolute top-4 bottom-0 left-[6px] w-0.5 bg-border" />
+                <span
+                  aria-hidden
+                  className="absolute top-4 bottom-0 left-[6px] w-0.5 bg-border"
+                />
               )}
               <span
                 aria-hidden
-                className={cn(
-                  "absolute top-[3px] left-0 size-3.5 rounded-full border-2",
-                  tienePracticas
-                    ? "border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500"
-                    : "border-muted-foreground/50 bg-card"
-                )}
+                className="absolute top-[3px] left-0 size-3.5 rounded-full border-2 border-emerald-600 bg-emerald-600 dark:border-emerald-500 dark:bg-emerald-500"
               />
 
               <div className="flex flex-wrap items-center gap-2">
@@ -74,42 +74,43 @@ export function OdontogramaVisitas({ visitas }: { visitas: VisitaHistorial[] }) 
                     "rounded-full px-2 py-0.5 text-[11px] font-semibold",
                     v.tipo === "INICIAL"
                       ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"
-                      : "bg-primary/10 text-primary"
+                      : "bg-primary/10 text-primary",
                   )}
                 >
                   {v.tipo === "INICIAL" ? "Inicial" : "Control"}
                 </span>
-                {i === 0 && <span className="text-xs text-muted-foreground">Última visita</span>}
               </div>
 
               {nota && (
-                <p className="mt-1 text-sm whitespace-pre-wrap text-muted-foreground">{nota}</p>
-              )}
-
-              {tienePracticas ? (
-                <ul className="mt-2 flex flex-col divide-y divide-border rounded-lg border border-border bg-muted/30">
-                  {v.practicas.map((p) => (
-                    <li key={p.id} className="flex items-baseline gap-2 px-3 py-2 text-xs">
-                      <span className="shrink-0 rounded bg-muted px-1 font-mono text-[11px] text-muted-foreground tabular-nums">
-                        {p.codigo}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="font-semibold tabular-nums">
-                          {p.pieza ?? "Boca completa"} ·{" "}
-                        </span>
-                        {p.descripcion}
-                        {p.caras.length > 0 && (
-                          <span className="text-muted-foreground"> ({p.caras.join(" ")})</span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground italic">
-                  No se registraron prácticas en esta visita.
+                <p className="mt-1 text-sm whitespace-pre-wrap text-muted-foreground">
+                  {nota}
                 </p>
               )}
+
+              <ul className="mt-2 flex flex-col divide-y divide-border rounded-lg border border-border bg-muted/30">
+                {v.practicas.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-baseline gap-2 px-3 py-2 text-xs"
+                  >
+                    <span className="shrink-0 rounded bg-muted px-1 font-mono text-[11px] text-muted-foreground tabular-nums">
+                      {p.codigo}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="font-semibold tabular-nums">
+                        {p.pieza ?? "Boca completa"} ·{" "}
+                      </span>
+                      {p.descripcion}
+                      {p.caras.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          ({p.caras.join(" ")})
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </li>
           );
         })}
@@ -117,7 +118,11 @@ export function OdontogramaVisitas({ visitas }: { visitas: VisitaHistorial[] }) 
 
       {visitas.length > VISIBLES && (
         <div>
-          <Button variant="outline" size="sm" onClick={() => setVerTodas((v) => !v)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setVerTodas((v) => !v)}
+          >
             {verTodas ? "Ver menos" : `Ver las ${ocultas} anteriores`}
           </Button>
         </div>
