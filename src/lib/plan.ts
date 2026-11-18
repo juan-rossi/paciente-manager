@@ -190,6 +190,20 @@ export function fechaVencimientoRelevante(user: EstadoCuentaUser): Date | null {
   return user.trialEndsAt;
 }
 
+// Perfil "Destacado" en el Directorio de profesionales: solo Premium, y solo
+// si el médico es bonificado (desde /admin) o ya paga (suscripción con
+// `planEndsAt` vigente). El trial de Premium no destaca: da acceso a la IA,
+// pero no gana lugares en el listado.
+export function esDestacadoEnDirectorio(user: {
+  plan: "BASICA" | "PREMIUM";
+  bonificado: boolean;
+  planEndsAt: Date | null;
+}): boolean {
+  if (user.plan !== "PREMIUM") return false;
+  if (user.bonificado) return true;
+  return Boolean(user.planEndsAt && user.planEndsAt.getTime() > Date.now());
+}
+
 export function diasParaFecha(fecha: Date | null, desde: Date = new Date()): number | null {
   if (!fecha) return null;
   const ms = fecha.getTime() - desde.getTime();

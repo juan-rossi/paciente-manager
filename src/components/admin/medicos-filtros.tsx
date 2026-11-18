@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -48,12 +49,41 @@ export function MedicosFiltros({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  function setParam(key: string, value: string) {
+  // Input controlado: si fuera `defaultValue={q}`, Base UI avisa cuando `q`
+  // cambia tras navegar. Se resincroniza si `q` cambia desde la URL, salvo
+  // que sea el eco de lo que acabamos de enviar nosotros (si no, al llegar
+  // la respuesta pisaría lo que el usuario siguió tipeando).
+  const [busqueda, setBusqueda] = useState(q);
+  const [qPrevio, setQPrevio] = useState(q);
+  const [qEnviado, setQEnviado] = useState(q);
+  if (q !== qPrevio) {
+    setQPrevio(q);
+    if (q !== qEnviado) setBusqueda(q);
+  }
+
+  function setParam(key: string, value: string, replace = false) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.push(`${pathname}?${params.toString()}`);
+    const url = `${pathname}?${params.toString()}`;
+    if (replace) router.replace(url);
+    else router.push(url);
   }
+
+  // Búsqueda en vivo: aplica el filtro 300 ms después de la última tecla.
+  // `replace` para no llenar el historial con una entrada por letra.
+  useEffect(() => {
+    const valor = busqueda.trim();
+    if (valor === q) return;
+    const t = setTimeout(() => {
+      setQEnviado(valor);
+      const params = new URLSearchParams(searchParams.toString());
+      if (valor) params.set("q", valor);
+      else params.delete("q");
+      router.replace(`${pathname}?${params.toString()}`);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busqueda, q, searchParams, pathname, router]);
 
   return (
     <div className="flex flex-wrap items-center gap-2.5">
@@ -61,12 +91,18 @@ export function MedicosFiltros({
         className="relative"
         onSubmit={(e) => {
           e.preventDefault();
-          const value = (new FormData(e.currentTarget).get("q") as string) ?? "";
-          setParam("q", value);
+          const valor = busqueda.trim();
+          if (valor === q) return;
+          setQEnviado(valor);
+          setParam("q", valor, true);
         }}
       >
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input name="q" defaultValue={q} placeholder="Buscar por nombre o email" className="w-56 bg-white pl-8" />
+        <Input
+          name="q"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o email" className="w-56 bg-white pl-8" />
       </form>
       <select value={estado} onChange={(e) => setParam("estado", e.target.value)} className={SELECT_CLASS}>
         {ESTADOS.map((o) => (

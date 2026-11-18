@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ESPECIALIDAD_VALUES, type Especialidad } from "@/lib/especialidad";
 import type { TituloCortesia } from "@/lib/titulo-cortesia";
 import { distanciaKm } from "@/lib/geo";
-import { esActivo, isPremium } from "@/lib/plan";
+import { esActivo, esDestacadoEnDirectorio } from "@/lib/plan";
 import { fotoDoctorPath } from "@/lib/site-url";
 import { formatDateParamBA } from "@/lib/timezone";
 import { getDisponibilidadPublica } from "@/lib/public-booking";
@@ -83,8 +83,8 @@ export type DoctorPublico = {
   biografia: string | null;
   fotoUrl: string | null;
   reservaPublicaHabilitada: boolean;
-  // Beneficio de Premium: con el plan vigente (mismo criterio que el acceso a
-  // la IA, `isPremium && esActivo`) el médico gana lugares en el listado (ver
+  // Beneficio de Premium, solo para bonificados o médicos que ya pagan (el
+  // trial no cuenta, ver `esDestacadoEnDirectorio`): gana lugares en el listado (ver
   // `getDoctoresPublicos`) y su tarjeta sale ampliada, con el badge
   // "Destacado" (ver DoctorCard).
   destacado: boolean;
@@ -150,7 +150,7 @@ function tienePunto(p: {
 // conjunto {perfil, lugares activos}. Sin ciudad, se listan todos
 // alfabéticamente.
 //
-// Los destacados (Premium vigente) ganan lugares: con búsqueda por ciudad,
+// Los destacados (Premium bonificado o pago vigente) ganan lugares: con búsqueda por ciudad,
 // por `FACTOR_DISTANCIA_DESTACADO`; sin búsqueda, van todos primero, en un
 // orden que rota cada día (ver `rotacionDelDia`) para que el alfabético no
 // favorezca siempre al mismo.
@@ -182,6 +182,7 @@ export async function getDoctoresPublicos(filtros: {
       ...doctorPublicoSelect,
       ...cuentaSelect,
       plan: true,
+      bonificado: true,
       prioridadDirectorio: true,
       slotDurationMinutes: true,
       reservaPublicaSemanas: true,
@@ -223,7 +224,7 @@ export async function getDoctoresPublicos(filtros: {
         activo &&
         doctor.reservaPublicaHabilitada &&
         visibles.some((l) => l.reservaPublicaHabilitada),
-      destacado: activo && isPremium(doctor),
+      destacado: esDestacadoEnDirectorio(doctor),
     };
   });
 
