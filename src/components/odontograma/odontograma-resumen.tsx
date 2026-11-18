@@ -28,7 +28,7 @@ export type OdontogramaResumenProps = {
   // null = el paciente todavía no tiene odontograma.
   ultima: VisitaResumen | null;
   // Visita guardada antes que la última, para resaltar lo que cambió. Con lo
-  // hecho en ella ya pasado a existente (ver aplicarPracticas).
+  // hecho en ella ya pasado a realizada (ver aplicarPracticas).
   anterior: { datos: DatosOdontograma } | null;
   totalVisitas: number;
   // Todas las visitas, de la más reciente a la más vieja (ver OdontogramaVisitas).
@@ -58,7 +58,7 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
   }
 
   // Las requeridas con práctica cargada en esta visita se ven en verde.
-  const datos = aplicarPracticas(ultima.datos, ultima.practicas, "realizada");
+  const datos = aplicarPracticas(ultima.datos, ultima.practicas);
   const resaltadas = anterior ? diffOdontograma(anterior.datos, datos) : undefined;
   const nota = ultima.nota.trim();
 

@@ -153,20 +153,21 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
     return idx > 0 ? guardados[idx - 1] : null;
   }, [seleccion, guardados]);
 
-  // La visita anterior tal como quedó: lo que se hizo en ella ya es existente
+  // La visita anterior tal como quedó: lo que se hizo en ella ya es realizada
   // (así arranca la visita siguiente), para no resaltarlo como cambio.
   const anteriorDatos = useMemo(
     () =>
       anterior
-        ? aplicarPracticas(anterior.datos, (anterior.id && practicasPorVisita[anterior.id]) || [], "existente")
+        ? aplicarPracticas(anterior.datos, (anterior.id && practicasPorVisita[anterior.id]) || [])
         : null,
     [anterior, practicasPorVisita]
   );
 
   const practicasSeleccion = (original?.id && practicasPorVisita[original.id]) || SIN_PRACTICAS;
   // Lo que se muestra fuera del editor: las requeridas con práctica cargada en
-  // esta visita, en verde. No se guarda; sale de las prácticas.
-  const datosVista = aplicarPracticas(borrador.datos, practicasSeleccion, "realizada");
+  // esta visita, en verde. Sale de las prácticas (se guarda recién al arrancar
+  // la visita siguiente).
+  const datosVista = aplicarPracticas(borrador.datos, practicasSeleccion);
 
   const resaltadas = useMemo(
     () => (comparar && anteriorDatos ? diffOdontograma(anteriorDatos, borrador.datos) : undefined),
@@ -202,12 +203,12 @@ export function OdontogramaHistorialTab({ patientId, initialOdontogramas }: Edit
       }
       // La visita se crea en la base al toque para poder cargarle prácticas
       // sin tener que guardarla primero. Arranca con el estado en que quedó la
-      // anterior: lo hecho en ella ya es existente (rojo).
+      // anterior: lo hecho en ella queda como realizada (verde).
       void crearVisita({
         tipo: "CONTROL",
         fecha: hoy(),
         nota: "",
-        datos: aplicarPracticas(ultimo.datos, (ultimo.id && practicasPorVisita[ultimo.id]) || [], "existente"),
+        datos: aplicarPracticas(ultimo.datos, (ultimo.id && practicasPorVisita[ultimo.id]) || []),
       });
     });
   }

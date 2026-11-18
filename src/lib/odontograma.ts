@@ -139,11 +139,15 @@ export const CODIGO_INFO: Record<CodigoOdonto, { label: string; simbolo: string;
 // Datos
 // ---------------------------------------------------------------------------
 
-// Tipos que se eligen al marcar el odontograma (y los únicos que se guardan).
+// Tipos que se eligen a mano al marcar el odontograma.
 export const TIPOS_MARCA = ["existente", "requerida"] as const;
-// "realizada" (verde) no se guarda: se deriva en pantalla de las prácticas
-// cargadas en la visita sobre una prestación requerida (ver aplicarPracticas).
-export type TipoMarca = (typeof TIPOS_MARCA)[number] | "realizada";
+// "realizada" (verde) no se elige: es una requerida que se trató en el sistema
+// (con una práctica cargada o "Marcar como realizada"). En la visita donde se
+// hizo se deriva de las prácticas (ver aplicarPracticas); de ahí en adelante
+// queda guardada como realizada, para distinguirla de lo que el paciente ya
+// traía (existente).
+const TIPOS_GUARDADOS = [...TIPOS_MARCA, "realizada"] as const;
+export type TipoMarca = (typeof TIPOS_GUARDADOS)[number];
 
 export const TIPO_MARCA_LABELS: Record<TipoMarca, string> = {
   existente: "Prestación existente",
@@ -168,11 +172,11 @@ export type OdontogramaTipo = (typeof ODONTOGRAMA_TIPOS)[number];
 
 const marcaPiezaSchema = z.object({
   codigo: z.enum(CODIGOS_PIEZA),
-  tipo: z.enum(TIPOS_MARCA),
+  tipo: z.enum(TIPOS_GUARDADOS),
 });
 const marcaCaraSchema = z.object({
   codigo: z.enum(CODIGOS_CARA),
-  tipo: z.enum(TIPOS_MARCA),
+  tipo: z.enum(TIPOS_GUARDADOS),
 });
 
 export const datosOdontogramaSchema = z.object({
@@ -298,7 +302,7 @@ export type ItemPlan = {
   codigo: CodigoOdonto;
 };
 
-// Pasa una prestación requerida a existente (se hizo el tratamiento).
+// Pasa una prestación requerida a realizada (se hizo el tratamiento).
 export function marcarRealizada(datos: DatosOdontograma, item: ItemPlan): DatosOdontograma {
   const estado = datos.piezas[item.pieza];
   if (!estado) return datos;
@@ -307,13 +311,13 @@ export function marcarRealizada(datos: DatosOdontograma, item: ItemPlan): DatosO
     if (!actual) return datos;
     return conPieza(datos, item.pieza, {
       ...estado,
-      caras: { ...estado.caras, [item.cara]: { ...actual, tipo: "existente" } },
+      caras: { ...estado.caras, [item.cara]: { ...actual, tipo: "realizada" } },
     });
   }
   return conPieza(datos, item.pieza, {
     ...estado,
     pieza: (estado.pieza ?? []).map((m) =>
-      m.codigo === item.codigo ? { ...m, tipo: "existente" as const } : m
+      m.codigo === item.codigo ? { ...m, tipo: "realizada" as const } : m
     ),
   });
 }
@@ -325,17 +329,16 @@ export function marcarRealizada(datos: DatosOdontograma, item: ItemPlan): DatosO
 // Práctica cargada en una visita, en lo que importa para el odontograma.
 type PracticaEnPieza = { pieza: string | null; caras: readonly Cara[] };
 
-// Pasa a `tipo` las prestaciones requeridas sobre las que se cargó una
+// Pasa a realizada las prestaciones requeridas sobre las que se cargó una
 // práctica: si la práctica indica caras, solo las requeridas en esas caras;
 // si no, todas las requeridas de la pieza. Las prácticas de boca completa no
-// tocan nada.
-// - "realizada": para mostrar en verde lo hecho en esta visita.
-// - "existente": al arrancar la visita siguiente, lo hecho ya es existente.
+// tocan nada. Se usa para mostrar en verde lo hecho en una visita y para
+// arrancar la visita siguiente (donde queda guardado como realizada).
 export function aplicarPracticas(
   datos: DatosOdontograma,
-  practicas: readonly PracticaEnPieza[],
-  tipo: "realizada" | "existente"
+  practicas: readonly PracticaEnPieza[]
 ): DatosOdontograma {
+  const tipo = "realizada" as const;
   let piezas = datos.piezas;
   for (const { pieza, caras } of practicas) {
     const estado = pieza ? piezas[pieza] : undefined;

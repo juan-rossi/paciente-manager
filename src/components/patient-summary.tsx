@@ -400,7 +400,7 @@ export function PatientSummary({
           </div>
           <div className="flex min-w-0 flex-col gap-6">
             <OdontogramaResumen {...odontograma} />
-            <OdontogramaVisitas visitas={odontograma.historial} />
+            <OdontogramaVisitas patientId={odontograma.patientId} visitas={odontograma.historial} />
           </div>
         </div>
 

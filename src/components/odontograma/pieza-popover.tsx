@@ -24,7 +24,7 @@ export type Herramienta =
 const TIPO_LABEL: Record<TipoMarca, string> = {
   existente: "Existente",
   requerida: "Requerida",
-  // No se elige (el selector solo ofrece TIPOS_MARCA); se deriva de las prácticas.
+  // No se elige (el selector solo ofrece TIPOS_MARCA); sale de las prácticas.
   realizada: "Realizada",
 };
 

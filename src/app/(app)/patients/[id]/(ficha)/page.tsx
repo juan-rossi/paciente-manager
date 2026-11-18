@@ -136,6 +136,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
           tipo: v.tipo,
           fecha: v.fecha.toISOString().slice(0, 10),
           nota: v.nota ?? "",
+          datos: parseDatos(v.datos),
           practicas: v.practicas.map(practicaVisitaFromDb),
         }))
         .reverse(),
@@ -152,8 +153,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         ? {
             datos: aplicarPracticas(
               parseDatos(anterior.datos),
-              anterior.practicas.map(practicaVisitaFromDb),
-              "existente"
+              anterior.practicas.map(practicaVisitaFromDb)
             ),
           }
         : null,
