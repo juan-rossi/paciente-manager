@@ -57,7 +57,7 @@ export function OdontogramaResumen({ patientId, ultima, anterior, totalVisitas }
     );
   }
 
-  // Las requeridas con práctica cargada en esta visita se ven en verde.
+  // Lo que tiene práctica cargada en esta visita se ve en verde.
   const datos = aplicarPracticas(ultima.datos, ultima.practicas);
   const resaltadas = anterior ? diffOdontograma(anterior.datos, datos) : undefined;
   const nota = ultima.nota.trim();

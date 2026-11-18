@@ -329,9 +329,11 @@ export function marcarRealizada(datos: DatosOdontograma, item: ItemPlan): DatosO
 // Práctica cargada en una visita, en lo que importa para el odontograma.
 type PracticaEnPieza = { pieza: string | null; caras: readonly Cara[] };
 
-// Pasa a realizada las prestaciones requeridas sobre las que se cargó una
-// práctica: si la práctica indica caras, solo las requeridas en esas caras;
-// si no, todas las requeridas de la pieza. Las prácticas de boca completa no
+// Pasa a realizada las prestaciones sobre las que se cargó una práctica: si
+// la práctica indica caras, solo las de esas caras; si no, todas las de la
+// pieza. Primero las requeridas (el plan de tratamiento); si en ese alcance no
+// hay ninguna requerida, las existentes (se rehízo algo que el paciente ya
+// traía, p. ej. una obturación vieja). Las prácticas de boca completa no
 // tocan nada. Se usa para mostrar en verde lo hecho en una visita y para
 // arrancar la visita siguiente (donde queda guardado como realizada).
 export function aplicarPracticas(
@@ -344,14 +346,19 @@ export function aplicarPracticas(
     const estado = pieza ? piezas[pieza] : undefined;
     if (!pieza || !estado) continue;
     const todas = caras.length === 0;
+    const enAlcance = [
+      ...CARAS.filter((c) => todas || caras.includes(c)).map((c) => estado.caras?.[c]),
+      ...(todas ? (estado.pieza ?? []) : []),
+    ];
+    const origen: TipoMarca = enAlcance.some((m) => m?.tipo === "requerida") ? "requerida" : "existente";
     const nuevasCaras: EstadoPieza["caras"] = { ...estado.caras };
     for (const cara of CARAS) {
       const m = nuevasCaras[cara];
-      if (m?.tipo === "requerida" && (todas || caras.includes(cara))) nuevasCaras[cara] = { ...m, tipo };
+      if (m?.tipo === origen && (todas || caras.includes(cara))) nuevasCaras[cara] = { ...m, tipo };
     }
     const siguiente: EstadoPieza = { ...estado, caras: estado.caras ? nuevasCaras : undefined };
     if (estado.pieza) {
-      siguiente.pieza = estado.pieza.map((m) => (todas && m.tipo === "requerida" ? { ...m, tipo } : m));
+      siguiente.pieza = estado.pieza.map((m) => (todas && m.tipo === origen ? { ...m, tipo } : m));
     }
     if (!siguiente.caras) delete siguiente.caras;
     piezas = { ...piezas, [pieza]: siguiente };
