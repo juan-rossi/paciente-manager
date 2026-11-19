@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   if (denied) return denied;
 
   const presupuestos = await prisma.presupuestoOdontologico.findMany({
-    where: { patientId: id },
+    where: { patientId: id, deletedAt: null },
     orderBy: [{ fecha: "desc" }, { createdAt: "desc" }],
     include: INCLUDE_ITEMS,
   });

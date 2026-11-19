@@ -112,6 +112,15 @@ export async function POST(request: NextRequest) {
   const patient = await prisma.$transaction(async (tx) => {
     if (conflict && resolveDniConflict) {
       await tx.patient.update({ where: { id: conflict.id }, data: { nroDocumento: null } });
+      // Al otro paciente se le quita el DNI: queda en su historial.
+      await registrarAuditoria(tx, {
+        doctorId: tenantId,
+        actorId: user.id,
+        accion: "MODIFICAR",
+        entidad: "PACIENTE",
+        entidadId: conflict.id,
+        detalleAnterior: { nroDocumento: patientFields.nroDocumento },
+      });
     }
 
     const created = await tx.patient.create({

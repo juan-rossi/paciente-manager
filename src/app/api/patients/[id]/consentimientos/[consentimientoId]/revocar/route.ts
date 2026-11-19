@@ -33,7 +33,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       deletedAt: null,
       revocadoEn: null,
       estado: "OTORGADO",
-      patient: { doctorId: tenantId },
+      patient: { doctorId: tenantId, deletedAt: null },
     },
     data: { revocadoEn: new Date(), revocadoMotivo: parsed.data.motivo },
   });

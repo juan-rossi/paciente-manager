@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const antes = await prisma.patientEvolucion.findFirst({
-    where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId } },
+    where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId, deletedAt: null } },
   });
   if (!antes) {
     return NextResponse.json({ error: "Evolución no encontrada." }, { status: 404 });
@@ -74,7 +74,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   // Ley 26.529 art. 12/18: idem Patient.deletedAt -- una evolución nunca se
   // borra físicamente, solo se oculta.
   const result = await prisma.patientEvolucion.updateMany({
-    where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId } },
+    where: { id: evolucionId, patientId: id, deletedAt: null, patient: { doctorId: tenantId, deletedAt: null } },
     data: { deletedAt: new Date() },
   });
 

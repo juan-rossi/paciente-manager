@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/api-auth";
+import { requireDoctor } from "@/lib/api-auth";
 import { completeProfileSchema } from "@/lib/register-schema";
 import { enviarMailBienvenida } from "@/lib/bienvenida-email";
 import { getSiteUrl } from "@/lib/site-url";
 
 // Paso post-Google: completa apellido/matrícula, que Google no provee.
 export async function POST(request: NextRequest) {
-  const { user, response } = await requireUser({ validarCuenta: false });
+  // Solo médicos: es el alta de un médico que entró con Google (matrícula,
+  // mail de bienvenida). Una secretaria no tiene nada que completar acá.
+  const { user, response } = await requireDoctor();
   if (response) return response;
 
   const body = await request.json().catch(() => null);

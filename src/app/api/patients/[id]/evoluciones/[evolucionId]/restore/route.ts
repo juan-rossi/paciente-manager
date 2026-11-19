@@ -16,7 +16,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       id: evolucionId,
       patientId: id,
       deletedAt: { not: null },
-      patient: { doctorId: tenantId },
+      patient: { doctorId: tenantId, deletedAt: null },
     },
     data: { deletedAt: null },
   });

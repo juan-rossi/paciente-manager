@@ -133,6 +133,7 @@ const CAMPO_LABELS: Record<string, string> = {
   revocadoEn: "Fecha de revocación",
   revocadoMotivo: "Motivo de revocación",
   datos: "Piezas que cambiaron (estado anterior)",
+  antecedentes: "Antecedentes que cambiaron (estado anterior)",
   nota: "Nota",
 };
 

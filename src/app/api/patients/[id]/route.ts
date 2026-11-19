@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { patientSchema } from "@/lib/patient-schema";
 import { findDniConflict } from "@/lib/dni-conflict";
-import { calcularDiffAnterior, registrarAuditoria } from "@/lib/audit-log";
+import { calcularDiffAnterior, diffAntecedentesAnterior, registrarAuditoria } from "@/lib/audit-log";
+import { ANTECEDENTE_LABELS } from "@/components/patient-form/constants";
 
 const patientUpdateSchema = patientSchema.omit({ evoluciones: true, odontogramaInicial: true });
 
@@ -101,7 +102,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const patient = await prisma.$transaction(async (tx) => {
     if (conflict && resolveDniConflict) {
       await tx.patient.update({ where: { id: conflict.id }, data: { nroDocumento: null } });
+      // Al otro paciente se le quita el DNI: queda en su historial.
+      await registrarAuditoria(tx, {
+        doctorId: tenantId,
+        actorId: user.id,
+        accion: "MODIFICAR",
+        entidad: "PACIENTE",
+        entidadId: conflict.id,
+        detalleAnterior: { nroDocumento: patientFields.nroDocumento },
+      });
     }
+
+    // Estado de los antecedentes ANTES de editarlos, para el historial.
+    const antecedentesPrevios = await tx.patientAntecedente.findMany({ where: { patientId: id } });
 
     // Ley 26.529 art. 12: nunca se borran los antecedentes al editar un
     // paciente -- se actualiza cada tipo in place (upsert) en vez del
@@ -136,7 +149,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       include: { antecedentes: true, evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "desc" } } },
     });
 
-    const detalleAnterior = calcularDiffAnterior(owned, patientFields);
+    const diffCampos = calcularDiffAnterior(owned, patientFields);
+    const antecedentesAnterior = diffAntecedentesAnterior(
+      antecedentesPrevios,
+      antecedentes,
+      (tipo) => ANTECEDENTE_LABELS.get(tipo) ?? tipo
+    );
+    const detalleAnterior =
+      diffCampos || antecedentesAnterior
+        ? {
+            ...((diffCampos as Record<string, unknown> | null) ?? {}),
+            ...(antecedentesAnterior ? { antecedentes: antecedentesAnterior } : {}),
+          }
+        : null;
     if (detalleAnterior) {
       await registrarAuditoria(tx, {
         doctorId: tenantId,

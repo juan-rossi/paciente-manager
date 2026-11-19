@@ -18,7 +18,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       id: consentimientoId,
       patientId: id,
       deletedAt: null,
-      patient: { doctorId: tenantId },
+      patient: { doctorId: tenantId, deletedAt: null },
     },
     data: { deletedAt: new Date() },
   });
