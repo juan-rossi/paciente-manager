@@ -1,14 +1,22 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
-type AuditAccion = "CREAR" | "MODIFICAR" | "ELIMINAR" | "RESTAURAR" | "EXPORTAR";
+type AuditAccion =
+  | "CREAR"
+  | "MODIFICAR"
+  | "ELIMINAR"
+  | "RESTAURAR"
+  | "EXPORTAR"
+  | "SANCIONAR"
+  | "LEVANTAR_SANCION";
 type AuditEntidad =
   | "PACIENTE"
   | "EVOLUCION"
   | "CONSENTIMIENTO"
   | "ODONTOGRAMA"
   | "PRACTICA_ODONTOLOGICA"
-  | "PRESUPUESTO";
+  | "PRESUPUESTO"
+  | "CUENTA";
 
 type RegistrarAuditoriaParams = {
   doctorId: string;

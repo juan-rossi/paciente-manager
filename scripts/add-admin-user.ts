@@ -8,7 +8,8 @@ const prisma = new PrismaClient({ adapter });
 // Punto de entrada único para dar acceso al panel /admin de Semio 360:
 // - Si el email NO existe todavía, crea una cuenta ADMIN de plataforma
 //   pura (sin tenant), igual que scripts/create-admin.ts.
-// - Si el email YA existe (DOCTOR o SECRETARY), le setea `isAdmin = true`
+// - Si el email YA existe como DOCTOR, le setea `isAdmin = true` (una
+//   SECRETARY nunca puede ser admin: se rechaza, ver `isPlatformAdmin`)
 //   sin tocar su rol, su password ni sus datos -- igual que
 //   scripts/grant-admin-access.ts.
 // - Si el email ya es una cuenta ADMIN, no hace nada (ya tiene acceso).
@@ -44,6 +45,12 @@ async function main() {
   if (existing.role === "ADMIN") {
     console.log(`${existing.email} ya es una cuenta ADMIN de plataforma -- no hace falta nada.`);
     return;
+  }
+  // Una secretaria nunca es admin (ver `isPlatformAdmin` en src/lib/admin-access.ts).
+  if (existing.role === "SECRETARY") {
+    throw new Error(
+      `${existing.email} es una cuenta SECRETARY: una secretaria nunca tiene acceso al panel admin (vería datos de todas las cuentas, incluidas historias clínicas). Usá otro email para crear una cuenta ADMIN.`
+    );
   }
 
   const user = await prisma.user.update({

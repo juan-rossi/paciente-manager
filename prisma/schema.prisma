@@ -599,6 +599,10 @@ enum AuditAccion {
   ELIMINAR
   RESTAURAR
   EXPORTAR
+  // Acciones de un admin de plataforma sobre la cuenta de un médico (entidad
+  // CUENTA, `entidadId` = id del médico). Ver /api/admin/medicos/[id]/sancion.
+  SANCIONAR
+  LEVANTAR_SANCION
 }
 
 enum AuditEntidad {
@@ -608,6 +612,7 @@ enum AuditEntidad {
   ODONTOGRAMA
   PRACTICA_ODONTOLOGICA
   PRESUPUESTO
+  CUENTA
 }
 
 // Ley 26.529 art. 13: la historia clínica digital requiere controles de

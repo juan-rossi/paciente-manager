@@ -80,6 +80,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       where: { id: revisionRechazadaId ?? "", userId: id, estado: "PENDIENTE" },
       data: { estado: "RECHAZADA", resueltaAt: ahora, resueltaPorId: admin.id },
     }),
+    // Traza de quién sancionó, cuándo y por qué (queda aunque después se
+    // levante la sanción y se limpien los campos de la cuenta).
+    prisma.auditLog.create({
+      data: {
+        doctorId: id,
+        actorId: admin.id,
+        accion: "SANCIONAR",
+        entidad: "CUENTA",
+        entidadId: id,
+        detalleAnterior: { tipo, motivo },
+      },
+    }),
   ]);
 
   after(() => enviarMailSancion(tipo, { ...doctor, motivo }));
@@ -90,26 +102,71 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // Levanta la sanción vigente (cualquiera de las dos). Los switches de perfil y
 // agenda pública vuelven a valer lo que el médico tenía antes.
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { response } = await requireAdmin();
+  const { user: admin, response } = await requireAdmin();
   if (response) return response;
 
   const { id } = await params;
 
-  const existing = await prisma.user.findFirst({ where: { id, role: "DOCTOR" }, select: { id: true } });
+  const existing = await prisma.user.findFirst({
+    where: { id, role: "DOCTOR" },
+    select: {
+      suspendidoAt: true,
+      suspensionMotivo: true,
+      suspendidoPorId: true,
+      fueraDelDirectorioAt: true,
+      fueraDelDirectorioMotivo: true,
+      fueraDelDirectorioPorId: true,
+    },
+  });
   if (!existing) {
     return NextResponse.json({ error: "Médico no encontrado." }, { status: 404 });
   }
 
-  await prisma.user.update({
-    where: { id },
-    data: {
-      suspendidoAt: null,
-      suspensionMotivo: null,
-      suspendidoPorId: null,
-      fueraDelDirectorioAt: null,
-      fueraDelDirectorioMotivo: null,
-      fueraDelDirectorioPorId: null,
-    },
-  });
+  // Los campos de la cuenta se limpian (la UI los usa como "sanción vigente"),
+  // pero la sanción que se levanta queda completa en la auditoría: quién la
+  // aplicó, cuándo y por qué, y quién la levanta. Sin esto un admin podía
+  // suspender, exportar las HC y levantar la suspensión sin dejar rastro.
+  const sancionLevantada = existing.suspendidoAt
+    ? {
+        tipo: "SUSPENSION",
+        motivo: existing.suspensionMotivo,
+        desde: existing.suspendidoAt.toISOString(),
+        aplicadaPorId: existing.suspendidoPorId,
+      }
+    : existing.fueraDelDirectorioAt
+      ? {
+          tipo: "FUERA_DEL_DIRECTORIO",
+          motivo: existing.fueraDelDirectorioMotivo,
+          desde: existing.fueraDelDirectorioAt.toISOString(),
+          aplicadaPorId: existing.fueraDelDirectorioPorId,
+        }
+      : null;
+  if (!sancionLevantada) {
+    return NextResponse.json({ error: "Este médico no tiene una sanción vigente." }, { status: 409 });
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id },
+      data: {
+        suspendidoAt: null,
+        suspensionMotivo: null,
+        suspendidoPorId: null,
+        fueraDelDirectorioAt: null,
+        fueraDelDirectorioMotivo: null,
+        fueraDelDirectorioPorId: null,
+      },
+    }),
+    prisma.auditLog.create({
+      data: {
+        doctorId: id,
+        actorId: admin.id,
+        accion: "LEVANTAR_SANCION",
+        entidad: "CUENTA",
+        entidadId: id,
+        detalleAnterior: sancionLevantada,
+      },
+    }),
+  ]);
   return NextResponse.json({ ok: true });
 }

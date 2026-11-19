@@ -12,7 +12,8 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 ## Decisiones pendientes
 - [x] **D1.** ¿Un médico con plan vencido puede seguir **leyendo y exportando** su HC? **Decidido
   (2026-11-19): sí** (Ley 26.529, conservación/disponibilidad); se bloquea solo la escritura. Afecta F5.
-- [ ] **D2.** ¿Una secretaria con `isAdmin` puede exportar HC desde /admin? Recomendación: no. Afecta F12.
+- [x] **D2.** ¿Una secretaria con `isAdmin` puede exportar HC desde /admin? **Decidido (2026-11-19): una
+  secretaria nunca tiene permiso de admin**, para nada. Afecta F12.
 
 ---
 
@@ -200,7 +201,15 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - Índice único parcial `(doctorId, inicio)` para turnos confirmados o transacción `Serializable`
   (`turnos/route.ts:77-107`, `directorio/[slug]/reservar/route.ts:95-132`). Contemplar sobreturnos.
 
-### [ ] F12 · Auditoría de acciones admin
+### [x] F12 · Auditoría de acciones admin
+> Hecho 2026-11-19: `isPlatformAdmin` solo acepta ADMIN o DOCTOR con `isAdmin` (una SECRETARY nunca,
+> aunque tenga el flag en la base); `grant-admin-access` y `add-admin-user` rechazan otorgárselo a una
+> secretaria (sacarlo sí); skill `add-admin-user` actualizado. Sanciones auditadas en `AuditLog`
+> (migración `20261119200000_audit_sanciones`: `SANCIONAR`, `LEVANTAR_SANCION`, entidad `CUENTA`):
+> al levantar se guarda la sanción completa (tipo, motivo, desde, quién la aplicó) y quién la levanta;
+> levantar sin sanción vigente → 409. Local: ninguna secretaria tenía `isAdmin`.
+> **Pendiente:** verificar en QA/prod que ninguna SECRETARY tenga `isAdmin = true` (igual ya no tiene
+> efecto) y probar sancionar/levantar en QA.
 - Auditar suspensión y levantamiento; no borrar `suspendidoPorId`. Resolver D2.
 
 ## Prioridad 4 — Mantenimiento
@@ -243,3 +252,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F9 | Export completo (odontología), en streaming, con rate limit; datos idénticos al anterior. |
 | 2026-11-19 | F10 | Reserva de costo IA bajo lock por médico; confirmación con costo real; liberación si falla. |
 | 2026-11-19 | F11 | Alta de turnos bajo lock de agenda por médico (panel y reserva pública); lugar validado. |
+| 2026-11-19 | F12 | Secretaria nunca admin (D2); sanciones aplicadas/levantadas auditadas en AuditLog. |

@@ -6,7 +6,8 @@ const prisma = new PrismaClient({ adapter });
 
 // A diferencia de create-admin.ts (que crea/actualiza cuentas ADMIN puras,
 // sin tenant), este script le da -- o le saca -- acceso al panel /admin a
-// una cuenta DOCTOR o SECRETARY que YA existe, sin tocar su rol, su
+// una cuenta DOCTOR que YA existe (a una SECRETARY solo se le puede sacar,
+// nunca dar: ver `isPlatformAdmin`), sin tocar su rol, su
 // password ni su login (Google o contraseña siguen funcionando igual).
 // Pensado para el caso típico: un médico que también es owner/staff de
 // Semio 360 y necesita ver el panel admin con su cuenta de siempre.
@@ -16,7 +17,7 @@ async function main() {
 
   if (!email) {
     throw new Error(
-      "Definí GRANT_ADMIN_EMAIL (el mail de la cuenta DOCTOR/SECRETARY que ya existe) antes de correr este script. Opcionalmente, GRANT_ADMIN_REVOKE=true para sacarle el acceso en vez de dárselo."
+      "Definí GRANT_ADMIN_EMAIL (el mail de la cuenta DOCTOR que ya existe) antes de correr este script. Opcionalmente, GRANT_ADMIN_REVOKE=true para sacarle el acceso en vez de dárselo."
     );
   }
 
@@ -26,6 +27,13 @@ async function main() {
   if (!existing) {
     throw new Error(
       `No existe ningún usuario con el email ${normalizedEmail}. Este script solo otorga (o retira) acceso admin a una cuenta que ya existe -- no crea cuentas nuevas. Si necesitás crear una cuenta ADMIN nueva, usá scripts/create-admin.ts.`
+    );
+  }
+  // Una secretaria nunca es admin (ver `isPlatformAdmin`): sacárselo sí se
+  // puede, por si quedó de antes.
+  if (existing.role === "SECRETARY" && !revoke) {
+    throw new Error(
+      `${normalizedEmail} es una cuenta SECRETARY: una secretaria nunca tiene acceso al panel admin (vería datos de todas las cuentas, incluidas historias clínicas).`
     );
   }
   if (existing.role === "ADMIN") {
