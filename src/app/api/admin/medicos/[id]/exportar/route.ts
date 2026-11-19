@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api-auth";
 import { exportarHistoriaClinica } from "@/lib/exportar-historia-clinica";
 
+// Cuentas grandes: el export se genera en streaming y puede tardar (ver exportar-historia-clinica.ts).
+export const maxDuration = 300;
+
 type RouteParams = { params: Promise<{ id: string }> };
 
 // Un médico suspendido no puede entrar a "Mis datos", pero por ley tiene que

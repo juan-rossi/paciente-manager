@@ -163,7 +163,15 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 
 ## Prioridad 3 — Después
 
-### [ ] F9 · Export de HC (`src/lib/exportar-historia-clinica.ts`)
+### [x] F9 · Export de HC (`src/lib/exportar-historia-clinica.ts`)
+> Hecho 2026-11-19: incluye odontogramas + prácticas y presupuestos + ítems; streaming por lotes de 200
+> (cursor estable, `pull` con backpressure, cancelación del cliente silenciosa); mismo formato e
+> indentación; desempate por id en todas las relaciones (antes el orden entre empates era arbitrario);
+> `maxDuration = 300` en las dos rutas; rate limit "exportar" 3/h por quien descarga y 5/h por cuenta;
+> auditoría por paciente escrita por lote. Medido en local (3.905 pacientes): primer byte de ~27 s → 0,6 s.
+> Comparado con el export anterior: datos idénticos (salvo orden entre empates) + las dos claves nuevas.
+> **Pendiente QA:** export de un odontólogo con odontogramas/presupuestos reales (local no tiene datos
+> odontológicos; no se crearon filas de prueba).
 - Incluir odontogramas + prácticas y presupuestos + ítems (hoy faltan; Ley 26.529 art. 18).
 - Streaming/lotes; rate limit; una fila de auditoría por export (hoy una por paciente).
 
@@ -215,3 +223,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F6 | Desbloqueo valida lugar y rango; secretaria sin lugar → 404. |
 | 2026-11-19 | F7 | Cambio de contraseña cierra sesiones; Google exige email verificado; revocar admin cierra sesiones; redirect post-login validado por origen. |
 | 2026-11-19 | F8 | Chequeo de DNI con turno movido después de validar el horario. Pendiente producto: confirmación por WhatsApp/SMS. |
+| 2026-11-19 | F9 | Export completo (odontología), en streaming, con rate limit; datos idénticos al anterior. |

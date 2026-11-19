@@ -17,7 +17,8 @@ type Ruta =
   | "login"
   | "registro"
   | "ciudad"
-  | "link-turno";
+  | "link-turno"
+  | "exportar";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -41,6 +42,10 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   // Abrir el link + tocar el botón son 2 intentos; un paciente real no pasa
   // de unos pocos. Por IP frena que alguien barra códigos al azar.
   "link-turno": { porIp: 30, porSlug: 20, ventanaMinutos: 15 },
+  // Export de HC (ver `exportar-historia-clinica.ts`): "ip" es el id de
+  // quien descarga y "slug" el médico. Recorre la base entera de la cuenta:
+  // un médico real no necesita más de un par de copias por hora.
+  exportar: { porIp: 3, porSlug: 5, ventanaMinutos: 60 },
 };
 
 // Rate limiting de la reserva pública del directorio, sobre Postgres (ver
