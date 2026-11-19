@@ -87,7 +87,7 @@ Si el email **no existe todavía**, el script falla explícitamente pidiendo
 `ADMIN_PASSWORD` (y opcionalmente `ADMIN_NOMBRE`/`ADMIN_APELLIDO`). Ahí, y
 solo ahí, preguntale al usuario:
 
-1. **Contraseña** inicial (mínimo 8 caracteres). Si quiere que la generes
+1. **Contraseña** inicial (mínimo 10 caracteres). Si quiere que la generes
    vos, usá `openssl rand -base64 12` y mostrásela para que la guarde — no
    hay otra forma de recuperarla después, el script solo guarda el hash.
 2. **Nombre** (default "Owner" si no lo dan).

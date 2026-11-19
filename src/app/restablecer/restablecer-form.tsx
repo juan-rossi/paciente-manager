@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Semio360Mark } from "@/components/brand/logo";
+import { MENSAJE_PASSWORD_MIN, PASSWORD_MIN } from "@/lib/password-policy";
 
 export function RestablecerForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
@@ -20,8 +21,8 @@ export function RestablecerForm({ token }: { token: string }) {
     event.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (password.length < PASSWORD_MIN) {
+      setError(MENSAJE_PASSWORD_MIN);
       return;
     }
     if (password !== confirmacion) {
@@ -83,10 +84,10 @@ export function RestablecerForm({ token }: { token: string }) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 required
-                minLength={6}
+                minLength={PASSWORD_MIN}
                 autoFocus
               />
-              <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+              <p className="text-xs text-muted-foreground">Mínimo {PASSWORD_MIN} caracteres.</p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="confirmacion">Repetí la contraseña</Label>

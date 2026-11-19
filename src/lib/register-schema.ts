@@ -5,6 +5,7 @@ import {
   type Especialidad,
 } from "@/lib/especialidad";
 import { TITULO_CORTESIA_VALUES, type TituloCortesia } from "@/lib/titulo-cortesia";
+import { MENSAJE_PASSWORD_MIN, PASSWORD_MIN } from "@/lib/password-policy";
 
 const tituloCortesiaSchema = z.enum(TITULO_CORTESIA_VALUES as [TituloCortesia, ...TituloCortesia[]], {
   message: "Elegí un título.",
@@ -28,7 +29,7 @@ export const registerSchema = z.object({
   nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
   tituloCortesia: tituloCortesiaSchema,
   especialidad: especialidadSchema,
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+  password: z.string().min(PASSWORD_MIN, MENSAJE_PASSWORD_MIN),
   // Plan con el que arranca el período de prueba (ver `TRIAL_DIAS` en
   // src/lib/plan.ts).
   plan: z.enum(["BASICA", "PREMIUM"]).default("BASICA"),

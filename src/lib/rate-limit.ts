@@ -18,7 +18,8 @@ type Ruta =
   | "registro"
   | "ciudad"
   | "link-turno"
-  | "exportar";
+  | "exportar"
+  | "soporte-mensaje";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -30,11 +31,12 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   disponibilidad: { porIp: 60, porSlug: 300, ventanaMinutos: 15 },
   cancelar: { porIp: 10, porSlug: 60, ventanaMinutos: 15 },
   recuperar: { porIp: 5, porSlug: 3, ventanaMinutos: 15 },
-  // Por IP es más generoso que por email porque en un consultorio varias
-  // personas (médico + secretarias) entran desde la misma IP. El límite por
-  // email cuenta todos los intentos, no solo los fallidos: un usuario real
-  // no necesita 8 logins en 15 minutos.
-  login: { porIp: 20, porSlug: 8, ventanaMinutos: 15 },
+  // Solo por IP (en un consultorio varias personas entran desde la misma IP,
+  // por eso es generoso). Por email NO se bloquea: contar todos los intentos
+  // dejaba que cualquiera le trabara el login a un médico mandando 8 pedidos
+  // con su email. Por email se cuentan solo los FALLIDOS y, pasado un umbral,
+  // se pide Turnstile en vez de bloquear (ver `loginRequiereVerificacion`).
+  login: { porIp: 20, porSlug: Number.POSITIVE_INFINITY, ventanaMinutos: 15 },
   registro: { porIp: 5, porSlug: 3, ventanaMinutos: 60 },
   // El autocomplete ya tiene debounce en el cliente: 60 por IP alcanza para
   // varias búsquedas reales seguidas.
@@ -46,7 +48,27 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   // quien descarga y "slug" el médico. Recorre la base entera de la cuenta:
   // un médico real no necesita más de un par de copias por hora.
   exportar: { porIp: 3, porSlug: 5, ventanaMinutos: 60 },
+  // Respuestas a un ticket de soporte: "ip" es el autor y "slug" el ticket.
+  // Cada respuesta reabre el ticket y avisa al equipo.
+  "soporte-mensaje": { porIp: 30, porSlug: 20, ventanaMinutos: 60 },
 };
+
+// La ventana más larga de LIMITES es de 60 minutos: lo anterior a un día no
+// se usa para nada. Se borra "de paso" (no hay cron), en ~1 de cada 100
+// chequeos y de a lotes acotados para no demorar ese pedido.
+const PROBABILIDAD_LIMPIEZA = 0.01;
+const LOTE_LIMPIEZA = 5000;
+
+async function limpiarIntentosViejosDePaso() {
+  if (Math.random() >= PROBABILIDAD_LIMPIEZA) return;
+  const limite = new Date(Date.now() - 24 * 60 * 60_000);
+  try {
+    await prisma.$executeRaw`DELETE FROM "IntentoReserva" WHERE id IN (SELECT id FROM "IntentoReserva" WHERE "createdAt" < ${limite} LIMIT ${LOTE_LIMPIEZA})`;
+  } catch (error) {
+    // Nunca hace fallar el pedido que la disparó.
+    console.error("[rate-limit] no se pudo limpiar IntentoReserva", error);
+  }
+}
 
 // Rate limiting de la reserva pública del directorio, sobre Postgres (ver
 // `IntentoReserva` en el schema) -- no hay Redis/Upstash en el stack, y el
@@ -63,6 +85,27 @@ export async function rateLimitOk(ip: string, slug: string, ruta: Ruta): Promise
     prisma.intentoReserva.count({ where: { slug, ruta, createdAt: { gte: desde } } }),
   ]);
   await prisma.intentoReserva.create({ data: { ip, slug, ruta } });
+  await limpiarIntentosViejosDePaso();
 
   return porIpCount < porIp && porSlugCount < porSlug;
+}
+
+// --- Login: intentos fallidos por email ---------------------------------
+// "login-fallido" solo se registra cuando la contraseña no coincide (o el
+// email no existe). Pasado el umbral, el login de ese email exige Turnstile:
+// frena la fuerza bruta contra una cuenta sin dejar afuera a su dueño.
+const RUTA_LOGIN_FALLIDO = "login-fallido";
+const FALLIDOS_ANTES_DE_VERIFICAR = 5;
+const VENTANA_FALLIDOS_MINUTOS = 15;
+
+export async function registrarLoginFallido(ip: string, email: string) {
+  await prisma.intentoReserva.create({ data: { ip, slug: email, ruta: RUTA_LOGIN_FALLIDO } });
+}
+
+export async function loginRequiereVerificacion(email: string): Promise<boolean> {
+  const desde = new Date(Date.now() - VENTANA_FALLIDOS_MINUTOS * 60_000);
+  const fallidos = await prisma.intentoReserva.count({
+    where: { slug: email, ruta: RUTA_LOGIN_FALLIDO, createdAt: { gte: desde } },
+  });
+  return fallidos >= FALLIDOS_ANTES_DE_VERIFICAR;
 }

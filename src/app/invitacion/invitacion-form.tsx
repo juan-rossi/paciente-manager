@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Semio360Mark } from "@/components/brand/logo";
 import { GoogleIcon } from "@/components/google-icon";
 import { INVITACION_COOKIE, INVITACION_COOKIE_MAX_AGE_SECONDS } from "@/lib/invitacion-secretaria-shared";
+import { MENSAJE_PASSWORD_MIN, PASSWORD_MIN } from "@/lib/password-policy";
 
 type Props = {
   token: string;
@@ -51,8 +52,8 @@ export function InvitacionForm({ token, nombreMedico, email, nombreInicial, tien
       setError("Completá tu nombre.");
       return;
     }
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (password.length < PASSWORD_MIN) {
+      setError(MENSAJE_PASSWORD_MIN);
       return;
     }
     if (password !== confirmacion) {
@@ -148,9 +149,9 @@ export function InvitacionForm({ token, nombreMedico, email, nombreInicial, tien
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
-                  minLength={6}
+                  minLength={PASSWORD_MIN}
                 />
-                <p className="text-xs text-muted-foreground">Mínimo 6 caracteres.</p>
+                <p className="text-xs text-muted-foreground">Mínimo {PASSWORD_MIN} caracteres.</p>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="confirmacion">Repetí la contraseña</Label>

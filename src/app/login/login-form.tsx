@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Semio360Mark } from "@/components/brand/logo";
 import { GoogleIcon } from "@/components/google-icon";
 import { destinoInterno } from "@/lib/redirect-seguro";
+import { TurnstileWidget } from "@/components/marketing/turnstile-widget";
 
 // El motivo le llega por mail al suspender (ver `src/lib/sancion-email.ts`).
 const CUENTA_SUSPENDIDA =
@@ -43,6 +44,12 @@ export function LoginForm() {
   });
   const [loading, setLoading] = useState(false);
   const [isNavigating, startTransition] = useTransition();
+  // Tras varios intentos fallidos con un email, el servidor pide Turnstile
+  // (`captcha_required`, ver `loginRequiereVerificacion`). El token es de un
+  // solo uso: después de cada intento se remonta el widget para uno nuevo.
+  const [requiereVerificacion, setRequiereVerificacion] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const aviso = AVISOS[searchParams.get("aviso") ?? ""] ?? null;
 
@@ -59,22 +66,35 @@ export function LoginForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (requiereVerificacion && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Completá la verificación para continuar.");
+      return;
+    }
     setLoading(true);
 
     try {
       const response = await signIn("credentials", {
         email,
         password,
+        turnstileToken,
         redirect: false,
       });
 
       if (!response || response.error) {
+        if (response?.code === "captcha_required") {
+          setRequiereVerificacion(true);
+        }
+        // El token ya se usó (o no había): uno nuevo para el próximo intento.
+        setTurnstileToken("");
+        setTurnstileKey((k) => k + 1);
         setError(
           response?.code === "rate_limited"
             ? "Demasiados intentos. Esperá unos minutos o restablecé tu contraseña."
             : response?.code === "suspended"
               ? CUENTA_SUSPENDIDA
-              : "Email o contraseña incorrectos."
+              : response?.code === "captcha_required"
+                ? "Por seguridad, completá la verificación y volvé a intentar."
+                : "Email o contraseña incorrectos."
         );
         return;
       }
@@ -156,6 +176,9 @@ export function LoginForm() {
               required
             />
           </div>
+          {requiereVerificacion && (
+            <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />
+          )}
           {error ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : (

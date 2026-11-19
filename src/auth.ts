@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { nuevaFechaFinTrial, SIGNUP_PLAN_COOKIE } from "@/lib/plan";
 import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
 import { getClientIp } from "@/lib/request-ip";
-import { rateLimitOk } from "@/lib/rate-limit";
+import { loginRequiereVerificacion, rateLimitOk, registrarLoginFallido } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 import { INVITACION_COOKIE } from "@/lib/invitacion-secretaria-shared";
 import { aceptarInvitacion, buscarInvitacion } from "@/lib/invitacion-secretaria";
 
@@ -15,6 +16,12 @@ import { aceptarInvitacion, buscarInvitacion } from "@/lib/invitacion-secretaria
 // usa para mostrar "demasiados intentos" en vez de "contraseña incorrecta".
 class DemasiadosIntentos extends CredentialsSignin {
   code = "rate_limited";
+}
+
+// Varios intentos fallidos con este email: el login-form muestra Turnstile y
+// reintenta con el token (ver `loginRequiereVerificacion`).
+class RequiereVerificacion extends CredentialsSignin {
+  code = "captcha_required";
 }
 
 // Médico suspendido desde /admin/moderacion (ver `src/lib/sanciones.ts`).
@@ -28,7 +35,8 @@ class CuentaSuspendida extends CredentialsSignin {
 // email no existe para que la respuesta tarde lo mismo que con un email
 // real (si no, midiendo el tiempo se podría averiguar qué emails tienen
 // cuenta).
-const HASH_FICTICIO = "$2b$10$VYbN15W.eo0aDzuJ0sbLNu11EpZp2pZoefEF18VtZ2erBIdo/choK";
+// Mismo costo que los hashes nuevos (`BCRYPT_COSTO` en src/lib/auth.ts).
+const HASH_FICTICIO = "$2b$12$PyZ5aOH55mXoJSn9JQ5n3.OpuXpSZSx2hiDLPxysOhnMYRn4WLW56";
 
 // Google solo da un nombre completo -- lo partimos como mejor se puede en
 // nombre/apellido (el médico puede corregirlo después en /onboarding, donde
@@ -48,25 +56,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/login" },
   providers: [
     Credentials({
-      credentials: { email: {}, password: {} },
+      credentials: { email: {}, password: {}, turnstileToken: {} },
       async authorize(credentials, request) {
         const email =
           typeof credentials?.email === "string" ? normalizeEmail(credentials.email) : "";
         const password = typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) return null;
 
-        if (!(await rateLimitOk(getClientIp(request), email, "login"))) {
+        // Por IP: una sola fuente atacando muchas cuentas.
+        const ip = getClientIp(request);
+        if (!(await rateLimitOk(ip, email, "login"))) {
           throw new DemasiadosIntentos();
+        }
+
+        // Por email: tras varios intentos FALLIDOS se pide Turnstile en vez de
+        // bloquear -- bloquear dejaba que cualquiera le trabara el login a un
+        // médico con solo mandar intentos con su email.
+        if (await loginRequiereVerificacion(email)) {
+          const token = typeof credentials?.turnstileToken === "string" ? credentials.turnstileToken : "";
+          if (!(await verifyTurnstileToken(token, ip))) throw new RequiereVerificacion();
         }
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
           await verifyPassword(password, HASH_FICTICIO);
+          await registrarLoginFallido(ip, email);
           return null;
         }
 
         const valid = await verifyPassword(password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          await registrarLoginFallido(ip, email);
+          return null;
+        }
         if (user.suspendidoAt) throw new CuentaSuspendida();
 
         return { id: user.id, email: user.email, name: user.nombre, role: user.role };

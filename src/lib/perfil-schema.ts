@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ESPECIALIDAD_VALUES, type Especialidad } from "@/lib/especialidad";
 import { TITULO_CORTESIA_VALUES, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { normalizarRedSocial, REDES_SOCIALES, type RedSocial } from "@/lib/redes-sociales";
+import { PASSWORD_MIN } from "@/lib/password-policy";
 
 const tituloCortesiaSchema = z.enum(TITULO_CORTESIA_VALUES as [TituloCortesia, ...TituloCortesia[]], {
   message: "Elegí un título.",
@@ -94,7 +95,7 @@ export const lugarAgendaPublicaSchema = z.object({
 
 export const passwordChangeSchema = z.object({
   passwordActual: z.string().min(1, "Ingresá tu contraseña actual."),
-  passwordNueva: z.string().min(6, "La contraseña nueva debe tener al menos 6 caracteres."),
+  passwordNueva: z.string().min(PASSWORD_MIN, `La contraseña nueva debe tener al menos ${PASSWORD_MIN} caracteres.`),
 });
 
 export const fotoPerfilSchema = z.object({

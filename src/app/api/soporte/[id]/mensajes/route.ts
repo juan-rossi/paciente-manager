@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { respuestaUsuarioInput } from "@/lib/soporte";
+import { rateLimitOk } from "@/lib/rate-limit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -22,6 +23,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     select: { estado: true },
   });
   if (!ticket) return NextResponse.json({ error: "No encontramos ese mensaje." }, { status: 404 });
+
+  // Cada respuesta reabre el ticket y avisa al equipo: con tope por autor y
+  // por ticket (el alta de tickets ya tenía el suyo).
+  if (!(await rateLimitOk(`autor:${user.id}`, id, "soporte-mensaje"))) {
+    return NextResponse.json(
+      { error: "Mandaste muchos mensajes seguidos. Esperá un rato y volvé a escribirnos." },
+      { status: 429 }
+    );
+  }
 
   // Si contesta algo ya cerrado, se reabre para que el equipo lo vea.
   const cerrado = ticket.estado === "RESUELTO" || ticket.estado === "DESCARTADO";

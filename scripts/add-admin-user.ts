@@ -28,13 +28,13 @@ async function main() {
     const apellido = process.env.ADMIN_APELLIDO ?? "";
     if (!password) {
       throw new Error(
-        `No existe ningún usuario con el email ${normalizedEmail} -- para crear una cuenta ADMIN nueva definí también ADMIN_PASSWORD (mínimo 8 caracteres) y, opcionalmente, ADMIN_NOMBRE / ADMIN_APELLIDO.`
+        `No existe ningún usuario con el email ${normalizedEmail} -- para crear una cuenta ADMIN nueva definí también ADMIN_PASSWORD (mínimo 10 caracteres) y, opcionalmente, ADMIN_NOMBRE / ADMIN_APELLIDO.`
       );
     }
-    if (password.length < 8) {
-      throw new Error("ADMIN_PASSWORD es muy corta (mínimo 8 caracteres).");
+    if (password.length < 10) {
+      throw new Error("ADMIN_PASSWORD es muy corta (mínimo 10 caracteres).");
     }
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
       data: { email: normalizedEmail, passwordHash, nombre, apellido, role: "ADMIN" },
     });

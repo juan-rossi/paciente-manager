@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PASSWORD_MIN } from "@/lib/password-policy";
 
 type Props = {
   email: string;
@@ -42,8 +43,8 @@ export function SeguridadSettings({ email }: Props) {
       setPasswordError("Ingresá tu contraseña actual.");
       return;
     }
-    if (passwordNueva.length < 6) {
-      setPasswordError("La contraseña nueva debe tener al menos 6 caracteres.");
+    if (passwordNueva.length < PASSWORD_MIN) {
+      setPasswordError(`La contraseña nueva debe tener al menos ${PASSWORD_MIN} caracteres.`);
       return;
     }
     if (passwordNueva !== passwordConfirmar) {
@@ -114,7 +115,7 @@ export function SeguridadSettings({ email }: Props) {
                 value={passwordNueva}
                 onChange={(e) => setPasswordNueva(e.target.value)}
                 autoComplete="new-password"
-                minLength={6}
+                minLength={PASSWORD_MIN}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -124,7 +125,7 @@ export function SeguridadSettings({ email }: Props) {
                 value={passwordConfirmar}
                 onChange={(e) => setPasswordConfirmar(e.target.value)}
                 autoComplete="new-password"
-                minLength={6}
+                minLength={PASSWORD_MIN}
               />
             </div>
             {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}

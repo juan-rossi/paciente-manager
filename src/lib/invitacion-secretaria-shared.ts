@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MENSAJE_PASSWORD_MIN, PASSWORD_MIN } from "@/lib/password-policy";
 
 // Separado de `invitacion-secretaria.ts` (que importa Prisma y `node:crypto`)
 // para poder usarlo también desde el cliente.
@@ -18,5 +19,5 @@ export const INVITACION_COOKIE_MAX_AGE_SECONDS = 10 * 60;
 export const activarInvitacionSchema = z.object({
   token: z.string().min(1, "Link inválido."),
   nombre: z.string().trim().min(1, "Completá tu nombre."),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+  password: z.string().min(PASSWORD_MIN, MENSAJE_PASSWORD_MIN),
 });

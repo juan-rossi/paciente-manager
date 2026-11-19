@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MENSAJE_PASSWORD_MIN, PASSWORD_MIN } from "@/lib/password-policy";
 
 // Separado de `password-reset.ts` (que importa Prisma y `node:crypto`) para
 // poder usarlo también desde los formularios del cliente.
@@ -8,5 +9,5 @@ export const recuperarSchema = z.object({
 
 export const restablecerSchema = z.object({
   token: z.string().min(1, "Link inválido."),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+  password: z.string().min(PASSWORD_MIN, MENSAJE_PASSWORD_MIN),
 });

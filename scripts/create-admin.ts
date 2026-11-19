@@ -31,12 +31,12 @@ async function main() {
       "Definí ADMIN_EMAIL y ADMIN_PASSWORD (y opcionalmente ADMIN_NOMBRE / ADMIN_APELLIDO) antes de correr este script."
     );
   }
-  if (password.length < 8) {
-    throw new Error("ADMIN_PASSWORD es muy corta (mínimo 8 caracteres).");
+  if (password.length < 10) {
+    throw new Error("ADMIN_PASSWORD es muy corta (mínimo 10 caracteres).");
   }
 
   const normalizedEmail = email.trim().toLowerCase();
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 12);
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing && existing.role !== "ADMIN") {

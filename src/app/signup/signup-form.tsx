@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { TurnstileWidget } from "@/components/marketing/turnstile-widget";
+import { PASSWORD_MIN } from "@/lib/password-policy";
 import {
   Select,
   SelectContent,
@@ -337,9 +338,10 @@ export function SignupForm() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                minLength={6}
+                minLength={PASSWORD_MIN}
                 required
               />
+              <p className="text-xs text-muted-foreground">Mínimo {PASSWORD_MIN} caracteres.</p>
             </div>
           </div>
 
