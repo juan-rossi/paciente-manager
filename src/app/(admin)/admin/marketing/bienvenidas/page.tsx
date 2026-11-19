@@ -2,12 +2,14 @@ import { BienvenidasScreen } from "@/components/admin/bienvenidas-screen";
 import { formatFechaCorta } from "@/lib/admin-metrics";
 import { contarBienvenidas, getBienvenidas, getExcluidos } from "@/lib/marketing-bienvenidas";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ estado?: string }>;
 
 export default async function AdminBienvenidasPage({ searchParams }: { searchParams: SearchParams }) {
+  await verificarAdminEnPagina();
   const sp = await searchParams;
   const estado = sp.estado === "publicadas" ? "publicadas" : "pendientes";
 

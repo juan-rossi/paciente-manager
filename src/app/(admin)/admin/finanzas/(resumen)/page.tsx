@@ -7,6 +7,7 @@ import { getDashboardData, formatMoneyARS } from "@/lib/admin-metrics";
 import { esMesValido, formatNumero, formatUsd, labelMes, mesActual, sumarMeses } from "@/lib/admin-costos-ia";
 import { cn } from "@/lib/utils";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 // El mes en curso suma cobros, gastos y usos de IA todo el tiempo -- sin cache.
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ const MESES_SELECTOR = 12;
 type SearchParams = Promise<{ mes?: string }>;
 
 export default async function AdminFinanzasPage({ searchParams }: { searchParams: SearchParams }) {
+  await verificarAdminEnPagina();
   const sp = await searchParams;
   const actual = mesActual();
   const mes = sp.mes && esMesValido(sp.mes) && sp.mes <= actual ? sp.mes : actual;

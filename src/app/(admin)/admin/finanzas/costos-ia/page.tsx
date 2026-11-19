@@ -24,6 +24,7 @@ import {
 import { formatMoneyARS } from "@/lib/admin-metrics";
 import { TOPE_IA_USD_DEFAULT } from "@/lib/ia-costos";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 // El mes en curso cambia con cada dictado/resumen -- sin cache.
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ const UMBRAL_USO_ALTO_PCT = 5;
 type SearchParams = Promise<{ mes?: string }>;
 
 export default async function AdminCostosIAPage({ searchParams }: { searchParams: SearchParams }) {
+  await verificarAdminEnPagina();
   const sp = await searchParams;
   const actual = mesActual();
   const mes = sp.mes && esMesValido(sp.mes) && sp.mes <= actual ? sp.mes : actual;

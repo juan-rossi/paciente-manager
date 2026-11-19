@@ -55,13 +55,21 @@ function extraerCiudad(components: AddressComponent[]): string | null {
   );
 }
 
+// Los ids de lugar de Google son alfanuméricos con "-" y "_". Llega del
+// navegador (una ruta es pública): validarlo evita que con "/", "?" o "#"
+// se arme otra ruta o query contra la API de Google con nuestra key.
+const PLACE_ID_VALIDO = /^[A-Za-z0-9_-]{1,512}$/;
+
 export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetailsResult> {
+  if (!PLACE_ID_VALIDO.test(placeId)) {
+    return { error: "Lugar inválido.", status: 400 };
+  }
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
     return { error: "Autocompletado no configurado.", status: 503 };
   }
 
-  const googleResponse = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+  const googleResponse = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
     headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": "formattedAddress,addressComponents,location" },
   });
 

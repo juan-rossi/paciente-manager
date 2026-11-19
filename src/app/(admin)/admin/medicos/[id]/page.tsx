@@ -25,12 +25,14 @@ import { LevantarSancionButton } from "@/components/admin/sancion-button";
 import { SANCION_LABELS } from "@/lib/sanciones";
 import { ESPECIALIDAD_LABELS } from "@/lib/especialidad";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function AdminMedicoDetallePage({ params }: Props) {
+  await verificarAdminEnPagina();
   const { id } = await params;
   const [medico, usoIA] = await Promise.all([getMedicoDetalle(id), getUsoIAMedico(id)]);
   if (!medico) notFound();

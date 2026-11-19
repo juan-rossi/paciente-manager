@@ -39,8 +39,10 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   login: { porIp: 20, porSlug: Number.POSITIVE_INFINITY, ventanaMinutos: 15 },
   registro: { porIp: 5, porSlug: 3, ventanaMinutos: 60 },
   // El autocomplete ya tiene debounce en el cliente: 60 por IP alcanza para
-  // varias búsquedas reales seguidas.
-  ciudad: { porIp: 60, porSlug: 2000, ventanaMinutos: 15 },
+  // varias búsquedas reales seguidas. El tope global (slug fijo) acota el
+  // gasto de la key paga de Google aunque se roten IPs: 500 cada 15 min
+  // (~48.000 por día). Además conviene una cuota en Google Cloud.
+  ciudad: { porIp: 60, porSlug: 500, ventanaMinutos: 15 },
   // Abrir el link + tocar el botón son 2 intentos; un paciente real no pasa
   // de unos pocos. Por IP frena que alguien barra códigos al azar.
   "link-turno": { porIp: 30, porSlug: 20, ventanaMinutos: 15 },

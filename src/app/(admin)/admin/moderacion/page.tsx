@@ -12,6 +12,7 @@ import { BonificadoBadge } from "@/components/admin/bonificado-badge";
 import { SancionButton } from "@/components/admin/sancion-button";
 import { SANCION_LABELS, sancionActual, sancionQueCorresponde } from "@/lib/sanciones";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 // La cola cambia cada vez que un médico guarda su perfil -- sin cache.
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ const fechaFormatter = new Intl.DateTimeFormat("es-AR", {
 });
 
 export default async function AdminModeracionPage() {
+  await verificarAdminEnPagina();
   const ahora = new Date();
   const revisiones = await prisma.moderacionPerfil.findMany({
     where: { estado: "PENDIENTE" },

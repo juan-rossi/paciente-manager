@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardData, formatDiasParaVencer, formatMoneyARS } from "@/lib/admin-metrics";
 import { formatNumero, formatUsd, getResumenCostoIAMes, labelMes } from "@/lib/admin-costos-ia";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 // El estado de cada médico depende de la hora actual (trial/plan vencido o
 // no) -- sin esto Next.js podría cachear la página y mostrar "activo" a un
@@ -13,6 +14,7 @@ import { PageEnter } from "@/components/page-transition";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  await verificarAdminEnPagina();
   const [data, costoIA] = await Promise.all([getDashboardData(), getResumenCostoIAMes()]);
   const maxAltas = Math.max(1, ...data.altasPorMes.map((m) => m.cantidad));
   const totalFinalizados = data.conversion.convirtieron + data.conversion.vencieronSinConvertir;

@@ -22,12 +22,14 @@ import {
   type MedicosFiltros as MedicosFiltrosType,
 } from "@/lib/admin-metrics";
 import { PageEnter } from "@/components/page-transition";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{ q?: string; estado?: string; plan?: string; tipo?: string; vencimiento?: string }>;
 
 export default async function AdminMedicosPage({ searchParams }: { searchParams: SearchParams }) {
+  await verificarAdminEnPagina();
   const sp = await searchParams;
   const filtros: MedicosFiltrosType = {
     q: sp.q,

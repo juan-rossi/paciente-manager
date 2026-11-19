@@ -11,6 +11,7 @@ import { SoporteRespuesta } from "@/components/admin/soporte-respuesta";
 import { CopiarTextoButton } from "@/components/admin/copiar-texto-button";
 import { PageEnter } from "@/components/page-transition";
 import { cn } from "@/lib/utils";
+import { verificarAdminEnPagina } from "@/lib/admin-page";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ function hrefDe(filtro: Filtro, ticketId?: string) {
 }
 
 export default async function AdminSoportePage({ searchParams }: { searchParams: SearchParams }) {
+  await verificarAdminEnPagina();
   const sp = await searchParams;
   const filtro: Filtro = sp.f && sp.f in FILTROS ? (sp.f as Filtro) : "abiertos";
 
