@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SIN_SANCION } from "@/lib/sanciones";
+import { decodificarFotoGuardada } from "@/lib/imagen-perfil";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +19,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     select: { fotoPublicaBase64: true },
   });
 
-  const match = doctor?.fotoPublicaBase64?.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
-  if (!match) return new Response(null, { status: 404 });
+  // Se sirve desde nuestro dominio: solo PNG/JPEG verificados por sus bytes,
+  // con el MIME que corresponde a esos bytes (nunca el que vino guardado).
+  // Un SVG o HTML acá ejecutaría scripts con la sesión de quien abra el link.
+  const foto = decodificarFotoGuardada(doctor?.fotoPublicaBase64);
+  if (!foto) return new Response(null, { status: 404 });
 
-  return new Response(Buffer.from(match[2], "base64"), {
+  return new Response(new Uint8Array(foto.bytes), {
     headers: {
-      "Content-Type": match[1],
+      "Content-Type": foto.mime,
       "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+      // Defensa en profundidad si algún día se cuela otro tipo: el navegador
+      // no adivina el tipo y, aunque lo renderizara, no corre scripts.
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; sandbox",
     },
   });
 }

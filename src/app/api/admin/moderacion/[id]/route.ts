@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api-auth";
 import { marcarPerfilPublicado } from "@/lib/moderacion";
+import { esDataUrlFotoValida } from "@/lib/imagen-perfil";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -41,6 +42,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const aprobada = parsed.data.decision === "APROBAR";
+
+  // En el panel la foto se ve con <img>, donde un SVG con scripts parece una
+  // imagen inocente: nunca se publica algo que no sea un PNG/JPEG real
+  // (revisiones creadas antes de validar la subida, ver `imagen-perfil.ts`).
+  if (aprobada && revision.campo === "FOTO" && !esDataUrlFotoValida(revision.contenido)) {
+    return NextResponse.json(
+      { error: "La foto no es una imagen JPG o PNG válida. Rechazala." },
+      { status: 422 }
+    );
+  }
   const resolucion = prisma.moderacionPerfil.update({
     where: { id },
     data: { estado: aprobada ? "APROBADA" : "RECHAZADA", resueltaAt: new Date(), resueltaPorId: user.id },

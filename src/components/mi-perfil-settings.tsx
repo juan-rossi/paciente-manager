@@ -157,7 +157,9 @@ export function MiPerfilSettings({
         setFotoError(data.error ?? "No se pudo subir la foto.");
         return;
       }
-      setFotoPerfilBase64(dataUrl);
+      // El servidor la re-codifica (ver `src/lib/imagen-perfil.ts`): se muestra
+      // la versión guardada, no la original.
+      setFotoPerfilBase64(data.fotoPerfil ?? dataUrl);
       setModeracionFoto(estadoAviso(data.moderacion));
       router.refresh();
     } catch {

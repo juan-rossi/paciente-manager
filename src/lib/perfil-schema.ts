@@ -98,5 +98,7 @@ export const passwordChangeSchema = z.object({
 });
 
 export const fotoPerfilSchema = z.object({
-  fotoPerfil: z.string().startsWith("data:image/", "Formato de imagen inválido."),
+  // Primer filtro barato; la validación real (por bytes) y la re-codificación
+  // las hace `normalizarFotoPerfil` en la ruta.
+  fotoPerfil: z.string().regex(/^data:image\/(png|jpe?g);base64,/, "La foto tiene que ser JPG o PNG."),
 });

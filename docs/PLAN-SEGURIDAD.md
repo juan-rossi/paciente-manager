@@ -18,14 +18,29 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 
 ## Prioridad 1 — Hoy
 
-### [ ] F0 · Dependencias con vulnerabilidades críticas
+### [x] F0 · Dependencias con vulnerabilidades críticas
+> Hecho 2026-11-19: `next` y `eslint-config-next` 16.3.2 → 16.4.6 + `npm audit fix`. Prod: 0 high/critical
+> (antes 15 high + 2 critical). Tests 52/52, build y lint limpios, smoke test con `next start` OK
+> (incluye `/opengraph-image` vía `next/og`). Con `next dev` reiniciado: login por credenciales, páginas
+> internas, ficha + HC, directorio, OG del perfil y disponibilidad pública OK, sin errores en el log.
+> No se creó una reserva real (escribiría en la base y pasa por Turnstile).
+> Quedan (no bloqueantes): `shadcn` (moderate, es un CLI → mover a devDependencies o subir a 1.x) y
+> `tinypool` vía `vitest` 3 (critical, **solo dev**, el fix exige vitest 5 = cambio mayor).
+
 - `next` 16.3.2 → **16.4.6**: RCE sin autenticación en `next/og` (usado en `opengraph-image.tsx` del
   directorio y en `/api/admin/marketing/bienvenidas/[id]/placa`), cache poisoning, SSRF.
   Leer antes `node_modules/next/dist/docs/` (ver AGENTS.md).
 - `npm audit fix` para transitivas (zod, prisma, sharp, undici, proxy-addr, …).
 - Verificar: build, tests, OG images, login, reserva pública.
 
-### [ ] F1 · XSS guardado vía foto de perfil SVG
+### [x] F1 · XSS guardado vía foto de perfil SVG
+> Hecho 2026-11-19: nuevo `src/lib/imagen-perfil.ts` (valida por magic bytes PNG/JPEG y re-codifica con
+> `sharp`, ahora dependencia directa 0.35.5: quita EXIF/GPS, máx. 1024px, tope de píxeles). Usado en
+> `POST /api/perfil/foto`; la ruta pública `foto` sirve solo PNG/JPEG verificados con MIME por bytes +
+> `nosniff` + `CSP sandbox`; aprobar en moderación rechaza (422) fotos no válidas. 12 tests nuevos.
+> Script `scripts/limpiar-fotos-invalidas.ts` (reporte por defecto, `--apply` para limpiar): local 0
+> inválidas. **Pendiente: correrlo en QA/prod (solo reporte primero) con autorización.**
+
 - `src/lib/perfil-schema.ts:101` solo exige `startsWith("data:image/")` → acepta `image/svg+xml`.
 - `src/app/api/directorio/[slug]/foto/route.ts:21-27` la sirve en el dominio propio con el
   `Content-Type` declarado por el médico. Un SVG con `<script>` aprobado en moderación ejecuta JS con la
@@ -127,3 +142,5 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 ## Registro de avance
 | Fecha | Fase | Nota |
 |---|---|---|
+| 2026-11-19 | F0 | Next 16.4.6 + audit fix; verificado con tests/build/lint/smoke. Sin commitear. |
+| 2026-11-19 | F1 | Validación + re-codificación de foto; headers en ruta pública; 64/64 tests, build OK; E2E: SVG → 400. Sin commitear. |
