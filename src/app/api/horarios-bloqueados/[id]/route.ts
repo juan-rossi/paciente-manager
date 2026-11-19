@@ -24,7 +24,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   // Una secretaria solo puede desbloquear un bloqueo de su propio lugar --
   // esto excluye automáticamente un "Día completo" de un médico
-  // (`lugarId: null`) o el de otro lugar que ella no administra.
+  // (`lugarId: null`) o el de otro lugar que ella no administra. Sin ningún
+  // lugar asignado (`null`) no ve nada: si no se corta acá, el filtro de
+  // abajo quedaría `lugarId: null` y matchearía justo los "Día completo".
+  if (user.role === "SECRETARY" && activeLugarId === null) {
+    return NextResponse.json({ error: "Bloqueo no encontrado." }, { status: 404 });
+  }
+
   const existing = await prisma.bloqueoHorario.findFirst({
     where: {
       id,
@@ -48,6 +54,30 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
       return NextResponse.json({ error: "Rango horario inválido." }, { status: 400 });
     }
+
+    // El tramo a liberar tiene que EMPEZAR dentro del bloqueo: así los
+    // "costados" que se recrean nunca exceden la fila original (el de antes
+    // termina en `inicio`; el de después solo se crea si `fin` cae antes del
+    // final del bloqueo). `fin` sí puede pasarse: la card de la grilla
+    // termina donde termina su último slot, que puede ir más allá del
+    // bloqueo (ver `bloqueoQueAplica` en get-day-slots.ts).
+    if (inicio < existing.inicio || inicio >= existing.fin || fin <= inicio) {
+      return NextResponse.json({ error: "Rango horario inválido." }, { status: 400 });
+    }
+
+    // El lugar donde se recrean los costados: el del bloqueo si es de un
+    // lugar puntual; si es un "Día completo" (solo lo ve el médico), uno de
+    // SUS lugares vigentes. Una secretaria, además, solo el suyo.
+    const lugarValido =
+      existing.lugarId !== null
+        ? lugarId === existing.lugarId
+        : (await prisma.lugarDeTrabajo.count({
+            where: { id: lugarId, userId: tenantId, deletedAt: null },
+          })) > 0;
+    if (!lugarValido || (user.role === "SECRETARY" && lugarId !== activeLugarId)) {
+      return NextResponse.json({ error: "Lugar inválido." }, { status: 400 });
+    }
+
     await dividirBloqueoExcluyendoRango(existing, lugarId, { inicio, fin });
   } else {
     await prisma.bloqueoHorario.delete({ where: { id } });

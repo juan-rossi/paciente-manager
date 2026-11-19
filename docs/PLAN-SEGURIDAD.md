@@ -122,7 +122,15 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - `aceptarInvitacion` (`src/lib/invitacion-secretaria.ts:89-100`) en transacción interactiva.
 - Excepciones explícitas: pagos, soporte, perfil, "Mi plan" y (según D1) lectura/export.
 
-### [ ] F6 · Desbloqueo de horarios (`src/app/api/horarios-bloqueados/[id]/route.ts`)
+### [x] F6 · Desbloqueo de horarios (`src/app/api/horarios-bloqueados/[id]/route.ts`)
+> Hecho 2026-11-19: secretaria sin lugar → 404; `lugarId` = el del bloqueo (o, en un "Día completo",
+> un lugar vigente del médico; secretaria: solo su lugar activo); `inicio` dentro del bloqueo y
+> `fin > inicio`. `fin` puede exceder el bloqueo a propósito: la card de la grilla termina en el fin de
+> su último slot, que puede pasarse (`bloqueoQueAplica`); el costado posterior solo se crea si `fin`
+> cae antes del final, así que nunca se crea nada fuera de la fila original.
+> E2E local (médico, filas de prueba con id propio, limpieza acotada): lugar ajeno / inicio fuera →
+> 400; desbloqueos válidos de lugar y de Día completo → 200 con los cortes correctos. Caso secretaria:
+> probar en QA.
 - SECRETARY con `activeLugarId === null` → 404 (hoy matchea los "Día completo" del médico, `lugarId: null`).
 - `lugarId` del query: debe ser el del bloqueo, del tenant y (SECRETARY) su lugar activo.
 - `inicio/fin` deben quedar dentro del bloqueo original.
@@ -188,3 +196,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F3 | Invitaciones pendientes bloquean edición de email; cambio de email cierra sesiones + aviso. Rama `seguridad`. |
 | 2026-11-19 | F4 | Headers de seguridad + CSP Report-Only; verificado en dev y build de producción. Falta revisar consola en QA y pasar CSP a enforce. |
 | 2026-11-19 | F5 | Validación de cuenta en api-auth (asignación, suspensión, plan para escrituras); D1 = lectura/export permitidos. |
+| 2026-11-19 | F6 | Desbloqueo valida lugar y rango; secretaria sin lugar → 404. |
