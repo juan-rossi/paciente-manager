@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
 import { antecedentesPara, ETIQUETAS_PSICOLOGIA } from "./constants";
 import { DateInput } from "./date-input";
 import { TextAreaField } from "./fields";
@@ -11,9 +12,9 @@ type Props = {
   values: PatientFormValues;
   onAntecedenteChange: (tipo: AntecedenteValue["tipo"], patch: Partial<AntecedenteValue>) => void;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
-  // Historia clínica de psicología (ver esPsicologia()): otro checklist, con
-  // detalle libre en vez de medicación, y la historia vital/familiar.
-  psicologia?: boolean;
+  // Cada grupo tiene su checklist (ver antecedentesPara()). Psicología además
+  // usa detalle libre en vez de medicación y suma la historia vital/familiar.
+  grupo?: GrupoEspecialidad;
 };
 
 // Qué conviene anotar en el detalle de cada antecedente de psicología.
@@ -30,33 +31,52 @@ const DETALLE_PSICOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   SITUACIONES_TRAUMATICAS: "Qué pasó y a qué edad",
 };
 
+// Odontología: qué conviene anotar en "Medicación" (la droga importa: un
+// anticoagulante o un bifosfonato cambian cómo se extrae o se opera).
+const MEDICACION_ODONTOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  ALERGIA_ANESTESICOS: "Qué anestésico y qué reacción",
+  ALERGIA_ANTIBIOTICOS: "Qué antibiótico y qué reacción",
+  ALERGIA_LATEX: "Qué reacción",
+  ALERGIA: "A qué y qué reacción",
+  ANTICOAGULANTES: "Droga y dosis",
+  BIFOSFONATOS: "Droga, vía y desde cuándo",
+  TRASTORNOS_COAGULACION: "Cuál y tratamiento",
+  ENDOCARDITIS_RIESGO: "Válvula, prótesis o antecedente",
+  EMBARAZO: "Semanas de gestación",
+  RADIOTERAPIA_CABEZA_CUELLO: "Zona y año",
+};
+
 function AntecedenteRow({
   tipo,
   label,
   antecedente,
   onChange,
-  psicologia,
+  grupo,
 }: {
   tipo: AntecedenteValue["tipo"];
   label: string;
   antecedente: AntecedenteValue;
   onChange: (patch: Partial<AntecedenteValue>) => void;
-  psicologia: boolean;
+  grupo: GrupoEspecialidad;
 }) {
+  const psicologia = grupo === "PSICOLOGIA";
+  // Las listas de psicología y odontología tienen etiquetas largas: van con
+  // ancho flexible en vez de la columna fija de la lista médica.
+  const etiquetaLarga = grupo !== "MEDICA";
   return (
     <div className="rounded-md border p-3">
       <div className="flex items-center gap-3">
         <Label
           className={cn(
             "font-medium",
-            psicologia ? "min-w-0 flex-1 leading-snug" : "w-32 shrink-0 whitespace-nowrap"
+            etiquetaLarga ? "min-w-0 flex-1 leading-snug" : "w-32 shrink-0 whitespace-nowrap"
           )}
         >
           {label}
         </Label>
         <RadioGroup
           // w-auto: el RadioGroup base trae w-full y, con la etiqueta flexible
-          // (psicología), la aplastaba hasta ancho 0.
+          // (psicología y odontología), la aplastaba hasta ancho 0.
           className="flex w-auto shrink-0 gap-4"
           value={antecedente.respuesta ? "SI" : "NO"}
           onValueChange={(v) => onChange({ respuesta: v === "SI" })}
@@ -102,7 +122,7 @@ function AntecedenteRow({
               onChange={(fechaInicio) => onChange({ fechaInicio })}
             />
             <Input
-              placeholder="Medicación"
+              placeholder={(grupo === "ODONTOLOGICA" && MEDICACION_ODONTOLOGIA[tipo]) || "Medicación"}
               value={antecedente.medicacion}
               onChange={(e) => onChange({ medicacion: e.target.value })}
             />
@@ -118,9 +138,10 @@ function AntecedenteRow({
   );
 }
 
-export function AntecedentesTab({ values, onAntecedenteChange, onChange, psicologia = false }: Props) {
+export function AntecedentesTab({ values, onAntecedenteChange, onChange, grupo = "MEDICA" }: Props) {
+  const psicologia = grupo === "PSICOLOGIA";
   const byTipo = new Map(values.antecedentes.map((a) => [a.tipo, a]));
-  const { columna1, columna2 } = antecedentesPara(psicologia);
+  const { columna1, columna2 } = antecedentesPara(grupo);
 
   const columna = (items: readonly { tipo: AntecedenteValue["tipo"]; label: string }[]) => (
     <div className="flex flex-col gap-3">
@@ -134,7 +155,7 @@ export function AntecedentesTab({ values, onAntecedenteChange, onChange, psicolo
             label={label}
             antecedente={antecedente}
             onChange={(patch) => onAntecedenteChange(tipo, patch)}
-            psicologia={psicologia}
+            grupo={grupo}
           />
         );
       })}

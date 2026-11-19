@@ -39,7 +39,9 @@ import {
 } from "./odontograma-tab";
 import { tieneMarcas } from "@/lib/odontograma";
 import { emptyPatientFormValues } from "./utils";
-import { vocabularioEvolucion } from "./constants";
+import { alertasOdontologicas, vocabularioEvolucion } from "./constants";
+import { AlertasOdontologicas } from "@/components/odontograma/alertas-odontologicas";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
 import type {
   AntecedenteValue,
   EvolucionValue,
@@ -61,9 +63,9 @@ type Props = {
   odontogramaHabilitado?: boolean;
   // false para odontólogos y psicólogos (ver usaExamenFisico()).
   examenFisicoHabilitado?: boolean;
-  // Historia clínica de psicología (ver esPsicologia()): cambia los campos de
-  // Consulta inicial, Antecedentes y Diagnóstico.
-  psicologia?: boolean;
+  // Grupo de la especialidad (ver grupoEspecialidad()): cambia los campos y
+  // etiquetas de Consulta inicial, Antecedentes y Diagnóstico.
+  grupo?: GrupoEspecialidad;
   initialOdontogramas?: OdontogramaValue[];
   // Pestaña con la que abre (ej. ?tab=odontograma desde el detalle). Se ignora
   // si no existe para este modo/especialidad.
@@ -152,14 +154,17 @@ export function PatientForm({
   resumenAutomatico,
   odontogramaHabilitado = false,
   examenFisicoHabilitado = true,
-  psicologia = false,
+  grupo = "MEDICA",
   initialOdontogramas = [],
   initialTab,
 }: Props) {
+  const psicologia = grupo === "PSICOLOGIA";
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
-    initialValues ?? emptyPatientFormValues(psicologia)
+    initialValues ?? emptyPatientFormValues(grupo)
   );
+  // Odontología: los antecedentes críticos se avisan arriba del odontograma.
+  const alertas = odontogramaHabilitado ? alertasOdontologicas(values.antecedentes) : [];
   // Snapshot de lo que vino del servidor, para habilitar "Guardar" en edición
   // solo cuando hay cambios. Evoluciones y odontogramas se guardan por su
   // cuenta (no viajan en este PATCH), así que alcanza con comparar `values`.
@@ -437,7 +442,7 @@ export function PatientForm({
                 invalidFields={invalidFields}
                 transcripcionHabilitada={transcripcionHabilitada}
                 resumirAntecedentesAlTerminar={resumenAutomatico?.antecedentes}
-                psicologia={psicologia}
+                grupo={grupo}
               />
             </TabsContent>
             <TabsContent value="antecedentes">
@@ -445,7 +450,7 @@ export function PatientForm({
                 values={values}
                 onAntecedenteChange={handleAntecedenteChange}
                 onChange={handleChange}
-                psicologia={psicologia}
+                grupo={grupo}
               />
             </TabsContent>
             {examenFisicoHabilitado && (
@@ -454,10 +459,11 @@ export function PatientForm({
               </TabsContent>
             )}
             <TabsContent value="diagnostico">
-              <DiagnosticoTab values={values} onChange={handleChange} psicologia={psicologia} />
+              <DiagnosticoTab values={values} onChange={handleChange} grupo={grupo} />
             </TabsContent>
             {odontogramaHabilitado && (
-              <TabsContent value="odontograma">
+              <TabsContent value="odontograma" className="flex flex-col gap-4">
+                <AlertasOdontologicas alertas={alertas} />
                 {mode === "edit" && patientId ? (
                   <OdontogramaHistorialTab
                     patientId={patientId}

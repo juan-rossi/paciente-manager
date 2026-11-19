@@ -15,7 +15,7 @@ import {
   MODALIDAD_LABELS,
   numerarSesiones,
 } from "@/components/patient-form/constants";
-import { esPsicologia } from "@/lib/especialidad";
+import { grupoEspecialidad } from "@/lib/especialidad";
 import { TIME_ZONE } from "@/lib/timezone";
 import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import { PrintButton } from "@/components/print-button";
@@ -136,8 +136,9 @@ export default async function HistoriaClinicaPage({ params }: Props) {
     where: { id: tenantId },
     select: { nombre: true, apellido: true, nroMatricula: true, especialidad: true },
   });
-  const psicologia = esPsicologia(doctor?.especialidad);
-  const etiquetas = etiquetasHistoriaClinica(psicologia);
+  const grupo = grupoEspecialidad(doctor?.especialidad);
+  const psicologia = grupo === "PSICOLOGIA";
+  const etiquetas = etiquetasHistoriaClinica(grupo);
 
   // Ley 26.529 art. 14: deja registro de que se generó una copia de la
   // historia clínica (entregable al paciente dentro de las 48hs -- acá el

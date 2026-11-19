@@ -8,7 +8,7 @@ import { PageEnter } from "@/components/page-transition";
 import { getTenantId } from "@/lib/tenant";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
 import { tenantEspecialidad } from "@/lib/especialidad-server";
-import { esPsicologia, usaExamenFisico } from "@/lib/especialidad";
+import { grupoEspecialidad, usaExamenFisico } from "@/lib/especialidad";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -27,8 +27,8 @@ export default async function NewPatientPage({
   if (!user || user.role !== "DOCTOR") notFound();
   const params = await searchParams;
   const especialidad = await tenantEspecialidad(getTenantId(user));
-  const psicologia = esPsicologia(especialidad);
-  const initialValues = emptyPatientFormValues(psicologia);
+  const grupo = grupoEspecialidad(especialidad);
+  const initialValues = emptyPatientFormValues(grupo);
   initialValues.nombreYApellido = firstString(params.nombreYApellido) ?? "";
   initialValues.nroDocumento = firstString(params.nroDocumento) ?? "";
   initialValues.telefono = firstString(params.telefono) ?? "";
@@ -47,7 +47,7 @@ export default async function NewPatientPage({
           resumenAutomatico={await getResumenAutomatico(user)}
           odontogramaHabilitado={odontogramaHabilitado}
           examenFisicoHabilitado={examenFisicoHabilitado}
-          psicologia={psicologia}
+          grupo={grupo}
         />
       </div>
     </PageEnter>

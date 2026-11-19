@@ -1,17 +1,19 @@
 import { etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
 import { TextAreaField, TextField } from "./fields";
 import type { PatientFormValues } from "./types";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
 
 type Props = {
   values: PatientFormValues;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
-  // Historia clínica de psicología (ver esPsicologia()): mismas columnas con
-  // otro nombre, más el enfoque terapéutico.
-  psicologia?: boolean;
+  // Mismas columnas con otro nombre según el grupo (ver
+  // etiquetasHistoriaClinica()); psicología suma el enfoque terapéutico.
+  grupo?: GrupoEspecialidad;
 };
 
-export function DiagnosticoTab({ values, onChange, psicologia = false }: Props) {
-  const etiquetas = etiquetasHistoriaClinica(psicologia);
+export function DiagnosticoTab({ values, onChange, grupo = "MEDICA" }: Props) {
+  const psicologia = grupo === "PSICOLOGIA";
+  const etiquetas = etiquetasHistoriaClinica(grupo);
 
   if (psicologia) {
     return (

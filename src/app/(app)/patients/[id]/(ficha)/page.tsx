@@ -7,7 +7,7 @@ import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { PatientSummary } from "@/components/patient-summary";
 import { patientFromApi } from "@/components/patient-form/utils";
 import { tenantEspecialidad } from "@/lib/especialidad-server";
-import { esPsicologia } from "@/lib/especialidad";
+import { grupoEspecialidad } from "@/lib/especialidad";
 import { computeTurnoDiffs, type TurnoDiff } from "@/lib/patient-turno-diff";
 import { PageEnter } from "@/components/page-transition";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
@@ -114,8 +114,8 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     }
   }
 
-  const psicologia = esPsicologia(await tenantEspecialidad(tenantId));
-  const { values: patientValues } = patientFromApi(patient, psicologia);
+  const grupo = grupoEspecialidad(await tenantEspecialidad(tenantId));
+  const { values: patientValues } = patientFromApi(patient, grupo);
   const resumenAutomatico = await getResumenAutomatico(user);
   const esOdontologo = await tenantEsOdontologo(tenantId);
 
@@ -176,7 +176,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
         evolucionHabilitada={!esOdontologo}
         odontograma={odontograma}
-        psicologia={psicologia}
+        grupo={grupo}
       />
     </PageEnter>
   );

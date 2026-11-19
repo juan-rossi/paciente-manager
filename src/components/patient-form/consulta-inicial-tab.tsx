@@ -4,6 +4,7 @@ import { etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
 import { TextAreaField, TextField } from "./fields";
 import { TranscribableTextAreaField } from "./transcribable-textarea-field";
 import type { PatientFormValues } from "./types";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
 
 type Props = {
   values: PatientFormValues;
@@ -11,9 +12,9 @@ type Props = {
   invalidFields: Set<string>;
   transcripcionHabilitada?: boolean;
   resumirAntecedentesAlTerminar?: boolean;
-  // Historia clínica de psicología (ver esPsicologia()): sin autovalidez,
-  // con derivación, demanda y encuadre.
-  psicologia?: boolean;
+  // Etiquetas según el grupo (ver etiquetasHistoriaClinica()). Psicología
+  // además va sin autovalidez, con derivación, demanda y encuadre.
+  grupo?: GrupoEspecialidad;
 };
 
 export function ConsultaInicialTab({
@@ -22,9 +23,10 @@ export function ConsultaInicialTab({
   invalidFields,
   transcripcionHabilitada,
   resumirAntecedentesAlTerminar,
-  psicologia = false,
+  grupo = "MEDICA",
 }: Props) {
-  const etiquetas = etiquetasHistoriaClinica(psicologia);
+  const psicologia = grupo === "PSICOLOGIA";
+  const etiquetas = etiquetasHistoriaClinica(grupo);
 
   const habitos: { field: "habitoAlcohol" | "habitoCigarrillos" | "habitoDrogas"; label: string }[] = [
     { field: "habitoAlcohol", label: "Alcohol" },

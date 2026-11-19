@@ -22,6 +22,7 @@ import {
   ANTECEDENTE_LABELS,
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
+  alertasOdontologicas,
   ASISTENCIA_LABELS,
   MODALIDAD_LABELS,
   RIESGO_LABELS,
@@ -38,6 +39,8 @@ import type { EvolucionValue, PatientFormValues } from "@/components/patient-for
 import { EvolucionManager } from "@/components/evolucion-manager";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
 import { plantillasConsentimiento } from "@/lib/consentimiento-plantillas";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
+import { AlertasOdontologicas } from "@/components/odontograma/alertas-odontologicas";
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
 import type { TurnoDiff } from "@/lib/patient-turno-diff";
@@ -205,7 +208,7 @@ export function PatientSummary({
   resumirEvolucionesAlTerminar = false,
   evolucionHabilitada = true,
   odontograma = null,
-  psicologia = false,
+  grupo = "MEDICA",
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
@@ -219,11 +222,14 @@ export function PatientSummary({
   // la ficha (columna lateral de datos clínicos + odontograma; consentimientos
   // y auditoría plegados).
   odontograma?: OdontogramaResumenProps | null;
-  // Historia clínica de psicología (ver esPsicologia()): otros nombres y
+  // Grupo de la especialidad (ver grupoEspecialidad()): otros nombres y
   // campos propios en consulta inicial, antecedentes y diagnóstico.
-  psicologia?: boolean;
+  grupo?: GrupoEspecialidad;
 }) {
-  const etiquetas = etiquetasHistoriaClinica(psicologia);
+  const psicologia = grupo === "PSICOLOGIA";
+  const etiquetas = etiquetasHistoriaClinica(grupo);
+  // Odontología: antecedentes que cambian la atención, arriba de todo.
+  const alertas = grupo === "ODONTOLOGICA" ? alertasOdontologicas(patient.antecedentes) : [];
   const hay = (value: string | null) => Boolean(value?.trim());
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
@@ -475,7 +481,7 @@ export function PatientSummary({
     <ConsentimientoManager
       patientId={patient.id}
       initialConsentimientos={consentimientoValues}
-      plantillas={plantillasConsentimiento(psicologia ? "PSICOLOGIA" : odontograma ? "ODONTOLOGICA" : "MEDICA")}
+      plantillas={plantillasConsentimiento(grupo)}
     />
   );
 
@@ -487,6 +493,8 @@ export function PatientSummary({
     return (
       <div className="flex flex-col gap-6">
         {encabezado}
+
+        <AlertasOdontologicas alertas={alertas} />
 
         {diferenciasTurno}
 

@@ -10,6 +10,7 @@ import { SettingsSection } from "@/components/settings-section";
 import { etiquetasHistoriaClinica } from "@/components/patient-form/constants";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { cn } from "@/lib/utils";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
 
 type Props = {
   initialResumenAutomatico: boolean;
@@ -18,8 +19,9 @@ type Props = {
   // El dictado es una función Premium: sin plan Premium vigente la opción se
   // muestra bloqueada.
   transcripcionHabilitada: boolean;
-  // Psicología (ver esPsicologia()): las evoluciones se llaman "sesiones".
-  psicologia?: boolean;
+  // Grupo de la especialidad (ver grupoEspecialidad()): en psicología las
+  // evoluciones se llaman "sesiones" y los odontólogos no tienen evoluciones.
+  grupo?: GrupoEspecialidad;
 };
 
 export function DictadoSettings({
@@ -27,8 +29,9 @@ export function DictadoSettings({
   initialResumenAutoAntecedentes,
   initialResumenAutoEvoluciones,
   transcripcionHabilitada,
-  psicologia = false,
+  grupo = "MEDICA",
 }: Props) {
+  const psicologia = grupo === "PSICOLOGIA";
   const [resumenAutomatico, setResumenAutomatico] = useState(initialResumenAutomatico);
   const [antecedentes, setAntecedentes] = useState(initialResumenAutoAntecedentes);
   const [evoluciones, setEvoluciones] = useState(initialResumenAutoEvoluciones);
@@ -125,28 +128,30 @@ export function DictadoSettings({
               />
               <div className="flex flex-col gap-0.5">
                 <Label htmlFor="resumen-auto-antecedentes" className="font-normal">
-                  {etiquetasHistoriaClinica(psicologia).antecedentesEnfermedad}
+                  {etiquetasHistoriaClinica(grupo).antecedentesEnfermedad}
                 </Label>
                 <p className="text-xs text-muted-foreground">En la consulta inicial del paciente.</p>
               </div>
             </div>
-            <div className="flex items-start gap-2.5">
-              <Checkbox
-                id="resumen-auto-evoluciones"
-                className="mt-0.5"
-                checked={evoluciones}
-                onCheckedChange={(checked) => setEvoluciones(checked === true)}
-                disabled={!camposHabilitados}
-              />
-              <div className="flex flex-col gap-0.5">
-                <Label htmlFor="resumen-auto-evoluciones" className="font-normal">
-                  {psicologia ? "Sesiones" : "Evoluciones"}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Al agregar o editar {psicologia ? "una sesión" : "una evolución"}.
-                </p>
+            {grupo !== "ODONTOLOGICA" && (
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="resumen-auto-evoluciones"
+                  className="mt-0.5"
+                  checked={evoluciones}
+                  onCheckedChange={(checked) => setEvoluciones(checked === true)}
+                  disabled={!camposHabilitados}
+                />
+                <div className="flex flex-col gap-0.5">
+                  <Label htmlFor="resumen-auto-evoluciones" className="font-normal">
+                    {psicologia ? "Sesiones" : "Evoluciones"}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Al agregar o editar {psicologia ? "una sesión" : "una evolución"}.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </SettingsSection>

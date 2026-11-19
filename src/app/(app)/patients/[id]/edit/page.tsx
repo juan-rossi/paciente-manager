@@ -13,7 +13,7 @@ import { PageEnter } from "@/components/page-transition";
 import { odontogramaFromApi } from "@/components/patient-form/utils";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
 import { tenantEspecialidad } from "@/lib/especialidad-server";
-import { esPsicologia, usaExamenFisico } from "@/lib/especialidad";
+import { grupoEspecialidad, usaExamenFisico } from "@/lib/especialidad";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -44,8 +44,8 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
   }
 
   const especialidad = await tenantEspecialidad(patient.doctorId);
-  const psicologia = esPsicologia(especialidad);
-  const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient, psicologia);
+  const grupo = grupoEspecialidad(especialidad);
+  const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient, grupo);
   const resumenAutomatico = await getResumenAutomatico(user);
   const odontogramaHabilitado = await tenantEsOdontologo(patient.doctorId);
   const examenFisicoHabilitado = usaExamenFisico(especialidad);
@@ -86,7 +86,7 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
           resumenAutomatico={resumenAutomatico}
           odontogramaHabilitado={odontogramaHabilitado}
           examenFisicoHabilitado={examenFisicoHabilitado}
-          psicologia={psicologia}
+          grupo={grupo}
           initialOdontogramas={odontogramas.map(odontogramaFromApi)}
           initialTab={tab}
         />

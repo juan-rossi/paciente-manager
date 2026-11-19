@@ -1,3 +1,5 @@
+import type { GrupoEspecialidad } from "@/lib/especialidad";
+
 export const ANTECEDENTES_COLUMNA_1 = [
   { tipo: "DISLIPEMIA", label: "Displemia" },
   { tipo: "HIPOTIROIDISMO", label: "Hipotiroidismo" },
@@ -61,28 +63,115 @@ export const ANTECEDENTES_PSICOLOGIA_ORDEN = [
   ...ANTECEDENTES_PSICOLOGIA_COLUMNA_2,
 ];
 
-export function antecedentesPara(psicologia: boolean) {
-  return psicologia
-    ? {
+// Historia clínica odontológica (ver esOdontologica()): lo que importa antes
+// de anestesiar, extraer o indicar un antibiótico. Reusa del enum los
+// antecedentes médicos que también le sirven al odontólogo.
+export const ANTECEDENTES_ODONTOLOGIA_COLUMNA_1 = [
+  { tipo: "ALERGIA_ANESTESICOS", label: "Alergia a anestésicos locales" },
+  { tipo: "ALERGIA_ANTIBIOTICOS", label: "Alergia a antibióticos" },
+  { tipo: "ALERGIA_LATEX", label: "Alergia al látex" },
+  { tipo: "ALERGIA", label: "Otras alergias" },
+  { tipo: "ANTICOAGULANTES", label: "Anticoagulantes o antiagregantes" },
+  { tipo: "BIFOSFONATOS", label: "Bifosfonatos" },
+  { tipo: "TRASTORNOS_COAGULACION", label: "Trastornos de la coagulación" },
+  { tipo: "ENDOCARDITIS_RIESGO", label: "Riesgo de endocarditis" },
+  { tipo: "EMBARAZO", label: "Embarazo" },
+] as const;
+
+export const ANTECEDENTES_ODONTOLOGIA_COLUMNA_2 = [
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "HTA", label: "Hipertensión" },
+  { tipo: "CARDIOPATIAS", label: "Cardiopatías" },
+  { tipo: "ASMA", label: "Asma" },
+  { tipo: "INFECCIOSAS", label: "Infecciosas (HIV, hepatitis)" },
+  { tipo: "RADIOTERAPIA_CABEZA_CUELLO", label: "Radioterapia de cabeza y cuello" },
+  { tipo: "BRUXISMO", label: "Bruxismo" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_ODONTOLOGIA_ORDEN = [
+  ...ANTECEDENTES_ODONTOLOGIA_COLUMNA_1,
+  ...ANTECEDENTES_ODONTOLOGIA_COLUMNA_2,
+];
+
+export function antecedentesPara(grupo: GrupoEspecialidad) {
+  switch (grupo) {
+    case "PSICOLOGIA":
+      return {
         columna1: ANTECEDENTES_PSICOLOGIA_COLUMNA_1,
         columna2: ANTECEDENTES_PSICOLOGIA_COLUMNA_2,
         orden: ANTECEDENTES_PSICOLOGIA_ORDEN,
-      }
-    : { columna1: ANTECEDENTES_COLUMNA_1, columna2: ANTECEDENTES_COLUMNA_2, orden: ANTECEDENTES_ORDEN };
+      };
+    case "ODONTOLOGICA":
+      return {
+        columna1: ANTECEDENTES_ODONTOLOGIA_COLUMNA_1,
+        columna2: ANTECEDENTES_ODONTOLOGIA_COLUMNA_2,
+        orden: ANTECEDENTES_ODONTOLOGIA_ORDEN,
+      };
+    case "MEDICA":
+      return { columna1: ANTECEDENTES_COLUMNA_1, columna2: ANTECEDENTES_COLUMNA_2, orden: ANTECEDENTES_ORDEN };
+  }
 }
 
-// Etiqueta de cualquier antecedente, sea de la lista médica o de psicología
-// (un paciente puede tener cargados de las dos si el profesional cambió de
-// especialidad).
+// Antecedentes odontológicos que cambian cómo se atiende al paciente
+// (anestesia, sangrado, antibiótico, cirugía). Si están en SI se avisan arriba
+// de la ficha y del odontograma, con un nombre corto.
+export const ANTECEDENTES_CRITICOS_ODONTOLOGIA: ReadonlyMap<string, string> = new Map([
+  ["ALERGIA_ANESTESICOS", "Alergia a anestésicos locales"],
+  ["ALERGIA_ANTIBIOTICOS", "Alergia a antibióticos"],
+  ["ALERGIA_LATEX", "Alergia al látex"],
+  ["ANTICOAGULANTES", "Anticoagulado"],
+  ["BIFOSFONATOS", "Bifosfonatos"],
+  ["TRASTORNOS_COAGULACION", "Trastorno de la coagulación"],
+  ["ENDOCARDITIS_RIESGO", "Riesgo de endocarditis"],
+  ["EMBARAZO", "Embarazo"],
+  ["RADIOTERAPIA_CABEZA_CUELLO", "Radioterapia de cabeza y cuello"],
+]);
+
+// Alertas a mostrar, en el orden del checklist. El detalle (qué anestésico,
+// qué droga) va entre paréntesis si se cargó.
+export function alertasOdontologicas(
+  antecedentes: readonly { tipo: string; respuesta: boolean; descripcion?: string | null; medicacion?: string | null }[]
+): string[] {
+  const porTipo = new Map(antecedentes.map((a) => [a.tipo, a]));
+  const alertas: string[] = [];
+  for (const [tipo, label] of ANTECEDENTES_CRITICOS_ODONTOLOGIA) {
+    const a = porTipo.get(tipo);
+    if (!a?.respuesta) continue;
+    const detalle = (a.medicacion || a.descripcion || "").trim();
+    alertas.push(detalle ? `${label} (${detalle})` : label);
+  }
+  return alertas;
+}
+
+// Etiqueta de cualquier antecedente, sea de la lista médica, de psicología o
+// de odontología (un paciente puede tener cargados de varias si el
+// profesional cambió de especialidad). Si un tipo está en más de una lista,
+// gana la última (ej. "Hipertensión" en vez de "HTA").
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
-  [...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN].map((a) => [a.tipo, a.label])
+  [...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
+    a.tipo,
+    a.label,
+  ])
 );
 
 // Los campos que existen en las dos historias clínicas pero se llaman
 // distinto. Las columnas son las mismas: solo cambia cómo se las presenta
 // (formulario, ficha y copia para el paciente).
-export function etiquetasHistoriaClinica(psicologia: boolean) {
-  return psicologia
+export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
+  if (grupo === "ODONTOLOGICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Historia del problema actual",
+      antecedentesEnfermedadAyuda:
+        "Cuándo empezó, tipo de dolor (espontáneo, al frío o al calor, al masticar), piezas involucradas, tratamientos odontológicos previos y medicación que tomó.",
+      habitos: "Hábitos",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
+      tratamiento: "Plan de tratamiento",
+    };
+  }
+  return grupo === "PSICOLOGIA"
     ? {
         motivoConsulta: "Motivo de consulta",
         antecedentesEnfermedad: "Historia del problema actual",

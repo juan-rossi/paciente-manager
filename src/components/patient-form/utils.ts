@@ -1,4 +1,5 @@
 import { antecedentesPara } from "./constants";
+import type { GrupoEspecialidad } from "@/lib/especialidad";
 import type { AntecedenteValue, EvolucionValue, OdontogramaValue, PatientFormValues } from "./types";
 import { todayPartsBA } from "@/lib/timezone";
 import { parseDatos } from "@/lib/odontograma";
@@ -97,10 +98,10 @@ function toDateInputValue(value: unknown): string {
   return date.toISOString().slice(0, 10);
 }
 
-// Cada historia clínica (médica o de psicología) tiene su propia lista de
-// antecedentes: el formulario solo maneja los de la suya.
-function emptyAntecedentes(psicologia: boolean): AntecedenteValue[] {
-  return antecedentesPara(psicologia).orden.map(({ tipo }) => ({
+// Cada historia clínica (médica, odontológica o de psicología) tiene su
+// propia lista de antecedentes: el formulario solo maneja los de la suya.
+function emptyAntecedentes(grupo: GrupoEspecialidad): AntecedenteValue[] {
+  return antecedentesPara(grupo).orden.map(({ tipo }) => ({
     tipo,
     respuesta: false,
     descripcion: "",
@@ -110,7 +111,7 @@ function emptyAntecedentes(psicologia: boolean): AntecedenteValue[] {
   }));
 }
 
-export function emptyPatientFormValues(psicologia = false): PatientFormValues {
+export function emptyPatientFormValues(grupo: GrupoEspecialidad = "MEDICA"): PatientFormValues {
   const base = Object.fromEntries(TEXT_FIELDS.map((field) => [field, ""])) as Record<
     (typeof TEXT_FIELDS)[number],
     string
@@ -124,17 +125,17 @@ export function emptyPatientFormValues(psicologia = false): PatientFormValues {
     habitoAlcohol: false,
     habitoCigarrillos: false,
     habitoDrogas: false,
-    antecedentes: emptyAntecedentes(psicologia),
+    antecedentes: emptyAntecedentes(grupo),
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function patientFromApi(patient: any, psicologia = false): {
+export function patientFromApi(patient: any, grupo: GrupoEspecialidad = "MEDICA"): {
   values: PatientFormValues;
   evoluciones: EvolucionValue[];
   evolucionesEliminadas: EvolucionValue[];
 } {
-  const base = emptyPatientFormValues(psicologia);
+  const base = emptyPatientFormValues(grupo);
 
   for (const field of TEXT_FIELDS) {
     if (typeof patient[field] === "string") {
@@ -155,7 +156,7 @@ export function patientFromApi(patient: any, psicologia = false): {
     (patient.antecedentes ?? []).map((a: any) => [a.tipo, a] as const)
   );
 
-  base.antecedentes = antecedentesPara(psicologia).orden.map(({ tipo }) => {
+  base.antecedentes = antecedentesPara(grupo).orden.map(({ tipo }) => {
     const existing = antecedentesByTipo.get(tipo);
     return {
       tipo,
