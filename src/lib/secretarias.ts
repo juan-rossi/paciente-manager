@@ -10,10 +10,12 @@ export type SecretariaDelMedico = {
   // Invitación todavía no aceptada (ver `DoctorSecretaria.aceptadaAt`).
   pendiente: boolean;
   // Email y nombre son de la cuenta de la secretaria, no de la relación: el
-  // médico solo puede cambiarlos si ella asiste únicamente a él. Si también
-  // asiste a otro médico, cambiarlos sería tomar el control de una cuenta
-  // con acceso a la agenda de ese otro médico. La contraseña nunca la toca
-  // el médico (ver POST /api/users).
+  // médico solo puede cambiarlos si ella asiste únicamente a él. Si tiene
+  // CUALQUIER relación con otro médico -- aceptada o una invitación todavía
+  // pendiente --, cambiarle el email y pedir "recuperar contraseña" sería
+  // tomar el control de una cuenta con acceso (o a punto de tenerlo) a la
+  // agenda de ese otro médico. La contraseña nunca la toca el médico (ver
+  // POST /api/users).
   datosEditables: boolean;
 };
 
@@ -36,7 +38,9 @@ function aSecretariaDelMedico(
   s: { id: string; email: string; nombre: string; createdAt: Date; secretariaAsignaciones: AsignacionRow[] }
 ): SecretariaDelMedico {
   const propia = s.secretariaAsignaciones.find((a) => a.doctorId === doctorId);
-  const otrosMedicos = s.secretariaAsignaciones.some((a) => a.doctorId !== doctorId && a.aceptadaAt);
+  // Aceptadas o pendientes: una invitación pendiente es una fila atada al id
+  // de la cuenta, así que quien controle la cuenta puede aceptarla.
+  const otrosMedicos = s.secretariaAsignaciones.some((a) => a.doctorId !== doctorId);
   return {
     id: s.id,
     email: s.email,

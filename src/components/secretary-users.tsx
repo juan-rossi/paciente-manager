@@ -289,7 +289,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                 <p className="-mt-1.5 text-xs text-muted-foreground">
                   {editingSecretaria.pendiente
                     ? "Todavía no aceptó la invitación: su nombre y email no se pueden cambiar. Si el email está mal, cancelá la invitación y enviá una nueva."
-                    : "También asiste a otro médico: su nombre y email solo los puede cambiar desde su cuenta."}
+                    : "También asiste a otro médico (o tiene una invitación de otro médico): su nombre y email no se pueden cambiar desde acá."}
                 </p>
               )}
               <div className="flex flex-col gap-2">

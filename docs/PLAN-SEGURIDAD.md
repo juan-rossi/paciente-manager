@@ -72,7 +72,15 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
   `transaction_amount` == esperado; upgrade sobre plan vencido no otorga meses; rechazar firmas con `ts`
   > 5 min. Probar en QA con pagos de prueba.
 
-### [ ] F3 · Médico puede tomar la cuenta de su secretaria
+### [x] F3 · Médico puede tomar la cuenta de su secretaria
+> Hecho 2026-11-19 (opción mínima): `datosEditables` ahora es false ante CUALQUIER relación con otro
+> médico, incluidas invitaciones pendientes (son filas atadas al id de la cuenta). Cambiar el email
+> incrementa `sessionVersion` de la secretaria y avisa al email anterior
+> (`src/lib/email-acceso-cambiado.ts`). No se quitó al médico la edición del email: la secretaria no
+> tiene forma de cambiarlo ella misma y no habría cómo corregir un email mal cargado. Con la
+> restricción, tomar la cuenta de una secretaria exclusiva no da acceso a nada nuevo.
+> E2E local: con invitación pendiente de otro médico → 403; edición normal → 200.
+> Mejora futura (no seguridad): cambio de email self-service con confirmación desde la casilla nueva.
 - `src/app/api/users/[id]/route.ts:58-63` deja al médico cambiar el email de login de la secretaria
   (sin verificación, sin invalidar sesiones); `src/lib/secretarias.ts:40` solo cuenta asignaciones
   aceptadas. Con "recuperar contraseña" entra como ella y acepta invitaciones pendientes de otro médico.
@@ -156,4 +164,5 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 |---|---|---|
 | 2026-11-19 | F0 | Next 16.4.6 + audit fix; verificado con tests/build/lint/smoke. Sin commitear. |
 | 2026-11-19 | F0, F1 | Commiteados (`735693e`, `9315603`). Fotos inválidas en prod: confirmado por el usuario que no hay. |
-| 2026-11-19 | F2 | Metadata de compra + `mpPreapprovalPlan`; 78/78 tests, build OK; migración aplicada en local. Sin commitear; falta QA con pagos de prueba. |
+| 2026-11-19 | F2 | Metadata de compra + `mpPreapprovalPlan`; 78/78 tests, build OK; migración aplicada en local. Commit `258d602` en `seguridad`; falta QA con pagos de prueba. |
+| 2026-11-19 | F3 | Invitaciones pendientes bloquean edición de email; cambio de email cierra sesiones + aviso. Rama `seguridad`. |

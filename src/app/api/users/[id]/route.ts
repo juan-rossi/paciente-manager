@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { secretaryUpdateSchema } from "@/lib/turno-schema";
 import { obtenerSecretariaDelMedico } from "@/lib/secretarias";
+import { avisarEmailDeAccesoCambiado } from "@/lib/email-acceso-cambiado";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor();
   if (response) return response;
 
   const { id } = await params;
@@ -27,18 +28,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Email y nombre son de la cuenta de la secretaria: si también asiste a
-  // otro médico (o todavía no aceptó la invitación) no son de este médico
-  // para cambiarlos -- ver `SecretariaDelMedico.datosEditables`. La
-  // contraseña nunca la toca el médico.
-  const cambiaDatosDeCuenta =
-    parsed.data.email !== existing.email || parsed.data.nombre !== existing.nombre;
+  // Email y nombre son de la cuenta de la secretaria: si tiene cualquier
+  // relación con otro médico (aceptada o invitación pendiente), o todavía no
+  // aceptó la de este, no son de este médico para cambiarlos -- ver
+  // `SecretariaDelMedico.datosEditables`. La contraseña nunca la toca el
+  // médico.
+  const cambiaEmail = parsed.data.email !== existing.email;
+  const cambiaDatosDeCuenta = cambiaEmail || parsed.data.nombre !== existing.nombre;
   if (cambiaDatosDeCuenta && !existing.datosEditables) {
     return NextResponse.json(
       {
         error: existing.pendiente
           ? "Todavía no aceptó la invitación: no podés cambiar su email ni su nombre."
-          : "También asiste a otro médico: su email y su nombre solo los puede cambiar ella.",
+          : "También asiste a otro médico (o tiene una invitación de otro médico): su email y su nombre no se pueden cambiar desde acá.",
       },
       { status: 403 }
     );
@@ -61,8 +63,27 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (cambiaDatosDeCuenta) {
     await prisma.user.update({
       where: { id },
-      data: { email: parsed.data.email, nombre: parsed.data.nombre },
+      data: {
+        email: parsed.data.email,
+        nombre: parsed.data.nombre,
+        // Cambiar el email de acceso cierra todas sus sesiones (ver
+        // `sessionVersion` en el callback `jwt` de src/auth.ts): vuelve a
+        // entrar con el email nuevo.
+        ...(cambiaEmail ? { sessionVersion: { increment: 1 } } : {}),
+      },
     });
+    if (cambiaEmail) {
+      const emailAnterior = existing.email;
+      const nombreMedico = `${user.nombre} ${user.apellido}`.trim();
+      after(() =>
+        avisarEmailDeAccesoCambiado({
+          emailAnterior,
+          emailNuevo: parsed.data.email,
+          nombreSecretaria: parsed.data.nombre,
+          nombreMedico,
+        })
+      );
+    }
   }
 
   const { id: doctorSecretariaId } = await prisma.doctorSecretaria.update({
