@@ -12,7 +12,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 // la sumó (ver POST /api/users). `id` es el de la `DoctorSecretaria`
 // pendiente, y tiene que ser de ella: nadie más puede aceptarla.
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireUser({ validarCuenta: false });
   if (response) return response;
 
   if (user.role !== "SECRETARY") {

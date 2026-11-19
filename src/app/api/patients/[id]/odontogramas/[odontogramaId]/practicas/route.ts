@@ -12,7 +12,7 @@ import {
 type RouteParams = { params: Promise<{ id: string; odontogramaId: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id, odontogramaId } = await params;

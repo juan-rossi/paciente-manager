@@ -7,7 +7,7 @@ import { getSiteUrl } from "@/lib/site-url";
 
 // Paso post-Google: completa apellido/matrícula, que Google no provee.
 export async function POST(request: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireUser({ validarCuenta: false });
   if (response) return response;
 
   const body = await request.json().catch(() => null);

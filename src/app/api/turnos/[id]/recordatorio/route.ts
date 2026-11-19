@@ -23,7 +23,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 }
 
 async function setRecordatorioEnviado(params: RouteParams["params"], value: boolean) {
-  const { user, tenantId, activeLugarId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser({ escritura: true });
   if (response) return response;
 
   const { id } = await params;

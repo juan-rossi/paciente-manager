@@ -8,7 +8,7 @@ import { verificarAccesoOdontograma, YA_HAY_INICIAL } from "@/lib/odontograma-se
 type RouteParams = { params: Promise<{ id: string; odontogramaId: string }> };
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id, odontogramaId } = await params;
@@ -80,7 +80,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id, odontogramaId } = await params;

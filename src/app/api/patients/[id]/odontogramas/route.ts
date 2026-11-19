@@ -27,7 +27,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id } = await params;

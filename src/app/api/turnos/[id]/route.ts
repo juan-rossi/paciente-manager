@@ -17,7 +17,7 @@ const turnoUpdateSchema = z.union([
 ]);
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, activeLugarId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser({ escritura: true });
   if (response) return response;
 
   const { id } = await params;

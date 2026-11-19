@@ -73,7 +73,7 @@ async function pacientesRecientes(userId: string, tenantId: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const body = await request.json().catch(() => null);

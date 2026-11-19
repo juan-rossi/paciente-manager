@@ -85,18 +85,23 @@ export async function buscarInvitacion(token: string): Promise<InvitacionVigente
 
 // Marca la invitación como aceptada y consume el token. Si la secretaria no
 // estaba atendiendo a ningún médico, pasa directo a este. El `updateMany`
-// condicionado a `aceptadaAt: null` evita aceptar dos veces la misma.
+// condicionado a `aceptadaAt: null` evita aceptar dos veces la misma, y el
+// médico activo solo se setea si ESE update aceptó algo: si el médico
+// canceló la invitación entre `buscarInvitacion` y acá (la fila ya no
+// existe), no tiene que quedar `activeDoctorId` apuntando a un médico que no
+// la tiene asignada.
 export async function aceptarInvitacion(invitacion: { id: string; doctorId: string; secretariaId: string }) {
-  await prisma.$transaction([
-    prisma.doctorSecretaria.updateMany({
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.doctorSecretaria.updateMany({
       where: { id: invitacion.id, aceptadaAt: null },
       data: { aceptadaAt: new Date(), invitacionTokenHash: null, invitacionExpiraAt: null },
-    }),
-    prisma.user.updateMany({
+    });
+    if (count === 0) return;
+    await tx.user.updateMany({
       where: { id: invitacion.secretariaId, activeDoctorId: null },
       data: { activeDoctorId: invitacion.doctorId },
-    }),
-  ]);
+    });
+  });
 }
 
 export type ResultadoActivar = "ok" | "invalido" | "ya-tiene-password";

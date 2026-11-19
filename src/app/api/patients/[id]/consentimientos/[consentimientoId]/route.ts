@@ -6,7 +6,7 @@ import { registrarAuditoria } from "@/lib/audit-log";
 type RouteParams = { params: Promise<{ id: string; consentimientoId: string }> };
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id, consentimientoId } = await params;

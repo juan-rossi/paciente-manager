@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, tenantId, activeLugarId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser({ escritura: true });
   if (response) return response;
 
   const body = await request.json().catch(() => null);

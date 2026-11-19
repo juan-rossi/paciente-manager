@@ -10,7 +10,7 @@ type RouteParams = { params: Promise<{ id: string; presupuestoId: string }> };
 // Lo único que cambia de un presupuesto es su estado (aceptado o rechazado
 // por el paciente): los ítems no se editan, se arma uno nuevo.
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id, presupuestoId } = await params;
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, response } = await requireDoctor();
+  const { user, tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
 
   const { id, presupuestoId } = await params;

@@ -7,7 +7,7 @@ import { resolvePuedeBloquearHorarios } from "@/lib/tenant";
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, activeLugarId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser({ escritura: true });
   if (response) return response;
 
   if (!(await resolvePuedeBloquearHorarios(user))) {

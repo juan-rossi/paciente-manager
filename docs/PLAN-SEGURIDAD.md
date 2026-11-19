@@ -10,8 +10,8 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 > fuera del equipo hasta que estén corregidas.
 
 ## Decisiones pendientes
-- [ ] **D1.** ¿Un médico con plan vencido puede seguir **leyendo y exportando** su HC? Recomendación: sí
-  (Ley 26.529, conservación/disponibilidad), bloquear solo escritura. Afecta F5.
+- [x] **D1.** ¿Un médico con plan vencido puede seguir **leyendo y exportando** su HC? **Decidido
+  (2026-11-19): sí** (Ley 26.529, conservación/disponibilidad); se bloquea solo la escritura. Afecta F5.
 - [ ] **D2.** ¿Una secretaria con `isAdmin` puede exportar HC desde /admin? Recomendación: no. Afecta F12.
 
 ---
@@ -104,7 +104,18 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
   `Permissions-Policy: microphone=(self), camera=(), geolocation=()`.
 - CSP primero en `Report-Only` (Turnstile, MercadoPago, Google OAuth/Places, imágenes), luego enforce.
 
-### [ ] F5 · Cuenta activa en `/api/*` (`src/proxy.ts` solo cubre páginas)
+### [x] F5 · Cuenta activa en `/api/*` (`src/proxy.ts` solo cubre páginas)
+> Hecho 2026-11-19 en `src/lib/api-auth.ts`: `requireUser`/`requireDoctor` validan SIEMPRE la cuenta del
+> tenant (secretaria: asignación aceptada con su `activeDoctorId`, si no 403 `sin_medico`; médico
+> suspendido: 403 `cuenta_suspendida`, corta también a su secretaria). Con `{ escritura: true }` además
+> exigen plan vigente (403 `cuenta_inactiva`): escrituras de patients/** (HC incluida), turnos,
+> aviso, recordatorio y horarios-bloqueados. Lectura, export, configuración, perfil, pagos y soporte
+> siguen disponibles con el plan vencido (D1). `{ validarCuenta: false }` solo en account/active-doctor,
+> active-lugar, invitaciones y complete-profile (sirven para salir de un tenant inválido).
+> `aceptarInvitacion` en transacción interactiva: no setea `activeDoctorId` si la invitación ya no existía.
+> E2E local con plan vencido: escrituras 403, lecturas/export/estado 200. Nota: las páginas de la app
+> siguen yendo a /cuenta-inactiva con plan vencido (proxy), así que la lectura con plan vencido hoy es
+> por export/API.
 - Helper `requireCuentaActiva()` en `src/lib/api-auth.ts`: plan vigente (`esActivo`) y `suspendidoAt`
   de la **cuenta del tenant** (cubre a la secretaria de un médico suspendido).
 - Para SECRETARY: revalidar `DoctorSecretaria` aceptada para `activeDoctorId`; si no, limpiarlo y 403.
@@ -176,3 +187,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F2 | Metadata de compra + `mpPreapprovalPlan`; 78/78 tests, build OK; migración aplicada en local. Commit `258d602` en `seguridad`; falta QA con pagos de prueba. |
 | 2026-11-19 | F3 | Invitaciones pendientes bloquean edición de email; cambio de email cierra sesiones + aviso. Rama `seguridad`. |
 | 2026-11-19 | F4 | Headers de seguridad + CSP Report-Only; verificado en dev y build de producción. Falta revisar consola en QA y pasar CSP a enforce. |
+| 2026-11-19 | F5 | Validación de cuenta en api-auth (asignación, suspensión, plan para escrituras); D1 = lectura/export permitidos. |

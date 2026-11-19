@@ -10,7 +10,7 @@ const schema = z.object({ lugarId: z.string().min(1) });
 // mismo (ver `lugar-switcher.tsx`). Se valida que el lugar realmente esté
 // entre los asignados a la secretaria para ESE médico antes de aceptarlo.
 export async function PATCH(request: NextRequest) {
-  const { user, tenantId, response } = await requireUser();
+  const { user, tenantId, response } = await requireUser({ validarCuenta: false });
   if (response) return response;
 
   if (user.role !== "SECRETARY") {

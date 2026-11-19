@@ -9,7 +9,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 // que PATCH /api/turnos/[id] (una secretaria solo puede tocar turnos de su
 // lugar activo).
 export async function PATCH(_request: NextRequest, { params }: RouteParams) {
-  const { user, tenantId, activeLugarId, response } = await requireUser();
+  const { user, tenantId, activeLugarId, response } = await requireUser({ escritura: true });
   if (response) return response;
 
   const { id } = await params;

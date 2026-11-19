@@ -10,7 +10,7 @@ const schema = z.object({ doctorId: z.string().min(1) });
 // valida que la asignación exista antes de aceptarla, para que no pueda
 // "entrar" a la cuenta de un médico al que no asiste.
 export async function PATCH(request: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireUser({ validarCuenta: false });
   if (response) return response;
 
   if (user.role !== "SECRETARY") {
