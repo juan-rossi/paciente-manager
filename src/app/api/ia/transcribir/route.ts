@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requirePremiumDoctor } from "@/lib/ia-auth";
-import { registrarDictado } from "@/lib/ia-costos";
+import { CODIGO_TOPE_IA, requirePremiumDoctor } from "@/lib/ia-auth";
+import { costoDictadoMaximoUsd, costoDictadoUsd } from "@/lib/ia-costos";
+import { confirmarUsoIA, liberarUsoIA, mensajeTopeIA, reservarUsoIA } from "@/lib/ia-tope";
 import { grupoEspecialidad, type GrupoEspecialidad } from "@/lib/especialidad";
 
 export const maxDuration = 60;
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
   groqForm.append("temperature", "0");
   groqForm.append("prompt", PROMPT_POR_GRUPO[grupoEspecialidad(user.especialidad)]);
 
+  // Se reserva el costo máximo antes de llamar (ver src/lib/ia-tope.ts): un
+  // pedido simultáneo ya lo ve y no puede pasar el tope junto con este.
+  const reservaId = await reservarUsoIA(user, "DICTADO", costoDictadoMaximoUsd(audio.size));
+  if (!reservaId) {
+    return NextResponse.json({ error: mensajeTopeIA(), code: CODIGO_TOPE_IA }, { status: 429 });
+  }
+
   try {
     const groqResponse = await fetch(GROQ_TRANSCRIPTIONS_URL, {
       method: "POST",
@@ -70,6 +78,8 @@ export async function POST(request: NextRequest) {
       body: groqForm,
     });
     if (!groqResponse.ok) {
+      // Groq no factura un pedido que rechazó.
+      await liberarUsoIA(reservaId);
       console.error(
         "[ia/transcribir] Groq respondió",
         groqResponse.status,
@@ -78,9 +88,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No se pudo transcribir el audio." }, { status: 502 });
     }
     const data = (await groqResponse.json()) as { text?: string; duration?: number };
-    await registrarDictado(user.id, Math.round(data.duration ?? 0));
+    const segundosAudio = Math.round(data.duration ?? 0);
+    await confirmarUsoIA(reservaId, { segundosAudio, costoUsd: costoDictadoUsd(segundosAudio) });
     return NextResponse.json({ texto: (data.text ?? "").trim() });
   } catch (error) {
+    await liberarUsoIA(reservaId);
     console.error("[ia/transcribir] Error llamando a Groq", error);
     return NextResponse.json({ error: "No se pudo transcribir el audio." }, { status: 502 });
   }

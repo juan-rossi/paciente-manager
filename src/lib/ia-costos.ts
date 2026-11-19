@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 
 // Precios en USD de los proveedores de IA -- se usan para congelar el costo de
 // cada uso en `UsoIA.costoUsd` al momento de registrarlo. Si un proveedor
@@ -34,35 +33,22 @@ export function topeIAEfectivo(doctor: { topeIAUsd: number | null }): number {
   return doctor.topeIAUsd ?? TOPE_IA_USD_DEFAULT;
 }
 
-// Registrar el uso nunca debe hacer fallar el pedido del médico: el dictado o
-// el resumen ya se generó (y se pagó), así que ante un error solo se loguea.
-export async function registrarDictado(doctorId: string, segundosAudio: number) {
-  try {
-    await prisma.usoIA.create({
-      data: {
-        doctorId,
-        tipo: "DICTADO",
-        segundosAudio,
-        costoUsd: costoDictadoUsd(segundosAudio),
-      },
-    });
-  } catch (error) {
-    console.error("[ia-costos] No se pudo registrar el dictado", error);
-  }
+// Costo MÁXIMO estimado de un pedido, para reservarlo antes de llamar al
+// proveedor (ver `reservarUsoIA` en src/lib/ia-tope.ts). Tiene que ser una
+// cota superior: al volver el proveedor se reemplaza por el costo real.
+
+// El cliente graba a ~24 kbps (3.000 bytes por segundo de audio); se toma
+// 2.000 para quedar holgado ante otros codecs.
+const BYTES_POR_SEGUNDO_MINIMO = 2000;
+
+export function costoDictadoMaximoUsd(bytesAudio: number): number {
+  return costoDictadoUsd(Math.ceil(bytesAudio / BYTES_POR_SEGUNDO_MINIMO));
 }
 
-export async function registrarResumen(doctorId: string, tokensEntrada: number, tokensSalida: number) {
-  try {
-    await prisma.usoIA.create({
-      data: {
-        doctorId,
-        tipo: "RESUMEN",
-        tokensEntrada,
-        tokensSalida,
-        costoUsd: costoResumenUsd(tokensEntrada, tokensSalida),
-      },
-    });
-  } catch (error) {
-    console.error("[ia-costos] No se pudo registrar el resumen", error);
-  }
+// En español un token es ~3-4 caracteres: dividir por 2 es holgado. Se suma
+// el system prompt, que no viene en el texto.
+const TOKENS_SYSTEM_PROMPT = 2000;
+
+export function costoResumenMaximoUsd(caracteresTexto: number, maxTokensSalida: number): number {
+  return costoResumenUsd(Math.ceil(caracteresTexto / 2) + TOKENS_SYSTEM_PROMPT, maxTokensSalida);
 }

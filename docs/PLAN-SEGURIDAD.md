@@ -175,7 +175,16 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - Incluir odontogramas + prácticas y presupuestos + ítems (hoy faltan; Ley 26.529 art. 18).
 - Streaming/lotes; rate limit; una fila de auditoría por export (hoy una por paciente).
 
-### [ ] F10 · Tope de gasto IA (`src/lib/ia-tope.ts`, `src/lib/ia-auth.ts`)
+### [x] F10 · Tope de gasto IA (`src/lib/ia-tope.ts`, `src/lib/ia-auth.ts`)
+> Hecho 2026-11-19: cada pedido RESERVA su costo máximo estimado (`costoResumenMaximoUsd` /
+> `costoDictadoMaximoUsd`) antes de llamar al proveedor, en una transacción con
+> `pg_advisory_xact_lock` por médico que suma también los pedidos en curso; al responder se confirma
+> con el costo real (incluidos refusal/vacío), y si el proveedor falla sin cobrar se libera. Exceso
+> sobre el tope acotado a un pedido (< US$ 0,10). Sin migración. Verificado en local en forma
+> secuencial (2 concedidas, 3.ª rechazada, liberadas). **No probar concurrencia en local**: PGlite es
+> una sola sesión y 20 transacciones interactivas en paralelo tiraron la base (recuperada).
+> **Pendiente QA:** dictado y resumen normales registran el costo real; opcionalmente varios
+> resúmenes en paralelo con un tope bajo por `topeIAUsd`.
 - Reservar costo estimado antes de llamar al proveedor, concurrencia por médico (p.ej. 2),
   registrar costo también en refusal / resumen vacío (`ia/resumir/route.ts:119-129`).
 
@@ -224,3 +233,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F7 | Cambio de contraseña cierra sesiones; Google exige email verificado; revocar admin cierra sesiones; redirect post-login validado por origen. |
 | 2026-11-19 | F8 | Chequeo de DNI con turno movido después de validar el horario. Pendiente producto: confirmación por WhatsApp/SMS. |
 | 2026-11-19 | F9 | Export completo (odontología), en streaming, con rate limit; datos idénticos al anterior. |
+| 2026-11-19 | F10 | Reserva de costo IA bajo lock por médico; confirmación con costo real; liberación si falla. |

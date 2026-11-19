@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePremiumDoctor } from "@/lib/ia-auth";
-import { registrarResumen } from "@/lib/ia-costos";
+import { CODIGO_TOPE_IA, requirePremiumDoctor } from "@/lib/ia-auth";
+import { costoResumenMaximoUsd, costoResumenUsd } from "@/lib/ia-costos";
+import { confirmarUsoIA, liberarUsoIA, mensajeTopeIA, reservarUsoIA } from "@/lib/ia-tope";
 import { grupoEspecialidad, limitesDictado, type GrupoEspecialidad } from "@/lib/especialidad";
 
 // Una sesión de psicología de una hora son ~20k tokens de entrada y hasta 4k
@@ -105,32 +106,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "El texto es demasiado largo para resumir." }, { status: 400 });
   }
 
+  // Se reserva el costo máximo antes de llamar (ver src/lib/ia-tope.ts): un
+  // pedido simultáneo ya lo ve y no puede pasar el tope junto con este.
+  const reservaId = await reservarUsoIA(
+    user,
+    "RESUMEN",
+    costoResumenMaximoUsd(parsed.data.texto.length, limites.maxTokensResumen)
+  );
+  if (!reservaId) {
+    return NextResponse.json({ error: mensajeTopeIA(), code: CODIGO_TOPE_IA }, { status: 429 });
+  }
+
+  let message: Anthropic.Message;
   try {
     // Se crea por pedido: el constructor falla sin ANTHROPIC_API_KEY, y a nivel de
     // módulo eso rompería el build en entornos sin la variable.
     const client = new Anthropic();
-    const message = await client.messages.create({
+    message = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: limites.maxTokensResumen,
       system: SYSTEM_PROMPTS_POR_GRUPO[grupoEspecialidad(user.especialidad)][parsed.data.tipo],
       messages: [{ role: "user", content: `<dictado>\n${parsed.data.texto}\n</dictado>` }],
     });
-
-    if (message.stop_reason === "refusal") {
-      return NextResponse.json({ error: "No se pudo generar el resumen." }, { status: 502 });
-    }
-
-    const resumen = message.content
-      .flatMap((block) => (block.type === "text" ? [block.text] : []))
-      .join("")
-      .trim();
-    if (!resumen) {
-      return NextResponse.json({ error: "No se pudo generar el resumen." }, { status: 502 });
-    }
-
-    await registrarResumen(user.id, message.usage.input_tokens, message.usage.output_tokens);
-    return NextResponse.json({ resumen });
   } catch (error) {
+    // El pedido falló sin respuesta: no hay consumo que registrar.
+    await liberarUsoIA(reservaId);
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json(
         { error: "Hay muchos pedidos en este momento. Probá de nuevo en unos segundos." },
@@ -140,4 +140,26 @@ export async function POST(request: NextRequest) {
     console.error("[ia/resumir] Error llamando a Anthropic", error);
     return NextResponse.json({ error: "No se pudo generar el resumen." }, { status: 502 });
   }
+
+  // Con respuesta, los tokens se pagaron aunque se haya negado o venga vacía.
+  const { input_tokens: tokensEntrada, output_tokens: tokensSalida } = message.usage;
+  await confirmarUsoIA(reservaId, {
+    tokensEntrada,
+    tokensSalida,
+    costoUsd: costoResumenUsd(tokensEntrada, tokensSalida),
+  });
+
+  if (message.stop_reason === "refusal") {
+    return NextResponse.json({ error: "No se pudo generar el resumen." }, { status: 502 });
+  }
+
+  const resumen = message.content
+    .flatMap((block) => (block.type === "text" ? [block.text] : []))
+    .join("")
+    .trim();
+  if (!resumen) {
+    return NextResponse.json({ error: "No se pudo generar el resumen." }, { status: 502 });
+  }
+
+  return NextResponse.json({ resumen });
 }
