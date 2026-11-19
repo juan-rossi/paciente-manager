@@ -150,7 +150,14 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - Quitar `isAdmin` → `sessionVersion++`.
 - Open redirect en `src/app/login/login-form.tsx:42` (`?from=/\evil.com`): validar mismo origen.
 
-### [ ] F8 · Reserva pública revela si un DNI tiene turno
+### [x] F8 · Reserva pública revela si un DNI tiene turno
+> Hecho 2026-11-19: el chequeo "ya tenés turno" pasó al final, después de validar que el horario
+> existe y está libre. Con un horario inventado la respuesta es siempre "horario no disponible";
+> averiguar algo exige un horario real y, si el DNI no tenía turno, crea una reserva que el médico ve.
+> **Límite:** no elimina el oráculo del todo (éxito vs "ya tenés turno" se distinguen), solo lo vuelve
+> costoso y rastreable. Cerrarlo del todo, y evitar que alguien bloquee la reserva online de un
+> paciente usando su DNI, requiere un segundo factor → mejora de producto pendiente: confirmar la
+> reserva por WhatsApp/SMS. E2E local: horario inventado → "no disponible"; real → "ya tenés turno".
 - `src/app/api/directorio/[slug]/reservar/route.ts:59-76`: el 409 "ya tenés turno" corre antes de
   validar el slot → oráculo (dato de salud). Validar slot primero y responder genérico.
 
@@ -207,3 +214,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F5 | Validación de cuenta en api-auth (asignación, suspensión, plan para escrituras); D1 = lectura/export permitidos. |
 | 2026-11-19 | F6 | Desbloqueo valida lugar y rango; secretaria sin lugar → 404. |
 | 2026-11-19 | F7 | Cambio de contraseña cierra sesiones; Google exige email verificado; revocar admin cierra sesiones; redirect post-login validado por origen. |
+| 2026-11-19 | F8 | Chequeo de DNI con turno movido después de validar el horario. Pendiente producto: confirmación por WhatsApp/SMS. |
