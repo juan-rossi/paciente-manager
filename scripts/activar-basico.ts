@@ -46,6 +46,7 @@ async function main() {
       planDuracion: "MENSUAL",
       planEndsAt,
       mpPreapprovalId: `local-test-preapproval-${Date.now()}`,
+      mpPreapprovalPlan: "BASICA",
       mpPreapprovalStatus: "AUTHORIZED",
       planPendiente: null,
       planDuracionPendiente: null,

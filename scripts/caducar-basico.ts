@@ -143,6 +143,7 @@ async function main() {
           planDuracion: "MENSUAL",
           planEndsAt: graciaVenceEl,
           mpPreapprovalId: preapprovalId,
+          mpPreapprovalPlan: "BASICA",
           mpPreapprovalStatus: "PAUSED",
           pagoEnGracia: true,
           graciaVenceEl,

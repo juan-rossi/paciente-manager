@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { MESES_POR_DURACION, nuevaFechaFinGracia, type PlanDuracion } from "@/lib/plan";
+import { nuevaFechaFinGracia } from "@/lib/plan";
+import { resolverPagoUnico } from "@/lib/mp-compra";
 import {
   obtenerPago,
   obtenerPagoUnico,
@@ -124,8 +125,11 @@ export async function POST(request: NextRequest) {
                 prisma.user.update({
                   where: { id: user.id },
                   data: {
-                    plan: user.planPendiente ?? user.plan,
-                    planDuracion: user.planDuracionPendiente ?? user.planDuracion,
+                    // El plan de ESTA preapproval (se guarda junto con su id),
+                    // nunca `planPendiente`: otro checkout posterior lo pisa
+                    // aunque no se pague.
+                    plan: user.mpPreapprovalPlan ?? user.plan,
+                    planDuracion: "MENSUAL",
                     planPendiente: null,
                     planDuracionPendiente: null,
                     planEndsAt: nuevoVencimiento(user.planEndsAt),
@@ -185,49 +189,59 @@ export async function POST(request: NextRequest) {
           const mpPaymentId = String(pago.id);
           const yaRegistrado = await prisma.pagoSuscripcion.findUnique({ where: { mpPaymentId } });
           if (!yaRegistrado) {
-            // La duración se resuelve ANTES de limpiar `planDuracionPendiente`
-            // -- es la única forma de saber cuántos meses de acceso otorga
-            // este pago único (a diferencia del cobro recurrente, que
-            // siempre es un mes).
-            const esUpgrade =
-              pago.metadata?.tipo === "upgrade" &&
-              Boolean(user.planEndsAt && user.planEndsAt.getTime() > Date.now());
-            const duracion: PlanDuracion = user.planDuracionPendiente ?? user.planDuracion ?? "MENSUAL";
-            const meses = MESES_POR_DURACION[duracion];
-            await prisma.$transaction([
-              prisma.pagoSuscripcion.create({
-                data: {
-                  userId: user.id,
-                  mpPaymentId,
-                  mpPreapprovalId: null,
-                  monto: Math.round(pago.transaction_amount),
-                  estado: pago.status,
-                },
-              }),
-              prisma.user.update({
-                where: { id: user.id },
-                data: esUpgrade
-                  ? {
-                      // Upgrade: sube a Premium ya y conserva el vencimiento
-                      // y la duración que ya tenía -- lo pagado es solo la
-                      // diferencia, no tiempo nuevo.
-                      plan: "PREMIUM",
-                      planPendiente: null,
-                      planDuracionPendiente: null,
-                    }
-                  : {
-                      plan: user.planPendiente ?? user.plan,
-                      planDuracion: duracion,
-                      planPendiente: null,
-                      planDuracionPendiente: null,
-                      planEndsAt: nuevoVencimiento(user.planEndsAt, meses),
-                      // Un pago aprobado regulariza el cobro fallido: sin esto
-                      // el aviso "Reintentar pago" quedaría pegado.
-                      pagoEnGracia: false,
-                      graciaVenceEl: null,
-                    },
-              }),
-            ]);
+            // Qué otorga este pago sale de lo que se compró EN ESTE pago (su
+            // metadata) y de cuánto se pagó -- nunca de `planPendiente`
+            // (ver `src/lib/mp-compra.ts`).
+            const decision = resolverPagoUnico(pago, user);
+            const registro = prisma.pagoSuscripcion.create({
+              data: {
+                userId: user.id,
+                mpPaymentId,
+                mpPreapprovalId: null,
+                monto: Math.round(pago.transaction_amount),
+                estado: pago.status,
+              },
+            });
+
+            if (decision.accion === "revisar") {
+              // Se registra (así no se reprocesa) pero no se otorga nada:
+              // un pago real que no cierra se resuelve a mano.
+              await registro;
+              console.error("Pago de MercadoPago a revisar manualmente: no se otorgó plan.", {
+                userId: user.id,
+                mpPaymentId,
+                monto: pago.transaction_amount,
+                motivo: decision.motivo,
+              });
+            } else {
+              await prisma.$transaction([
+                registro,
+                prisma.user.update({
+                  where: { id: user.id },
+                  data:
+                    decision.accion === "upgrade"
+                      ? {
+                          // Upgrade: sube a Premium ya y conserva el vencimiento
+                          // y la duración que ya tenía -- lo pagado es solo la
+                          // diferencia, no tiempo nuevo.
+                          plan: "PREMIUM",
+                          planPendiente: null,
+                          planDuracionPendiente: null,
+                        }
+                      : {
+                          plan: decision.plan,
+                          planDuracion: decision.duracion,
+                          planPendiente: null,
+                          planDuracionPendiente: null,
+                          planEndsAt: nuevoVencimiento(user.planEndsAt, decision.meses),
+                          // Un pago aprobado regulariza el cobro fallido: sin esto
+                          // el aviso "Reintentar pago" quedaría pegado.
+                          pagoEnGracia: false,
+                          graciaVenceEl: null,
+                        },
+                }),
+              ]);
+            }
           }
         }
       }

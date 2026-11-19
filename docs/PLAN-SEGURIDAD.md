@@ -49,7 +49,19 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
   content-type de whitelist + `X-Content-Type-Options: nosniff` + `CSP: default-src 'none'; sandbox`;
   limpiar `fotoPerfilBase64`/`fotoPublicaBase64` existentes con otro tipo.
 
-### [ ] F2 · Pagos MercadoPago: plan/duración tomados del usuario, no del pago
+### [x] F2 · Pagos MercadoPago: plan/duración tomados del usuario, no del pago
+> Hecho 2026-11-19 (falta probar en QA): nuevo `src/lib/mp-compra.ts`. La preferencia lleva en `metadata`
+> tipo/plan/duración/monto (+ `hasta` en upgrades); el webhook decide con `resolverPagoUnico` a partir
+> de esa metadata y del monto pagado. Monto menor, upgrade con plan vencido o con vencimiento
+> extendido, o pago sin datos → se registra sin otorgar y se loguea "a revisar manualmente".
+> Preferencias viejas sin metadata: se infiere por monto solo si coincide con un único total.
+> Suscripción: nueva columna `User.mpPreapprovalPlan` (migración `20261119180000_mp_preapproval_plan`
+> con backfill), escrita junto con `mpPreapprovalId`; el cobro recurrente otorga ese plan y MENSUAL.
+> Scripts `activar-basico`/`caducar-basico` la setean. 14 tests nuevos.
+> **No se hizo** el chequeo de antigüedad de `ts`: si MP reutiliza el `ts` en reintentos rechazaría
+> pagos legítimos, y el beneficio es casi nulo (el webhook re-consulta todo y es idempotente).
+> **Pendiente QA:** pago único Básico y Premium, upgrade, suscripción mensual con tarjetas de prueba;
+> verificar en el pago devuelto por MP que `metadata` llega con estas claves.
 - `src/app/api/mercadopago/webhook/route.ts:195` (pago único) y `:127` (recurrente) usan
   `user.planPendiente` / `planDuracionPendiente`, que `checkout/route.ts` pisa en cada intento aunque no
   se pague. Exploit: generar link Básico/semestral, luego pedir Premium/bianual y abandonarlo, pagar el
@@ -143,4 +155,5 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | Fecha | Fase | Nota |
 |---|---|---|
 | 2026-11-19 | F0 | Next 16.4.6 + audit fix; verificado con tests/build/lint/smoke. Sin commitear. |
-| 2026-11-19 | F1 | Validación + re-codificación de foto; headers en ruta pública; 64/64 tests, build OK; E2E: SVG → 400. Sin commitear. |
+| 2026-11-19 | F0, F1 | Commiteados (`735693e`, `9315603`). Fotos inválidas en prod: confirmado por el usuario que no hay. |
+| 2026-11-19 | F2 | Metadata de compra + `mpPreapprovalPlan`; 78/78 tests, build OK; migración aplicada en local. Sin commitear; falta QA con pagos de prueba. |

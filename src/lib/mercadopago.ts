@@ -17,6 +17,7 @@ import {
   precioTotalDuracion,
   type PlanDuracion,
 } from "@/lib/plan";
+import { metadataCompra } from "@/lib/mp-compra";
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -110,6 +111,14 @@ export async function crearPreferencia(
   upgrade?: { monto: number; hasta: Date }
 ): Promise<CrearPreferenciaResult> {
   const accessToken = requireAccessToken();
+  const monto = upgrade ? upgrade.monto : precioTotalDuracion(plan, duracion);
+  // Lo comprado viaja en la metadata: es lo único que el webhook usa para
+  // decidir qué otorgar (ver `src/lib/mp-compra.ts`).
+  const metadata = metadataCompra(
+    upgrade
+      ? { tipo: "upgrade", monto, hasta: upgrade.hasta }
+      : { tipo: "plan", plan, duracion, monto }
+  );
 
   const response = await fetch(`${MP_API}/checkout/preferences`, {
     method: "POST",
@@ -124,13 +133,13 @@ export async function crearPreferencia(
             ? `Semio360 - Upgrade a Premium (hasta el ${upgrade.hasta.toLocaleDateString("es-AR")})`
             : `Semio360 - Plan ${plan === "PREMIUM" ? "Premium" : "Básico"} (${PLAN_DURACION_LABEL[duracion]}, pago único)`,
           quantity: 1,
-          unit_price: upgrade ? upgrade.monto : precioTotalDuracion(plan, duracion),
+          unit_price: monto,
           currency_id: "ARS",
         },
       ],
       payer: { email: user.email },
       external_reference: user.id,
-      ...(upgrade ? { metadata: { tipo: "upgrade" } } : {}),
+      metadata,
       back_urls: {
         success: `${origin}/configuracion?tab=plan&pago=retorno`,
         failure: `${origin}/configuracion`,
@@ -216,8 +225,9 @@ export type MpPagoUnico = {
   // más arriba, y procesarlos dos veces por dos caminos distintos sería
   // aventurarse a una condición de carrera innecesaria.
   operation_type?: string;
-  // Lo que se mandó en `metadata` al crear la preferencia (ver `crearPreferencia`).
-  metadata?: { tipo?: string } | null;
+  // Lo que se mandó en `metadata` al crear la preferencia (ver `crearPreferencia`
+  // y `leerCompra` en `src/lib/mp-compra.ts`).
+  metadata?: Record<string, unknown> | null;
 };
 
 // Para pagos únicos (Preference/Checkout Pro), a diferencia de los cobros

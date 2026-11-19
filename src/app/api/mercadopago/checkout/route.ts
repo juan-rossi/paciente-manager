@@ -147,6 +147,9 @@ export async function POST(request: NextRequest) {
         planPendiente: plan,
         planDuracionPendiente: duracion,
         mpPreapprovalId: resultado.preapprovalId,
+        // En el mismo update que el id: es lo que otorga cada cobro de ESTA
+        // preapproval (el webhook no usa `planPendiente`).
+        mpPreapprovalPlan: plan,
         mpPreapprovalStatus: "PENDING",
       },
     });
