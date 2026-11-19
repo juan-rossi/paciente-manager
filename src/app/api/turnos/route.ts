@@ -7,6 +7,7 @@ import { getDaySlots } from "@/lib/get-day-slots";
 import { getTurnosCanceladosPorPacientes } from "@/lib/turnos-cancelados-por-pacientes";
 import { dateParamToDateBA, startOfDayBA } from "@/lib/timezone";
 import { isRangoBloqueado } from "@/lib/bloqueo-horario";
+import { conAgendaDelMedico } from "@/lib/agenda-lock";
 
 export async function GET(request: NextRequest) {
   const { user, tenantId, activeLugarId, response } = await requireUser();
@@ -58,6 +59,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // El lugar tiene que ser de este médico y estar vigente, también cuando
+  // agenda el propio médico: un `lugarId` ajeno mostraría el consultorio de
+  // otro médico en el link del recordatorio al paciente.
+  const lugarValido = await prisma.lugarDeTrabajo.count({
+    where: { id: parsed.data.lugarId, userId: tenantId, deletedAt: null },
+  });
+  if (!lugarValido) {
+    return NextResponse.json({ error: "El lugar no es válido." }, { status: 400 });
+  }
+
   const inicio = new Date(parsed.data.inicio);
   if (Number.isNaN(inicio.getTime())) {
     return NextResponse.json({ error: "Fecha y hora inválidas." }, { status: 400 });
@@ -74,27 +85,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ese horario está bloqueado." }, { status: 409 });
   }
 
-  if (!parsed.data.esSobreturno) {
-    const existente = await prisma.turno.findFirst({
-      where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
-    });
-    if (existente) {
-      return NextResponse.json({ error: "Ese turno ya fue reservado." }, { status: 409 });
-    }
-  } else {
-    // Solo se permite un sobreturno por horario -- un turno normal más su
-    // sobreturno son como mucho 2 filas con el mismo `inicio`.
-    const cantidadEnElHorario = await prisma.turno.count({
-      where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
-    });
-    if (cantidadEnElHorario >= 2) {
-      return NextResponse.json(
-        { error: "Ya hay un sobreturno agendado en ese horario." },
-        { status: 409 }
-      );
-    }
-  }
-
   const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);
 
   const patient = parsed.data.dni
@@ -104,22 +94,42 @@ export async function POST(request: NextRequest) {
       })
     : null;
 
-  const turno = await prisma.turno.create({
-    data: {
-      inicio,
-      fin,
-      nombreYApellido: parsed.data.nombreYApellido,
-      fechaNacimiento: parsed.data.fechaNacimiento ? new Date(parsed.data.fechaNacimiento) : null,
-      dni: parsed.data.dni,
-      telefono: parsed.data.telefono,
-      obraSocial: parsed.data.obraSocial,
-      obraSocialNro: parsed.data.obraSocialNro,
-      patientId: patient?.id ?? null,
-      creadoPorId: user.id,
-      doctorId: tenantId,
-      lugarId: parsed.data.lugarId,
-    },
+  // "¿Está libre?" y "crearlo" con la agenda del médico tomada: dos altas
+  // simultáneas no pueden tomar el mismo horario (ver `conAgendaDelMedico`).
+  const resultado = await conAgendaDelMedico(tenantId, async (tx) => {
+    const cantidadEnElHorario = await tx.turno.count({
+      where: { doctorId: tenantId, inicio, estado: "CONFIRMADO" },
+    });
+    if (!parsed.data.esSobreturno && cantidadEnElHorario > 0) {
+      return { error: "Ese turno ya fue reservado." } as const;
+    }
+    // Solo se permite un sobreturno por horario -- un turno normal más su
+    // sobreturno son como mucho 2 filas con el mismo `inicio`.
+    if (parsed.data.esSobreturno && cantidadEnElHorario >= 2) {
+      return { error: "Ya hay un sobreturno agendado en ese horario." } as const;
+    }
+
+    const turno = await tx.turno.create({
+      data: {
+        inicio,
+        fin,
+        nombreYApellido: parsed.data.nombreYApellido,
+        fechaNacimiento: parsed.data.fechaNacimiento ? new Date(parsed.data.fechaNacimiento) : null,
+        dni: parsed.data.dni,
+        telefono: parsed.data.telefono,
+        obraSocial: parsed.data.obraSocial,
+        obraSocialNro: parsed.data.obraSocialNro,
+        patientId: patient?.id ?? null,
+        creadoPorId: user.id,
+        doctorId: tenantId,
+        lugarId: parsed.data.lugarId,
+      },
+    });
+    return { turno } as const;
   });
 
-  return NextResponse.json({ turno: serializeTurno(turno, user.role) }, { status: 201 });
+  if ("error" in resultado) {
+    return NextResponse.json({ error: resultado.error }, { status: 409 });
+  }
+  return NextResponse.json({ turno: serializeTurno(resultado.turno, user.role) }, { status: 201 });
 }

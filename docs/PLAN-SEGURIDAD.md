@@ -188,7 +188,15 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - Reservar costo estimado antes de llamar al proveedor, concurrencia por médico (p.ej. 2),
   registrar costo también en refusal / resumen vacío (`ia/resumir/route.ts:119-129`).
 
-### [ ] F11 · Doble reserva (race)
+### [x] F11 · Doble reserva (race)
+> Hecho 2026-11-19 sin migración: `conAgendaDelMedico()` (`src/lib/agenda-lock.ts`) envuelve
+> "¿está libre?" + alta en una transacción con `pg_advisory_xact_lock` por médico, en `POST /api/turnos`
+> y en la reserva pública. Se descartó el índice único: turno + sobreturno son dos filas legítimas
+> con el mismo `inicio` y no hay columna que las distinga (y un índice fallaría al deployar si ya hay
+> duplicados). De paso (mantenimiento): `POST /api/turnos` valida que `lugarId` sea del médico y no
+> esté dado de baja, también para el DOCTOR. E2E local secuencial: lugar ajeno 400, horario repetido
+> 409, sobreturno 201, segundo sobreturno 409; reserva pública sin cambios de comportamiento.
+> **Pendiente QA:** dos altas simultáneas del mismo horario (no se puede probar en local: PGlite).
 - Índice único parcial `(doctorId, inicio)` para turnos confirmados o transacción `Serializable`
   (`turnos/route.ts:77-107`, `directorio/[slug]/reservar/route.ts:95-132`). Contemplar sobreturnos.
 
@@ -202,7 +210,7 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
   consentimientos con `patient: { doctorId, deletedAt: null }`.
 - [ ] Auditoría: registrar el `nroDocumento` quitado a otro paciente por conflicto de DNI
   (`patients/route.ts:113`, `patients/[id]/route.ts:102`) y el diff de antecedentes.
-- [ ] `POST /api/turnos`: validar `lugarId` del tenant y no eliminado también para DOCTOR.
+- [x] `POST /api/turnos`: validar `lugarId` del tenant y no eliminado también para DOCTOR. (Hecho en F11.)
 - [ ] `get-day-slots.ts:171-179`: `select` explícito (no exponer `cancelTokenHash`, `linkCodigo`, `creadoPorId`).
 - [ ] Login: contar solo intentos fallidos / Turnstile al superar umbral (evitar lockout de víctima).
 - [ ] Contraseñas: mínimo 10 caracteres; bcrypt costo 12.
@@ -234,3 +242,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F8 | Chequeo de DNI con turno movido después de validar el horario. Pendiente producto: confirmación por WhatsApp/SMS. |
 | 2026-11-19 | F9 | Export completo (odontología), en streaming, con rate limit; datos idénticos al anterior. |
 | 2026-11-19 | F10 | Reserva de costo IA bajo lock por médico; confirmación con costo real; liberación si falla. |
+| 2026-11-19 | F11 | Alta de turnos bajo lock de agenda por médico (panel y reserva pública); lugar validado. |

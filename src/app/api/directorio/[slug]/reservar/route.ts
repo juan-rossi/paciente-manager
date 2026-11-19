@@ -10,6 +10,7 @@ import {
   nombreCookieTurno,
   opcionesCookieTurno,
 } from "@/lib/turno-cancelacion-publica";
+import { conAgendaDelMedico } from "@/lib/agenda-lock";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -68,46 +69,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Ese horario ya no está disponible." }, { status: 409 });
   }
 
-  const existente = await prisma.turno.findFirst({
-    where: { doctorId: doctor.id, inicio, estado: "CONFIRMADO" },
-  });
-  if (existente) {
-    return NextResponse.json(
-      { error: "Ese turno ya fue reservado. Elegí otro horario." },
-      { status: 409 }
-    );
-  }
-
-  // Un visitante no autenticado no puede reservar un turno nuevo si ya
-  // tiene uno futuro con este médico -- sin esto, alguien con un DNI fijo
-  // (real o inventado) podría ocupar muchos horarios distintos en una
-  // sola tanda de reservas. No aplica a turnos cargados desde el panel
-  // (esos sí pueden acumular varios a propósito, ej. controles seguidos).
-  //
-  // Va DESPUÉS de validar el horario a propósito: si fuera antes, con un
-  // horario inventado se podía preguntar gratis y sin dejar rastro si un
-  // DNI ajeno tiene turno con este médico (un dato de salud: "se atiende
-  // con un psiquiatra"). Así, cada consulta exige un horario real y libre,
-  // y si el DNI no tenía turno se crea una reserva que el médico ve.
-  const turnoFuturoDelPaciente = await prisma.turno.findFirst({
-    where: {
-      doctorId: doctor.id,
-      dni: parsed.data.dni,
-      estado: "CONFIRMADO",
-      inicio: { gte: new Date() },
-    },
-    select: { id: true },
-  });
-  if (turnoFuturoDelPaciente) {
-    return NextResponse.json(
-      {
-        error:
-          "Ya tenés un turno reservado con este médico. Si necesitás cambiarlo, contactalo directamente.",
-      },
-      { status: 409 }
-    );
-  }
-
   const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);
 
   const patient = parsed.data.dni
@@ -118,24 +79,68 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     : null;
 
   const { token, hash } = generarTokenCancelacion();
-  const turno = await prisma.turno.create({
-    data: {
-      cancelTokenHash: hash,
-      inicio,
-      fin,
-      nombreYApellido: parsed.data.nombreYApellido,
-      fechaNacimiento: parsed.data.fechaNacimiento ? new Date(parsed.data.fechaNacimiento) : null,
-      dni: parsed.data.dni,
-      telefono: parsed.data.telefono,
-      obraSocial: parsed.data.obraSocial,
-      obraSocialNro: parsed.data.obraSocialNro,
-      patientId: patient?.id ?? null,
-      creadoPorId: doctor.id,
-      doctorId: doctor.id,
-      lugarId: slotValido.lugarId,
-      origen: "ONLINE",
-    },
+
+  // Los chequeos que dependen de otros turnos y el alta van con la agenda
+  // del médico tomada: dos pacientes reservando el mismo horario a la vez no
+  // pueden quedarse ambos con él (ver `conAgendaDelMedico`).
+  const resultado = await conAgendaDelMedico(doctor.id, async (tx) => {
+    const existente = await tx.turno.findFirst({
+      where: { doctorId: doctor.id, inicio, estado: "CONFIRMADO" },
+      select: { id: true },
+    });
+    if (existente) return { error: "Ese turno ya fue reservado. Elegí otro horario." } as const;
+
+    // Un visitante no autenticado no puede reservar un turno nuevo si ya
+    // tiene uno futuro con este médico -- sin esto, alguien con un DNI fijo
+    // (real o inventado) podría ocupar muchos horarios distintos en una
+    // sola tanda de reservas. No aplica a turnos cargados desde el panel
+    // (esos sí pueden acumular varios a propósito, ej. controles seguidos).
+    //
+    // Va DESPUÉS de validar el horario a propósito: si fuera antes, con un
+    // horario inventado se podía preguntar gratis y sin dejar rastro si un
+    // DNI ajeno tiene turno con este médico (un dato de salud: "se atiende
+    // con un psiquiatra"). Así, cada consulta exige un horario real y libre,
+    // y si el DNI no tenía turno se crea una reserva que el médico ve.
+    const turnoFuturoDelPaciente = await tx.turno.findFirst({
+      where: {
+        doctorId: doctor.id,
+        dni: parsed.data.dni,
+        estado: "CONFIRMADO",
+        inicio: { gte: new Date() },
+      },
+      select: { id: true },
+    });
+    if (turnoFuturoDelPaciente) {
+      return {
+        error: "Ya tenés un turno reservado con este médico. Si necesitás cambiarlo, contactalo directamente.",
+      } as const;
+    }
+
+    const turno = await tx.turno.create({
+      data: {
+        cancelTokenHash: hash,
+        inicio,
+        fin,
+        nombreYApellido: parsed.data.nombreYApellido,
+        fechaNacimiento: parsed.data.fechaNacimiento ? new Date(parsed.data.fechaNacimiento) : null,
+        dni: parsed.data.dni,
+        telefono: parsed.data.telefono,
+        obraSocial: parsed.data.obraSocial,
+        obraSocialNro: parsed.data.obraSocialNro,
+        patientId: patient?.id ?? null,
+        creadoPorId: doctor.id,
+        doctorId: doctor.id,
+        lugarId: slotValido.lugarId,
+        origen: "ONLINE",
+      },
+    });
+    return { turno } as const;
   });
+
+  if ("error" in resultado) {
+    return NextResponse.json({ error: resultado.error }, { status: 409 });
+  }
+  const { turno } = resultado;
 
   const res = NextResponse.json(
     { ok: true, inicio: turno.inicio.toISOString(), fin: turno.fin.toISOString() },
