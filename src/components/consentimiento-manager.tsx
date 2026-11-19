@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { PLANTILLA_PSICOTERAPIA } from "@/lib/consentimiento-plantillas";
+import type { PlantillaConsentimiento } from "@/lib/consentimiento-plantillas";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -47,8 +47,9 @@ export type ConsentimientoValue = {
 type Props = {
   patientId: string;
   initialConsentimientos: ConsentimientoValue[];
-  // Psicología (ver esPsicologia()): ofrece la plantilla de psicoterapia.
-  psicologia?: boolean;
+  // Textos base que se ofrecen según la especialidad (ver
+  // plantillasConsentimiento()). Vacío para los médicos.
+  plantillas?: readonly PlantillaConsentimiento[];
 };
 
 // `new Date().toISOString()` da la fecha en UTC, y los componentes LOCALES
@@ -63,8 +64,10 @@ function todayLocal() {
 export function ConsentimientoManager({
   patientId,
   initialConsentimientos,
-  psicologia = false,
+  plantillas = [],
 }: Props) {
+  // Las plantillas son textos largos: el diálogo y el campo de riesgos crecen.
+  const conPlantillas = plantillas.length > 0;
   const [items, setItems] = useState<ConsentimientoValue[]>(initialConsentimientos);
   const activos = items.filter((c) => !c.deletedAt);
   const eliminados = items.filter((c) => c.deletedAt);
@@ -87,10 +90,13 @@ export function ConsentimientoManager({
   const [deleting, setDeleting] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
-  function usarPlantillaPsicoterapia() {
-    setProcedimiento(PLANTILLA_PSICOTERAPIA.procedimiento);
-    setRiesgosBeneficios(PLANTILLA_PSICOTERAPIA.riesgosBeneficios);
-    setAlternativas(PLANTILLA_PSICOTERAPIA.alternativas);
+  const [plantillaUsada, setPlantillaUsada] = useState<string | null>(null);
+
+  function usarPlantilla(plantilla: PlantillaConsentimiento) {
+    setProcedimiento(plantilla.procedimiento);
+    setRiesgosBeneficios(plantilla.riesgosBeneficios);
+    setAlternativas(plantilla.alternativas);
+    setPlantillaUsada(plantilla.id);
   }
 
   function resetForm() {
@@ -101,6 +107,7 @@ export function ConsentimientoManager({
     setEstado("OTORGADO");
     setFecha(todayLocal());
     setError(null);
+    setPlantillaUsada(null);
   }
 
   async function handleGuardar() {
@@ -335,20 +342,40 @@ export function ConsentimientoManager({
             <Plus className="size-4" />
             Nuevo consentimiento
           </Button>
-          <DialogContent className={psicologia ? "sm:max-w-2xl" : "sm:max-w-lg"}>
+          <DialogContent className={conPlantillas ? "sm:max-w-2xl" : "sm:max-w-lg"}>
             <DialogHeader>
               <DialogTitle>Nuevo consentimiento informado</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-3">
-              {psicologia && (
+              {plantillas.length === 1 && (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/60 px-3 py-2.5">
                   <p className="text-xs text-muted-foreground">
-                    Partí de un texto base para psicoterapia y ajustalo a tu encuadre.
+                    Partí de un texto base para {plantillas[0].label.toLowerCase()} y ajustalo a tu encuadre.
                   </p>
-                  <Button type="button" variant="outline" size="sm" onClick={usarPlantillaPsicoterapia}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => usarPlantilla(plantillas[0])}>
                     <Sparkles className="size-3.5" />
                     Usar plantilla
                   </Button>
+                </div>
+              )}
+              {plantillas.length > 1 && (
+                <div className="flex flex-col gap-2 rounded-lg bg-muted/60 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">Partí de un texto base y ajustalo al caso:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {plantillas.map((plantilla) => (
+                      <Button
+                        key={plantilla.id}
+                        type="button"
+                        variant={plantillaUsada === plantilla.id ? "secondary" : "outline"}
+                        size="sm"
+                        aria-pressed={plantillaUsada === plantilla.id}
+                        onClick={() => usarPlantilla(plantilla)}
+                      >
+                        <Sparkles className="size-3.5" />
+                        {plantilla.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               )}
               <div className="flex flex-col gap-1.5">
@@ -356,14 +383,14 @@ export function ConsentimientoManager({
                 <Input
                   value={procedimiento}
                   onChange={(e) => setProcedimiento(e.target.value)}
-                  placeholder={psicologia ? "Ej. Psicoterapia individual" : "Ej. Biopsia de piel"}
+                  placeholder={`Ej. ${plantillas[0]?.procedimiento ?? "Biopsia de piel"}`}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Riesgos, beneficios y consecuencias informadas</Label>
                 <Textarea
-                  rows={psicologia ? 8 : 4}
-                  className={psicologia ? "max-h-[40dvh] overflow-y-auto" : undefined}
+                  rows={conPlantillas ? 8 : 4}
+                  className={conPlantillas ? "max-h-[40dvh] overflow-y-auto" : undefined}
                   value={riesgosBeneficios}
                   onChange={(e) => setRiesgosBeneficios(e.target.value)}
                 />

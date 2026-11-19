@@ -37,6 +37,7 @@ import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
+import { plantillasConsentimiento } from "@/lib/consentimiento-plantillas";
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
 import type { TurnoDiff } from "@/lib/patient-turno-diff";
@@ -474,7 +475,7 @@ export function PatientSummary({
     <ConsentimientoManager
       patientId={patient.id}
       initialConsentimientos={consentimientoValues}
-      psicologia={psicologia}
+      plantillas={plantillasConsentimiento(psicologia ? "PSICOLOGIA" : odontograma ? "ODONTOLOGICA" : "MEDICA")}
     />
   );
 

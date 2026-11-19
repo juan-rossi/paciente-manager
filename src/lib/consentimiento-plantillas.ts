@@ -1,3 +1,5 @@
+import type { GrupoEspecialidad } from "@/lib/especialidad";
+
 // Texto base para el consentimiento informado de un tratamiento
 // psicológico. Es un punto de partida: el profesional lo revisa y ajusta en
 // el diálogo antes de guardarlo (una vez guardado no se edita, ver
@@ -20,3 +22,88 @@ Registro de las sesiones: el profesional lleva una historia clínica del tratami
   alternativas:
     "Puede interrumpir el tratamiento cuando lo desee. Otras alternativas: otro enfoque o profesional, un dispositivo grupal, o una interconsulta psiquiátrica si fuera necesario.",
 };
+
+export type PlantillaConsentimiento = {
+  id: string;
+  // Nombre corto del botón en el diálogo.
+  label: string;
+  procedimiento: string;
+  riesgosBeneficios: string;
+  alternativas: string;
+};
+
+export const PLANTILLAS_PSICOLOGIA: readonly PlantillaConsentimiento[] = [
+  { id: "psicoterapia", label: "Psicoterapia", ...PLANTILLA_PSICOTERAPIA },
+];
+
+// Textos base para odontólogos. Igual que el de psicoterapia, son un punto de
+// partida que el profesional ajusta al caso antes de guardar.
+export const PLANTILLAS_ODONTOLOGIA: readonly PlantillaConsentimiento[] = [
+  {
+    id: "general",
+    label: "Tratamiento general",
+    procedimiento: "Tratamiento odontológico con anestesia local",
+    riesgosBeneficios: `Tratamiento: prácticas odontológicas de rutina (operatoria, obturaciones, limpieza, tartrectomía y las que surjan del plan de tratamiento acordado), en las que puede ser necesario aplicar anestesia local.
+
+Beneficios esperados: eliminar el dolor o la infección, recuperar la función y la estética de las piezas tratadas y evitar que el problema avance.
+
+Riesgos de la anestesia local: adormecimiento de labios, lengua y mejilla durante algunas horas (evitar morderse y comer hasta que pase), hematoma o dolor en la zona de la punción, palpitaciones o mareo transitorios, y muy raramente reacciones alérgicas o alteraciones de la sensibilidad que pueden durar más tiempo.
+
+Riesgos del tratamiento: sensibilidad posoperatoria al frío o al calor, molestias al masticar los primeros días, y que una caries profunda termine requiriendo un tratamiento de conducto o la extracción de la pieza.
+
+El paciente declara haber informado sus enfermedades, la medicación que toma (en especial anticoagulantes o bifosfonatos), sus alergias y, si corresponde, un posible embarazo.`,
+    alternativas:
+      "No realizar el tratamiento (con riesgo de que el problema avance), postergarlo, u otras opciones de tratamiento o materiales que se conversaron en la consulta.",
+  },
+  {
+    id: "exodoncia",
+    label: "Exodoncia",
+    procedimiento: "Exodoncia (extracción dentaria)",
+    riesgosBeneficios: `Tratamiento: extracción de la/s pieza/s indicada/s, con anestesia local. Puede requerir separar la pieza en partes, levantar la encía o retirar hueso, y colocar puntos de sutura.
+
+Beneficios esperados: eliminar el foco de dolor o infección y evitar complicaciones en las piezas vecinas.
+
+Riesgos y consecuencias: dolor, inflamación y hematoma durante algunos días; sangrado posoperatorio; alveolitis (infección del alvéolo); fractura de raíces que obligue a dejar un fragmento o a una cirugía mayor; daño a piezas o restauraciones vecinas; limitación para abrir la boca; comunicación con el seno maxilar en piezas superiores; y en piezas inferiores, alteración de la sensibilidad del labio, el mentón o la lengua, por lo general transitoria y excepcionalmente permanente.
+
+Después de la extracción queda un espacio que puede requerir una prótesis o un implante para no perder función ni que se muevan las otras piezas.
+
+El paciente declara haber informado sus enfermedades, la medicación que toma (en especial anticoagulantes o bifosfonatos), sus alergias y, si corresponde, un posible embarazo, y se compromete a seguir las indicaciones posoperatorias.`,
+    alternativas:
+      "Conservar la pieza con otro tratamiento cuando sea posible (tratamiento de conducto, restauración), postergar la extracción con controles, o no realizarla, asumiendo el riesgo de dolor e infección.",
+  },
+  {
+    id: "endodoncia",
+    label: "Endodoncia",
+    procedimiento: "Endodoncia (tratamiento de conducto)",
+    riesgosBeneficios: `Tratamiento: con anestesia local, se retira la pulpa (nervio) de la pieza, se limpian y desinfectan los conductos y se los rellena. Puede llevar más de una sesión y requiere radiografías de control.
+
+Beneficios esperados: eliminar el dolor y la infección conservando la pieza en boca.
+
+Riesgos y consecuencias: dolor o inflamación los días posteriores; fractura de un instrumento dentro del conducto; perforación de la raíz; conductos calcificados o curvos que impidan completar el tratamiento; persistencia de la infección que requiera retratamiento, una cirugía o la extracción. La pieza tratada queda más frágil y en general necesita una restauración definitiva o una corona para no fracturarse.
+
+El éxito del tratamiento es alto pero no puede garantizarse.`,
+    alternativas:
+      "Extracción de la pieza (con la posterior colocación de una prótesis o un implante si se quiere reponer), o no realizar el tratamiento, con riesgo de dolor, absceso y pérdida de la pieza.",
+  },
+  {
+    id: "implante",
+    label: "Implantes",
+    procedimiento: "Colocación de implante/s dental/es",
+    riesgosBeneficios: `Tratamiento: cirugía con anestesia local para colocar uno o más implantes de titanio en el hueso, que después de un período de integración (habitualmente de 3 a 6 meses) reciben la prótesis. Puede requerir injerto de hueso o una segunda cirugía.
+
+Beneficios esperados: reponer las piezas perdidas con una prótesis fija, recuperando la masticación y la estética sin desgastar las piezas vecinas.
+
+Riesgos y consecuencias: dolor, inflamación y hematoma los primeros días; sangrado; infección; que el implante no se integre al hueso y deba retirarse; daño a estructuras vecinas (nervio dentario, seno maxilar, raíces), con alteración de la sensibilidad por lo general transitoria; y a largo plazo, inflamación o pérdida de hueso alrededor del implante (periimplantitis).
+
+Fumar, la diabetes no controlada, los bifosfonatos y una mala higiene aumentan el riesgo de fracaso. El resultado depende también de los controles periódicos y del cuidado del paciente.`,
+    alternativas:
+      "Prótesis fija sobre piezas vecinas (puente), prótesis removible, o no reponer las piezas perdidas.",
+  },
+];
+
+// Plantillas que se ofrecen en el diálogo de nuevo consentimiento.
+export function plantillasConsentimiento(grupo: GrupoEspecialidad): readonly PlantillaConsentimiento[] {
+  if (grupo === "PSICOLOGIA") return PLANTILLAS_PSICOLOGIA;
+  if (grupo === "ODONTOLOGICA") return PLANTILLAS_ODONTOLOGIA;
+  return [];
+}
