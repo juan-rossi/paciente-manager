@@ -438,19 +438,20 @@ model User {
   workScheduleBlocks    WorkScheduleBlock[]
   lugaresDeTrabajo      LugarDeTrabajo[]
   prepagas              DoctorPrepaga[]
+  arancelesPracticas    DoctorArancelPractica[]
   bloqueosHorario       BloqueoHorario[]
   horariosExcepcionales HorarioExcepcional[]
-  turnosCreados         Turno[]              @relation("TurnoCreadoPor")
-  pacientes             Patient[]            @relation("PatientDoctor")
-  turnosDelDoctor       Turno[]              @relation("TurnoDoctor")
-  auditLogsDelTenant    AuditLog[]           @relation("AuditDoctor")
-  auditLogsComoActor    AuditLog[]           @relation("AuditActor")
+  turnosCreados         Turno[]                 @relation("TurnoCreadoPor")
+  pacientes             Patient[]               @relation("PatientDoctor")
+  turnosDelDoctor       Turno[]                 @relation("TurnoDoctor")
+  auditLogsDelTenant    AuditLog[]              @relation("AuditDoctor")
+  auditLogsComoActor    AuditLog[]              @relation("AuditActor")
   pacientesVistos       PacienteVisto[]
   usosIA                UsoIA[]
   passwordResetTokens   PasswordResetToken[]
   moderaciones          ModeracionPerfil[]
-  ticketsSoporte        TicketSoporte[]      @relation("TicketAutor")
-  ticketsDelConsultorio TicketSoporte[]      @relation("TicketDoctor")
+  ticketsSoporte        TicketSoporte[]         @relation("TicketAutor")
+  ticketsDelConsultorio TicketSoporte[]         @relation("TicketDoctor")
   mensajesSoporte       TicketMensaje[]
 }
 
@@ -601,6 +602,7 @@ enum AuditEntidad {
   CONSENTIMIENTO
   ODONTOGRAMA
   PRACTICA_ODONTOLOGICA
+  PRESUPUESTO
 }
 
 // Ley 26.529 art. 13: la historia clínica digital requiere controles de
@@ -1000,6 +1002,7 @@ model Patient {
   turnos          Turno[]
   consentimientos ConsentimientoInformado[]
   odontogramas    PatientOdontograma[]
+  presupuestos    PresupuestoOdontologico[]
   vistos          PacienteVisto[]
 
   @@index([doctorId])
@@ -1038,9 +1041,9 @@ model PatientAntecedente {
 }
 
 model PatientEvolucion {
-  id               String    @id @default(cuid())
+  id               String   @id @default(cuid())
   patientId        String
-  patient          Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient          Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   fecha            DateTime
   contenido        String
   // Dictado original cuando `contenido` es un resumen de IA.
@@ -1056,7 +1059,7 @@ model PatientEvolucion {
 
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
   // se borra físicamente, se oculta.
-  deletedAt        DateTime?
+  deletedAt DateTime?
 }
 
 enum AsistenciaSesion {
@@ -1267,17 +1270,19 @@ model DoctorPrepaga {
 // fuente marca como "no incluidas en el Nomenclador Nacional". Se carga en la
 // migración 20261115210000_practica_odontologica.
 model PracticaOdontologica {
-  id          String                @id @default(cuid())
+  id             String                  @id @default(cuid())
   // "01.01", "04.01.05", ... — mismo formato que usan las obras sociales.
-  codigo      String                @unique
-  descripcion String
+  codigo         String                  @unique
+  descripcion    String
   // Número de capítulo (1 = Consultas ... 10 = Cirugía).
-  capitulo    Int
+  capitulo       Int
   // Agrupación dentro del capítulo cuando la tiene (ej. "Prótesis fija").
-  subgrupo    String?
-  activo      Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  usos        OdontogramaPractica[]
+  subgrupo       String?
+  activo         Boolean                 @default(true)
+  createdAt      DateTime                @default(now())
+  usos           OdontogramaPractica[]
+  aranceles      DoctorArancelPractica[]
+  presupuestados PresupuestoItem[]
 
   @@index([capitulo])
 }
@@ -1341,4 +1346,63 @@ model TicketMensaje {
   createdAt DateTime      @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+// Arancel particular de un odontólogo para una práctica del nomenclador.
+// Prellena el monto al armar un presupuesto (que después se puede ajustar
+// para ese paciente). Sin fila = sin arancel cargado.
+model DoctorArancelPractica {
+  id         String               @id @default(cuid())
+  doctorId   String
+  doctor     User                 @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  practicaId String
+  practica   PracticaOdontologica @relation(fields: [practicaId], references: [id], onDelete: Cascade)
+  // Pesos, sin centavos (igual que User.montoConsultaParticular).
+  monto      Int
+  updatedAt  DateTime             @updatedAt
+
+  @@unique([doctorId, practicaId])
+}
+
+enum PresupuestoEstado {
+  PENDIENTE
+  ACEPTADO
+  RECHAZADO
+}
+
+// Presupuesto del plan de tratamiento odontológico que se le entrega al
+// paciente. Los ítems no se editan: para cambiarlo se arma uno nuevo. El
+// total no se guarda, es la suma de los ítems.
+model PresupuestoOdontologico {
+  id        String            @id @default(cuid())
+  patientId String
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fecha     DateTime
+  estado    PresupuestoEstado @default(PENDIENTE)
+  nota      String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  // Mismo criterio que PatientOdontograma: nunca se borra físicamente.
+  deletedAt DateTime?
+  items     PresupuestoItem[]
+
+  @@index([patientId, fecha])
+}
+
+model PresupuestoItem {
+  id            String                  @id @default(cuid())
+  presupuestoId String
+  presupuesto   PresupuestoOdontologico @relation(fields: [presupuestoId], references: [id], onDelete: Cascade)
+  practicaId    String
+  practica      PracticaOdontologica    @relation(fields: [practicaId], references: [id], onDelete: Restrict)
+  // Copia del nomenclador al momento de presupuestar (como OdontogramaPractica).
+  codigo        String
+  descripcion   String
+  // Notación FDI ("36"). null = boca completa.
+  pieza         String?
+  caras         String[]                @default([])
+  monto         Int
+  orden         Int
+
+  @@index([presupuestoId])
 }

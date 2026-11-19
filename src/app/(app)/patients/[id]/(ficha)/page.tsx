@@ -14,6 +14,8 @@ import { tenantEsOdontologo } from "@/lib/odontograma-server";
 import { aplicarPracticas, parseDatos } from "@/lib/odontograma";
 import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import type { OdontogramaResumenProps } from "@/components/odontograma/odontograma-resumen";
+import type { PresupuestosProps } from "@/components/odontograma/presupuestos";
+import { presupuestoFromDb } from "@/lib/presupuesto";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -69,6 +71,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const odontogramaIds = (
     await prisma.patientOdontograma.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((o) => o.id);
+  const presupuestoIds = (
+    await prisma.presupuestoOdontologico.findMany({ where: { patientId: id }, select: { id: true } })
+  ).map((p) => p.id);
   const practicaIds =
     odontogramaIds.length > 0
       ? (
@@ -96,6 +101,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         ...(practicaIds.length > 0
           ? [{ entidad: "PRACTICA_ODONTOLOGICA" as const, entidadId: { in: practicaIds } }]
           : []),
+        ...(presupuestoIds.length > 0
+          ? [{ entidad: "PRESUPUESTO" as const, entidadId: { in: presupuestoIds } }]
+          : []),
       ],
     },
     include: { actor: { select: { nombre: true, apellido: true } } },
@@ -122,6 +130,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   // Odontólogos: la ficha muestra la última visita del odontograma. Mismo
   // orden que la pestaña de edición (el inicial primero, después por fecha).
   let odontograma: OdontogramaResumenProps | null = null;
+  let presupuestos: PresupuestosProps | null = null;
   if (esOdontologo) {
     const visitas = (
       await prisma.patientOdontograma.findMany({
@@ -163,6 +172,28 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
           }
         : null,
     };
+
+    // Presupuestos: el plan de tratamiento sale de la última visita, con sus
+    // prácticas ya aplicadas (lo realizado deja de estar pendiente).
+    const [filas, aranceles] = await Promise.all([
+      prisma.presupuestoOdontologico.findMany({
+        where: { patientId: id, deletedAt: null },
+        orderBy: [{ fecha: "desc" }, { createdAt: "desc" }],
+        include: { items: true },
+      }),
+      prisma.doctorArancelPractica.findMany({
+        where: { doctorId: tenantId },
+        select: { practicaId: true, monto: true },
+      }),
+    ]);
+    presupuestos = {
+      patientId: id,
+      initialPresupuestos: filas.map(presupuestoFromDb),
+      aranceles: Object.fromEntries(aranceles.map((a) => [a.practicaId, a.monto])),
+      datos: ultima
+        ? aplicarPracticas(parseDatos(ultima.datos), ultima.practicas.map(practicaVisitaFromDb))
+        : null,
+    };
   }
 
   return (
@@ -176,6 +207,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         resumirEvolucionesAlTerminar={resumenAutomatico.evoluciones}
         evolucionHabilitada={!esOdontologo}
         odontograma={odontograma}
+        presupuestos={presupuestos}
         grupo={grupo}
       />
     </PageEnter>

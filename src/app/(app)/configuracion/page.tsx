@@ -1,5 +1,16 @@
 import { cookies } from "next/headers";
-import { Building2, Database, Eye, Lock, MessageSquare, Mic, Sparkles, User, Users } from "lucide-react";
+import {
+  Building2,
+  Database,
+  Eye,
+  Lock,
+  MessageSquare,
+  Mic,
+  ReceiptText,
+  Sparkles,
+  User,
+  Users,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getEstadoModeracionPerfil } from "@/lib/moderacion";
@@ -16,7 +27,8 @@ import { MiPracticaSettings } from "@/components/mi-practica-settings";
 import { SecretaryUsers } from "@/components/secretary-users";
 import { MessagingSettings } from "@/components/messaging-settings";
 import { DictadoSettings } from "@/components/dictado-settings";
-import { grupoEspecialidad } from "@/lib/especialidad";
+import { esOdontologica, grupoEspecialidad } from "@/lib/especialidad";
+import { ArancelesSettings } from "@/components/aranceles-settings";
 import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
@@ -61,7 +73,12 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // Dictado y resumen con IA son Premium: sin plan Premium vigente la sección
   // "Dictado e IA" no se muestra (ni por deep link ni por la tab guardada).
   const iaHabilitada = isPremium(user) && esActivo(user);
-  const tabsOcultas: ConfiguracionTab[] = iaHabilitada ? [] : ["dictado"];
+  // Aranceles: solo el odontólogo (prellenan sus presupuestos).
+  const arancelesHabilitados = user.role === "DOCTOR" && esOdontologica(user.especialidad);
+  const tabsOcultas: ConfiguracionTab[] = [
+    ...(iaHabilitada ? [] : (["dictado"] as const)),
+    ...(arancelesHabilitados ? [] : (["aranceles"] as const)),
+  ];
   const esTabVisible = (tab: string | undefined): tab is ConfiguracionTab =>
     esConfiguracionTab(tab) && !tabsOcultas.includes(tab);
 
@@ -92,6 +109,20 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
     getEstadoModeracionPerfil(user.id),
   ]);
 
+  const [practicasOdontologicas, aranceles] = arancelesHabilitados
+    ? await Promise.all([
+        prisma.practicaOdontologica.findMany({
+          where: { activo: true },
+          select: { id: true, codigo: true, descripcion: true, capitulo: true, subgrupo: true },
+          orderBy: { codigo: "asc" },
+        }),
+        prisma.doctorArancelPractica.findMany({
+          where: { doctorId: user.id },
+          select: { practicaId: true, monto: true },
+        }),
+      ])
+    : [[], []];
+
   const initialSecretarias = secretarias.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }));
 
   return (
@@ -114,6 +145,12 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               <Building2 className="size-4" />
               Mi práctica
             </TabsTrigger>
+            {arancelesHabilitados && (
+              <TabsTrigger value="aranceles" className={navItemClass}>
+                <ReceiptText className="size-4" />
+                Aranceles
+              </TabsTrigger>
+            )}
             <TabsTrigger value="usuarios" className={navItemClass}>
               <Users className="size-4" />
               Usuarios
@@ -160,6 +197,14 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               initialSobreturnosHabilitados={user.sobreturnosHabilitados}
             />
           </TabsContent>
+          {arancelesHabilitados && (
+            <TabsContent value="aranceles" className="w-full">
+              <ArancelesSettings
+                practicas={practicasOdontologicas}
+                initialAranceles={Object.fromEntries(aranceles.map((a) => [a.practicaId, a.monto]))}
+              />
+            </TabsContent>
+          )}
           <TabsContent value="usuarios" className="w-full">
             <SecretaryUsers initialSecretarias={initialSecretarias} lugares={lugares} />
           </TabsContent>

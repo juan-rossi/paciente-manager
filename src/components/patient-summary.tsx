@@ -11,6 +11,7 @@ import {
   NotebookPen,
   Pencil,
   ChevronRight,
+  ReceiptText,
   ScrollText,
 } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
@@ -51,6 +52,7 @@ import {
   type OdontogramaResumenProps,
 } from "@/components/odontograma/odontograma-resumen";
 import { OdontogramaVisitas } from "@/components/odontograma/odontograma-visitas";
+import { Presupuestos, type PresupuestosProps } from "@/components/odontograma/presupuestos";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
   include: { antecedentes: true; evoluciones: true; consentimientos: true };
@@ -82,6 +84,10 @@ const AUDIT_LABELS: Record<string, string> = {
   ELIMINAR_ODONTOGRAMA: "eliminó un odontograma",
   CREAR_PRACTICA_ODONTOLOGICA: "registró una práctica odontológica",
   ELIMINAR_PRACTICA_ODONTOLOGICA: "eliminó una práctica odontológica",
+  CREAR_PRESUPUESTO: "armó un presupuesto",
+  MODIFICAR_PRESUPUESTO: "cambió el estado de un presupuesto",
+  ELIMINAR_PRESUPUESTO: "eliminó un presupuesto",
+  EXPORTAR_PRESUPUESTO: "imprimió un presupuesto",
 };
 
 // Los timestamps de auditoría son instantes reales (no fechas de calendario
@@ -208,6 +214,7 @@ export function PatientSummary({
   resumirEvolucionesAlTerminar = false,
   evolucionHabilitada = true,
   odontograma = null,
+  presupuestos = null,
   grupo = "MEDICA",
 }: {
   patient: PatientWithRelations;
@@ -222,6 +229,8 @@ export function PatientSummary({
   // la ficha (columna lateral de datos clínicos + odontograma; consentimientos
   // y auditoría plegados).
   odontograma?: OdontogramaResumenProps | null;
+  // Solo odontólogos: presupuestos del plan de tratamiento.
+  presupuestos?: PresupuestosProps | null;
   // Grupo de la especialidad (ver grupoEspecialidad()): otros nombres y
   // campos propios en consulta inicial, antecedentes y diagnóstico.
   grupo?: GrupoEspecialidad;
@@ -510,6 +519,13 @@ export function PatientSummary({
           <div className="flex min-w-0 flex-col gap-6">
             <OdontogramaResumen {...odontograma} />
             <OdontogramaVisitas patientId={odontograma.patientId} visitas={odontograma.historial} />
+            {presupuestos && (
+              <FormSection title="Presupuestos" icon={ReceiptText} contentClassName="bg-card">
+                <div className="col-span-full">
+                  <Presupuestos {...presupuestos} />
+                </div>
+              </FormSection>
+            )}
           </div>
         </div>
 
