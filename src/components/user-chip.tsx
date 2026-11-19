@@ -12,6 +12,8 @@ type Props = {
   iniciales: string;
   fotoPerfilBase64: string | null;
   configHref?: string;
+  // "Configuración" (médico) o "Mi cuenta" (secretaria).
+  configLabel?: string;
   adminHref?: string;
   homeHref?: string;
   className?: string;
@@ -22,6 +24,7 @@ export function UserChip({
   iniciales,
   fotoPerfilBase64,
   configHref,
+  configLabel = "Configuración",
   adminHref,
   homeHref,
   className,
@@ -67,7 +70,7 @@ export function UserChip({
                 className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
               >
                 <Settings className="size-4 text-muted-foreground" />
-                Configuración
+                {configLabel}
               </Link>
             )}
             {adminHref && (

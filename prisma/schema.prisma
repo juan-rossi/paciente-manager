@@ -454,6 +454,7 @@ model User {
   pacientesVistos       PacienteVisto[]
   usosIA                UsoIA[]
   passwordResetTokens   PasswordResetToken[]
+  cambiosEmail          CambioEmail[]
   moderaciones          ModeracionPerfil[]
   ticketsSoporte        TicketSoporte[]         @relation("TicketAutor")
   ticketsDelConsultorio TicketSoporte[]         @relation("TicketDoctor")
@@ -508,6 +509,22 @@ model ModeracionPerfil {
 // guarda el hash SHA-256 del token -- el token en claro viaja únicamente en
 // el mail, así que un dump de la base no sirve para resetear cuentas. Un
 // solo uso (`usedAt`) y vencimiento corto (`expiresAt`).
+// Pedido de cambio del email propio (ver src/lib/cambio-email.ts): se
+// confirma con un link al email NUEVO (prueba que es de quien lo pide). Mismo
+// esquema que PasswordResetToken: token de un solo uso guardado como hash.
+model CambioEmail {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailNuevo String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String

@@ -20,7 +20,8 @@ type Ruta =
   | "link-turno"
   | "exportar"
   | "soporte-mensaje"
-  | "invitar";
+  | "invitar"
+  | "cambio-email";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -58,6 +59,9 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   // consultorio real invita a unas pocas personas; el tope frena usar el
   // formulario para averiguar en masa qué emails tienen cuenta.
   invitar: { porIp: 20, porSlug: 20, ventanaMinutos: 60 },
+  // Cambio del email propio: "ip" y "slug" son el usuario. Cada pedido manda
+  // dos mails (al email nuevo y al anterior).
+  "cambio-email": { porIp: 5, porSlug: 5, ventanaMinutos: 60 },
 };
 
 // La ventana más larga de LIMITES es de 60 minutos: lo anterior a un día no

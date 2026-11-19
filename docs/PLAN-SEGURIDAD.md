@@ -81,7 +81,8 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 > tiene forma de cambiarlo ella misma y no habría cómo corregir un email mal cargado. Con la
 > restricción, tomar la cuenta de una secretaria exclusiva no da acceso a nada nuevo.
 > E2E local: con invitación pendiente de otro médico → 403; edición normal → 200.
-> Mejora futura (no seguridad): cambio de email self-service con confirmación desde la casilla nueva.
+> **Hecho después (2026-11-19):** cambio de email propio para médicos y secretarias, confirmado con un
+> link al email nuevo (ver "Mejoras de producto").
 - `src/app/api/users/[id]/route.ts:58-63` deja al médico cambiar el email de login de la secretaria
   (sin verificación, sin invalidar sesiones); `src/lib/secretarias.ts:40` solo cuenta asignaciones
   aceptadas. Con "recuperar contraseña" entra como ella y acepta invitaciones pendientes de otro médico.
@@ -237,6 +238,28 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 
 ---
 
+## Mejoras de producto (posteriores al plan)
+
+### [x] Cambio de email propio (médicos y secretarias)
+> Hecho 2026-11-19. Modelo `CambioEmail` (migración `20261119220000_cambio_email`) y
+> `src/lib/cambio-email.ts`: token de 32 bytes guardado como SHA-256, un solo uso, 24 h. Pedido
+> (`POST /api/cuenta/email`) exige la contraseña actual (cuentas solo-Google: crear una antes con
+> "recuperar"), rate limit 5/h; si el email ya tiene cuenta responde igual y no manda nada. Link al
+> email NUEVO + aviso al anterior. Confirmación con botón en `/confirmar-email` (no GET: los antivirus
+> abren links); al confirmar: cambia el email, `sessionVersion++`, invalida links de "recuperar" y
+> avisa al anterior. Médico: Configuración → Seguridad. Secretaria: nueva página `/mi-cuenta` con
+> email y contraseña (`/api/perfil/password` ahora acepta SECRETARY). E2E local con usuarios
+> temporales (@example.com, borrados). **QA:** el flujo completo con mails reales.
+
+### [ ] Confirmar la reserva pública por WhatsApp/SMS — POSPUESTO (decisión 2026-11-19)
+> Hoy no hay proveedor de mensajería (los recordatorios son links `wa.me` manuales). Diseño propuesto
+> para cuando se retome: al reservar online se crea el turno como "pendiente de verificación" y se manda
+> un código de 6 dígitos (válido 10 min, 3 intentos) al teléfono; recién al ingresarlo se confirma y
+> cuenta para el chequeo de "ya tenés turno". Cierra el oráculo de F8 y el bloqueo con DNI ajeno.
+> Opciones: SMS con Twilio (~US$ 0,05–0,08 por SMS a Argentina; alta inmediata) o WhatsApp Cloud API
+> de Meta (más barato y más usado en AR; requiere verificar el negocio y aprobar una plantilla de
+> autenticación, puede tardar días). Mitigación vigente mientras tanto: F8 + Turnstile + rate limit.
+
 ## Lo que se revisó y está bien
 Sin IDOR entre tenants; la secretaria no accede a HC por ningún camino; tokens de reset/invitación
 correctos (32 bytes, SHA-256, expiración, un solo uso); suspensión invalida JWT del médico
@@ -260,3 +283,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F11 | Alta de turnos bajo lock de agenda por médico (panel y reserva pública); lugar validado. |
 | 2026-11-19 | F12 | Secretaria nunca admin (D2); sanciones aplicadas/levantadas auditadas en AuditLog. |
 | 2026-11-19 | Mant. | Lista de mantenimiento completa (11 puntos) en 5 commits. |
+| 2026-11-19 | Producto | Cambio de email propio + /mi-cuenta de la secretaria. Confirmación de reserva por WhatsApp/SMS pospuesta. |

@@ -127,9 +127,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : []),
   ];
 
+  // La secretaria no tiene Configuración (es del médico): su equivalente es
+  // "Mi cuenta", con su email y su contraseña.
   const configLink = isDoctor
     ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
-    : [];
+    : isSecretary
+      ? [{ href: "/mi-cuenta", label: "Mi cuenta", icon: "Settings" as const }]
+      : [];
 
   // Médico o secretaria con acceso admin otorgado a mano (ver
   // scripts/grant-admin-access.ts) -- puede entrar a /admin sin dejar de
@@ -195,6 +199,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   iniciales={iniciales}
                   fotoPerfilBase64={user.fotoPerfilBase64}
                   configHref={configLink[0]?.href}
+                  configLabel={configLink[0]?.label}
                   adminHref={adminLink[0]?.href}
                 />
               </div>

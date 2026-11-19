@@ -30,6 +30,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 const AVISOS: Record<string, string> = {
   "password-cambiada":
     "Cambiaste tu contraseña y cerramos todas tus sesiones. Ingresá de nuevo con la contraseña nueva.",
+  "email-cambiado": "Tu email se actualizó y cerramos todas tus sesiones. Ingresá con el email nuevo.",
 };
 
 export function LoginForm() {
