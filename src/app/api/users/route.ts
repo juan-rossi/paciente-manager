@@ -5,6 +5,7 @@ import { secretaryInputSchema } from "@/lib/turno-schema";
 import { listarSecretariasDelMedico, obtenerSecretariaDelMedico } from "@/lib/secretarias";
 import { enviarInvitacion } from "@/lib/invitacion-secretaria";
 import { getSiteUrl } from "@/lib/site-url";
+import { rateLimitOk } from "@/lib/rate-limit";
 
 export async function GET() {
   const { tenantId, response } = await requireDoctor();
@@ -32,6 +33,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Tope de invitaciones: frena que se use este formulario para averiguar en
+  // masa qué emails tienen cuenta en Semio 360.
+  if (!(await rateLimitOk(`doctor:${tenantId}`, tenantId, "invitar"))) {
+    return NextResponse.json(
+      { error: "Enviaste muchas invitaciones seguidas. Esperá un rato y volvé a intentar." },
+      { status: 429 }
+    );
+  }
+
   // Los lugares elegidos tienen que ser lugares activos de ESTE médico --
   // nunca de otro (nada impide que el cliente mande cualquier id).
   const lugaresValidos = await prisma.lugarDeTrabajo.count({
@@ -54,7 +64,8 @@ export async function POST(request: NextRequest) {
   if (existing) {
     if (existing.role !== "SECRETARY") {
       return NextResponse.json(
-        { error: "Ese email ya está en uso por otra cuenta." },
+        // No se dice qué tipo de cuenta es (médico, admin).
+        { error: "No se puede invitar a ese email como asistente." },
         { status: 409 }
       );
     }
@@ -83,13 +94,6 @@ export async function POST(request: NextRequest) {
     secretariaId = existing.id;
     doctorSecretariaId = creada.id;
   } else {
-    if (!parsed.data.nombre) {
-      return NextResponse.json(
-        { error: "El nombre es obligatorio para invitar a un asistente nuevo." },
-        { status: 400 }
-      );
-    }
-
     // `passwordHash` vacío = todavía no eligió contraseña (mismo valor que
     // las cuentas creadas con Google): no se puede ingresar con contraseña
     // hasta que la elija desde el link de la invitación.

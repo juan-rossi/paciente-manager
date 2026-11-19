@@ -33,6 +33,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   // aceptó la de este, no son de este médico para cambiarlos -- ver
   // `SecretariaDelMedico.datosEditables`. La contraseña nunca la toca el
   // médico.
+  if (existing.datosEditables && !parsed.data.nombre) {
+    return NextResponse.json({ error: "El nombre es obligatorio." }, { status: 400 });
+  }
   const cambiaEmail = parsed.data.email !== existing.email;
   const cambiaDatosDeCuenta = cambiaEmail || parsed.data.nombre !== existing.nombre;
   if (cambiaDatosDeCuenta && !existing.datosEditables) {

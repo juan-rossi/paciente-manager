@@ -96,11 +96,12 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
   }
 
   async function handleGuardar() {
-    // Al invitar, el nombre solo hace falta si el email no tiene cuenta
-    // todavía (si ya es secretaria de otro médico se usa el suyo) -- eso lo
-    // valida la ruta.
-    if (!email.trim() || (editingSecretaria && !nombre.trim())) {
-      setError(editingSecretaria ? "Completá el nombre y el email." : "Completá el email.");
+    // El nombre se pide siempre (también al invitar): si solo hiciera falta
+    // cuando el email no tiene cuenta, la respuesta revelaría qué emails
+    // tienen cuenta en Semio 360. Si ya es secretaria de otro médico, se usa
+    // el suyo (lo resuelve la ruta).
+    if (!email.trim() || (!datosBloqueados && !nombre.trim())) {
+      setError("Completá el nombre y el email.");
       return;
     }
     if (lugarIds.length === 0) {
@@ -198,18 +199,22 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
           >
             <div className="flex items-start gap-2.5">
               <span className="flex size-8.5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                {initials(secretaria.nombre)}
+                {initials(secretaria.nombre || secretaria.email)}
               </span>
               <div className="flex flex-col gap-0.5">
                 <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                  {secretaria.nombre}
+                  {/* Sin nombre: invitación pendiente a alguien que ya tiene
+                      cuenta; su nombre se ve recién cuando acepta. */}
+                  {secretaria.nombre || secretaria.email}
                   {secretaria.pendiente && (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
                       Invitación pendiente
                     </span>
                   )}
                 </span>
-                <span className="text-xs text-muted-foreground">{secretaria.email}</span>
+                {secretaria.nombre && (
+                  <span className="text-xs text-muted-foreground">{secretaria.email}</span>
+                )}
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {secretaria.lugarIds.length === 0 ? (
                     <span className="text-xs text-muted-foreground">Sin lugares asignados</span>
@@ -314,7 +319,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
                 />
                 {!editingSecretaria && (
                   <span className="text-xs text-muted-foreground">
-                    Si ya tiene cuenta en Semio 360 (asiste a otro médico), se usa la suya.
+                    Si ya tiene cuenta en Semio 360 (asiste a otro médico), se va a ver con su propio nombre cuando acepte la invitación.
                   </span>
                 )}
               </div>
@@ -387,7 +392,8 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             {deleteTarget?.pendiente ? "Se cancelará la invitación a " : "Se eliminará el acceso de "}
-            <strong>{deleteTarget?.nombre}</strong> ({deleteTarget?.email}).
+            <strong>{deleteTarget?.nombre || deleteTarget?.email}</strong>
+            {deleteTarget?.nombre ? ` (${deleteTarget.email})` : ""}.
           </p>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>

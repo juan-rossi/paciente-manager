@@ -44,7 +44,11 @@ function aSecretariaDelMedico(
   return {
     id: s.id,
     email: s.email,
-    nombre: s.nombre,
+    // Invitación todavía no aceptada a alguien que ya tiene cuenta con otro
+    // médico: su nombre es de su cuenta, no de este médico, y no se le
+    // muestra hasta que acepte (si no, invitar un email serviría para
+    // averiguar el nombre de la secretaria de otro médico).
+    nombre: !propia?.aceptadaAt && otrosMedicos ? "" : s.nombre,
     createdAt: s.createdAt,
     lugarIds: propia?.lugares.map((l) => l.lugarId) ?? [],
     puedeBloquearHorarios: propia?.puedeBloquearHorarios ?? false,

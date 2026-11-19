@@ -19,7 +19,8 @@ type Ruta =
   | "ciudad"
   | "link-turno"
   | "exportar"
-  | "soporte-mensaje";
+  | "soporte-mensaje"
+  | "invitar";
 
 // `porIp` frena a una sola fuente que ataque a cualquier médico; `porSlug`
 // protege a UN médico puntual de que le llenen la agenda aunque el
@@ -53,6 +54,10 @@ const LIMITES: Record<Ruta, { porIp: number; porSlug: number; ventanaMinutos: nu
   // Respuestas a un ticket de soporte: "ip" es el autor y "slug" el ticket.
   // Cada respuesta reabre el ticket y avisa al equipo.
   "soporte-mensaje": { porIp: 30, porSlug: 20, ventanaMinutos: 60 },
+  // Invitar asistentes (POST /api/users): "ip" y "slug" son el médico. Un
+  // consultorio real invita a unas pocas personas; el tope frena usar el
+  // formulario para averiguar en masa qué emails tienen cuenta.
+  invitar: { porIp: 20, porSlug: 20, ventanaMinutos: 60 },
 };
 
 // La ventana más larga de LIMITES es de 60 minutos: lo anterior a un día no

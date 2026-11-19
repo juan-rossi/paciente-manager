@@ -92,11 +92,10 @@ export const turnoEditSchema = turnoInputSchema.pick({
 // corresponde a nadie todavía.
 export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
-  nombre: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
+  // Obligatorio siempre, aunque el email ya tenga cuenta (ahí se ignora y se
+  // usa el suyo): si solo se pidiera para un email nuevo, el "falta el
+  // nombre" revelaría qué emails tienen cuenta en Semio 360.
+  nombre: z.string().trim().min(1, "El nombre es obligatorio."),
   // Lugares del médico que esta secretaria va a poder administrar --
   // específico de esta relación médico-secretaria, no de la cuenta en
   // general (ver DoctorSecretariaLugar en el schema).
@@ -109,7 +108,10 @@ export const secretaryInputSchema = z.object({
 
 export const secretaryUpdateSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
-  nombre: z.string().trim().min(1, "El nombre es obligatorio."),
+  // Puede venir vacío cuando el nombre no se le muestra al médico (invitación
+  // pendiente a alguien con cuenta, ver `aSecretariaDelMedico`): la ruta lo
+  // exige solo si los datos de cuenta son editables.
+  nombre: z.string().trim(),
   lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
   puedeBloquearHorarios: z.boolean().default(false),
 });
