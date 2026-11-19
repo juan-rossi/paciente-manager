@@ -180,12 +180,20 @@ export function usaExamenFisico(especialidad: Especialidad | null | undefined): 
 
 // Grupo de profesión de cada especialidad. En el registro, el título de
 // cortesía decide qué grupos se ofrecen (ver gruposParaTitulo()).
-type GrupoEspecialidad = "MEDICA" | "ODONTOLOGICA" | "PSICOLOGIA";
+// También decide la historia clínica (antecedentes, etiquetas, dictado y
+// plantillas de consentimiento): ver grupoEspecialidad().
+export type GrupoEspecialidad = "MEDICA" | "ODONTOLOGICA" | "PSICOLOGIA";
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esOdontologica(especialidad)) return "ODONTOLOGICA";
   if (esPsicologia(especialidad)) return "PSICOLOGIA";
   return "MEDICA";
+}
+
+// Igual que grupoDe(), pero acepta un profesional sin especialidad cargada
+// (cuentas viejas), que se trata como médico.
+export function grupoEspecialidad(especialidad: Especialidad | null | undefined): GrupoEspecialidad {
+  return especialidad ? grupoDe(especialidad) : "MEDICA";
 }
 
 export const ESPECIALIDAD_OPTIONS = ESPECIALIDAD_VALUES.map((value) => ({

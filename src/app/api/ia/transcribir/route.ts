@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePremiumDoctor } from "@/lib/ia-auth";
 import { registrarDictado } from "@/lib/ia-costos";
-import { esPsicologia } from "@/lib/especialidad";
+import { grupoEspecialidad, type GrupoEspecialidad } from "@/lib/especialidad";
 
 export const maxDuration = 60;
 
@@ -22,6 +22,16 @@ const PROMPT_CLINICO =
 // Para psicólogos: vocabulario de sesión en vez de fármacos.
 const PROMPT_PSICOLOGIA =
   "Sesión de psicoterapia en español. El consultante refiere ansiedad, angustia, ataques de pánico, insomnio y dificultades en el vínculo con su pareja y su familia. Se trabaja el duelo, la autoestima y los pensamientos intrusivos. Se mantiene el encuadre, se acuerdan tareas y se pauta la próxima sesión.";
+
+// Para odontólogos: piezas en notación FDI, caras y prácticas del nomenclador.
+const PROMPT_ODONTOLOGIA =
+  "Consulta odontológica en español. Pieza 3.6 con caries en cara oclusal y distal, se realiza obturación con composite. Pieza 1.1 con fractura de cara vestibular y mesial. Pieza 4.6 con tratamiento de conducto, se indica corona. Exodoncia de la pieza 3.8. Tartrectomía y topicación con flúor. Periodontitis, gingivitis, bolsa periodontal, movilidad dentaria. Anestesia local, implante, amalgama, radiografía periapical y panorámica. Cara palatina, lingual, vestibular, mesial, distal, oclusal.";
+
+const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  MEDICA: PROMPT_CLINICO,
+  ODONTOLOGICA: PROMPT_ODONTOLOGIA,
+  PSICOLOGIA: PROMPT_PSICOLOGIA,
+};
 
 export async function POST(request: NextRequest) {
   const { user, response } = await requirePremiumDoctor();
@@ -51,7 +61,7 @@ export async function POST(request: NextRequest) {
   // el reporte de costos del panel admin.
   groqForm.append("response_format", "verbose_json");
   groqForm.append("temperature", "0");
-  groqForm.append("prompt", esPsicologia(user.especialidad) ? PROMPT_PSICOLOGIA : PROMPT_CLINICO);
+  groqForm.append("prompt", PROMPT_POR_GRUPO[grupoEspecialidad(user.especialidad)]);
 
   try {
     const groqResponse = await fetch(GROQ_TRANSCRIPTIONS_URL, {

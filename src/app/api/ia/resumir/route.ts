@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePremiumDoctor } from "@/lib/ia-auth";
 import { registrarResumen } from "@/lib/ia-costos";
-import { esPsicologia, limitesDictado } from "@/lib/especialidad";
+import { grupoEspecialidad, limitesDictado, type GrupoEspecialidad } from "@/lib/especialidad";
 
 // Una sesión de psicología de una hora son ~20k tokens de entrada y hasta 4k
 // de salida: con Haiku puede pasar los 60 segundos.
@@ -54,6 +54,34 @@ ${REGLAS_PSICOLOGIA}`,
 ${REGLAS_PSICOLOGIA}`,
 };
 
+const REGLAS_ODONTOLOGIA = `Reglas:
+- No inventes ni infieras datos que no estén en el dictado. Si algo es ambiguo, dejalo como está.
+- Conservá exactos los números de pieza, las caras, los materiales, los medicamentos, dosis, fechas y valores medidos.
+- Escribí las piezas en notación FDI de dos dígitos sin punto ("pieza 36", no "pieza 3.6" ni "tres seis"), y las caras con su nombre completo (mesial, distal, oclusal, vestibular, palatina, lingual).
+- El texto viene de un reconocimiento de voz: corregí solo errores de transcripción evidentes en términos odontológicos o nombres de medicamentos. Ante la duda, dejá la palabra como está.
+- Eliminá muletillas, repeticiones, autocorrecciones y frases que no aportan información clínica.
+- Usá lenguaje odontológico conciso, en español rioplatense neutro, en tercera persona ("Paciente refiere...").
+- Texto plano: sin markdown, sin títulos con #, sin negritas. Podés usar guiones "- " para listar ítems.
+- Respondé solo con el resumen, sin introducción ni comentarios.`;
+
+const SYSTEM_PROMPTS_ODONTOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas odontológicas. Vas a recibir la transcripción de un dictado de un odontólogo sobre el problema actual de un paciente. Resumilo en un párrafo breve (o pocos ítems) con lo clínicamente relevante: motivo de consulta, inicio y características del dolor o la molestia, piezas involucradas, tratamientos odontológicos previos, y antecedentes médicos que importen para la atención (alergias, anticoagulantes, bifosfonatos, embarazo, enfermedades de base).
+
+${REGLAS_ODONTOLOGIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas odontológicas. Vas a recibir la transcripción de un dictado de un odontólogo sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, hallazgos por pieza, prácticas realizadas (pieza, caras, material, anestesia), indicaciones y próximo paso del plan de tratamiento.
+
+${REGLAS_ODONTOLOGIA}`,
+};
+
+const SYSTEM_PROMPTS_POR_GRUPO: Record<
+  GrupoEspecialidad,
+  Record<z.infer<typeof resumirInput>["tipo"], string>
+> = {
+  MEDICA: SYSTEM_PROMPTS,
+  ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
+  PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
+};
+
 export async function POST(request: NextRequest) {
   const { user, response } = await requirePremiumDoctor();
   if (response) return response;
@@ -72,7 +100,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const psicologia = esPsicologia(user.especialidad);
   const limites = limitesDictado(user.especialidad);
   if (parsed.data.texto.length > limites.maxCaracteresResumen) {
     return NextResponse.json({ error: "El texto es demasiado largo para resumir." }, { status: 400 });
@@ -85,7 +112,7 @@ export async function POST(request: NextRequest) {
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: limites.maxTokensResumen,
-      system: (psicologia ? SYSTEM_PROMPTS_PSICOLOGIA : SYSTEM_PROMPTS)[parsed.data.tipo],
+      system: SYSTEM_PROMPTS_POR_GRUPO[grupoEspecialidad(user.especialidad)][parsed.data.tipo],
       messages: [{ role: "user", content: `<dictado>\n${parsed.data.texto}\n</dictado>` }],
     });
 
