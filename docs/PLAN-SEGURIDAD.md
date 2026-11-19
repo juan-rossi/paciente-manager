@@ -89,7 +89,16 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 
 ## Prioridad 2 — Esta semana
 
-### [ ] F4 · Headers de seguridad (`next.config.ts` → `headers()`)
+### [~] F4 · Headers de seguridad (`next.config.ts` → `headers()`)
+> Hecho 2026-11-19 en `next.config.ts`, para todas las rutas: `X-Frame-Options: DENY`, `nosniff`,
+> `Referrer-Policy`, `Permissions-Policy` (micrófono solo propio), HSTS 2 años con `includeSubDomains`
+> (sin `preload`, solo fuera de dev), `poweredByHeader: false`. CSP sin nonces en modo
+> **Report-Only** (único origen externo: Turnstile; `unsafe-eval` solo en dev).
+> **Pendiente para cerrar F4:** en QA, recorrer login/Google, signup, reserva pública (Turnstile),
+> dictado (micrófono), checkout MP, impresión, admin, y revisar la consola del navegador por avisos
+> "[Report Only] Refused to…". Sin avisos → cambiar la clave a `Content-Security-Policy` y agregar
+> `upgrade-insecure-requests` (fuera de dev).
+> Ojo HSTS `includeSubDomains`: todo subdominio de semio360.com con web debe servir HTTPS.
 - HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: strict-origin-when-cross-origin`,
   `Permissions-Policy: microphone=(self), camera=(), geolocation=()`.
@@ -166,3 +175,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F0, F1 | Commiteados (`735693e`, `9315603`). Fotos inválidas en prod: confirmado por el usuario que no hay. |
 | 2026-11-19 | F2 | Metadata de compra + `mpPreapprovalPlan`; 78/78 tests, build OK; migración aplicada en local. Commit `258d602` en `seguridad`; falta QA con pagos de prueba. |
 | 2026-11-19 | F3 | Invitaciones pendientes bloquean edición de email; cambio de email cierra sesiones + aviso. Rama `seguridad`. |
+| 2026-11-19 | F4 | Headers de seguridad + CSP Report-Only; verificado en dev y build de producción. Falta revisar consola en QA y pasar CSP a enforce. |
