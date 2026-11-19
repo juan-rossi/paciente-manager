@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DIA_SEMANA_VALUES } from "@/lib/slots";
 import { dniSchema } from "@/lib/dni";
+import { esFechaValida, MENSAJE_FECHA_INVALIDA, TEXTO_CORTO, TEXTO_MEDIO } from "@/lib/limites-texto";
 
 const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -26,33 +27,39 @@ export const slotDurationSchema = z.object({
 });
 
 export const messagingSchema = z.object({
-  mensajeTemplate: z.string().trim().min(1, "El mensaje es obligatorio."),
+  mensajeTemplate: z.string().trim().min(1, "El mensaje es obligatorio.").max(TEXTO_MEDIO),
   mensajeriaHabilitada: z.boolean(),
   recordatorioAutoEnviado: z.boolean(),
   // Plantillas de la resolución de conflictos de "Bloquear horarios" -- ver
   // Turno.avisoPendiente en el schema.
-  mensajeTemplateCancelado: z.string().trim().min(1, "El mensaje es obligatorio."),
-  mensajeTemplateAplazado: z.string().trim().min(1, "El mensaje es obligatorio."),
+  mensajeTemplateCancelado: z.string().trim().min(1, "El mensaje es obligatorio.").max(TEXTO_MEDIO),
+  mensajeTemplateAplazado: z.string().trim().min(1, "El mensaje es obligatorio.").max(TEXTO_MEDIO),
 });
 
 export const turnoInputSchema = z.object({
-  inicio: z.string().min(1, "La fecha y hora son obligatorias."),
-  nombreYApellido: z.string().trim().min(1, "El nombre y apellido es obligatorio."),
+  inicio: z
+    .string()
+    .min(1, "La fecha y hora son obligatorias.")
+    .refine(esFechaValida, "La fecha y hora no son válidas."),
+  nombreYApellido: z.string().trim().min(1, "El nombre y apellido es obligatorio.").max(TEXTO_CORTO),
   fechaNacimiento: z
     .string()
     .trim()
     .optional()
+    .refine((v) => !v || esFechaValida(v), MENSAJE_FECHA_INVALIDA)
     .transform((v) => (v && v.length > 0 ? v : null)),
   dni: dniSchema,
-  telefono: z.string().trim().min(1, "El teléfono es obligatorio."),
+  telefono: z.string().trim().min(1, "El teléfono es obligatorio.").max(50, "El teléfono es demasiado largo."),
   obraSocial: z
     .string()
     .trim()
+    .max(TEXTO_CORTO)
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
   obraSocialNro: z
     .string()
     .trim()
+    .max(TEXTO_CORTO)
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
   // Un sobreturno puede caer justo en el mismo instante que un turno ya
@@ -86,10 +93,9 @@ export const turnoEditSchema = turnoInputSchema.pick({
 });
 
 // Sin contraseña: el médico solo invita, la secretaria elige la suya (ver
-// POST /api/users). `nombre` es opcional porque el mismo formulario también
-// sirve para "sumar" a tu cuenta una secretaria que ya existe (asiste a otro
-// médico) -- en ese caso se ignora. La ruta lo exige solo cuando el email no
-// corresponde a nadie todavía.
+// POST /api/users). El mismo formulario también sirve para "sumar" a tu
+// cuenta una secretaria que ya existe (asiste a otro médico): en ese caso el
+// `nombre` se ignora y se usa el de su cuenta.
 export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
   // Obligatorio siempre, aunque el email ya tenga cuenta (ahí se ignora y se

@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { esFechaValida, MENSAJE_FECHA_INVALIDA, TEXTO_LARGO } from "@/lib/limites-texto";
 
 const optionalText = z
   .string()
   .trim()
+  .max(TEXTO_LARGO, `Máximo ${TEXTO_LARGO} caracteres.`)
   .transform((value) => (value.length === 0 ? null : value))
   .nullable()
   .optional();
@@ -11,8 +13,8 @@ const optionalText = z
 // un campo opcional, no se toca; vacío, se borra.
 export const evolucionInput = z
   .object({
-    fecha: z.string().trim().min(1, "La fecha es obligatoria."),
-    contenido: z.string().trim(),
+    fecha: z.string().trim().min(1, "La fecha es obligatoria.").refine(esFechaValida, MENSAJE_FECHA_INVALIDA),
+    contenido: z.string().trim().max(TEXTO_LARGO, `Máximo ${TEXTO_LARGO} caracteres.`),
     // Dictado original cuando `contenido` es un resumen de IA.
     contenidoDictado: optionalText,
     // Solo sesiones de psicología.

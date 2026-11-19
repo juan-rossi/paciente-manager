@@ -213,21 +213,27 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - Auditar suspensión y levantamiento; no borrar `suspendidoPorId`. Resolver D2.
 
 ## Prioridad 4 — Mantenimiento
-- [ ] `.max()` en strings/arrays de `patient-schema`, `evolucion-schema`, `consentimiento-schema`,
-  `turno-schema`; fechas con regex ISO (evitar 500 por Invalid Date).
-- [ ] Soft-delete: `deletedAt: null` en GET `patients/[id]/presupuestos/route.ts:21`; evoluciones y
-  consentimientos con `patient: { doctorId, deletedAt: null }`.
-- [ ] Auditoría: registrar el `nroDocumento` quitado a otro paciente por conflicto de DNI
-  (`patients/route.ts:113`, `patients/[id]/route.ts:102`) y el diff de antecedentes.
+> Todo hecho el 2026-11-19 (commits `4fb4e6a`, `9c9e626`, `556c761`, `12319ad` y el de límites de texto).
+- [x] Largos máximos (`src/lib/limites-texto.ts`: corto 300 / medio 5.000 / largo 200.000) en
+  paciente, evolución, consentimiento, turno y plantillas de mensajería; arrays acotados; fechas
+  validadas (ISO + fecha real): un texto inválido da 400 en vez de 500.
+- [x] Soft-delete: GET de presupuestos sin eliminados; evoluciones y consentimientos de un paciente en
+  la papelera no se editan/borran/restauran.
+- [x] Auditoría: MODIFICAR al paciente al que se le quita el DNI por conflicto; diff de antecedentes
+  (estado anterior legible) en el historial de la ficha.
 - [x] `POST /api/turnos`: validar `lugarId` del tenant y no eliminado también para DOCTOR. (Hecho en F11.)
-- [ ] `get-day-slots.ts:171-179`: `select` explícito (no exponer `cancelTokenHash`, `linkCodigo`, `creadoPorId`).
-- [ ] Login: contar solo intentos fallidos / Turnstile al superar umbral (evitar lockout de víctima).
-- [ ] Contraseñas: mínimo 10 caracteres; bcrypt costo 12.
-- [ ] Enumeración de emails en `/api/users`: respuesta uniforme + rate limit.
-- [ ] Rate limit en `soporte/[id]/mensajes`; job de limpieza de `IntentoReserva`.
-- [ ] Google Places: `encodeURIComponent(placeId)` + validación (`google-places.ts:73`); bajar tope
-  global y poner cuota en Google Cloud.
-- [ ] `complete-profile` → `requireDoctor`; páginas de `/admin` revalidan `isPlatformAdmin` por sí mismas.
+- [x] `serializeTurno` nunca envía `cancelTokenHash`, `linkCodigo` ni `creadoPorId`.
+- [x] Login: por email solo se cuentan los fallidos y tras 5 en 15 min se pide Turnstile (no bloquea
+  al dueño); por IP sigue el límite de 20. **QA:** con clave de Turnstile real, ver el widget tras 5
+  intentos fallidos.
+- [x] Contraseñas nuevas: mínimo 10 (`src/lib/password-policy.ts`); bcrypt costo 12; las existentes
+  siguen funcionando.
+- [x] Invitar asistentes: nombre siempre obligatorio, mensaje genérico para emails de médico/admin,
+  nombre oculto en invitaciones pendientes a secretarias de otro médico, 20 invitaciones/h.
+- [x] Rate limit en respuestas de soporte; limpieza "de paso" de `IntentoReserva` (>1 día).
+- [x] Google Places: `placeId` validado y codificado; tope global 2000 → 500 cada 15 min.
+  **Pendiente (vos):** cuota diaria en Google Cloud para la key.
+- [x] `complete-profile` → `requireDoctor`; cada página de `/admin` verifica el permiso contra la base.
 
 ---
 
@@ -253,3 +259,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F10 | Reserva de costo IA bajo lock por médico; confirmación con costo real; liberación si falla. |
 | 2026-11-19 | F11 | Alta de turnos bajo lock de agenda por médico (panel y reserva pública); lugar validado. |
 | 2026-11-19 | F12 | Secretaria nunca admin (D2); sanciones aplicadas/levantadas auditadas en AuditLog. |
+| 2026-11-19 | Mant. | Lista de mantenimiento completa (11 puntos) en 5 commits. |

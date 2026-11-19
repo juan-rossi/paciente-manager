@@ -1,17 +1,27 @@
 import { z } from "zod";
 import { dniSchema } from "@/lib/dni";
 import { odontogramaInputSchema } from "@/lib/odontograma";
+import { esFechaValida, MENSAJE_FECHA_INVALIDA, TEXTO_CORTO, TEXTO_LARGO, TEXTO_MEDIO } from "@/lib/limites-texto";
 
-const optionalString = z
-  .string()
-  .trim()
-  .transform((value) => (value.length === 0 ? null : value))
-  .nullable()
-  .optional();
+// Texto opcional: vacío -> null. `max` acota el largo (ver limites-texto.ts).
+function textoOpcional(max: number) {
+  return z
+    .string()
+    .trim()
+    .max(max, `Máximo ${max} caracteres.`)
+    .transform((value) => (value.length === 0 ? null : value))
+    .nullable()
+    .optional();
+}
+
+const optionalString = textoOpcional(TEXTO_MEDIO);
+const optionalShortString = textoOpcional(TEXTO_CORTO);
+const optionalLongString = textoOpcional(TEXTO_LARGO);
 
 const optionalPhoneString = z
   .string()
   .trim()
+  .max(50, "El teléfono es demasiado largo.")
   .regex(/^\+?\d*$/, "Solo puede contener números y, opcionalmente, un + inicial.")
   .transform((value) => (value.length === 0 ? null : value))
   .nullable()
@@ -70,18 +80,19 @@ const antecedenteSchema = z.object({
 });
 
 const evolucionSchema = z.object({
-  fecha: z.string().trim().min(1, "La fecha es obligatoria."),
-  contenido: z.string().trim().min(1, "El contenido es obligatorio."),
-  contenidoDictado: optionalString,
+  fecha: z.string().trim().min(1, "La fecha es obligatoria.").refine(esFechaValida, MENSAJE_FECHA_INVALIDA),
+  contenido: z.string().trim().min(1, "El contenido es obligatorio.").max(TEXTO_LARGO),
+  contenidoDictado: optionalLongString,
 });
 
 export const patientSchema = z.object({
   // Datos personales
-  nombreYApellido: z.string().trim().min(1, "El nombre y apellido es obligatorio."),
+  nombreYApellido: z.string().trim().min(1, "El nombre y apellido es obligatorio.").max(TEXTO_CORTO),
   fechaNacimiento: z
     .string()
     .trim()
     .min(1, "La fecha de nacimiento es obligatoria.")
+    .refine(esFechaValida, MENSAJE_FECHA_INVALIDA)
     .transform((value) => new Date(value)),
   sexo: z.enum(["MASCULINO", "FEMENINO"], {
     message: "El sexo es obligatorio.",
@@ -93,43 +104,44 @@ export const patientSchema = z.object({
     .nullable()
     .optional()
     .pipe(z.enum(["SOLTERO", "CASADO", "VIUDO", "CONCUBINO"]).nullable().optional()),
-  profesion: optionalString,
+  profesion: optionalShortString,
   nroDocumento: dniSchema,
-  nacionalidad: optionalString,
-  obraSocial: optionalString,
-  obraSocialNro: optionalString,
-  domicilio: z.string().trim().min(1, "El domicilio es obligatorio."),
+  nacionalidad: optionalShortString,
+  obraSocial: optionalShortString,
+  obraSocialNro: optionalShortString,
+  domicilio: z.string().trim().min(1, "El domicilio es obligatorio.").max(TEXTO_CORTO),
   telefono: z
     .string()
     .trim()
     .min(1, "El teléfono es obligatorio.")
+    .max(50, "El teléfono es demasiado largo.")
     .regex(/^\+?\d+$/, "El teléfono solo puede contener números y, opcionalmente, un + inicial."),
-  contactoEmergencia: optionalString,
+  contactoEmergencia: optionalShortString,
   telefonoEmergencia: optionalPhoneString,
   // Solo menores de edad.
-  responsableNombre: optionalString,
-  responsableVinculo: optionalString,
-  responsableDni: optionalString,
+  responsableNombre: optionalShortString,
+  responsableVinculo: optionalShortString,
+  responsableDni: optionalShortString,
   responsableTelefono: optionalPhoneString,
 
   // Consulta inicial
   autoValidoTotal: optionalString,
   autoValidoParcial: optionalString,
   dependiente: optionalString,
-  motivoConsulta: z.string().trim().min(1, "El motivo de consulta es obligatorio."),
-  antecedentesEnfermedad: optionalString,
-  antecedentesEnfermedadDictado: optionalString,
+  motivoConsulta: z.string().trim().min(1, "El motivo de consulta es obligatorio.").max(TEXTO_LARGO),
+  antecedentesEnfermedad: optionalLongString,
+  antecedentesEnfermedadDictado: optionalLongString,
   habitoAlcohol: z.boolean().default(false),
   habitoCigarrillos: z.boolean().default(false),
   habitoDrogas: z.boolean().default(false),
 
   // Solo historia clínica de psicología (ver esPsicologia()).
-  derivadoPor: optionalString,
-  expectativasTratamiento: optionalString,
-  encuadre: optionalString,
-  grupoFamiliar: optionalString,
-  historiaVital: optionalString,
-  enfoqueTerapeutico: optionalString,
+  derivadoPor: optionalShortString,
+  expectativasTratamiento: optionalLongString,
+  encuadre: optionalLongString,
+  grupoFamiliar: optionalLongString,
+  historiaVital: optionalLongString,
+  enfoqueTerapeutico: optionalLongString,
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca: optionalString,
@@ -195,12 +207,12 @@ export const patientSchema = z.object({
   sensibilidad: optionalString,
 
   // Diagnostico
-  diagnosticoPresuntivo: optionalString,
-  metodosComplementarios: optionalString,
-  tratamiento: optionalString,
+  diagnosticoPresuntivo: optionalLongString,
+  metodosComplementarios: optionalLongString,
+  tratamiento: optionalLongString,
 
-  antecedentes: z.array(antecedenteSchema).default([]),
-  evoluciones: z.array(evolucionSchema).default([]),
+  antecedentes: z.array(antecedenteSchema).max(200).default([]),
+  evoluciones: z.array(evolucionSchema).max(500).default([]),
 
   // Solo en el alta y solo para odontólogos (la API lo ignora si el tenant
   // no tiene especialidad odontológica). En edición, el odontograma se guarda
