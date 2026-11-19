@@ -36,7 +36,10 @@ async function main() {
 
   const user = await prisma.user.update({
     where: { email: normalizedEmail },
-    data: { isAdmin: !revoke },
+    // Al retirar el acceso se cierran sus sesiones: el proxy decide el acceso
+    // a las páginas de /admin con el `isAdmin` guardado en el JWT, que si no
+    // seguiría diciendo `true` hasta que vuelva a iniciar sesión.
+    data: revoke ? { isAdmin: false, sessionVersion: { increment: 1 } } : { isAdmin: true },
   });
 
   console.log(

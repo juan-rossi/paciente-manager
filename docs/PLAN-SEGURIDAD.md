@@ -135,7 +135,16 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - `lugarId` del query: debe ser el del bloqueo, del tenant y (SECRETARY) su lugar activo.
 - `inicio/fin` deben quedar dentro del bloqueo original.
 
-### [ ] F7 · Sesiones y login
+### [x] F7 · Sesiones y login
+> Hecho 2026-11-19:
+> - Cambiar la contraseña incrementa `sessionVersion` (cierra todas, incluida la actual; decidido:
+>   volver a ingresar) y la UI hace `signOut` → `/login?aviso=password-cambiada`.
+> - Google: `profile.email_verified !== true` → `/login?error=EmailNoVerificado`.
+> - `grant-admin-access --revoke` incrementa `sessionVersion`.
+> - `destinoInterno()` (`src/lib/redirect-seguro.ts`) valida `?from=` por origen; lo usan el login
+>   por contraseña y el de Google.
+> E2E local: dos sesiones cerradas al cambiar la contraseña, login con la nueva OK, original restaurada.
+> En QA: login con Google normal sigue funcionando; ver el aviso tras cambiar la contraseña.
 - `src/app/api/perfil/password/route.ts:34`: `sessionVersion++` al cambiar contraseña (y reemitir JWT actual).
 - `src/auth.ts:81`: exigir `profile.email_verified === true` en Google.
 - Quitar `isAdmin` → `sessionVersion++`.
@@ -197,3 +206,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F4 | Headers de seguridad + CSP Report-Only; verificado en dev y build de producción. Falta revisar consola en QA y pasar CSP a enforce. |
 | 2026-11-19 | F5 | Validación de cuenta en api-auth (asignación, suspensión, plan para escrituras); D1 = lectura/export permitidos. |
 | 2026-11-19 | F6 | Desbloqueo valida lugar y rango; secretaria sin lugar → 404. |
+| 2026-11-19 | F7 | Cambio de contraseña cierra sesiones; Google exige email verificado; revocar admin cierra sesiones; redirect post-login validado por origen. |

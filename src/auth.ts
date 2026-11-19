@@ -78,9 +78,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       // El login por contraseña ya valida contra nuestra tabla en `authorize()`.
       if (account?.provider === "credentials") return true;
+
+      // Google entra a la cuenta existente con ese email (aunque se haya
+      // creado con contraseña): solo se puede confiar en el email si Google
+      // lo verificó. Una cuenta de Google con un email ajeno sin verificar
+      // sería tomar la cuenta del médico con todas sus HC.
+      if (account?.provider === "google" && profile?.email_verified !== true) {
+        return "/login?error=EmailNoVerificado";
+      }
 
       const email = typeof user.email === "string" ? normalizeEmail(user.email) : "";
       if (!email) return false;

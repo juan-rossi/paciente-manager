@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signOut } from "next-auth/react";
 import { Lock } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,9 @@ export function SeguridadSettings({ email }: Props) {
         return;
       }
       setPasswordOpen(false);
+      // El cambio cerró todas las sesiones, incluida esta (ver
+      // /api/perfil/password): se ingresa de nuevo con la contraseña nueva.
+      await signOut({ redirectTo: "/login?aviso=password-cambiada" });
     } catch {
       setPasswordError("No se pudo conectar con el servidor.");
     } finally {

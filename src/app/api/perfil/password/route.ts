@@ -32,7 +32,14 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await hashPassword(parsed.data.passwordNueva);
-  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+  // Cierra TODAS las sesiones (ver `sessionVersion` en el callback `jwt` de
+  // src/auth.ts): quien cambia la contraseña porque sospecha de una sesión
+  // ajena -- una PC compartida, una cookie robada -- tiene que poder
+  // cortarla. Incluye la actual: el cliente lo manda a ingresar de nuevo.
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, sessionVersion: { increment: 1 } },
+  });
 
   return NextResponse.json({ ok: true });
 }

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Semio360Mark } from "@/components/brand/logo";
 import { GoogleIcon } from "@/components/google-icon";
+import { destinoInterno } from "@/lib/redirect-seguro";
 
 // El motivo le llega por mail al suspender (ver `src/lib/sancion-email.ts`).
 const CUENTA_SUSPENDIDA =
@@ -19,6 +20,15 @@ const CUENTA_SUSPENDIDA =
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: "Esa cuenta no está asociada a ningún usuario de Semio360.",
   Suspendida: CUENTA_SUSPENDIDA,
+  // Ver el callback `signIn` en src/auth.ts.
+  EmailNoVerificado:
+    "Tu cuenta de Google no tiene el email verificado. Verificalo en Google o ingresá con tu email y contraseña.",
+};
+
+// Avisos informativos (no errores) que otra pantalla deja al mandar acá.
+const AVISOS: Record<string, string> = {
+  "password-cambiada":
+    "Cambiaste tu contraseña y cerramos todas tus sesiones. Ingresá de nuevo con la contraseña nueva.",
 };
 
 export function LoginForm() {
@@ -34,12 +44,16 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [isNavigating, startTransition] = useTransition();
 
+  const aviso = AVISOS[searchParams.get("aviso") ?? ""] ?? null;
+
   function destinationAfterLogin() {
-    const from = searchParams.get("from");
+    // Solo rutas de nuestro sitio (ver `destinoInterno`: `/\evil.com` pasaba
+    // el chequeo anterior y llevaba a otro sitio después de un login real).
+    const destino = destinoInterno(searchParams.get("from"), window.location.origin);
     // No "/": ahí se pinta el layout de marketing vacío mientras la home
     // redirige. `/dashboard` lo resuelve el proxy según el rol (secretaria →
     // /turnos, admin → /admin, perfil incompleto → /onboarding).
-    return from && from.startsWith("/") && !from.startsWith("//") ? from : "/dashboard";
+    return destino && destino !== "/" ? destino : "/dashboard";
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -142,7 +156,11 @@ export function LoginForm() {
               required
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error ? (
+            <p className="text-sm text-destructive">{error}</p>
+          ) : (
+            aviso && <p className="text-sm text-muted-foreground">{aviso}</p>
+          )}
           <Button type="submit" disabled={busy} className="mt-2">
             {busy ? "Ingresando..." : "Ingresar"}
           </Button>
