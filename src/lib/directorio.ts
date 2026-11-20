@@ -448,7 +448,7 @@ export const getEspecialidadesConMedicos = cache(async function getEspecialidade
 
 // Slugs de los perfiles que se publican en el sitemap: los mismos que lista
 // `getDoctoresPublicos` (perfil público activado y al menos un lugar visible).
-export async function getSlugsPerfilesPublicos(): Promise<string[]> {
+export async function getSlugsPerfilesPublicos(): Promise<{ slug: string; publicadoAt: Date }[]> {
   const rows = await prisma.user.findMany({
     where: {
       role: "DOCTOR",
@@ -458,10 +458,10 @@ export async function getSlugsPerfilesPublicos(): Promise<string[]> {
       ...SIN_SANCION,
       lugaresDeTrabajo: { some: { deletedAt: null, perfilVisible: true } },
     },
-    select: { publicSlug: true },
+    select: { publicSlug: true, perfilPublicadoAt: true },
     orderBy: { apellido: "asc" },
   });
-  return rows.map((r) => r.publicSlug!);
+  return rows.map((r) => ({ slug: r.publicSlug!, publicadoAt: r.perfilPublicadoAt! }));
 }
 
 // Precio de la consulta particular para el perfil público: solo con el perfil

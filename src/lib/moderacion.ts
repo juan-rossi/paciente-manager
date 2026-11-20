@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { avisarPerfilPublicado } from "@/lib/indexacion";
 import type { ModeracionCampo } from "@/generated/prisma/client";
 
 // Moderación del perfil público: antes de que una foto o biografía nueva se
@@ -263,7 +264,7 @@ export async function getEstadoModeracionPerfil(userId: string): Promise<{
 export async function marcarPerfilPublicado(userId: string): Promise<boolean> {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
-    select: { perfilPublico: true, perfilPublicadoAt: true },
+    select: { perfilPublico: true, perfilPublicadoAt: true, publicSlug: true },
   });
   if (user.perfilPublicadoAt) return true;
   if (!user.perfilPublico) return false;
@@ -272,5 +273,7 @@ export async function marcarPerfilPublicado(userId: string): Promise<boolean> {
   if (estado.biografia || estado.foto) return false;
 
   await prisma.user.update({ where: { id: userId }, data: { perfilPublicadoAt: new Date() } });
+  // Recién ahora entra al directorio: sitemap al día y aviso a buscadores.
+  if (user.publicSlug) avisarPerfilPublicado(user.publicSlug);
   return true;
 }

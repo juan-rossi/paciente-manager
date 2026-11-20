@@ -1,6 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { refrescarSitemap } from "@/lib/indexacion";
 import { requireAdmin } from "@/lib/api-auth";
 import { sancionActual, sancionQueCorresponde } from "@/lib/sanciones";
 import { enviarMailSancion } from "@/lib/sancion-email";
@@ -93,6 +94,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
     }),
   ]);
+  // Ambas sanciones lo sacan del directorio (`SIN_SANCION`).
+  refrescarSitemap();
 
   after(() => enviarMailSancion(tipo, { ...doctor, motivo }));
 
@@ -168,5 +171,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       },
     }),
   ]);
+  refrescarSitemap();
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { refrescarSitemap } from "@/lib/indexacion";
 import { requireDoctor } from "@/lib/api-auth";
 import { visibilidadSchema } from "@/lib/perfil-schema";
 import { generateUniquePublicSlug } from "@/lib/public-slug";
@@ -74,6 +75,9 @@ export async function PATCH(request: NextRequest) {
   // La primera publicación espera a que la biografía y la foto estén
   // aprobadas: con contenido marcado, el perfil no sale en el directorio.
   const perfilPublicado = await marcarPerfilPublicado(user.id);
+  // Prender/apagar el perfil o cambiar los lugares visibles cambia si sale en
+  // el sitemap (la primera publicación ya lo refresca `marcarPerfilPublicado`).
+  refrescarSitemap();
 
   return NextResponse.json({
     moderacion: { biografia: moderacionBiografia, foto: moderacionFoto },
