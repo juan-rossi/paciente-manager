@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/api-auth";
 
 const schema = z.object({ doctorId: z.string().min(1) });
 
-// Una secretaria puede asistir a más de un médico -- este endpoint cambia a
+// Un asistente puede asistir a más de un médico -- este endpoint cambia a
 // cuál cuenta está operando ahora mismo (ver `doctor-switcher.tsx`). Se
 // valida que la asignación exista antes de aceptarla, para que no pueda
 // "entrar" a la cuenta de un médico al que no asiste.

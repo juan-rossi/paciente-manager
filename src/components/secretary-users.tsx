@@ -98,7 +98,7 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
   async function handleGuardar() {
     // El nombre se pide siempre (también al invitar): si solo hiciera falta
     // cuando el email no tiene cuenta, la respuesta revelaría qué emails
-    // tienen cuenta en Semio 360. Si ya es secretaria de otro médico, se usa
+    // tienen cuenta en Semio 360. Si ya es asistente de otro médico, se usa
     // el suyo (lo resuelve la ruta).
     if (!email.trim() || (!datosBloqueados && !nombre.trim())) {
       setError("Completá el nombre y el email.");

@@ -22,7 +22,7 @@ type Props = {
   className?: string;
 };
 
-// Solo se renderiza (ver `(app)/layout.tsx`) cuando una secretaria tiene 2+
+// Solo se renderiza (ver `(app)/layout.tsx`) cuando un asistente tiene 2+
 // lugares asignados para el médico activo -- si tiene uno solo, no hay nada
 // que elegir.
 export function LugarSwitcher({ lugares, activeLugarId, className }: Props) {

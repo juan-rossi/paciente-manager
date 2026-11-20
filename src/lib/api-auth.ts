@@ -30,11 +30,11 @@ type UsuarioActual = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 /**
  * Valida la cuenta (tenant) sobre la que opera el usuario y devuelve una
  * respuesta de rechazo, o `null` si puede seguir:
- * - SECRETARY: su `activeDoctorId` tiene que ser un médico que la tenga
- *   asignada y aceptada HOY (el médico puede haberla quitado después de que
+ * - SECRETARY: su `activeDoctorId` tiene que ser un médico que lo tenga
+ *   asignado y aceptado HOY (el médico puede haberlo quitado después de que
  *   lo eligiera; ver `src/lib/tenant.ts`).
  * - Médico suspendido (ver `src/lib/sanciones.ts`): nadie opera su cuenta.
- *   Al médico ya se le invalidan las sesiones; esto corta a su secretaria.
+ *   Al médico ya se le invalidan las sesiones; esto corta a su asistente.
  * - `escritura`: además, plan vigente (`esActivo`).
  */
 async function validarCuenta(user: UsuarioActual, escritura: boolean) {

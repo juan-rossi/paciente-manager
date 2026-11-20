@@ -12,7 +12,7 @@ describe("isPlatformAdmin", () => {
     expect(isPlatformAdmin({ role: "DOCTOR", isAdmin: null })).toBe(false);
   });
 
-  it("una secretaria nunca es admin, aunque tenga el flag en la base", () => {
+  it("un asistente nunca es admin, aunque tenga el flag en la base", () => {
     expect(isPlatformAdmin({ role: "SECRETARY", isAdmin: true })).toBe(false);
     expect(isPlatformAdmin({ role: "SECRETARY" })).toBe(false);
   });

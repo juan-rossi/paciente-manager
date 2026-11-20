@@ -8,7 +8,7 @@ description: Da de alta (o le otorga acceso) a una cuenta ADMIN del panel /admin
 Da de alta (o le da acceso a una cuenta ya existente) al panel `/admin`,
 reusando `scripts/add-admin-user.ts` — ese script ya decide solo si hay que
 **crear** una cuenta ADMIN nueva o **otorgarle** `isAdmin = true` a un
-DOCTOR que ya existe (una SECRETARY nunca puede ser admin: el script lo
+DOCTOR que ya existe (un SECRETARY nunca puede ser admin: el script lo
 rechaza), según si el email ya está en esa base. No
 reimplementes esa lógica: dejá que el script decida y usá su mensaje de
 error para saber qué dato falta.
@@ -76,8 +76,8 @@ Esto ya resuelve dos de los tres casos posibles sin pedir nada más:
 
 - Si el email **ya existe** como DOCTOR → le setea `isAdmin = true`
   y termina. Listo, no sigas.
-- Si el email **ya existe** como SECRETARY → el script lo rechaza: una
-  secretaria nunca tiene acceso al panel admin. Avisale al usuario y no sigas.
+- Si el email **ya existe** como SECRETARY → el script lo rechaza: un
+  asistente nunca tiene acceso al panel admin. Avisale al usuario y no sigas.
 - Si el email **ya es** una cuenta ADMIN → avisa que no hace falta nada.
   Listo, no sigas.
 

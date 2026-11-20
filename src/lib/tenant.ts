@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma";
  * `SECRETARY` puede asistir a más de un médico (ver `DoctorSecretaria`) y
  * opera dentro de la cuenta indicada por `activeDoctorId` -- el médico que
  * eligió en el selector del header (ver `src/components/doctor-switcher.tsx`).
- * Se valida que el médico elegido realmente esté asignado a la secretaria
- * (y que ella haya aceptado la asignación, ver `DoctorSecretaria.aceptadaAt`)
+ * Se valida que el médico elegido realmente esté asignado al asistente
+ * (y que él haya aceptado la asignación, ver `DoctorSecretaria.aceptadaAt`)
  * en el momento de setear `activeDoctorId` (ver
  * `src/app/api/account/active-doctor/route.ts`), no acá en cada lectura.
  *
@@ -27,18 +27,18 @@ export function getTenantId(user: { role: UserRole; id: string; activeDoctorId: 
 }
 
 /**
- * Dentro del médico activo, una secretaria solo puede administrar turnos de
+ * Dentro del médico activo, un asistente solo puede administrar turnos de
  * uno de los lugares que tiene asignados para ESE médico (ver
- * `DoctorSecretariaLugar` -- es específico de la relación médico-secretaria,
- * no de la secretaria en general). Devuelve:
+ * `DoctorSecretariaLugar` -- es específico de la relación médico-asistente,
+ * no del asistente en general). Devuelve:
  * - `undefined` para un DOCTOR: no hay restricción, ve todos sus lugares.
- * - el `lugarId` activo para una SECRETARY con al menos un lugar asignado.
- * - `null` para una SECRETARY sin ningún lugar asignado (no debería pasar
+ * - el `lugarId` activo para un SECRETARY con al menos un lugar asignado.
+ * - `null` para un SECRETARY sin ningún lugar asignado (no debería pasar
  *   dado que es obligatorio al crear/editar, pero el médico puede haberle
  *   sacado todos después) -- el llamador debe tratarlo como "no ve nada",
  *   nunca como "sin restricción".
  *
- * El médico puede cambiarle los lugares asignados a la secretaria en
+ * El médico puede cambiarle los lugares asignados al asistente en
  * cualquier momento (ver PATCH /api/users/[id]), así que esto se revalida
  * en cada request contra `DoctorSecretariaLugar` en vez de confiar
  * ciegamente en `activeLugarId` -- si el guardado ya no es válido, se
@@ -74,8 +74,8 @@ export async function resolveActiveLugarId(user: {
 
 /**
  * `puedeBloquearHorarios` es un permiso específico de la relación
- * médico-secretaria (ver `DoctorSecretaria` en el schema), no de la cuenta
- * en general -- la misma secretaria puede tenerlo habilitado con un médico
+ * médico-asistente (ver `DoctorSecretaria` en el schema), no de la cuenta
+ * en general -- el mismo asistente puede tenerlo habilitado con un médico
  * y no con otro. Un `DOCTOR` siempre puede bloquear/desbloquear (no hay
  * restricción que consultar).
  */

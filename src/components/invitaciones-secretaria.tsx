@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 type Invitacion = { id: string; nombreMedico: string };
 
-// Invitaciones de médicos que sumaron a esta secretaria (ver POST
+// Invitaciones de médicos que sumaron a este asistente (ver POST
 // /api/users). Hasta que acepte, la asignación no le da acceso a nada.
 export function InvitacionesSecretaria({ invitaciones }: { invitaciones: Invitacion[] }) {
   const router = useRouter();

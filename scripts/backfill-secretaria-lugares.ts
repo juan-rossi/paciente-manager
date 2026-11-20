@@ -4,10 +4,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// La selección de lugares por secretaria es una feature nueva -- toda
-// relación médico-secretaria creada antes quedó sin ningún
+// La selección de lugares por asistente es una feature nueva -- toda
+// relación médico-asistente creada antes quedó sin ningún
 // `DoctorSecretariaLugar`. Este script les asigna el lugar PARTICULAR activo
-// del médico correspondiente (el secretario podrá ajustarlo después desde
+// del médico correspondiente (el asistente podrá ajustarlo después desde
 // "Usuarios" en Configuración).
 //
 // Nunca borra ni toca ninguna relación existente, solo agrega las filas de
@@ -24,7 +24,7 @@ async function main() {
     },
   });
 
-  console.log(`Relaciones médico-secretaria sin ningún lugar asignado: ${asignacionesSinLugar.length}`);
+  console.log(`Relaciones médico-asistente sin ningún lugar asignado: ${asignacionesSinLugar.length}`);
 
   let asignadas = 0;
   let sinParticular = 0;

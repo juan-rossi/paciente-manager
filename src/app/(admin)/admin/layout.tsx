@@ -46,7 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ];
 
   // Un ADMIN de plataforma pura no tiene tenant/dashboard al que volver
-  // (ver getTenantId()); un médico/secretaria con el flag `isAdmin` sí.
+  // (ver getTenantId()); un médico/asistente con el flag `isAdmin` sí.
   const homeDelUsuario =
     user.role === "DOCTOR" ? "/dashboard" : user.role === "SECRETARY" ? "/turnos" : null;
 

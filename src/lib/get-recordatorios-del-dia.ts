@@ -14,7 +14,7 @@ export type RecordatorioTurno = {
   links: { confirmar: string; cancelar: string };
 };
 
-// Mismo criterio que `getDaySlots` para turnos: una secretaria solo ve los
+// Mismo criterio que `getDaySlots` para turnos: un asistente solo ve los
 // del lugar que tiene activo (`lugarId === undefined` para un DOCTOR, sin
 // restricción; un `lugarId` string para acotar; `null` para "sin ningún
 // lugar asignado", que no ve nada).

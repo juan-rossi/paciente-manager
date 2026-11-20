@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // después del login, cuando nada de esto está cacheado).
   const [doctoresAsignados, lugaresAsignados, invitacionesRaw, activeLugarId, [ticketsSoporte, soporteNoLeidos]] =
     await Promise.all([
-      // Una secretaria puede asistir a más de un médico -- si es el caso, se
+      // Un asistente puede asistir a más de un médico -- si es el caso, se
       // muestra el selector para elegir a cuál está atendiendo ahora.
       user && isSecretary
         ? prisma.user.findMany({
@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           })
         : [],
 
-      // Dentro del médico activo, una secretaria puede tener más de un lugar
+      // Dentro del médico activo, un asistente puede tener más de un lugar
       // asignado -- si es el caso, se muestra el selector para elegir cuál está
       // administrando ahora (ver `resolveActiveLugarId`, que también
       // autocorrige `activeLugarId` si el guardado ya no es válido).
@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           })
         : [],
 
-      // Médicos que la sumaron y todavía no aceptó (ver `DoctorSecretaria.aceptadaAt`).
+      // Médicos que lo sumaron y todavía no aceptó (ver `DoctorSecretaria.aceptadaAt`).
       user && isSecretary
         ? prisma.doctorSecretaria.findMany({
             where: { secretariaId: user.id, aceptadaAt: null },
@@ -105,7 +105,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }));
 
   // La mensajería es una configuración del médico (tenant) -- una
-  // secretaria hereda la del médico que tiene activo en el selector.
+  // asistente hereda la del médico que tiene activo en el selector.
   const mensajeriaHabilitada = isDoctor
     ? (user?.mensajeriaHabilitada ?? true)
     : (doctoresAsignados.find((d) => d.id === user?.activeDoctorId)?.mensajeriaHabilitada ?? true);
@@ -127,7 +127,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : []),
   ];
 
-  // La secretaria no tiene Configuración (es del médico): su equivalente es
+  // El asistente no tiene Configuración (es del médico): su equivalente es
   // "Mi cuenta", con su email y su contraseña.
   const configLink = isDoctor
     ? [{ href: "/configuracion", label: "Configuración", icon: "Settings" as const }]
@@ -135,7 +135,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? [{ href: "/mi-cuenta", label: "Mi cuenta", icon: "Settings" as const }]
       : [];
 
-  // Médico o secretaria con acceso admin otorgado a mano (ver
+  // Médico o asistente con acceso admin otorgado a mano (ver
   // scripts/grant-admin-access.ts) -- puede entrar a /admin sin dejar de
   // usar su cuenta normal. Vive en el menú del chip de usuario, no en la
   // barra de navegación principal.

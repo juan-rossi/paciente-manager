@@ -4,7 +4,7 @@ import { MENSAJE_PASSWORD_MIN, PASSWORD_MIN } from "@/lib/password-policy";
 // Separado de `invitacion-secretaria.ts` (que importa Prisma y `node:crypto`)
 // para poder usarlo también desde el cliente.
 
-// Más largo que el de "olvidé mi contraseña": la secretaria no lo pidió, le
+// Más largo que el de "olvidé mi contraseña": el asistente no lo pidió, le
 // llega cuando el médico la invita y puede tardar unos días en verlo. Si
 // vence, el médico la reenvía (o ella entra igual con Google / recuperando
 // la contraseña y la acepta desde adentro).

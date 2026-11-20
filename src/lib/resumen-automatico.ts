@@ -20,7 +20,7 @@ function desdeConfig(c: Config): ResumenAutomatico {
 
 /**
  * En qué campos se resume solo al terminar un dictado (ver Configuración >
- * Dictado e IA). La opción es del médico: una secretaria usa la del médico
+ * Dictado e IA). La opción es del médico: un asistente usa la del médico
  * activo, no la suya.
  */
 export async function getResumenAutomatico(user: Config & {

@@ -45,13 +45,13 @@ import { BloqueoDialogs } from "@/components/turnos-calendar/bloqueo-dialogs";
 type Props = {
   role: UserRole;
   // Identifican de quién son los turnos que se están mostrando -- una
-  // secretaria puede cambiar de médico y/o de lugar activo sin salir de
+  // asistente puede cambiar de médico y/o de lugar activo sin salir de
   // esta pantalla (ver doctor-switcher.tsx/lugar-switcher.tsx en el
   // header). El efecto más abajo los usa para refetchear sin resetear el
   // día que se está mirando.
   tenantId: string;
   activeLugarId?: string | null;
-  // Permiso específico de la relación médico-secretaria (ver
+  // Permiso específico de la relación médico-asistente (ver
   // `DoctorSecretaria.puedeBloquearHorarios`) -- un DOCTOR siempre puede.
   puedeBloquearHorarios: boolean;
   initialDate: string;
@@ -142,7 +142,7 @@ export function TurnosCalendar({
     }
   }
 
-  // Cambiar de médico o de lugar activo (secretaria) no debe hacer perder
+  // Cambiar de médico o de lugar activo (asistente) no debe hacer perder
   // el día que se está mirando -- solo hay que traer de nuevo los turnos de
   // ESE día, pero para el nuevo médico/lugar. `selectedDateRef` evita que
   // este efecto dependa de `selectedDate` (que ya se refetchea solo al

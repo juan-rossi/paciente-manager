@@ -46,7 +46,7 @@ async function main() {
     console.log(`${existing.email} ya es una cuenta ADMIN de plataforma -- no hace falta nada.`);
     return;
   }
-  // Una secretaria nunca es admin (ver `isPlatformAdmin` en src/lib/admin-access.ts).
+  // Un asistente nunca es admin (ver `isPlatformAdmin` en src/lib/admin-access.ts).
   if (existing.role === "SECRETARY") {
     throw new Error(
       `${existing.email} es una cuenta SECRETARY: una secretaria nunca tiene acceso al panel admin (vería datos de todas las cuentas, incluidas historias clínicas). Usá otro email para crear una cuenta ADMIN.`

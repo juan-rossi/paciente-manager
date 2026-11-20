@@ -9,7 +9,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 // turno cancelado/aplazado), esto es para el recordatorio NORMAL de un
 // turno confirmado cualquiera: deja registro de que ya se le avisó, sin
 // sacarlo de la lista del día. Mismo criterio de ownership que el resto de
-// las rutas de turnos (una secretaria solo toca turnos de su lugar activo).
+// las rutas de turnos (un asistente solo toca turnos de su lugar activo).
 //
 // PATCH marca el recordatorio como enviado; DELETE lo desmarca (tocar la
 // insignia "Enviado" en Recordatorios, p.ej. si con el auto-marcado se abrió

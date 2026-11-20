@@ -22,7 +22,7 @@ const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
 // tiene que seguir siendo alcanzable con la cuenta vencida para poder
 // pagar (ver "Mi plan"), y sin `/admin`/`/onboarding`.
 const PLAN_GATED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios"];
-// Rutas de la app de consultorio (médico/secretaria) -- un ADMIN no
+// Rutas de la app de consultorio (médico/asistente) -- un ADMIN no
 // pertenece a ningún tenant y no tiene nada que hacer acá (ver
 // src/lib/tenant.ts).
 const APP_PREFIXES = [
@@ -34,7 +34,7 @@ const APP_PREFIXES = [
   "/onboarding",
   // Sin plan-gate: con la cuenta vencida también pueden escribirnos.
   "/soporte",
-  // Datos de acceso de la secretaria: sin plan-gate (son de su cuenta).
+  // Datos de acceso del asistente: sin plan-gate (son de su cuenta).
   "/mi-cuenta",
 ];
 const AUTH_ENTRY_PAGES = ["/login", "/signup"];
@@ -69,7 +69,7 @@ export default auth(async (request) => {
   }
 
   // A la inversa: /admin es para el owner/staff de Semio 360 -- la cuenta
-  // de plataforma pura (role === "ADMIN") o un médico/secretaria al que se
+  // de plataforma pura (role === "ADMIN") o un médico/asistente al que se
   // le otorgó el flag `isAdmin` (ver isPlatformAdmin()).
   if (session && !isPlatformAdmin(session.user) && pathname.startsWith("/admin")) {
     return NextResponse.redirect(new URL(homeFor(session.user.role), request.url));
@@ -103,10 +103,10 @@ export default auth(async (request) => {
 
   // Trial vencido o suscripción vencida (impago tras la gracia, ver
   // `/api/mercadopago/webhook`), o médico suspendido desde /admin/moderacion
-  // (su secretaria sigue pudiendo entrar, pero no a esa cuenta) -- se consulta en vivo (no cacheado en la
+  // (su asistente sigue pudiendo entrar, pero no a esa cuenta) -- se consulta en vivo (no cacheado en la
   // sesión) para que un pago recién confirmado desbloquee sin esperar a
   // que se cierre sesión. Se resuelve el tenant real de la cuenta (para
-  // una secretaria, el médico que tiene activo).
+  // un asistente, el médico que tiene activo).
   if (session && PLAN_GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     const actor = await prisma.user.findUnique({
       where: { id: session.user.id },

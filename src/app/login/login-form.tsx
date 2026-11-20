@@ -59,7 +59,7 @@ export function LoginForm() {
     // el chequeo anterior y llevaba a otro sitio después de un login real).
     const destino = destinoInterno(searchParams.get("from"), window.location.origin);
     // No "/": ahí se pinta el layout de marketing vacío mientras la home
-    // redirige. `/dashboard` lo resuelve el proxy según el rol (secretaria →
+    // redirige. `/dashboard` lo resuelve el proxy según el rol (asistente →
     // /turnos, admin → /admin, perfil incompleto → /onboarding).
     return destino && destino !== "/" ? destino : "/dashboard";
   }

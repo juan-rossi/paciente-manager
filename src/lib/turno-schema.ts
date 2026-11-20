@@ -92,9 +92,9 @@ export const turnoEditSchema = turnoInputSchema.pick({
   obraSocial: true,
 });
 
-// Sin contraseña: el médico solo invita, la secretaria elige la suya (ver
+// Sin contraseña: el médico solo invita, el asistente elige la suya (ver
 // POST /api/users). El mismo formulario también sirve para "sumar" a tu
-// cuenta una secretaria que ya existe (asiste a otro médico): en ese caso el
+// cuenta un asistente que ya existe (asiste a otro médico): en ese caso el
 // `nombre` se ignora y se usa el de su cuenta.
 export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
@@ -102,8 +102,8 @@ export const secretaryInputSchema = z.object({
   // usa el suyo): si solo se pidiera para un email nuevo, el "falta el
   // nombre" revelaría qué emails tienen cuenta en Semio 360.
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
-  // Lugares del médico que esta secretaria va a poder administrar --
-  // específico de esta relación médico-secretaria, no de la cuenta en
+  // Lugares del médico que este asistente va a poder administrar --
+  // específico de esta relación médico-asistente, no de la cuenta en
   // general (ver DoctorSecretariaLugar en el schema).
   lugarIds: z.array(z.string().min(1)).min(1, "Seleccioná al menos un lugar donde podrá administrar turnos."),
   // Igual de específico de esta relación -- ver `puedeBloquearHorarios` en

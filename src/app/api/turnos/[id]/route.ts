@@ -8,7 +8,7 @@ import { limpiarAperturasSinTurnos } from "@/lib/horario-excepcional";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// `confirmado`: el médico/secretaria marca a mano que el paciente confirmó
+// `confirmado`: el médico/asistente marca a mano que el paciente confirmó
 // (ej. avisó por teléfono) o lo desmarca -- ver `Turno.confirmadoAt`.
 const turnoUpdateSchema = z.union([
   z.object({ estado: z.literal("CANCELADO") }),
@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  // Una secretaria solo puede tocar turnos del lugar que tiene activo (ver
+  // Un asistente solo puede tocar turnos del lugar que tiene activo (ver
   // `resolveActiveLugarId`) -- si no tiene ninguno asignado, no ve ningún
   // turno como propio (un `lugarId: null` en el where matchearía turnos sin
   // lugar, que es justo lo que NO queremos acá).

@@ -9,7 +9,7 @@ export type SecretariaDelMedico = {
   puedeBloquearHorarios: boolean;
   // Invitación todavía no aceptada (ver `DoctorSecretaria.aceptadaAt`).
   pendiente: boolean;
-  // Email y nombre son de la cuenta de la secretaria, no de la relación: el
+  // Email y nombre son de la cuenta del asistente, no de la relación: el
   // médico solo puede cambiarlos si ella asiste únicamente a él. Si tiene
   // CUALQUIER relación con otro médico -- aceptada o una invitación todavía
   // pendiente --, cambiarle el email y pedir "recuperar contraseña" sería
@@ -49,7 +49,7 @@ function aSecretariaDelMedico(
     // Invitación todavía no aceptada: nunca se muestra el nombre, tampoco
     // cuando la cuenta se acaba de crear con el nombre que tipeó el médico.
     // Si solo se ocultara el de cuentas preexistentes, la respuesta de
-    // "invitar" diría qué emails ya son secretarias en Semio 360 (y el
+    // "invitar" diría qué emails ya son asistentes en Semio 360 (y el
     // nombre con el que se registraron).
     nombre: propia?.aceptadaAt ? s.nombre : "",
     // Fecha de la asignación con ESTE médico, no de la cuenta: la de la
@@ -62,7 +62,7 @@ function aSecretariaDelMedico(
   };
 }
 
-// Secretarias asignadas al médico (aceptadas o con invitación pendiente).
+// Asistentes asignados al médico (aceptados o con invitación pendiente).
 export async function listarSecretariasDelMedico(doctorId: string): Promise<SecretariaDelMedico[]> {
   const secretarias = await prisma.user.findMany({
     where: { role: "SECRETARY", secretariaAsignaciones: { some: { doctorId } } },

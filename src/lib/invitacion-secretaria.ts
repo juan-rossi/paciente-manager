@@ -83,7 +83,7 @@ export async function buscarInvitacion(token: string): Promise<InvitacionVigente
   };
 }
 
-// Marca la invitación como aceptada y consume el token. Si la secretaria no
+// Marca la invitación como aceptada y consume el token. Si el asistente no
 // estaba atendiendo a ningún médico, pasa directo a este. El `updateMany`
 // condicionado a `aceptadaAt: null` evita aceptar dos veces la misma, y el
 // médico activo solo se setea si ESE update aceptó algo: si el médico
@@ -106,7 +106,7 @@ export async function aceptarInvitacion(invitacion: { id: string; doctorId: stri
 
 export type ResultadoActivar = "ok" | "invalido" | "ya-tiene-password";
 
-// Desde el link del mail, una secretaria sin contraseña elige la suya (y
+// Desde el link del mail, un asistente sin contraseña elige la suya (y
 // confirma su nombre): eso acepta la invitación. El token prueba que es
 // dueña del email. Si ya tiene contraseña no se pisa -- tiene que ingresar
 // con la que ya usa (o recuperarla), nunca reemplazarla desde un link que

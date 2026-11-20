@@ -94,7 +94,7 @@ export function SancionButton({
 
   const afectados = [
     turnosFuturos > 0 && (turnosFuturos === 1 ? "1 turno a futuro" : `${turnosFuturos} turnos a futuro`),
-    secretarias > 0 && (secretarias === 1 ? "1 secretaria" : `${secretarias} secretarias`),
+    secretarias > 0 && (secretarias === 1 ? "1 asistente" : `${secretarias} asistentes`),
   ].filter(Boolean);
 
   return (
@@ -165,7 +165,7 @@ export function SancionButton({
           {esSuspension && afectados.length > 0 && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
               <span className="font-semibold">Tiene {afectados.join(" y ")}.</span> Los turnos no
-              se cancelan y las secretarias pierden el acceso a esta cuenta mientras dure la
+              se cancelan y los asistentes pierden el acceso a esta cuenta mientras dure la
               suspensión.
             </div>
           )}

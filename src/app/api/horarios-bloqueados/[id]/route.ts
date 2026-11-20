@@ -22,7 +22,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const inicioParam = request.nextUrl.searchParams.get("inicio");
   const finParam = request.nextUrl.searchParams.get("fin");
 
-  // Una secretaria solo puede desbloquear un bloqueo de su propio lugar --
+  // Un asistente solo puede desbloquear un bloqueo de su propio lugar --
   // esto excluye automáticamente un "Día completo" de un médico
   // (`lugarId: null`) o el de otro lugar que ella no administra. Sin ningún
   // lugar asignado (`null`) no ve nada: si no se corta acá, el filtro de
@@ -67,7 +67,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // El lugar donde se recrean los costados: el del bloqueo si es de un
     // lugar puntual; si es un "Día completo" (solo lo ve el médico), uno de
-    // SUS lugares vigentes. Una secretaria, además, solo el suyo.
+    // SUS lugares vigentes. Un asistente, además, solo el suyo.
     const lugarValido =
       existing.lugarId !== null
         ? lugarId === existing.lugarId

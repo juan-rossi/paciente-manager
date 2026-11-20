@@ -105,7 +105,7 @@ export function RecordatoriosCalendar({
     loadTurnos(date);
   }
 
-  // Cambiar de médico o de lugar activo (secretaria) no debe hacer perder
+  // Cambiar de médico o de lugar activo (asistente) no debe hacer perder
   // el día que se está mirando -- mismo criterio que en /turnos (ver
   // turnos-calendar.tsx).
   const selectedDateRef = useRef(selectedDate);

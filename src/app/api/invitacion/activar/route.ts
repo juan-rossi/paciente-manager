@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { activarInvitacionSchema } from "@/lib/invitacion-secretaria-shared";
 import { activarConPassword } from "@/lib/invitacion-secretaria";
 
-// Pública (sin sesión): la secretaria invitada elige su contraseña desde el
+// Pública (sin sesión): el asistente invitado elige su contraseña desde el
 // link del mail. El token es la prueba de que es dueña del email.
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);

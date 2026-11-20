@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { CONTACTO_EMAIL } from "@/lib/sancion-email";
 
-// Cambio del email propio (médico o secretaria). El email es el usuario con el
+// Cambio del email propio (médico o asistente). El email es el usuario con el
 // que se ingresa y adonde llega "recuperar contraseña": cambiarlo exige
 // probar que la casilla nueva es de quien lo pide (un link que llega SOLO
 // ahí) y se avisa a la anterior en cada paso, para que la dueña real se

@@ -6,7 +6,7 @@ import { getSiteUrl } from "@/lib/site-url";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// Reenvía el mail de invitación a una secretaria que todavía no la aceptó
+// Reenvía el mail de invitación a un asistente que todavía no la aceptó
 // (p.ej. se le venció el link o no le llegó). Genera un token nuevo, así
 // que el link anterior deja de servir.
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     await enviarInvitacion(invitacion.id, baseUrl);
   } catch (error) {
-    console.error("[invitacion-secretaria] no se pudo reenviar el mail", error);
+    console.error("[invitacion-asistente] no se pudo reenviar el mail", error);
     return NextResponse.json({ error: "No se pudo enviar el mail. Probá de nuevo en un rato." }, { status: 502 });
   }
 

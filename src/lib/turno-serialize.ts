@@ -13,7 +13,7 @@ const CAMPOS_INTERNOS = ["cancelTokenHash", "linkCodigo", "creadoPorId"] as cons
 
 /**
  * El vínculo con el paciente clínico (`patientId`) es información exclusiva del médico.
- * Las secretarias (y un ADMIN, que nunca debería llegar acá -- ver getTenantId())
+ * Los asistentes (y un ADMIN, que nunca debería llegar acá -- ver getTenantId())
  * solo ven los datos que ellas mismas ingresan al reservar el turno.
  */
 export function serializeTurno<T extends TurnoLike>(turno: T, role: UserRole) {

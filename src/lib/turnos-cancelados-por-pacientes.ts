@@ -13,7 +13,7 @@ export type TurnoCanceladoPorPaciente = {
 // Turnos que el propio paciente canceló (perfil público o link del recordatorio).
 // Ya no ocupan la agenda (estado CANCELADO); esto es solo el registro. Mismo
 // criterio de scoping por lugar que el resto de la app (`lugarId === null` =
-// secretaria sin lugar asignado, no ve nada). Acotado al día que se está
+// asistente sin lugar asignado, no ve nada). Acotado al día que se está
 // mirando en la agenda (por la fecha del turno, no la de la cancelación).
 export async function getTurnosCanceladosPorPacientes(
   date: Date,

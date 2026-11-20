@@ -8,9 +8,9 @@ const schema = z.object({ accion: z.enum(["aceptar", "rechazar"]) });
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// Una secretaria con cuenta propia responde la invitación de un médico que
-// la sumó (ver POST /api/users). `id` es el de la `DoctorSecretaria`
-// pendiente, y tiene que ser de ella: nadie más puede aceptarla.
+// Un asistente con cuenta propia responde la invitación de un médico que
+// lo sumó (ver POST /api/users). `id` es el de la `DoctorSecretaria`
+// pendiente, y tiene que ser de él: nadie más puede aceptarla.
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const { user, response } = await requireUser({ validarCuenta: false });
   if (response) return response;

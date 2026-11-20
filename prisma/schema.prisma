@@ -328,7 +328,7 @@ model User {
   // Resumen con IA apenas termina la transcripción de un dictado, sin tocar
   // "Resumir con IA" (ver Configuración > Dictado e IA). El interruptor
   // general manda; los otros dos eligen en qué campos aplica. Las
-  // secretarias usan la configuración del médico activo.
+  // asistentes usan la configuración del médico activo.
   resumenAutomatico        Boolean         @default(false)
   resumenAutoAntecedentes  Boolean         @default(true)
   resumenAutoEvoluciones   Boolean         @default(true)
@@ -341,22 +341,22 @@ model User {
   sessionVersion           Int             @default(0)
   createdAt                DateTime        @default(now())
 
-  // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Una SECRETARY puede
+  // Multi-tenancy: un DOCTOR es su propio tenant (`id`). Un SECRETARY puede
   // asistir a más de un médico (ver `DoctorSecretaria`, la relación real
   // muchos-a-muchos) y opera, en cada request, dentro de la cuenta indicada
   // por `activeDoctorId` -- el médico que eligió en el selector del header
   // (ver `src/components/doctor-switcher.tsx`). Se valida contra
   // `DoctorSecretaria` en el momento de setearlo, nunca en cada lectura.
   // `plan`/`trialEndsAt` solo tienen sentido en la fila del DOCTOR (la
-  // cuenta/tenant), no en sus secretarias.
+  // cuenta/tenant), no en sus asistentes.
   activeDoctorId String?
   // Análogo a `activeDoctorId` pero para el lugar: dentro del médico activo,
-  // una secretaria solo puede administrar turnos del lugar que tiene
+  // un asistente solo puede administrar turnos del lugar que tiene
   // elegido acá (ver `src/lib/tenant.ts#resolveActiveLugarId` y
   // `src/components/lugar-switcher.tsx`). Sin relación a nivel DB -- mismo
   // criterio que `activeDoctorId`, se revalida en cada lectura contra
   // `DoctorSecretariaLugar` porque el médico puede cambiarle los lugares
-  // asignados a la secretaria en cualquier momento.
+  // asignados al asistente en cualquier momento.
   activeLugarId  String?
   plan           PlanTipo  @default(BASICA)
   trialEndsAt    DateTime?
@@ -552,8 +552,8 @@ model SesionRevocada {
   @@index([expiresAt])
 }
 
-// Relación muchos-a-muchos: una secretaria puede asistir a más de un médico,
-// y un médico puede compartir secretaria con otro médico. Reemplaza el
+// Relación muchos-a-muchos: un asistente puede asistir a más de un médico,
+// y un médico puede compartir asistente con otro médico. Reemplaza el
 // antiguo `User.doctorId` (1 a 1).
 model DoctorSecretaria {
   id           String   @id @default(cuid())
@@ -563,24 +563,24 @@ model DoctorSecretaria {
   secretaria   User     @relation("AsignacionesComoSecretaria", fields: [secretariaId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
-  // Permiso específico de ESTA relación médico-secretaria (la misma persona
+  // Permiso específico de ESTA relación médico-asistente (la misma persona
   // puede tener otro permiso en otro médico) -- habilita el botón "Bloquear
   // horarios" en la pantalla de turnos y las rutas de horarios-bloqueados.
   // Por defecto en false: es un permiso elevado (puede afectar lugares que
-  // ni siquiera administra, vía "Día completo"), no algo que una secretaria
+  // ni siquiera administra, vía "Día completo"), no algo que un asistente
   // nueva tenga habilitado de entrada.
   puedeBloquearHorarios Boolean @default(false)
 
-  // Null = invitación pendiente: el médico sumó a una secretaria que ya
+  // Null = invitación pendiente: el médico sumó a un asistente que ya
   // tenía cuenta (asiste a otro médico) y ella todavía no aceptó. Mientras
   // tanto la relación no da acceso a nada -- ni a la agenda del médico, ni
   // al médico permiso alguno sobre la cuenta de ella. Toda asignación nace
-  // pendiente: el médico nunca elige la contraseña de la secretaria, solo la
+  // pendiente: el médico nunca elige la contraseña del asistente, solo la
   // invita (ver `src/lib/invitacion-secretaria.ts`).
   aceptadaAt DateTime?
 
   // Link del mail de invitación (`/invitacion?token=...`): sha256 del token,
-  // igual criterio que `PasswordResetToken`. Desde ahí la secretaria elige
+  // igual criterio que `PasswordResetToken`. Desde ahí el asistente elige
   // su contraseña (si todavía no tiene) o entra con Google, y eso acepta la
   // invitación. Se borra al aceptar; reenviar la invitación lo regenera.
   invitacionTokenHash String?   @unique
@@ -592,10 +592,10 @@ model DoctorSecretaria {
   @@index([secretariaId])
 }
 
-// Qué lugares de ESE médico puede administrar esta secretaria -- son
-// específicos de cada relación médico-secretaria, no de la secretaria en
+// Qué lugares de ESE médico puede administrar este asistente -- son
+// específicos de cada relación médico-asistente, no del asistente en
 // general (la misma persona puede tener acceso a otros lugares en otro
-// médico). Requerido al menos uno al crear/editar una secretaria, chequeado
+// médico). Requerido al menos uno al crear/editar un asistente, chequeado
 // a nivel aplicación en /api/users (igual criterio que el único PARTICULAR
 // por médico: no es constraint de DB).
 model DoctorSecretariaLugar {
@@ -643,7 +643,7 @@ model AuditLog {
   doctorId String
   doctor   User   @relation("AuditDoctor", fields: [doctorId], references: [id])
 
-  // Quién hizo la acción -- puede ser el médico o una secretaria suya.
+  // Quién hizo la acción -- puede ser el médico o un asistente suyo.
   actorId String
   actor   User   @relation("AuditActor", fields: [actorId], references: [id])
 
@@ -727,7 +727,7 @@ model BloqueoHorario {
   user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   // `null` = aplica a todos los lugares en ese rango horario ("Día
   // completo" para un médico). Con `lugarId`, el bloqueo es específico de
-  // ese lugar (bloques puntuales, o "Día completo" de una secretaria
+  // ese lugar (bloques puntuales, o "Día completo" de un asistente
   // acotado a su lugar activo).
   lugarId String?
   lugar   LugarDeTrabajo? @relation(fields: [lugarId], references: [id], onDelete: Cascade)
@@ -838,7 +838,7 @@ model Turno {
   creadoPor   User   @relation("TurnoCreadoPor", fields: [creadoPorId], references: [id])
 
   // De qué cuenta/tenant es este turno -- distinto de `creadoPorId`, que
-  // puede ser una secretaria. Todo query de turnos se filtra por esto.
+  // puede ser un asistente. Todo query de turnos se filtra por esto.
   doctorId String
   doctor   User   @relation("TurnoDoctor", fields: [doctorId], references: [id])
 
@@ -867,7 +867,7 @@ model Turno {
 
   // El recordatorio normal (no relacionado a "Pendientes de notificar") que
   // se manda desde la lista del día en Recordatorios -- a diferencia de
-  // `avisoPendiente`, nunca se prende solo: el médico/secretaria lo marca a
+  // `avisoPendiente`, nunca se prende solo: el médico/asistente lo marca a
   // mano después de mandar el WhatsApp, para llevar registro de a quién ya
   // se le avisó ese día sin tener que acordarse.
   recordatorioEnviado Boolean @default(false)
@@ -881,7 +881,7 @@ model Turno {
   canceladoPorPacienteAt DateTime?
 
   // El paciente confirmó que viene (link `{confirmar}` del recordatorio) o
-  // el médico/secretaria lo marcó a mano. Junto con `estado` y
+  // el médico/asistente lo marcó a mano. Junto con `estado` y
   // `recordatorioEnviado` arma el estado que se ve en la grilla (ver
   // `estadoVisualTurno`). Se borra si el turno se reprograma.
   confirmadoAt DateTime?
@@ -1037,7 +1037,7 @@ model Patient {
   @@index([doctorId, nombreYApellido])
 }
 
-// Último acceso de cada usuario (médico o secretaria) al detalle de cada
+// Último acceso de cada usuario (médico o asistente) al detalle de cada
 // paciente -- alimenta la lista de "últimos pacientes vistos" que muestra la
 // búsqueda de pacientes cuando no hay filtro. Una fila por par usuario/paciente
 // (upsert al entrar al detalle), no un historial: para trazabilidad clínica
@@ -1328,7 +1328,7 @@ enum TicketEstado {
   DESCARTADO
 }
 
-// Sugerencia o reporte de problema que un médico o secretaria manda desde la
+// Sugerencia o reporte de problema que un médico o asistente manda desde la
 // app (ícono de "Sugerencias y soporte" del header, ver
 // `src/components/soporte/soporte-header-button.tsx`). Se gestiona y se
 // responde desde /admin/soporte. Cada usuario ve solo los propios.
@@ -1340,7 +1340,7 @@ model TicketSoporte {
   autorId      String
   autor        User            @relation("TicketAutor", fields: [autorId], references: [id], onDelete: Cascade)
   // Consultorio desde el que escribió (el propio médico, o el médico activo
-  // de la secretaria). Solo contexto para el admin.
+  // del asistente). Solo contexto para el admin.
   doctorId     String?
   doctor       User?           @relation("TicketDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
   // Pantalla desde la que abrió el formulario (p.ej. "/turnos").

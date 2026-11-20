@@ -48,7 +48,7 @@ type Props = {
   diasConHorario: DiaSemana[];
   // Sin prácticas (lugares de trabajo) configuradas no se pueden agendar
   // turnos: el estado vacío de "hoy" manda a configurarlas. Solo el médico
-  // puede hacerlo; a la secretaria se le avisa sin botón.
+  // puede hacerlo; al asistente se le avisa sin botón.
   sinPracticas?: boolean;
   puedeConfigurarPracticas?: boolean;
   // Médico con prácticas configuradas pero perfil no público: se suma un

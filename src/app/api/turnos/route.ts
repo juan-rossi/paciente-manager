@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Una secretaria solo puede agendar en el lugar que tiene activo -- ver
+  // Un asistente solo puede agendar en el lugar que tiene activo -- ver
   // `resolveActiveLugarId`. El lugar del turno sale del slot que se clickeó
   // en la grilla (ya viene filtrado a su lugar activo), así que esto es una
   // segunda validación de defensa, no la única barrera.

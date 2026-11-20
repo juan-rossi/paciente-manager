@@ -3,7 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 /**
  * Ejecuta `fn` en una transacción que tiene tomada la agenda del médico: dos
- * altas simultáneas de turnos del mismo médico (dos secretarias, la secretaria
+ * altas simultáneas de turnos del mismo médico (dos asistentes, el asistente
  * y el médico, o dos pacientes reservando online) se ejecutan de a una.
  *
  * Sin esto, "¿ese horario está libre?" y "crear el turno" eran dos pasos

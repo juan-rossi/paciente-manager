@@ -12,7 +12,7 @@ type Props = {
   iniciales: string;
   fotoPerfilBase64: string | null;
   configHref?: string;
-  // "Configuración" (médico) o "Mi cuenta" (secretaria).
+  // "Configuración" (médico) o "Mi cuenta" (asistente).
   configLabel?: string;
   adminHref?: string;
   homeHref?: string;

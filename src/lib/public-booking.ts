@@ -73,7 +73,7 @@ export async function getDisponibilidadPublica(
 
   // Un horario bloqueado nunca debe aparecer como disponible para un
   // paciente -- se descarta acá, no se anota (a diferencia del panel
-  // interno, que sí muestra el bloqueo para que el médico/secretaria lo
+  // interno, que sí muestra el bloqueo para que el médico/asistente lo
   // vea y pueda desbloquearlo).
   const bloqueos = await prisma.bloqueoHorario.findMany({
     where: { userId: doctor.id, inicio: { lt: hasta }, fin: { gt: desde } },

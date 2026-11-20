@@ -6,7 +6,7 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 // "Marcar como notificado" en la sección "Pendientes de notificar" de
 // Recordatorios -- saca el turno de esa lista. Mismo criterio de ownership
-// que PATCH /api/turnos/[id] (una secretaria solo puede tocar turnos de su
+// que PATCH /api/turnos/[id] (un asistente solo puede tocar turnos de su
 // lugar activo).
 export async function PATCH(_request: NextRequest, { params }: RouteParams) {
   const { user, tenantId, activeLugarId, response } = await requireUser({ escritura: true });

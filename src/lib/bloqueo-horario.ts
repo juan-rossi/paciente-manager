@@ -34,7 +34,7 @@ export function resolverRangoDia(lugarId: string | null, fecha: Date): BloqueoRo
 }
 
 // "Día completo": una sola fila que cubre las 24hs de `fecha`. Para un
-// médico, `lugarId: null` (todos sus lugares); para una secretaria, se le
+// médico, `lugarId: null` (todos sus lugares); para un asistente, se le
 // pasa su `activeLugarId` (nunca puede bloquear un lugar que no administra).
 // `db` acepta `prisma` o un `tx` de `$transaction` (ver `registrarAuditoria`
 // en audit-log.ts para el mismo patrón) -- se le pasa el `tx` cuando ya se
@@ -70,7 +70,7 @@ export class BloqueoSinBloquesError extends Error {}
 // de `fecha` server-side a partir del `WorkScheduleBlock` vigente y solo
 // devuelve los `bloqueKeys` que matchean uno de verdad. `scopeLugarId` acota
 // qué bloques puede ver quien pide el bloqueo: `undefined` para un médico
-// (ve todos sus lugares), un id concreto para una secretaria (sus bloques
+// (ve todos sus lugares), un id concreto para un asistente (sus bloques
 // nunca van a incluir un lugar que no administra, porque ni siquiera se
 // computan).
 export async function resolverRangosBloques(

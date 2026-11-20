@@ -5,10 +5,10 @@ import { requireUser } from "@/lib/api-auth";
 
 const schema = z.object({ lugarId: z.string().min(1) });
 
-// Dentro del médico activo, una secretaria puede tener más de un lugar
+// Dentro del médico activo, un asistente puede tener más de un lugar
 // asignado -- este endpoint cambia a cuál está administrando turnos ahora
 // mismo (ver `lugar-switcher.tsx`). Se valida que el lugar realmente esté
-// entre los asignados a la secretaria para ESE médico antes de aceptarlo.
+// entre los asignados al asistente para ESE médico antes de aceptarlo.
 export async function PATCH(request: NextRequest) {
   const { user, tenantId, response } = await requireUser({ validarCuenta: false });
   if (response) return response;

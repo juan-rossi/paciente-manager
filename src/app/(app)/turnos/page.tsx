@@ -38,7 +38,7 @@ export default async function TurnosPage() {
     })
   ).map((d) => d.prepaga.nombre);
 
-  // Link público de reserva para el botón "Compartir". La secretaria solo
+  // Link público de reserva para el botón "Compartir". El asistente solo
   // comparte el de su lugar activo; el médico, el general.
   const doctorPublico = await prisma.user.findUnique({
     where: { id: tenantId },

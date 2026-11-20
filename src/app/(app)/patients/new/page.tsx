@@ -22,7 +22,7 @@ export default async function NewPatientPage({
   searchParams: SearchParams;
 }) {
   const user = await getCurrentUser();
-  // La historia clínica es solo del médico: una secretaria nunca la ve (el
+  // La historia clínica es solo del médico: un asistente nunca la ve (el
   // proxy ya la saca de /patients, esto es la segunda barrera).
   if (!user || user.role !== "DOCTOR") notFound();
   const params = await searchParams;

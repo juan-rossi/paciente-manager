@@ -17,7 +17,7 @@ export default async function RecordatoriosPage() {
   const tenantId = getTenantId(user);
 
   // La mensajería (habilitada/plantilla) es una configuración del médico
-  // (tenant), no de la cuenta que está logueada -- para una secretaria,
+  // (tenant), no de la cuenta que está logueada -- para un asistente,
   // `user.mensajeTemplate`/`user.mensajeriaHabilitada` son los de SU propia
   // fila (siempre el default, nunca los tocó), no los del médico que
   // configuró desde Configuración → Mensajería.

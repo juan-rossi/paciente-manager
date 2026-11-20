@@ -3,7 +3,7 @@ import type { TicketEstado, TicketTipo } from "@/generated/prisma/client";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { getSiteUrl } from "@/lib/site-url";
 
-// Sugerencias y reportes de problemas de médicos/secretarias (ver
+// Sugerencias y reportes de problemas de médicos/asistentes (ver
 // `TicketSoporte`). Del lado del consultorio: ícono del header + /soporte.
 // Del lado del equipo: /admin/soporte.
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { esOdontologica } from "@/lib/especialidad";
 
 // El odontograma depende de la especialidad del médico dueño del tenant (no
-// del usuario logueado): una secretaria ve lo mismo que el médico activo.
+// del usuario logueado): un asistente ve lo mismo que el médico activo.
 export async function tenantEsOdontologo(tenantId: string): Promise<boolean> {
   const doctor = await prisma.user.findUnique({
     where: { id: tenantId },

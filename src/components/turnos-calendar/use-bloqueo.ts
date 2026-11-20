@@ -66,7 +66,7 @@ export function useBloqueo({ role, bloques, selectedDate, loadSlots }: {
   } | null>(null);
 
   function openBloqueoDialog() {
-    // Una secretaria nunca ve la opción "Día completo" -- bloquea siempre
+    // Un asistente nunca ve la opción "Día completo" -- bloquea siempre
     // por bloques puntuales de su único lugar (ver Tabs más abajo, oculto
     // para su rol). Con un solo bloque disponible ese día no tiene sentido
     // obligarla a tildarlo a mano -- arranca preseleccionado.

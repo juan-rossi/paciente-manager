@@ -31,7 +31,7 @@ export const SANCION_LABELS: Record<TipoSancion, string> = {
   FUERA_DEL_DIRECTORIO: "Fuera del directorio",
 };
 
-// Turnos a futuro y secretarias que siguen operando la cuenta: el diálogo de
+// Turnos a futuro y asistentes que siguen operando la cuenta: el diálogo de
 // suspensión los muestra para que el admin sepa a quién más afecta.
 export async function afectadosPorSuspension(doctorId: string) {
   const [turnosFuturos, secretarias] = await Promise.all([

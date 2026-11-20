@@ -52,9 +52,9 @@ export async function getDaySlots(
   date: Date,
   role: UserRole,
   tenantId: string,
-  // Solo aplica a una SECRETARY (ver `resolveActiveLugarId`): `undefined` no
+  // Solo aplica a un SECRETARY (ver `resolveActiveLugarId`): `undefined` no
   // restringe nada (un DOCTOR siempre pasa esto así); un `lugarId` acota la
-  // grilla a ese lugar; `null` significa que la secretaria no tiene ningún
+  // grilla a ese lugar; `null` significa que el asistente no tiene ningún
   // lugar asignado -- no ve nada, en vez de ver todo el médico sin filtrar.
   lugarId?: string | null
 ): Promise<{
@@ -150,7 +150,7 @@ export async function getDaySlots(
   // `OR` explícito (no el mismo spread condicional que `blocks`/`turnos`
   // de arriba) porque un bloqueo "Día completo" de un médico tiene
   // `lugarId: null` -- filtrar por `{lugarId}` a secas lo excluiría mal
-  // cuando se está viendo la grilla acotada al lugar de una secretaria.
+  // cuando se está viendo la grilla acotada al lugar de un asistente.
   const bloqueos = await prisma.bloqueoHorario.findMany({
     where: {
       userId: doctor.id,
@@ -197,7 +197,7 @@ export async function getDaySlots(
     if (!turnoDeGrillaPorInicio.has(key)) turnoDeGrillaPorInicio.set(key, turno);
   }
 
-  // Solo los que canceló el paciente: los que cancela el médico/secretaria
+  // Solo los que canceló el paciente: los que cancela el médico/asistente
   // ya los sabe quien los canceló. Si hay varios en el mismo horario, el
   // último que se canceló.
   const canceladosPorPaciente = await prisma.turno.findMany({

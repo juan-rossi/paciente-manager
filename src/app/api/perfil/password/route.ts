@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/api-auth";
 import { passwordChangeSchema } from "@/lib/perfil-schema";
 import { hashPassword, verifyPassword } from "@/lib/auth";
 
-// Médico (Configuración → Seguridad) o secretaria (/mi-cuenta): es la
+// Médico (Configuración → Seguridad) o asistente (/mi-cuenta): es la
 // contraseña de la persona, no depende del estado de la cuenta del médico.
 export async function POST(request: NextRequest) {
   const { user, response } = await requireUser({ validarCuenta: false });

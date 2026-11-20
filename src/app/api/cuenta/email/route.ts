@@ -11,7 +11,7 @@ const cambioEmailInput = z.object({
   password: z.string().min(1, "Ingresá tu contraseña actual."),
 });
 
-// Pide cambiar el email propio (médico o secretaria). El cambio recién se
+// Pide cambiar el email propio (médico o asistente). El cambio recién se
 // hace cuando se confirma con el link que llega al email nuevo (ver
 // src/lib/cambio-email.ts). No depende del estado de la cuenta del médico
 // activo: es la cuenta de la persona.

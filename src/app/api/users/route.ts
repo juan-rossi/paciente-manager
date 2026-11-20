@@ -14,7 +14,7 @@ export async function GET() {
   return NextResponse.json({ secretarias: await listarSecretariasDelMedico(tenantId) });
 }
 
-// El médico nunca elige la contraseña de la secretaria: solo la invita por
+// El médico nunca elige la contraseña del asistente: solo la invita por
 // email. Si no tiene cuenta se le crea una sin contraseña, y desde el link
 // del mail elige la suya o entra con Google (ver `/invitacion`). En ambos
 // casos la asignación no da acceso a nada hasta que ella la acepte (ver
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ya existe como secretaria (posiblemente de otro médico): puede asistir
+    // Ya existe como asistente (posiblemente de otro médico): puede asistir
     // a más de un médico, pero la cuenta es de ella -- no se tocan su
     // nombre ni su contraseña.
     const yaAsignada = await prisma.doctorSecretaria.findUnique({
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
   const baseUrl = process.env.NODE_ENV === "production" ? getSiteUrl() : request.nextUrl.origin;
   after(() =>
     enviarInvitacion(doctorSecretariaId, baseUrl).catch((error) =>
-      console.error("[invitacion-secretaria] no se pudo enviar el mail", error)
+      console.error("[invitacion-asistente] no se pudo enviar el mail", error)
     )
   );
 

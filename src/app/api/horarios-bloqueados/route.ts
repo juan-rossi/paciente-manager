@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No podés bloquear un día que ya pasó." }, { status: 400 });
   }
 
-  // Una secretaria nunca puede bloquear un lugar que no administra -- ver
+  // Un asistente nunca puede bloquear un lugar que no administra -- ver
   // el mismo criterio ya aplicado en POST /api/turnos. Un médico ve/bloquea
   // todos sus lugares.
   if (user.role === "SECRETARY" && activeLugarId === null) {

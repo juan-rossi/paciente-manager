@@ -8,7 +8,7 @@ import { getSiteUrl } from "@/lib/site-url";
 // Paso post-Google: completa apellido/matrícula, que Google no provee.
 export async function POST(request: NextRequest) {
   // Solo médicos: es el alta de un médico que entró con Google (matrícula,
-  // mail de bienvenida). Una secretaria no tiene nada que completar acá.
+  // mail de bienvenida). Un asistente no tiene nada que completar acá.
   const { user, response } = await requireDoctor();
   if (response) return response;
 

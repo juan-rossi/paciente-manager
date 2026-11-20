@@ -20,7 +20,7 @@ type Props = {
   className?: string;
 };
 
-// Solo se renderiza (ver `(app)/layout.tsx`) cuando una secretaria asiste a
+// Solo se renderiza (ver `(app)/layout.tsx`) cuando un asistente asiste a
 // 2+ médicos -- si asiste a uno solo, no hay nada que elegir.
 export function DoctorSwitcher({ doctores, activeDoctorId, className }: Props) {
   const router = useRouter();

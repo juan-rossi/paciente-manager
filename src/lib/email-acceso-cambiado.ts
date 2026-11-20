@@ -9,7 +9,7 @@ type Datos = {
 };
 
 // Aviso a la dirección ANTERIOR cuando un médico le cambia el email de
-// acceso a su secretaria (PATCH /api/users/[id]): con el email nuevo se
+// acceso a su asistente (PATCH /api/users/[id]): con el email nuevo se
 // puede pedir "recuperar contraseña", así que la dueña de la cuenta tiene
 // que enterarse por un canal que todavía controla. Se llama dentro de
 // `after()`: un fallo de Resend no deshace el cambio, solo se loguea.

@@ -37,7 +37,7 @@ export default async function DashboardPage({
     user.role === "DOCTOR" ? prisma.doctorPrepaga.count({ where: { doctorId: user.id } }) : Promise.resolve(0),
   ]);
 
-  // Solo se le avisa al médico dueño de la cuenta (no a sus secretarias --
+  // Solo se le avisa al médico dueño de la cuenta (no a sus asistentes --
   // ellas no pueden pagar) y solo en la última semana del trial (de Básico o
   // de Premium). Si ya tiene una suscripción paga vigente (`planEndsAt`), el
   // trial en papel ya no importa.

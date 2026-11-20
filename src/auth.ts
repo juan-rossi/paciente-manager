@@ -117,7 +117,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       const cookieStore = await cookies();
 
-      // "Continuar con Google" desde el link de una invitación de secretaria
+      // "Continuar con Google" desde el link de una invitación de asistente
       // (ver `/invitacion`): si la cuenta de Google es la del email invitado,
       // ese login acepta la invitación. Si es otra, se corta acá -- si no,
       // con un email nuevo se autoregistraría como médico.

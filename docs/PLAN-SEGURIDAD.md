@@ -12,8 +12,8 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 ## Decisiones pendientes
 - [x] **D1.** ¿Un médico con plan vencido puede seguir **leyendo y exportando** su HC? **Decidido
   (2026-11-19): sí** (Ley 26.529, conservación/disponibilidad); se bloquea solo la escritura. Afecta F5.
-- [x] **D2.** ¿Una secretaria con `isAdmin` puede exportar HC desde /admin? **Decidido (2026-11-19): una
-  secretaria nunca tiene permiso de admin**, para nada. Afecta F12.
+- [x] **D2.** ¿Un asistente con `isAdmin` puede exportar HC desde /admin? **Decidido (2026-11-19): un
+  asistente nunca tiene permiso de admin**, para nada. Afecta F12.
 
 ---
 
@@ -73,20 +73,20 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
   `transaction_amount` == esperado; upgrade sobre plan vencido no otorga meses; rechazar firmas con `ts`
   > 5 min. Probar en QA con pagos de prueba.
 
-### [x] F3 · Médico puede tomar la cuenta de su secretaria
+### [x] F3 · Médico puede tomar la cuenta de su asistente
 > Hecho 2026-11-19 (opción mínima): `datosEditables` ahora es false ante CUALQUIER relación con otro
 > médico, incluidas invitaciones pendientes (son filas atadas al id de la cuenta). Cambiar el email
-> incrementa `sessionVersion` de la secretaria y avisa al email anterior
-> (`src/lib/email-acceso-cambiado.ts`). No se quitó al médico la edición del email: la secretaria no
+> incrementa `sessionVersion` del asistente y avisa al email anterior
+> (`src/lib/email-acceso-cambiado.ts`). No se quitó al médico la edición del email: el asistente no
 > tiene forma de cambiarlo ella misma y no habría cómo corregir un email mal cargado. Con la
-> restricción, tomar la cuenta de una secretaria exclusiva no da acceso a nada nuevo.
+> restricción, tomar la cuenta de un asistente exclusivo no da acceso a nada nuevo.
 > E2E local: con invitación pendiente de otro médico → 403; edición normal → 200.
-> **Hecho después (2026-11-19):** cambio de email propio para médicos y secretarias, confirmado con un
+> **Hecho después (2026-11-19):** cambio de email propio para médicos y asistentes, confirmado con un
 > link al email nuevo (ver "Mejoras de producto").
-- `src/app/api/users/[id]/route.ts:58-63` deja al médico cambiar el email de login de la secretaria
+- `src/app/api/users/[id]/route.ts:58-63` deja al médico cambiar el email de login del asistente
   (sin verificación, sin invalidar sesiones); `src/lib/secretarias.ts:40` solo cuenta asignaciones
   aceptadas. Con "recuperar contraseña" entra como ella y acepta invitaciones pendientes de otro médico.
-- Fix: el médico no edita el email (solo la secretaria, con confirmación al nuevo email). Mínimo:
+- Fix: el médico no edita el email (solo el asistente, con confirmación al nuevo email). Mínimo:
   contar invitaciones pendientes en `datosEditables`, `sessionVersion++`, aviso al email anterior.
 
 ## Prioridad 2 — Esta semana
@@ -108,8 +108,8 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 
 ### [x] F5 · Cuenta activa en `/api/*` (`src/proxy.ts` solo cubre páginas)
 > Hecho 2026-11-19 en `src/lib/api-auth.ts`: `requireUser`/`requireDoctor` validan SIEMPRE la cuenta del
-> tenant (secretaria: asignación aceptada con su `activeDoctorId`, si no 403 `sin_medico`; médico
-> suspendido: 403 `cuenta_suspendida`, corta también a su secretaria). Con `{ escritura: true }` además
+> tenant (asistente: asignación aceptada con su `activeDoctorId`, si no 403 `sin_medico`; médico
+> suspendido: 403 `cuenta_suspendida`, corta también a su asistente). Con `{ escritura: true }` además
 > exigen plan vigente (403 `cuenta_inactiva`): escrituras de patients/** (HC incluida), turnos,
 > aviso, recordatorio y horarios-bloqueados. Lectura, export, configuración, perfil, pagos y soporte
 > siguen disponibles con el plan vencido (D1). `{ validarCuenta: false }` solo en account/active-doctor,
@@ -119,19 +119,19 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 > siguen yendo a /cuenta-inactiva con plan vencido (proxy), así que la lectura con plan vencido hoy es
 > por export/API.
 - Helper `requireCuentaActiva()` en `src/lib/api-auth.ts`: plan vigente (`esActivo`) y `suspendidoAt`
-  de la **cuenta del tenant** (cubre a la secretaria de un médico suspendido).
+  de la **cuenta del tenant** (cubre al asistente de un médico suspendido).
 - Para SECRETARY: revalidar `DoctorSecretaria` aceptada para `activeDoctorId`; si no, limpiarlo y 403.
 - `aceptarInvitacion` (`src/lib/invitacion-secretaria.ts:89-100`) en transacción interactiva.
 - Excepciones explícitas: pagos, soporte, perfil, "Mi plan" y (según D1) lectura/export.
 
 ### [x] F6 · Desbloqueo de horarios (`src/app/api/horarios-bloqueados/[id]/route.ts`)
-> Hecho 2026-11-19: secretaria sin lugar → 404; `lugarId` = el del bloqueo (o, en un "Día completo",
-> un lugar vigente del médico; secretaria: solo su lugar activo); `inicio` dentro del bloqueo y
+> Hecho 2026-11-19: asistente sin lugar → 404; `lugarId` = el del bloqueo (o, en un "Día completo",
+> un lugar vigente del médico; asistente: solo su lugar activo); `inicio` dentro del bloqueo y
 > `fin > inicio`. `fin` puede exceder el bloqueo a propósito: la card de la grilla termina en el fin de
 > su último slot, que puede pasarse (`bloqueoQueAplica`); el costado posterior solo se crea si `fin`
 > cae antes del final, así que nunca se crea nada fuera de la fila original.
 > E2E local (médico, filas de prueba con id propio, limpieza acotada): lugar ajeno / inicio fuera →
-> 400; desbloqueos válidos de lugar y de Día completo → 200 con los cortes correctos. Caso secretaria:
+> 400; desbloqueos válidos de lugar y de Día completo → 200 con los cortes correctos. Caso asistente:
 > probar en QA.
 - SECRETARY con `activeLugarId === null` → 404 (hoy matchea los "Día completo" del médico, `lugarId: null`).
 - `lugarId` del query: debe ser el del bloqueo, del tenant y (SECRETARY) su lugar activo.
@@ -203,13 +203,13 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
   (`turnos/route.ts:77-107`, `directorio/[slug]/reservar/route.ts:95-132`). Contemplar sobreturnos.
 
 ### [x] F12 · Auditoría de acciones admin
-> Hecho 2026-11-19: `isPlatformAdmin` solo acepta ADMIN o DOCTOR con `isAdmin` (una SECRETARY nunca,
+> Hecho 2026-11-19: `isPlatformAdmin` solo acepta ADMIN o DOCTOR con `isAdmin` (un SECRETARY nunca,
 > aunque tenga el flag en la base); `grant-admin-access` y `add-admin-user` rechazan otorgárselo a una
-> secretaria (sacarlo sí); skill `add-admin-user` actualizado. Sanciones auditadas en `AuditLog`
+> asistente (sacarlo sí); skill `add-admin-user` actualizado. Sanciones auditadas en `AuditLog`
 > (migración `20261119200000_audit_sanciones`: `SANCIONAR`, `LEVANTAR_SANCION`, entidad `CUENTA`):
 > al levantar se guarda la sanción completa (tipo, motivo, desde, quién la aplicó) y quién la levanta;
-> levantar sin sanción vigente → 409. Local: ninguna secretaria tenía `isAdmin`.
-> **Pendiente:** verificar en QA/prod que ninguna SECRETARY tenga `isAdmin = true` (igual ya no tiene
+> levantar sin sanción vigente → 409. Local: ningún asistente tenía `isAdmin`.
+> **Pendiente:** verificar en QA/prod que ningún SECRETARY tenga `isAdmin = true` (igual ya no tiene
 > efecto) y probar sancionar/levantar en QA.
 - Auditar suspensión y levantamiento; no borrar `suspendidoPorId`. Resolver D2.
 
@@ -230,7 +230,7 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 - [x] Contraseñas nuevas: mínimo 10 (`src/lib/password-policy.ts`); bcrypt costo 12; las existentes
   siguen funcionando.
 - [x] Invitar asistentes: nombre siempre obligatorio, mensaje genérico para emails de médico/admin,
-  nombre oculto en invitaciones pendientes a secretarias de otro médico, 20 invitaciones/h.
+  nombre oculto en invitaciones pendientes a asistentes de otro médico, 20 invitaciones/h.
 - [x] Rate limit en respuestas de soporte; limpieza "de paso" de `IntentoReserva` (>1 día).
 - [x] Google Places: `placeId` validado y codificado; tope global 2000 → 500 cada 15 min.
   **Pendiente (vos):** cuota diaria en Google Cloud para la key.
@@ -240,14 +240,14 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 
 ## Mejoras de producto (posteriores al plan)
 
-### [x] Cambio de email propio (médicos y secretarias)
+### [x] Cambio de email propio (médicos y asistentes)
 > Hecho 2026-11-19. Modelo `CambioEmail` (migración `20261119220000_cambio_email`) y
 > `src/lib/cambio-email.ts`: token de 32 bytes guardado como SHA-256, un solo uso, 24 h. Pedido
 > (`POST /api/cuenta/email`) exige la contraseña actual (cuentas solo-Google: crear una antes con
 > "recuperar"), rate limit 5/h; si el email ya tiene cuenta responde igual y no manda nada. Link al
 > email NUEVO + aviso al anterior. Confirmación con botón en `/confirmar-email` (no GET: los antivirus
 > abren links); al confirmar: cambia el email, `sessionVersion++`, invalida links de "recuperar" y
-> avisa al anterior. Médico: Configuración → Seguridad. Secretaria: nueva página `/mi-cuenta` con
+> avisa al anterior. Médico: Configuración → Seguridad. Asistente: nueva página `/mi-cuenta` con
 > email y contraseña (`/api/perfil/password` ahora acepta SECRETARY). E2E local con usuarios
 > temporales (@example.com, borrados). **QA:** el flujo completo con mails reales.
 
@@ -261,10 +261,10 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 > autenticación, puede tardar días). Mitigación vigente mientras tanto: F8 + Turnstile + rate limit.
 
 ## Pruebas en QA (2026-11-20, commit `6b1e3c8`)
-E2E en qa.semio360.com con Playwright + API (médico Carlos Gonzalez, su secretaria y un admin);
+E2E en qa.semio360.com con Playwright + API (médico Carlos Gonzalez, su asistente y un admin);
 datos de prueba creados con prefijo "QA SEG" y borrados al terminar.
 - ✅ F0, F1, F3, F5, F6, F7, F9, F11, F12, mantenimiento y cambio de email (pedido; el link de
-  confirmación no se abrió). F12: ninguna SECRETARY tiene `isAdmin` en QA. F11: 6 altas simultáneas
+  confirmación no se abrió). F12: ningún SECRETARY tiene `isAdmin` en QA. F11: 6 altas simultáneas
   del mismo horario → 1 creada, 5 × 409.
 - ✅ F4: headers presentes; única violación de CSP propia: el `Function("")` de zod (ver abajo).
 - ⏳ **Pendiente (manual):** F8 (necesita Turnstile real: no se automatiza), F2 con pagos de prueba,
@@ -275,7 +275,7 @@ Hallazgos de QA, corregidos en `seguridad` (sin deployar todavía):
   martes) al cargar. El HTML del servidor (UTC) armaba los días a medianoche UTC y React no corrige
   `disabled` al hidratar. Preexistente (no lo causó este plan). Fix: `timeZone` de Argentina en el
   `Calendar` de `turnos-calendar.tsx`; verificado con SSR en UTC y en ART (mismos días).
-- [x] Invitar asistentes todavía distinguía un email que ya era secretaria (`nombre: ""` y `createdAt`
+- [x] Invitar asistentes todavía distinguía un email que ya era asistente (`nombre: ""` y `createdAt`
   viejo de la cuenta) de uno nuevo. Fix (`src/lib/secretarias.ts`): toda invitación pendiente va sin
   nombre y `createdAt` es la fecha de la asignación con ese médico.
 - [x] `esFechaValida` aceptaba días inexistentes (`2025-02-30` → 2 de marzo). Ahora valida el día contra
@@ -285,7 +285,7 @@ Hallazgos de QA, corregidos en `seguridad` (sin deployar todavía):
   "[Report Only] … 'unsafe-eval'" ya no aparece en /turnos, /dashboard, etc.
 
 ## Lo que se revisó y está bien
-Sin IDOR entre tenants; la secretaria no accede a HC por ningún camino; tokens de reset/invitación
+Sin IDOR entre tenants; el asistente no accede a HC por ningún camino; tokens de reset/invitación
 correctos (32 bytes, SHA-256, expiración, un solo uso); suspensión invalida JWT del médico
 (`sessionVersion`); webhook MP con HMAC en tiempo constante; `external_reference` lo fija el servidor;
 sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escapado; sin `.env` versionados.
@@ -299,13 +299,13 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F3 | Invitaciones pendientes bloquean edición de email; cambio de email cierra sesiones + aviso. Rama `seguridad`. |
 | 2026-11-19 | F4 | Headers de seguridad + CSP Report-Only; verificado en dev y build de producción. Falta revisar consola en QA y pasar CSP a enforce. |
 | 2026-11-19 | F5 | Validación de cuenta en api-auth (asignación, suspensión, plan para escrituras); D1 = lectura/export permitidos. |
-| 2026-11-19 | F6 | Desbloqueo valida lugar y rango; secretaria sin lugar → 404. |
+| 2026-11-19 | F6 | Desbloqueo valida lugar y rango; asistente sin lugar → 404. |
 | 2026-11-19 | F7 | Cambio de contraseña cierra sesiones; Google exige email verificado; revocar admin cierra sesiones; redirect post-login validado por origen. |
 | 2026-11-19 | F8 | Chequeo de DNI con turno movido después de validar el horario. Pendiente producto: confirmación por WhatsApp/SMS. |
 | 2026-11-19 | F9 | Export completo (odontología), en streaming, con rate limit; datos idénticos al anterior. |
 | 2026-11-19 | F10 | Reserva de costo IA bajo lock por médico; confirmación con costo real; liberación si falla. |
 | 2026-11-19 | F11 | Alta de turnos bajo lock de agenda por médico (panel y reserva pública); lugar validado. |
-| 2026-11-19 | F12 | Secretaria nunca admin (D2); sanciones aplicadas/levantadas auditadas en AuditLog. |
+| 2026-11-19 | F12 | Asistente nunca admin (D2); sanciones aplicadas/levantadas auditadas en AuditLog. |
 | 2026-11-19 | Mant. | Lista de mantenimiento completa (11 puntos) en 5 commits. |
-| 2026-11-19 | Producto | Cambio de email propio + /mi-cuenta de la secretaria. Confirmación de reserva por WhatsApp/SMS pospuesta. |
+| 2026-11-19 | Producto | Cambio de email propio + /mi-cuenta del asistente. Confirmación de reserva por WhatsApp/SMS pospuesta. |
 | 2026-11-20 | QA | Deploy a QA + E2E: sin regresiones. 4 hallazgos (calendario corrido un día, invitación que delata cuentas, fechas imposibles, eval de zod) corregidos en `seguridad`. Pendientes manuales: F8, F2, F10, CSP en flujos puntuales. |

@@ -25,7 +25,7 @@ const FILTROS = {
 } satisfies Record<string, { label: string; where: Prisma.TicketSoporteWhereInput }>;
 type Filtro = keyof typeof FILTROS;
 
-const ROL_LABELS = { DOCTOR: "Médico/a", SECRETARY: "Secretaria/o", ADMIN: "Admin" } as const;
+const ROL_LABELS = { DOCTOR: "Médico/a", SECRETARY: "Asistente", ADMIN: "Admin" } as const;
 
 type SearchParams = Promise<{ f?: string; t?: string }>;
 
@@ -140,7 +140,7 @@ export default async function AdminSoportePage({ searchParams }: { searchParams:
         <div>
           <h1 className="font-heading text-xl font-semibold">Soporte</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sugerencias y reportes de problemas que mandan médicos y secretarias desde la app. Tus respuestas les
+            Sugerencias y reportes de problemas que mandan médicos y asistentes desde la app. Tus respuestas les
             llegan en Semio 360 y por email; las notas internas solo las ve el equipo.
           </p>
         </div>
@@ -197,7 +197,7 @@ export default async function AdminSoportePage({ searchParams }: { searchParams:
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
                         <TipoTag tipo={t.tipo} /> · {nombreConTitulo(t.autor)}
-                        {t.autor.role === "SECRETARY" && " (secretaria/o)"} · {formatFechaTicket(t.updatedAt)}
+                        {t.autor.role === "SECRETARY" && " (asistente)"} · {formatFechaTicket(t.updatedAt)}
                       </span>
                     </Link>
                   </li>

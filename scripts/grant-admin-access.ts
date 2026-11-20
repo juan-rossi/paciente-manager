@@ -6,7 +6,7 @@ const prisma = new PrismaClient({ adapter });
 
 // A diferencia de create-admin.ts (que crea/actualiza cuentas ADMIN puras,
 // sin tenant), este script le da -- o le saca -- acceso al panel /admin a
-// una cuenta DOCTOR que YA existe (a una SECRETARY solo se le puede sacar,
+// una cuenta DOCTOR que YA existe (a un SECRETARY solo se le puede sacar,
 // nunca dar: ver `isPlatformAdmin`), sin tocar su rol, su
 // password ni su login (Google o contraseña siguen funcionando igual).
 // Pensado para el caso típico: un médico que también es owner/staff de
@@ -29,7 +29,7 @@ async function main() {
       `No existe ningún usuario con el email ${normalizedEmail}. Este script solo otorga (o retira) acceso admin a una cuenta que ya existe -- no crea cuentas nuevas. Si necesitás crear una cuenta ADMIN nueva, usá scripts/create-admin.ts.`
     );
   }
-  // Una secretaria nunca es admin (ver `isPlatformAdmin`): sacárselo sí se
+  // Un asistente nunca es admin (ver `isPlatformAdmin`): sacárselo sí se
   // puede, por si quedó de antes.
   if (existing.role === "SECRETARY" && !revoke) {
     throw new Error(

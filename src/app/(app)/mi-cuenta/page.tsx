@@ -5,7 +5,7 @@ import { PageEnter } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
-// Datos de acceso de la secretaria (email y contraseña): son de su cuenta, no
+// Datos de acceso del asistente (email y contraseña): son de su cuenta, no
 // del médico que asiste. El médico tiene lo mismo en Configuración → Seguridad.
 export default async function MiCuentaPage() {
   const user = await getCurrentUser();

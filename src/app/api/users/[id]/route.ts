@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Email y nombre son de la cuenta de la secretaria: si tiene cualquier
+  // Email y nombre son de la cuenta del asistente: si tiene cualquier
   // relación con otro médico (aceptada o invitación pendiente), o todavía no
   // aceptó la de este, no son de este médico para cambiarlos -- ver
   // `SecretariaDelMedico.datosEditables`. La contraseña nunca la toca el
@@ -108,7 +108,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  // Esta secretaria puede asistir a más de un médico -- acá solo se quita la
+  // Este asistente puede asistir a más de un médico -- acá solo se quita la
   // asignación a la cuenta de este médico (o se cancela la invitación si
   // todavía no la aceptó), nunca se borra la cuenta.
   const { count } = await prisma.doctorSecretaria.deleteMany({
