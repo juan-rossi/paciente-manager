@@ -21,6 +21,7 @@ export type SecretariaDelMedico = {
 
 type AsignacionRow = {
   doctorId: string;
+  createdAt: Date;
   aceptadaAt: Date | null;
   puedeBloquearHorarios: boolean;
   lugares: { lugarId: string }[];
@@ -28,6 +29,7 @@ type AsignacionRow = {
 
 const asignacionSelect = {
   doctorId: true,
+  createdAt: true,
   aceptadaAt: true,
   puedeBloquearHorarios: true,
   lugares: { select: { lugarId: true } },
@@ -35,7 +37,7 @@ const asignacionSelect = {
 
 function aSecretariaDelMedico(
   doctorId: string,
-  s: { id: string; email: string; nombre: string; createdAt: Date; secretariaAsignaciones: AsignacionRow[] }
+  s: { id: string; email: string; nombre: string; secretariaAsignaciones: AsignacionRow[] }
 ): SecretariaDelMedico {
   const propia = s.secretariaAsignaciones.find((a) => a.doctorId === doctorId);
   // Aceptadas o pendientes: una invitación pendiente es una fila atada al id
@@ -44,12 +46,15 @@ function aSecretariaDelMedico(
   return {
     id: s.id,
     email: s.email,
-    // Invitación todavía no aceptada a alguien que ya tiene cuenta con otro
-    // médico: su nombre es de su cuenta, no de este médico, y no se le
-    // muestra hasta que acepte (si no, invitar un email serviría para
-    // averiguar el nombre de la secretaria de otro médico).
-    nombre: !propia?.aceptadaAt && otrosMedicos ? "" : s.nombre,
-    createdAt: s.createdAt,
+    // Invitación todavía no aceptada: nunca se muestra el nombre, tampoco
+    // cuando la cuenta se acaba de crear con el nombre que tipeó el médico.
+    // Si solo se ocultara el de cuentas preexistentes, la respuesta de
+    // "invitar" diría qué emails ya son secretarias en Semio 360 (y el
+    // nombre con el que se registraron).
+    nombre: propia?.aceptadaAt ? s.nombre : "",
+    // Fecha de la asignación con ESTE médico, no de la cuenta: la de la
+    // cuenta delataba lo mismo (una cuenta vieja = ya existía).
+    createdAt: propia?.createdAt ?? new Date(0),
     lugarIds: propia?.lugares.map((l) => l.lugarId) ?? [],
     puedeBloquearHorarios: propia?.puedeBloquearHorarios ?? false,
     pendiente: !propia?.aceptadaAt,
@@ -65,12 +70,13 @@ export async function listarSecretariasDelMedico(doctorId: string): Promise<Secr
       id: true,
       email: true,
       nombre: true,
-      createdAt: true,
       secretariaAsignaciones: { select: asignacionSelect },
     },
-    orderBy: { createdAt: "desc" },
   });
-  return secretarias.map((s) => aSecretariaDelMedico(doctorId, s));
+  // Las más recientes primero, por la fecha de la asignación con este médico.
+  return secretarias
+    .map((s) => aSecretariaDelMedico(doctorId, s))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 export async function obtenerSecretariaDelMedico(
@@ -83,7 +89,6 @@ export async function obtenerSecretariaDelMedico(
       id: true,
       email: true,
       nombre: true,
-      createdAt: true,
       secretariaAsignaciones: { select: asignacionSelect },
     },
   });

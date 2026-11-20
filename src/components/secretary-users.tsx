@@ -203,8 +203,8 @@ export function SecretaryUsers({ initialSecretarias, lugares }: Props) {
               </span>
               <div className="flex flex-col gap-0.5">
                 <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
-                  {/* Sin nombre: invitación pendiente a alguien que ya tiene
-                      cuenta; su nombre se ve recién cuando acepta. */}
+                  {/* Sin nombre: invitación pendiente; su nombre se ve recién
+                      cuando acepta (ver `aSecretariaDelMedico`). */}
                   {secretaria.nombre || secretaria.email}
                   {secretaria.pendiente && (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">

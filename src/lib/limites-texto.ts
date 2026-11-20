@@ -12,8 +12,14 @@ export const TEXTO_LARGO = 200_000;
 
 // Una fecha "YYYY-MM-DD..." que además sea una fecha real. Sin esto, un texto
 // cualquiera terminaba en `new Date("hola")` (Invalid Date) y en un error 500.
+// El día se valida contra el mes a partir del texto: `new Date("2025-02-30")`
+// no falla, se corre en silencio al 2 de marzo.
 export function esFechaValida(valor: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}/.test(valor) && !Number.isNaN(new Date(valor).getTime());
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor);
+  if (!match || Number.isNaN(new Date(valor).getTime())) return false;
+  const [anio, mes, dia] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const diasDelMes = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
+  return mes >= 1 && mes <= 12 && dia >= 1 && dia <= diasDelMes;
 }
 
 export const MENSAJE_FECHA_INVALIDA = "La fecha no es válida.";

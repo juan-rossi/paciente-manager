@@ -260,6 +260,30 @@ Estado: `[ ]` pendiente · `[~]` en curso · `[x]` hecho (anotar fecha y nota br
 > de Meta (más barato y más usado en AR; requiere verificar el negocio y aprobar una plantilla de
 > autenticación, puede tardar días). Mitigación vigente mientras tanto: F8 + Turnstile + rate limit.
 
+## Pruebas en QA (2026-11-20, commit `6b1e3c8`)
+E2E en qa.semio360.com con Playwright + API (médico Carlos Gonzalez, su secretaria y un admin);
+datos de prueba creados con prefijo "QA SEG" y borrados al terminar.
+- ✅ F0, F1, F3, F5, F6, F7, F9, F11, F12, mantenimiento y cambio de email (pedido; el link de
+  confirmación no se abrió). F12: ninguna SECRETARY tiene `isAdmin` en QA. F11: 6 altas simultáneas
+  del mismo horario → 1 creada, 5 × 409.
+- ✅ F4: headers presentes; única violación de CSP propia: el `Function("")` de zod (ver abajo).
+- ⏳ **Pendiente (manual):** F8 (necesita Turnstile real: no se automatiza), F2 con pagos de prueba,
+  F10 (gasta IA real), consola de CSP en dictado / checkout MP / impresión / Google.
+
+Hallazgos de QA, corregidos en `seguridad` (sin deployar todavía):
+- [x] Agenda: el mini-calendario de `/turnos` habilitaba el día siguiente al de atención (lunes →
+  martes) al cargar. El HTML del servidor (UTC) armaba los días a medianoche UTC y React no corrige
+  `disabled` al hidratar. Preexistente (no lo causó este plan). Fix: `timeZone` de Argentina en el
+  `Calendar` de `turnos-calendar.tsx`; verificado con SSR en UTC y en ART (mismos días).
+- [x] Invitar asistentes todavía distinguía un email que ya era secretaria (`nombre: ""` y `createdAt`
+  viejo de la cuenta) de uno nuevo. Fix (`src/lib/secretarias.ts`): toda invitación pendiente va sin
+  nombre y `createdAt` es la fecha de la asignación con ese médico.
+- [x] `esFechaValida` aceptaba días inexistentes (`2025-02-30` → 2 de marzo). Ahora valida el día contra
+  el mes; tests en `limites-texto.test.ts`.
+- [x] CSP: zod probaba `Function("")` en cada página con formularios. `z.config({ jitless: true })` en
+  `src/instrumentation-client.ts` (corre antes que el frontend). **Confirmar en QA** que el aviso
+  "[Report Only] … 'unsafe-eval'" ya no aparece en /turnos, /dashboard, etc.
+
 ## Lo que se revisó y está bien
 Sin IDOR entre tenants; la secretaria no accede a HC por ningún camino; tokens de reset/invitación
 correctos (32 bytes, SHA-256, expiración, un solo uso); suspensión invalida JWT del médico
@@ -284,3 +308,4 @@ sin SQL crudo; todas las rutas `/api/admin/**` con `requireAdmin`; JSON-LD escap
 | 2026-11-19 | F12 | Secretaria nunca admin (D2); sanciones aplicadas/levantadas auditadas en AuditLog. |
 | 2026-11-19 | Mant. | Lista de mantenimiento completa (11 puntos) en 5 commits. |
 | 2026-11-19 | Producto | Cambio de email propio + /mi-cuenta de la secretaria. Confirmación de reserva por WhatsApp/SMS pospuesta. |
+| 2026-11-20 | QA | Deploy a QA + E2E: sin regresiones. 4 hallazgos (calendario corrido un día, invitación que delata cuentas, fechas imposibles, eval de zod) corregidos en `seguridad`. Pendientes manuales: F8, F2, F10, CSP en flujos puntuales. |

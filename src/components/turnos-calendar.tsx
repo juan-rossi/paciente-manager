@@ -11,6 +11,7 @@ import { diaSemanaFromDate, type DiaSemana } from "@/lib/slots";
 import { nextDiaConHorario } from "@/lib/dia-nav";
 import { agruparPorLugar, bloquesDelDia } from "@/lib/bloques-dia";
 import {
+  TIME_ZONE,
   dateParamToDateBA,
   formatDateParamBA,
   isSameDayBA,
@@ -205,7 +206,11 @@ export function TurnosCalendar({
                 <span className="flex items-center gap-2">
                   <CalendarDays className="size-4" />
                   {capitalize(
-                    selectedDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" })
+                    selectedDate.toLocaleDateString("es-AR", {
+                      month: "long",
+                      year: "numeric",
+                      timeZone: TIME_ZONE,
+                    })
                   )}
                 </span>
                 <ChevronDown
@@ -218,8 +223,14 @@ export function TurnosCalendar({
                   calendarOpen ? "flex" : "hidden"
                 )}
               >
+                {/* `timeZone`: los días se arman en hora de Argentina también al
+                    renderizar en el servidor (Vercel corre en UTC). Sin esto el
+                    HTML del servidor traía los días corridos uno (un médico que
+                    atiende los lunes veía habilitados los martes) y React no
+                    corrige el atributo `disabled` al hidratar. */}
                 <Calendar
                   mode="single"
+                  timeZone={TIME_ZONE}
                   locale={es}
                   formatters={{
                     formatCaption: (month, options) =>
