@@ -28,7 +28,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               <Semio360Mark className="size-5" />
               Semio360
             </div>
-            <p className="max-w-xs leading-relaxed">Gestión médica, simplificada.</p>
+            <p className="max-w-xs leading-relaxed">Gestión para profesionales de la salud, simplificada.</p>
           </div>
 
           <nav aria-label="Explorar" className="flex flex-col gap-4">

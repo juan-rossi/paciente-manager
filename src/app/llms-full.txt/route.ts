@@ -16,20 +16,20 @@ export function GET() {
 Sitio: ${absoluteUrl("/")}
 
 ## Qué es
-Semio360 (también escrito "Semio 360") es una plataforma en la nube para gestionar un consultorio médico: turnos, historia clínica y evolución de los pacientes en un mismo lugar. Funciona en el navegador, sin instalación.
+Semio360 (también escrito "Semio 360") es una plataforma en la nube para profesionales de la salud (médicos, odontólogos, psicólogos y nutricionistas) que reúne la gestión del consultorio: turnos, historia clínica y evolución de los pacientes en un mismo lugar. Funciona en el navegador, sin instalación.
 
 ## Funciones
 - Historia clínica electrónica: ficha única por paciente con datos personales, antecedentes, evolución y consentimientos informados, registrada de forma cronológica conforme a la Ley 26.529.
-- Turnos: el médico configura sus días y horarios y el sistema arma la agenda disponible. Los pacientes pueden reservar online desde el perfil público del médico.
+- Turnos: el profesional configura sus días y horarios y el sistema arma la agenda disponible. Los pacientes pueden reservar online desde el perfil público del profesional.
 - Dictado y transcripción (Premium): la evolución se dicta desde el navegador y se transcribe automáticamente, con un resumen generado por IA; el audio no se guarda, solo el texto.
 - Recordatorios de turno por WhatsApp.
-- Roles y auditoría: cada médico ve solo a sus pacientes y cada cambio queda registrado (quién, qué y cuándo).
+- Roles y auditoría: cada profesional ve solo a sus pacientes y cada cambio queda registrado (quién, qué y cuándo).
 
 ## Planes
 Básico: historia clínica, turnos, asistentes y recordatorios manuales. Premium: suma dictado con transcripción automática, resúmenes y autocompletado con IA y perfil destacado en el Directorio de profesionales. Prueba gratis sin tarjeta de crédito: 60 días del plan Básico o 30 días del Premium.
 
-## Directorio de médicos
-${absoluteUrl("/directorio")} lista médicos con perfil público: especialidad, ciudad, coberturas médicas aceptadas, lugares de atención y reserva de turno online.
+## Directorio de profesionales
+${absoluteUrl("/directorio")} lista profesionales de la salud con perfil público: especialidad, ciudad, coberturas médicas aceptadas, lugares de atención y reserva de turno online.
 
 ## Preguntas frecuentes
 

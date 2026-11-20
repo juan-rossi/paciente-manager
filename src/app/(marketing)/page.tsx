@@ -18,17 +18,20 @@ import { homeJsonLd } from "@/lib/seo";
 export const metadata: Metadata = {
   title: {
     // ≤ 60 caracteres (~580px): más largo, Google y los auditores SEO lo cortan.
-    absolute: "Semio360: software médico de turnos e historia clínica",
+    absolute: "Semio360: software para profesionales de la salud",
   },
   // ≤ 155 caracteres por el mismo motivo.
   description:
-    "Semio 360: software para médicos en Argentina con turnos, historia clínica electrónica y dictado por voz. Cumple Ley 26.529. Probalo gratis, sin tarjeta.",
+    "Semio 360: software para profesionales de la salud en Argentina con turnos, historia clínica electrónica y dictado por voz. Probalo gratis, sin tarjeta.",
   keywords: [
     "Semio360",
     "Semio 360",
+    "software para profesionales de la salud",
     "software para consultorio médico",
+    "software para odontólogos",
+    "software para psicólogos",
     "historia clínica electrónica",
-    "sistema de turnos para médicos",
+    "sistema de turnos para profesionales de la salud",
     "gestión de pacientes",
     "Ley 26.529",
     "transcripción de consultas",

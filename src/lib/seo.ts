@@ -14,7 +14,7 @@ export const SITE_SOCIAL_PROFILES = [
   { label: "LinkedIn", url: "https://www.linkedin.com/company/semio360" },
 ];
 export const SITE_DESCRIPTION =
-  "Software para consultorios médicos: turnos, historia clínica electrónica y dictado de la consulta, conforme a la Ley 26.529.";
+  "Software para profesionales de la salud: turnos, historia clínica electrónica y dictado de la consulta, conforme a la Ley 26.529.";
 
 export function nombreDoctor(d: { tituloCortesia: TituloCortesia | null; nombre: string; apellido: string }): string {
   return formatNombreConTitulo(d.tituloCortesia, `${d.nombre} ${d.apellido}`.trim());

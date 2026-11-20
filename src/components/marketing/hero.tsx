@@ -64,7 +64,7 @@ export function Hero() {
           </motion.span>
           <motion.h1
             variants={stagger}
-            aria-label="Turnos e historia clínica para médicos. Tu consultorio. Más simple. Más conectado."
+            aria-label="Turnos e historia clínica para profesionales de la salud. Tu consultorio. Más simple. Más conectado."
             className="max-w-xl font-heading text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]"
           >
             {/* Línea con las palabras clave dentro del <h1> (visible, no sr-only):
@@ -75,7 +75,7 @@ export function Hero() {
               aria-hidden
               className="mb-4 block font-sans text-sm font-bold tracking-wide text-primary uppercase"
             >
-              Turnos e historia clínica para médicos
+              Turnos e historia clínica para profesionales de la salud
               <span className="sr-only">.</span>
             </motion.span>{" "}
             {HEADLINE.map((line, li) => (
@@ -94,8 +94,8 @@ export function Hero() {
             ))}
           </motion.h1>
           <motion.p variants={blurIn} className="max-w-md text-lg text-muted-foreground text-balance">
-            Software para consultorios médicos: gestioná turnos, pacientes e historias clínicas desde un
-            solo lugar.
+            Para médicos, odontólogos, psicólogos y nutricionistas: gestioná turnos, pacientes e historias
+            clínicas desde un solo lugar.
           </motion.p>
           <motion.div
             variants={blurIn}

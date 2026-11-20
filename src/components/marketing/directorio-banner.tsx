@@ -15,7 +15,7 @@ export function DirectorioBanner() {
           </span>
           <div>
             <p className="font-heading text-[15px] font-bold">
-              ¿Sos paciente y buscás un médico de confianza?
+              ¿Sos paciente y buscás un profesional de confianza?
             </p>
             <p className="text-[13.5px] text-muted-foreground">
               Explorá el directorio público de Semio360, filtrá por especialidad y ciudad.
