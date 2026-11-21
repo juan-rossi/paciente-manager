@@ -114,12 +114,27 @@ ${REGLAS_PEDIATRIA}`,
 ${REGLAS_PEDIATRIA}`,
 };
 
+// Ginecólogos y obstetras: las reglas médicas comunes, con lo que importa
+// conservar exacto en la historia gineco-obstétrica.
+const REGLAS_GINECOLOGIA = `${REGLAS_COMUNES}
+- Conservá exactos la FUM, la edad gestacional, la fórmula obstétrica (gestas, partos, cesáreas, abortos), la altura uterina, los latidos fetales, la tensión arterial y los resultados de PAP, colposcopía, ecografías y mamografías (incluida la categoría BI-RADS).`;
+
+const SYSTEM_PROMPTS_GINECOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas ginecológicas y obstétricas. Vas a recibir la transcripción de un dictado de un ginecólogo u obstetra sobre la enfermedad actual de una paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: motivo de consulta, inicio y características de los síntomas y su relación con el ciclo, antecedentes gineco-obstétricos mencionados, método anticonceptivo, estudios y tratamientos previos.
+
+${REGLAS_GINECOLOGIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas ginecológicas y obstétricas. Vas a recibir la transcripción de un dictado de un ginecólogo u obstetra sobre una consulta o un control. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere la paciente, en el control prenatal la edad gestacional, peso, tensión arterial, altura uterina, latidos y movimientos fetales, hallazgos del examen, resultados de estudios, diagnóstico o impresión, indicaciones y próximo control.
+
+${REGLAS_GINECOLOGIA}`,
+};
+
 const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GrupoEspecialidad,
   Record<z.infer<typeof resumirInput>["tipo"], string>
 > = {
   MEDICA: SYSTEM_PROMPTS,
   PEDIATRICA: SYSTEM_PROMPTS_PEDIATRIA,
+  GINECOLOGICA: SYSTEM_PROMPTS_GINECOLOGIA,
   ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
   PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
   FONOAUDIOLOGIA: SYSTEM_PROMPTS_FONOAUDIOLOGIA,

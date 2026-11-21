@@ -52,6 +52,19 @@ export type PatientFormValues = {
   historiaVital: string;
   enfoqueTerapeutico: string;
 
+  // Solo historia clínica de salud de la mujer (ver esGinecologica()).
+  menarca: string;
+  ritmoMenstrual: string;
+  fum: string;
+  menopausia: string;
+  gestas: string;
+  partos: string;
+  cesareas: string;
+  abortos: string;
+  metodoAnticonceptivo: string;
+  ultimoPap: string;
+  ultimaMamografia: string;
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca: string;
   pulsoRadial: string;

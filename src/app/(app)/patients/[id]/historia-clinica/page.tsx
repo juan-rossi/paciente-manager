@@ -9,6 +9,7 @@ import {
   ANTECEDENTE_LABELS,
   ESTADO_CIVIL_OPTIONS,
   ETIQUETAS_PSICOLOGIA,
+  datosGinecoObstetricos,
   etiquetasHistoriaClinica,
   usaSesiones,
   vocabularioEvolucion,
@@ -254,6 +255,14 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             </div>
           )}
         </Seccion>
+
+        <Seccion
+          titulo="Antecedentes gineco-obstétricos"
+          fields={datosGinecoObstetricos(
+            patient,
+            patient.antecedentes.some((a) => a.tipo === "EMBARAZO" && a.respuesta)
+          )}
+        />
 
         {(patient.antecedentes.length > 0 || patient.grupoFamiliar || patient.historiaVital) && (
           <Seccion titulo="Antecedentes personales">

@@ -85,6 +85,13 @@ export const TIPO_ANTECEDENTE_VALUES = [
   "CIRUGIAS_PREVIAS",
   "TABAQUISMO_HOGAR",
   "ANTECEDENTES_FAMILIARES",
+  "COMPLICACIONES_OBSTETRICAS",
+  "TRASTORNOS_MENSTRUALES",
+  "INFECCIONES_TRANSMISION_SEXUAL",
+  "PAP_ALTERADO",
+  "CIRUGIAS_GINECOLOGICAS",
+  "CANCER_MAMA_OVARIO_FAMILIAR",
+  "TRATAMIENTO_HORMONAL",
   "OTROS",
 ] as const;
 
@@ -160,6 +167,19 @@ export const patientSchema = z.object({
   grupoFamiliar: optionalLongString,
   historiaVital: optionalLongString,
   enfoqueTerapeutico: optionalLongString,
+
+  // Solo historia clínica de salud de la mujer (ver esGinecologica()).
+  menarca: optionalShortString,
+  ritmoMenstrual: optionalShortString,
+  fum: optionalShortString.refine((value) => value == null || esFechaValida(value), MENSAJE_FECHA_INVALIDA),
+  menopausia: optionalShortString,
+  gestas: optionalShortString,
+  partos: optionalShortString,
+  cesareas: optionalShortString,
+  abortos: optionalShortString,
+  metodoAnticonceptivo: optionalShortString,
+  ultimoPap: optionalString,
+  ultimaMamografia: optionalString,
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca: optionalString,

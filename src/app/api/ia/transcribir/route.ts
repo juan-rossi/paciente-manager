@@ -38,7 +38,12 @@ const PROMPT_FONOAUDIOLOGIA =
 const PROMPT_PEDIATRIA =
   "Consulta pediátrica en español. La mamá refiere fiebre de 38,5 grados desde hace dos días, tos, rinorrea, vómitos y diarrea. Come poco pero toma líquidos y orina bien. Peso 12,4 kilos, talla 86 centímetros, perímetro cefálico 47, percentil 50. Bronquiolitis, otitis media aguda, faringoamigdalitis, broncoespasmo, gastroenteritis, deshidratación, convulsión febril. Calendario de vacunas completo. Pautas madurativas acordes. Se indica ibuprofeno 10 miligramos por kilo cada 8 horas, amoxicilina 80 miligramos por kilo por día, salbutamol, nebulizaciones y control en 48 horas.";
 
+// Para ginecólogos y obstetras: fórmula obstétrica, controles y estudios.
+const PROMPT_GINECOLOGIA =
+  "Consulta ginecológica en español. Fecha de última menstruación 3 de marzo, ciclos de 28 por 5 días. Gestas 2, partos 1, cesáreas 1, abortos 0. Embarazo de 24 semanas, altura uterina 23 centímetros, latidos cardíacos fetales positivos, movimientos fetales presentes, tensión arterial 110/70. Flujo, dismenorrea, metrorragia, amenorrea, endometriosis, mioma, quiste de ovario, síndrome de ovario poliquístico, menopausia. PAP y colposcopía normales, HPV, ecografía transvaginal, mamografía BI-RADS 2. Anticonceptivos orales, DIU, implante subdérmico, ácido fólico, sulfato ferroso.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  GINECOLOGICA: PROMPT_GINECOLOGIA,
   MEDICA: PROMPT_CLINICO,
   PEDIATRICA: PROMPT_PEDIATRIA,
   ODONTOLOGICA: PROMPT_ODONTOLOGIA,

@@ -1,4 +1,5 @@
 import type { GrupoEspecialidad } from "@/lib/especialidad";
+import { edadGestacional, formatEdadGestacional, formulaObstetrica } from "@/lib/obstetricia";
 
 export const ANTECEDENTES_COLUMNA_1 = [
   { tipo: "DISLIPEMIA", label: "Dislipemia" },
@@ -152,8 +153,45 @@ export const ANTECEDENTES_PEDIATRIA_ORDEN = [
   ...ANTECEDENTES_PEDIATRIA_COLUMNA_2,
 ];
 
+// Historia clínica de salud de la mujer (ver esGinecologica()). La fórmula
+// obstétrica, la FUM, la menarca y los controles no son sí/no: van en campos
+// propios (ver ETIQUETAS_GINECOLOGIA). Reusa del enum EMBARAZO, NOD_MAMAS,
+// TRASTORNOS_COAGULACION (importa para indicar anticonceptivos hormonales),
+// HTA, DIABETES, HIPOTIROIDISMO y ALERGIA.
+export const ANTECEDENTES_GINECOLOGIA_COLUMNA_1 = [
+  { tipo: "EMBARAZO", label: "Embarazo actual" },
+  { tipo: "COMPLICACIONES_OBSTETRICAS", label: "Complicaciones en embarazos previos" },
+  { tipo: "TRASTORNOS_MENSTRUALES", label: "Trastornos menstruales" },
+  { tipo: "INFECCIONES_TRANSMISION_SEXUAL", label: "Infecciones de transmisión sexual (incluye HPV)" },
+  { tipo: "PAP_ALTERADO", label: "PAP o colposcopía alterados" },
+  { tipo: "NOD_MAMAS", label: "Patología mamaria" },
+  { tipo: "CIRUGIAS_GINECOLOGICAS", label: "Cirugías ginecológicas o mamarias" },
+] as const;
+
+export const ANTECEDENTES_GINECOLOGIA_COLUMNA_2 = [
+  { tipo: "CANCER_MAMA_OVARIO_FAMILIAR", label: "Cáncer de mama u ovario en la familia" },
+  { tipo: "TRATAMIENTO_HORMONAL", label: "Tratamiento hormonal" },
+  { tipo: "TRASTORNOS_COAGULACION", label: "Trombosis o trastornos de la coagulación" },
+  { tipo: "HTA", label: "Hipertensión" },
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "HIPOTIROIDISMO", label: "Hipotiroidismo" },
+  { tipo: "ALERGIA", label: "Alergias" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_GINECOLOGIA_ORDEN = [
+  ...ANTECEDENTES_GINECOLOGIA_COLUMNA_1,
+  ...ANTECEDENTES_GINECOLOGIA_COLUMNA_2,
+];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "GINECOLOGICA":
+      return {
+        columna1: ANTECEDENTES_GINECOLOGIA_COLUMNA_1,
+        columna2: ANTECEDENTES_GINECOLOGIA_COLUMNA_2,
+        orden: ANTECEDENTES_GINECOLOGIA_ORDEN,
+      };
     case "PEDIATRICA":
       return {
         columna1: ANTECEDENTES_PEDIATRIA_COLUMNA_1,
@@ -206,9 +244,18 @@ export const ANTECEDENTES_CRITICOS_PEDIATRIA: ReadonlyMap<string, string> = new 
   ["CONVULSIONES", "Convulsiones"],
 ]);
 
+// Salud de la mujer: embarazo (cambia qué se puede indicar o estudiar),
+// trombosis (contraindica estrógenos) y alergias.
+export const ANTECEDENTES_CRITICOS_GINECOLOGIA: ReadonlyMap<string, string> = new Map([
+  ["EMBARAZO", "Embarazo"],
+  ["TRASTORNOS_COAGULACION", "Trombosis o trastorno de la coagulación"],
+  ["ALERGIA", "Alergia"],
+]);
+
 const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
   ODONTOLOGICA: ANTECEDENTES_CRITICOS_ODONTOLOGIA,
   PEDIATRICA: ANTECEDENTES_CRITICOS_PEDIATRIA,
+  GINECOLOGICA: ANTECEDENTES_CRITICOS_GINECOLOGIA,
 };
 
 type AntecedenteParaAlerta = {
@@ -254,14 +301,15 @@ export function antecedenteAplicaAlSexo(
 }
 
 // Etiqueta de cualquier antecedente, sea de la lista médica, de psicología,
-// de odontología, de fonoaudiología o de pediatría (un paciente puede tener
+// de odontología, de fonoaudiología, de pediatría o de salud de la mujer (un paciente puede tener
 // cargados de varias si el profesional cambió de especialidad, o si lo atiende
 // otro profesional del consultorio). Si un tipo está en más de una lista,
 // gana la última (ej. "Hipertensión" en vez de "HTA"); pediatría y
 // fonoaudiología van primeras para que los tipos que reusan sigan con su
-// etiqueta de siempre (ej. NEUROLOGICAS dice "Neurológicas").
+// etiqueta de siempre (ej. NEUROLOGICAS dice "Neurológicas"). Igual con salud
+// de la mujer.
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
-  [...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
+  [...ANTECEDENTES_GINECOLOGIA_ORDEN, ...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
     a.tipo,
     a.label,
   ])
@@ -281,6 +329,18 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
       tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "GINECOLOGICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Cuándo empezó, características (sangrado, flujo, dolor, relación con el ciclo), síntomas asociados, tratamientos que recibió y si hay posibilidad de embarazo.",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico presuntivo",
+      metodosComplementarios: "Estudios (PAP, colposcopía, ecografía, mamografía, laboratorio)",
+      tratamiento: "Tratamiento e indicaciones",
     };
   }
   if (grupo === "PEDIATRICA") {
@@ -339,6 +399,53 @@ export const ETIQUETAS_PSICOLOGIA = {
   historiaVital: "Historia vital",
   enfoqueTerapeutico: "Enfoque terapéutico",
 } as const;
+
+// Campos que solo tiene la historia clínica de salud de la mujer.
+export const ETIQUETAS_GINECOLOGIA = {
+  menarca: "Menarca",
+  ritmoMenstrual: "Ritmo menstrual",
+  fum: "FUM",
+  menopausia: "Menopausia",
+  gestas: "Gestas",
+  partos: "Partos",
+  cesareas: "Cesáreas",
+  abortos: "Abortos",
+  metodoAnticonceptivo: "Método anticonceptivo",
+  ultimoPap: "Último PAP / colposcopía",
+  ultimaMamografia: "Última mamografía / ecografía mamaria",
+} as const;
+
+type DatosGinecoObstetricos = { [K in keyof typeof ETIQUETAS_GINECOLOGIA]?: string | null };
+
+function fechaCorta(fecha: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+  return m ? `${Number(m[3])}/${Number(m[2])}/${m[1]}` : fecha;
+}
+
+// Lo cargado de la historia gineco-obstétrica, listo para mostrar en la ficha
+// y en la copia de la historia clínica (solo lo que tiene valor). Con
+// embarazo en curso suma la edad gestacional de hoy y la FPP.
+export function datosGinecoObstetricos(
+  p: DatosGinecoObstetricos,
+  embarazada: boolean
+): { label: string; value: string }[] {
+  const eg = embarazada ? edadGestacional(p.fum) : null;
+  const datos = [
+    { label: ETIQUETAS_GINECOLOGIA.menarca, value: p.menarca },
+    { label: ETIQUETAS_GINECOLOGIA.ritmoMenstrual, value: p.ritmoMenstrual },
+    { label: ETIQUETAS_GINECOLOGIA.fum, value: p.fum ? fechaCorta(p.fum) : null },
+    {
+      label: "Edad gestacional",
+      value: eg ? `${formatEdadGestacional(eg)} · FPP ${fechaCorta(eg.fpp)}` : null,
+    },
+    { label: ETIQUETAS_GINECOLOGIA.menopausia, value: p.menopausia },
+    { label: "Fórmula obstétrica", value: formulaObstetrica(p) },
+    { label: ETIQUETAS_GINECOLOGIA.metodoAnticonceptivo, value: p.metodoAnticonceptivo },
+    { label: ETIQUETAS_GINECOLOGIA.ultimoPap, value: p.ultimoPap },
+    { label: ETIQUETAS_GINECOLOGIA.ultimaMamografia, value: p.ultimaMamografia },
+  ];
+  return datos.filter((d): d is { label: string; value: string } => Boolean(d.value?.trim()));
+}
 
 // Psicología y fonoaudiología trabajan por tratamiento en sesiones: cada
 // evolución es una sesión numerada, con asistencia y modalidad. El riesgo y

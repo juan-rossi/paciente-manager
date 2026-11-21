@@ -231,6 +231,14 @@ enum TipoAntecedente {
   CIRUGIAS_PREVIAS
   TABAQUISMO_HOGAR
   ANTECEDENTES_FAMILIARES
+  // Salud de la mujer (ver ANTECEDENTES_GINECOLOGIA en patient-form/constants.ts).
+  COMPLICACIONES_OBSTETRICAS
+  TRASTORNOS_MENSTRUALES
+  INFECCIONES_TRANSMISION_SEXUAL
+  PAP_ALTERADO
+  CIRUGIAS_GINECOLOGICAS
+  CANCER_MAMA_OVARIO_FAMILIAR
+  TRATAMIENTO_HORMONAL
   OTROS
 }
 
@@ -967,6 +975,21 @@ model Patient {
   grupoFamiliar           String?
   historiaVital           String?
   enfoqueTerapeutico      String?
+
+  // Antecedentes gineco-obstétricos -- solo los carga la historia clínica de
+  // salud de la mujer (ver esGinecologica()). Texto libre como el resto de la
+  // historia clínica; `fum` es "YYYY-MM-DD" (de ahí sale la edad gestacional).
+  menarca              String?
+  ritmoMenstrual       String?
+  fum                  String?
+  menopausia           String?
+  gestas               String?
+  partos               String?
+  cesareas             String?
+  abortos              String?
+  metodoAnticonceptivo String?
+  ultimoPap            String?
+  ultimaMamografia     String?
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?

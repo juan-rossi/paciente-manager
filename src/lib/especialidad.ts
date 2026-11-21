@@ -205,6 +205,21 @@ export function esPediatrica(especialidad: Especialidad | null | undefined): boo
   return especialidad != null && ESPECIALIDADES_PEDIATRICAS.has(especialidad);
 }
 
+// Salud de la mujer: historia clínica gineco-obstétrica (menarca, FUM,
+// fórmula obstétrica, PAP, mamografía). Sigue usando el examen físico.
+// Cualquier lógica que dependa de "es ginecólogo" tiene que pasar por
+// esGinecologica().
+export const ESPECIALIDADES_GINECOLOGICAS: ReadonlySet<Especialidad> = new Set<Especialidad>([
+  "GINECOLOGIA",
+  "OBSTETRICIA",
+  "MASTOLOGIA",
+  "MEDICINA_REPRODUCTIVA_FERTILIDAD",
+]);
+
+export function esGinecologica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad != null && ESPECIALIDADES_GINECOLOGICAS.has(especialidad);
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
 // tienen el odontograma en su lugar y los psicólogos y fonoaudiólogos no lo
 // usan.
@@ -219,14 +234,24 @@ export function usaExamenFisico(especialidad: Especialidad | null | undefined): 
 // También decide la historia clínica (antecedentes, etiquetas, dictado y
 // plantillas de consentimiento): ver grupoEspecialidad(). Lo que un grupo no
 // personaliza (ej. consentimientos de fonoaudiología) usa lo médico.
-// PEDIATRICA es una profesión médica: en el registro va siempre junto a MEDICA.
-export type GrupoEspecialidad = "MEDICA" | "PEDIATRICA" | "ODONTOLOGICA" | "PSICOLOGIA" | "FONOAUDIOLOGIA";
+// PEDIATRICA y GINECOLOGICA son profesiones médicas: en el registro van
+// siempre junto a MEDICA (ver GRUPOS_MEDICOS).
+export type GrupoEspecialidad =
+  | "MEDICA"
+  | "PEDIATRICA"
+  | "GINECOLOGICA"
+  | "ODONTOLOGICA"
+  | "PSICOLOGIA"
+  | "FONOAUDIOLOGIA";
+
+const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = ["MEDICA", "PEDIATRICA", "GINECOLOGICA"];
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esOdontologica(especialidad)) return "ODONTOLOGICA";
   if (esPsicologia(especialidad)) return "PSICOLOGIA";
   if (esFonoaudiologia(especialidad)) return "FONOAUDIOLOGIA";
   if (esPediatrica(especialidad)) return "PEDIATRICA";
+  if (esGinecologica(especialidad)) return "GINECOLOGICA";
   return "MEDICA";
 }
 
@@ -268,8 +293,8 @@ function gruposParaTitulo(
   if (titulo && TITULOS_ODONTOLOGICOS.has(titulo)) return new Set(["ODONTOLOGICA"]);
   if (titulo && TITULOS_PSICOLOGIA.has(titulo)) return new Set(["PSICOLOGIA"]);
   if (titulo && TITULOS_FONOAUDIOLOGIA.has(titulo)) return new Set(["FONOAUDIOLOGIA"]);
-  if (titulo && TITULOS_MEDICOS.has(titulo)) return new Set(["MEDICA", "PEDIATRICA", "FONOAUDIOLOGIA"]);
-  return new Set(["MEDICA", "PEDIATRICA", "PSICOLOGIA", "FONOAUDIOLOGIA"]);
+  if (titulo && TITULOS_MEDICOS.has(titulo)) return new Set([...GRUPOS_MEDICOS, "FONOAUDIOLOGIA"]);
+  return new Set([...GRUPOS_MEDICOS, "PSICOLOGIA", "FONOAUDIOLOGIA"]);
 }
 
 export function especialidadCompatibleConTitulo(

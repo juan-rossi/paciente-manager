@@ -4,6 +4,7 @@ import {
   alertasClinicas,
   alertasOdontologicas,
   antecedenteAplicaAlSexo,
+  datosGinecoObstetricos,
   antecedentesPara,
   etiquetasHistoriaClinica,
   usaSesiones,
@@ -28,6 +29,8 @@ describe("antecedentesPara", () => {
   it("los antecedentes reusados por pediatría mantienen su etiqueta de siempre", () => {
     expect(ANTECEDENTE_LABELS.get("ALERGIA")).not.toBe("Alergias");
     expect(ANTECEDENTE_LABELS.get("DISLIPEMIA")).toBe("Dislipemia");
+    expect(ANTECEDENTE_LABELS.get("NOD_MAMAS")).toBe("Nod. mamas");
+    expect(ANTECEDENTE_LABELS.get("EMBARAZO")).toBe("Embarazo");
   });
 
   it("los antecedentes reusados por fonoaudiología mantienen su etiqueta médica", () => {
@@ -35,7 +38,7 @@ describe("antecedentesPara", () => {
   });
 
   it("no repite tipos dentro de un grupo y todos son valores válidos", () => {
-    for (const grupo of ["MEDICA", "PEDIATRICA", "PSICOLOGIA", "ODONTOLOGICA", "FONOAUDIOLOGIA"] as const) {
+    for (const grupo of ["MEDICA", "PEDIATRICA", "GINECOLOGICA", "PSICOLOGIA", "ODONTOLOGICA", "FONOAUDIOLOGIA"] as const) {
       const tipos = antecedentesPara(grupo).orden.map((a) => a.tipo);
       expect(new Set(tipos).size).toBe(tipos.length);
       for (const tipo of tipos) expect(TIPO_ANTECEDENTE_VALUES).toContain(tipo);
@@ -98,6 +101,23 @@ describe("alertasClinicas", () => {
 
   it("los grupos sin antecedentes críticos no tienen alertas", () => {
     expect(alertasClinicas("MEDICA", [{ tipo: "ALERGIA", respuesta: true }])).toEqual([]);
+  });
+});
+
+describe("datosGinecoObstetricos", () => {
+  it("lista solo lo cargado, con la fórmula obstétrica armada", () => {
+    expect(
+      datosGinecoObstetricos({ menarca: "12", gestas: "2", partos: "2", cesareas: "0", abortos: "0", ultimoPap: "" }, false)
+    ).toEqual([
+      { label: "Menarca", value: "12" },
+      { label: "Fórmula obstétrica", value: "G2 P2 C0 A0" },
+    ]);
+  });
+
+  it("sin embarazo marcado no calcula edad gestacional", () => {
+    const datos = datosGinecoObstetricos({ fum: "2026-06-01" }, false);
+    expect(datos.map((d) => d.label)).toEqual(["FUM"]);
+    expect(datos[0].value).toBe("1/6/2026");
   });
 });
 

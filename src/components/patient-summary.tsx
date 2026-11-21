@@ -25,6 +25,8 @@ import {
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
   alertasClinicas,
+  datosGinecoObstetricos,
+  ETIQUETAS_GINECOLOGIA,
   ASISTENCIA_LABELS,
   MODALIDAD_LABELS,
   RIESGO_LABELS,
@@ -125,6 +127,7 @@ const CAMPO_LABELS: Record<string, string> = {
   metodosComplementarios: "Métodos Complementarios",
   tratamiento: "Tratamiento",
   ...ETIQUETAS_PSICOLOGIA,
+  ...ETIQUETAS_GINECOLOGIA,
   fecha: "Fecha",
   contenido: "Contenido",
   contenidoDictado: "Dictado",
@@ -257,6 +260,10 @@ export function PatientSummary({
     patient.encuadre,
   ].some(hay);
   const tieneHistoriaPersonal = hay(patient.grupoFamiliar) || hay(patient.historiaVital);
+  const ginecoObstetricos = datosGinecoObstetricos(
+    patient,
+    patient.antecedentes.some((a) => a.tipo === "EMBARAZO" && a.respuesta)
+  );
   const tieneDiagnostico = [
     patient.diagnosticoPresuntivo,
     patient.enfoqueTerapeutico,
@@ -392,8 +399,15 @@ export function PatientSummary({
     <PatientTurnoDiffSection patientId={patient.id} patientValues={patientValues} diffs={diffs} />
   );
 
-  const antecedentes = (antecedentesPositivos.length > 0 || tieneHistoriaPersonal) && (
+  const antecedentes = (antecedentesPositivos.length > 0 || tieneHistoriaPersonal || ginecoObstetricos.length > 0) && (
     <FormSection title="Antecedentes Personales" icon={History} contentClassName="bg-card">
+      {ginecoObstetricos.length > 0 && (
+        <div className="col-span-full grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          {ginecoObstetricos.map((d) => (
+            <InfoField key={d.label} label={d.label} value={d.value} />
+          ))}
+        </div>
+      )}
       {antecedentesPositivos.length > 0 && (
         <div className="col-span-full flex flex-wrap gap-2">
           {antecedentesPositivos.map((a) => {

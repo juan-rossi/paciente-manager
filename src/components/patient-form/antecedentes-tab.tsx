@@ -3,9 +3,17 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
-import { antecedenteAplicaAlSexo, antecedentesPara, ETIQUETAS_PSICOLOGIA } from "./constants";
+import { Venus } from "lucide-react";
+import { edadGestacional, formatEdadGestacional, formulaObstetrica } from "@/lib/obstetricia";
+import { formatFechaCorta } from "./utils";
+import {
+  antecedenteAplicaAlSexo,
+  antecedentesPara,
+  ETIQUETAS_GINECOLOGIA,
+  ETIQUETAS_PSICOLOGIA,
+} from "./constants";
 import { DateInput } from "./date-input";
-import { TextAreaField } from "./fields";
+import { FormSection, TextAreaField, TextField } from "./fields";
 import type { AntecedenteValue, PatientFormValues } from "./types";
 
 type Props = {
@@ -66,6 +74,24 @@ const DETALLE_PEDIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   ANTECEDENTES_FAMILIARES: "Familiar y enfermedad",
 };
 
+// Salud de la mujer: qué conviene anotar en el detalle de cada antecedente.
+const DETALLE_GINECOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  EMBARAZO: "Controles, quién la sigue y si es de riesgo",
+  COMPLICACIONES_OBSTETRICAS: "Preeclampsia, diabetes gestacional, parto prematuro, hemorragia",
+  TRASTORNOS_MENSTRUALES: "Ciclos irregulares, dolor, sangrado abundante",
+  INFECCIONES_TRANSMISION_SEXUAL: "Cuál y tratamiento",
+  PAP_ALTERADO: "Resultado, año y tratamiento",
+  NOD_MAMAS: "Hallazgo, BI-RADS y conducta",
+  CIRUGIAS_GINECOLOGICAS: "Cuál y año",
+  CANCER_MAMA_OVARIO_FAMILIAR: "Familiar y edad al diagnóstico",
+  TRATAMIENTO_HORMONAL: "Cuál (TRH, fertilidad, otro) y desde cuándo",
+  TRASTORNOS_COAGULACION: "Trombosis, trombofilia o tratamiento anticoagulante",
+  HTA: "Medicación",
+  DIABETES: "Tipo y medicación",
+  HIPOTIROIDISMO: "Medicación",
+  ALERGIA: "A qué y qué reacción",
+};
+
 // Odontología: qué conviene anotar en "Medicación" (la droga importa: un
 // anticoagulante o un bifosfonato cambian cómo se extrae o se opera).
 const MEDICACION_ODONTOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
@@ -103,7 +129,9 @@ function AntecedenteRow({
         ? DETALLE_FONOAUDIOLOGIA
         : grupo === "PEDIATRICA"
           ? DETALLE_PEDIATRIA
-          : null;
+          : grupo === "GINECOLOGICA"
+            ? DETALLE_GINECOLOGIA
+            : null;
   // Las listas que no son la médica tienen etiquetas largas: van con ancho
   // flexible en vez de la columna fija de la lista médica.
   const etiquetaLarga = grupo !== "MEDICA";
@@ -182,8 +210,74 @@ function AntecedenteRow({
   );
 }
 
+// Menarca, FUM, fórmula obstétrica y controles (ver ETIQUETAS_GINECOLOGIA).
+// Con embarazo marcado y FUM cargada muestra la edad gestacional y la FPP.
+function AntecedentesGinecoObstetricos({
+  values,
+  onChange,
+}: {
+  values: PatientFormValues;
+  onChange: Props["onChange"];
+}) {
+  type Campo = keyof typeof ETIQUETAS_GINECOLOGIA;
+  const campo = (field: Campo, type?: string, helpText?: string) => (
+    <TextField
+      label={ETIQUETAS_GINECOLOGIA[field]}
+      type={type}
+      helpText={helpText}
+      value={values[field]}
+      onChange={(v) => onChange(field, v)}
+    />
+  );
+  const numero = (field: Campo) => (
+    <TextField
+      label={ETIQUETAS_GINECOLOGIA[field]}
+      numeric="digits"
+      maxLength={2}
+      value={values[field]}
+      onChange={(v) => onChange(field, v)}
+    />
+  );
+
+  const embarazada = values.antecedentes.some((a) => a.tipo === "EMBARAZO" && a.respuesta);
+  const eg = embarazada ? edadGestacional(values.fum) : null;
+  const formula = formulaObstetrica(values);
+
+  return (
+    <FormSection title="Antecedentes gineco-obstétricos" icon={Venus}>
+      {campo("menarca", undefined, "Edad")}
+      {campo("ritmoMenstrual", undefined, "Ej. 28/5 (cada cuántos días / cuántos días)")}
+      {campo(
+        "fum",
+        "date",
+        eg ? `${formatEdadGestacional(eg)} · FPP ${formatFechaCorta(eg.fpp)}` : "Fecha de última menstruación"
+      )}
+      {campo("menopausia", undefined, "Edad")}
+
+      <div className="col-span-full flex flex-col gap-2">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {numero("gestas")}
+          {numero("partos")}
+          {numero("cesareas")}
+          {numero("abortos")}
+        </div>
+        {formula && <p className="text-xs text-muted-foreground">Fórmula obstétrica: {formula}</p>}
+      </div>
+
+      <div className="sm:col-span-2">{campo("metodoAnticonceptivo")}</div>
+      <div className="sm:col-span-2 lg:col-span-1">{campo("ultimoPap", undefined, "Fecha y resultado")}</div>
+      <div className="sm:col-span-2 lg:col-span-1">
+        {campo("ultimaMamografia", undefined, "Fecha y resultado (BI-RADS)")}
+      </div>
+    </FormSection>
+  );
+}
+
 export function AntecedentesTab({ values, onAntecedenteChange, onChange, grupo = "MEDICA" }: Props) {
   const psicologia = grupo === "PSICOLOGIA";
+  // Mastología también atiende hombres: a ellos no se les pregunta la historia
+  // gineco-obstétrica.
+  const ginecoObstetricos = grupo === "GINECOLOGICA" && values.sexo !== "MASCULINO";
   const byTipo = new Map(values.antecedentes.map((a) => [a.tipo, a]));
   const { columna1, columna2 } = antecedentesPara(grupo);
 
@@ -209,6 +303,8 @@ export function AntecedentesTab({ values, onAntecedenteChange, onChange, grupo =
 
   return (
     <div className="flex flex-col gap-6">
+      {ginecoObstetricos && <AntecedentesGinecoObstetricos values={values} onChange={onChange} />}
+
       <div className="grid gap-3 md:grid-cols-2">
         {columna(columna1)}
         {columna(columna2)}
