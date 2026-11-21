@@ -36,6 +36,28 @@ export const PLANTILLAS_PSICOLOGIA: readonly PlantillaConsentimiento[] = [
   { id: "psicoterapia", label: "Psicoterapia", ...PLANTILLA_PSICOTERAPIA },
 ];
 
+// Texto base para fonoaudiólogos. Muchos pacientes son menores: el texto
+// habla del paciente "o su representante". Lo del dictado, igual que en
+// psicoterapia, tiene que coincidir con los términos.
+export const PLANTILLAS_FONOAUDIOLOGIA: readonly PlantillaConsentimiento[] = [
+  {
+    id: "tratamiento-fonoaudiologico",
+    label: "Tratamiento fonoaudiológico",
+    procedimiento: "Evaluación y tratamiento fonoaudiológico",
+    riesgosBeneficios: `Naturaleza del tratamiento: una evaluación inicial (entrevista, pruebas de lenguaje, habla, voz, audición o deglución, según el motivo de consulta) y sesiones periódicas con la frecuencia, modalidad (presencial u online) y honorarios acordados. Puede incluir ejercicios para realizar en el hogar o la escuela.
+
+Beneficios esperados: mejorar la comunicación, el lenguaje, el habla, la voz, la audición o la deglución, según los objetivos acordados. Los resultados no pueden garantizarse y dependen en parte de la continuidad del tratamiento y de la práctica fuera de las sesiones.
+
+Posibles molestias: cansancio o fatiga vocal transitoria con algunos ejercicios. En la terapia de deglución, las pruebas con alimentos se hacen con las consistencias y precauciones que indique el profesional.
+
+Interconsultas: si el profesional lo considera necesario, puede sugerir estudios o la consulta con otros profesionales (otorrinolaringología, neurología, pediatría, psicopedagogía, entre otros) y, con autorización del paciente o su representante, intercambiar información con ellos o con la escuela.
+
+Registro de las sesiones: el profesional lleva una historia clínica del tratamiento. Para redactar sus notas puede grabar el audio de la sesión, que se envía a un servicio externo de transcripción y no se conserva: solo queda el texto en la historia clínica. Puede pedir que no se grabe en cualquier momento.`,
+    alternativas:
+      "Puede interrumpir el tratamiento cuando lo desee. Otras alternativas: otro profesional o abordaje, controles periódicos sin tratamiento, o no realizarlo, asumiendo que la dificultad puede persistir o avanzar.",
+  },
+];
+
 // Textos base para odontólogos. Igual que el de psicoterapia, son un punto de
 // partida que el profesional ajusta al caso antes de guardar.
 export const PLANTILLAS_ODONTOLOGIA: readonly PlantillaConsentimiento[] = [
@@ -105,5 +127,6 @@ Fumar, la diabetes no controlada, los bifosfonatos y una mala higiene aumentan e
 export function plantillasConsentimiento(grupo: GrupoEspecialidad): readonly PlantillaConsentimiento[] {
   if (grupo === "PSICOLOGIA") return PLANTILLAS_PSICOLOGIA;
   if (grupo === "ODONTOLOGICA") return PLANTILLAS_ODONTOLOGIA;
+  if (grupo === "FONOAUDIOLOGIA") return PLANTILLAS_FONOAUDIOLOGIA;
   return [];
 }

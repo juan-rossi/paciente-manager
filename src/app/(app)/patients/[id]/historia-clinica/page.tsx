@@ -10,6 +10,7 @@ import {
   ESTADO_CIVIL_OPTIONS,
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
+  usaSesiones,
   vocabularioEvolucion,
   ASISTENCIA_LABELS,
   MODALIDAD_LABELS,
@@ -139,6 +140,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
   });
   const grupo = grupoEspecialidad(doctor?.especialidad);
   const psicologia = grupo === "PSICOLOGIA";
+  const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
 
   // Ley 26.529 art. 14: deja registro de que se generó una copia de la
@@ -154,9 +156,9 @@ export default async function HistoriaClinicaPage({ params }: Props) {
 
   const edad = calcularEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "");
 
-  // Psicología: número de cada sesión (ver numerarSesiones()).
+  // Psicología y fonoaudiología: número de cada sesión (ver numerarSesiones()).
   const numerosSesion = new Map<(typeof patient.evoluciones)[number], number>();
-  if (psicologia) {
+  if (sesiones) {
     const sesiones = patient.evoluciones.map((e) => ({
       e,
       fecha: e.fecha.toISOString(),
@@ -355,7 +357,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
         />
 
         {patient.evoluciones.length > 0 && (
-          <Seccion titulo={vocabularioEvolucion(psicologia).titulo}>
+          <Seccion titulo={vocabularioEvolucion(sesiones).titulo}>
             <div className="flex flex-col gap-3 text-sm">
               {patient.evoluciones.map((e) => (
                 <div key={e.id} className="break-inside-avoid">

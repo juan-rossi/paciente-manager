@@ -207,6 +207,18 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       tratamiento: "Plan de tratamiento",
     };
   }
+  if (grupo === "FONOAUDIOLOGIA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Historia del problema actual",
+      antecedentesEnfermedadAyuda:
+        "Quién deriva, cuándo empezó la dificultad (lenguaje, habla, voz, audición, deglución o lectoescritura), cómo fue evolucionando, hitos del desarrollo y evaluaciones o tratamientos previos.",
+      habitos: "Hábitos",
+      diagnosticoPresuntivo: "Diagnóstico fonoaudiológico",
+      metodosComplementarios: "Evaluaciones y estudios (audiometría, tests)",
+      tratamiento: "Objetivos y plan terapéutico",
+    };
+  }
   return grupo === "PSICOLOGIA"
     ? {
         motivoConsulta: "Motivo de consulta",
@@ -240,10 +252,17 @@ export const ETIQUETAS_PSICOLOGIA = {
   enfoqueTerapeutico: "Enfoque terapéutico",
 } as const;
 
-// Cómo se llama cada entrada de la evolución. Para un psicólogo cada entrada
-// es una sesión; los datos son los mismos (PatientEvolucion).
-export function vocabularioEvolucion(psicologia: boolean) {
-  return psicologia
+// Psicología y fonoaudiología trabajan por tratamiento en sesiones: cada
+// evolución es una sesión numerada, con asistencia y modalidad. El riesgo y
+// las notas privadas son solo de psicología.
+export function usaSesiones(grupo: GrupoEspecialidad): boolean {
+  return grupo === "PSICOLOGIA" || grupo === "FONOAUDIOLOGIA";
+}
+
+// Cómo se llama cada entrada de la evolución (ver usaSesiones()); los datos
+// son los mismos (PatientEvolucion).
+export function vocabularioEvolucion(sesiones: boolean) {
+  return sesiones
     ? {
         titulo: "Sesiones",
         una: "una sesión",

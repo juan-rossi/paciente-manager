@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SettingsSection } from "@/components/settings-section";
-import { etiquetasHistoriaClinica } from "@/components/patient-form/constants";
+import { etiquetasHistoriaClinica, usaSesiones } from "@/components/patient-form/constants";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import { cn } from "@/lib/utils";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
@@ -19,8 +19,8 @@ type Props = {
   // El dictado es una función Premium: sin plan Premium vigente la opción se
   // muestra bloqueada.
   transcripcionHabilitada: boolean;
-  // Grupo de la especialidad (ver grupoEspecialidad()): en psicología las
-  // evoluciones se llaman "sesiones" y los odontólogos no tienen evoluciones.
+  // Grupo de la especialidad (ver grupoEspecialidad()): en psicología y
+  // fonoaudiología las evoluciones se llaman "sesiones" y los odontólogos no tienen evoluciones.
   grupo?: GrupoEspecialidad;
 };
 
@@ -31,7 +31,7 @@ export function DictadoSettings({
   transcripcionHabilitada,
   grupo = "MEDICA",
 }: Props) {
-  const psicologia = grupo === "PSICOLOGIA";
+  const sesiones = usaSesiones(grupo);
   const [resumenAutomatico, setResumenAutomatico] = useState(initialResumenAutomatico);
   const [antecedentes, setAntecedentes] = useState(initialResumenAutoAntecedentes);
   const [evoluciones, setEvoluciones] = useState(initialResumenAutoEvoluciones);
@@ -144,10 +144,10 @@ export function DictadoSettings({
                 />
                 <div className="flex flex-col gap-0.5">
                   <Label htmlFor="resumen-auto-evoluciones" className="font-normal">
-                    {psicologia ? "Sesiones" : "Evoluciones"}
+                    {sesiones ? "Sesiones" : "Evoluciones"}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Al agregar o editar {psicologia ? "una sesión" : "una evolución"}.
+                    Al agregar o editar {sesiones ? "una sesión" : "una evolución"}.
                   </p>
                 </div>
               </div>

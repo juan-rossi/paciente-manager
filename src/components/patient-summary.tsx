@@ -29,6 +29,7 @@ import {
   MODALIDAD_LABELS,
   RIESGO_LABELS,
   riesgoDestacado,
+  usaSesiones,
   vocabularioEvolucion,
 } from "@/components/patient-form/constants";
 import {
@@ -240,6 +241,7 @@ export function PatientSummary({
   grupo?: GrupoEspecialidad;
 }) {
   const psicologia = grupo === "PSICOLOGIA";
+  const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
   // Odontología: antecedentes que cambian la atención, arriba de todo.
   const alertas = grupo === "ODONTOLOGICA" ? alertasOdontologicas(patient.antecedentes) : [];
@@ -437,7 +439,7 @@ export function PatientSummary({
               </span>
               <span>
                 <strong>{actorNombre}</strong> {(entry.entidad === "EVOLUCION"
-                  ? AUDIT_LABELS[clave]?.replace("una evolución clínica", vocabularioEvolucion(psicologia).una)
+                  ? AUDIT_LABELS[clave]?.replace("una evolución clínica", vocabularioEvolucion(sesiones).una)
                   : AUDIT_LABELS[clave]) ?? clave.toLowerCase()}.
               </span>
             </div>
@@ -586,7 +588,7 @@ export function PatientSummary({
 
           {evolucionHabilitada && (
             <FormSection
-              title={vocabularioEvolucion(psicologia).titulo}
+              title={vocabularioEvolucion(sesiones).titulo}
               icon={NotebookPen}
               contentClassName="bg-card"
             >
@@ -596,6 +598,7 @@ export function PatientSummary({
                   initialEvoluciones={evolucionValues}
                   transcripcionHabilitada={transcripcionHabilitada}
                   resumirAlTerminar={resumirEvolucionesAlTerminar}
+                  sesiones={sesiones}
                   psicologia={psicologia}
                 />
               </div>

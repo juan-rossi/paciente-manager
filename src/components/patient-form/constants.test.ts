@@ -4,6 +4,7 @@ import {
   alertasOdontologicas,
   antecedentesPara,
   etiquetasHistoriaClinica,
+  usaSesiones,
 } from "./constants";
 import { TIPO_ANTECEDENTE_VALUES } from "@/lib/patient-schema";
 
@@ -40,6 +41,19 @@ describe("etiquetasHistoriaClinica", () => {
   it("odontología llama plan de tratamiento al tratamiento", () => {
     expect(etiquetasHistoriaClinica("ODONTOLOGICA").tratamiento).toBe("Plan de tratamiento");
     expect(etiquetasHistoriaClinica("MEDICA").tratamiento).toBe("Tratamiento");
+  });
+
+  it("fonoaudiología tiene sus propias etiquetas", () => {
+    expect(etiquetasHistoriaClinica("FONOAUDIOLOGIA").diagnosticoPresuntivo).toBe("Diagnóstico fonoaudiológico");
+  });
+});
+
+describe("usaSesiones", () => {
+  it("psicología y fonoaudiología registran sesiones; médicos y odontólogos no", () => {
+    expect(usaSesiones("PSICOLOGIA")).toBe(true);
+    expect(usaSesiones("FONOAUDIOLOGIA")).toBe(true);
+    expect(usaSesiones("MEDICA")).toBe(false);
+    expect(usaSesiones("ODONTOLOGICA")).toBe(false);
   });
 });
 

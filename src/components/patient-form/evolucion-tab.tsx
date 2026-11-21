@@ -149,7 +149,10 @@ type Props = {
   transcripcionHabilitada?: boolean;
   // Resume solo apenas termina cada dictado (ver Configuración > Dictado e IA).
   resumirAlTerminar?: boolean;
-  // Psicología (ver esPsicologia()): cada entrada es una "sesión".
+  // Psicología y fonoaudiología (ver usaSesiones()): cada entrada es una
+  // "sesión" numerada, con asistencia y modalidad.
+  sesiones?: boolean;
+  // Solo psicología (ver esPsicologia()): riesgo y notas privadas.
   psicologia?: boolean;
 };
 
@@ -161,9 +164,10 @@ export function EvolucionTab({
   onChangeEvolucionesEliminadas,
   transcripcionHabilitada = false,
   resumirAlTerminar = false,
+  sesiones = false,
   psicologia = false,
 }: Props) {
-  const voc = vocabularioEvolucion(psicologia);
+  const voc = vocabularioEvolucion(sesiones);
   const editorRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -171,7 +175,8 @@ export function EvolucionTab({
   const [contenido, setContenido] = useState("");
   // Texto original dictado, cuando `contenido` pasó a ser un resumen de IA.
   const [dictado, setDictado] = useState("");
-  // Solo sesiones de psicología.
+  // Solo sesiones (psicología y fonoaudiología); riesgo y notas privadas,
+  // solo psicología.
   const [asistencia, setAsistencia] = useState<AsistenciaSesion>("PRESENTE");
   const [modalidad, setModalidad] = useState<ModalidadSesion | null>(null);
   const [riesgo, setRiesgo] = useState<NivelRiesgo | null>(null);
@@ -190,13 +195,15 @@ export function EvolucionTab({
   const resumen = useResumenIA("evolucion");
 
   const isEditing = editingIndex !== null;
-  const numeros = psicologia ? numerarSesiones(evoluciones) : null;
+  const numeros = sesiones ? numerarSesiones(evoluciones) : null;
   // Sin notas solo se puede guardar una sesión a la que no vino.
-  const asistio = !psicologia || asistencia === "PRESENTE";
+  const asistio = !sesiones || asistencia === "PRESENTE";
   const puedeGuardar = textoPlano(contenido).trim().length > 0 || !asistio;
   const sesion = psicologia
     ? { asistencia, modalidad, riesgo, notasPrivadas: notasPrivadas.trim() || null }
-    : {};
+    : sesiones
+      ? { asistencia, modalidad }
+      : {};
   const isRecording =
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
@@ -539,14 +546,14 @@ export function EvolucionTab({
             {voc.nueva}
           </Button>
           <DialogContent
-            className={psicologia ? "sm:max-w-2xl" : "sm:max-w-xl"}
+            className={sesiones ? "sm:max-w-2xl" : "sm:max-w-xl"}
             initialFocus={editorRef}
           >
             <DialogHeader>
               <DialogTitle>{isEditing ? voc.editar : voc.nueva}</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-3">
-              {psicologia ? (
+              {sesiones ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
                     <Label>Fecha</Label>
@@ -565,14 +572,16 @@ export function EvolucionTab({
                     onChange={setModalidad}
                     opcional
                   />
-                  <Segmentado
-                    label="Riesgo"
-                    options={RIESGO_OPCIONES_CORTAS}
-                    value={riesgo}
-                    onChange={setRiesgo}
-                    opcional
-                    claseElegida={(v) => CLASE_RIESGO[v]}
-                  />
+                  {psicologia && (
+                    <Segmentado
+                      label="Riesgo"
+                      options={RIESGO_OPCIONES_CORTAS}
+                      value={riesgo}
+                      onChange={setRiesgo}
+                      opcional
+                      claseElegida={(v) => CLASE_RIESGO[v]}
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5">
@@ -675,7 +684,7 @@ export function EvolucionTab({
                       // fuera del viewport.
                       className={cn(
                         "overflow-y-auto",
-                        psicologia ? "max-h-[35dvh] min-h-[10rem]" : "max-h-[50dvh] min-h-[15rem]"
+                        sesiones ? "max-h-[35dvh] min-h-[10rem]" : "max-h-[50dvh] min-h-[15rem]"
                       )}
                       value={contenido}
                       onChange={setContenido}

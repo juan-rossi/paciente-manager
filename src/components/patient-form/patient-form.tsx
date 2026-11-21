@@ -39,7 +39,7 @@ import {
 } from "./odontograma-tab";
 import { tieneMarcas } from "@/lib/odontograma";
 import { emptyPatientFormValues } from "./utils";
-import { alertasOdontologicas, vocabularioEvolucion } from "./constants";
+import { alertasOdontologicas, usaSesiones, vocabularioEvolucion } from "./constants";
 import { AlertasOdontologicas } from "@/components/odontograma/alertas-odontologicas";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
 import type {
@@ -159,6 +159,7 @@ export function PatientForm({
   initialTab,
 }: Props) {
   const psicologia = grupo === "PSICOLOGIA";
+  const sesiones = usaSesiones(grupo);
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
     initialValues ?? emptyPatientFormValues(grupo)
@@ -354,7 +355,7 @@ export function PatientForm({
           {evolucionHabilitada && (
             <TabsTrigger value="evolucion">
               <TrendingUp className="size-4" />
-              {vocabularioEvolucion(psicologia).titulo}
+              {vocabularioEvolucion(sesiones).titulo}
             </TabsTrigger>
           )}
         </TabsList>
@@ -421,7 +422,7 @@ export function PatientForm({
               className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
             >
               <TrendingUp className="size-[18px]" />
-              {vocabularioEvolucion(psicologia).titulo}
+              {vocabularioEvolucion(sesiones).titulo}
             </TabsTrigger>
           )}
         </TabsList>
@@ -489,6 +490,7 @@ export function PatientForm({
                   onChangeEvolucionesEliminadas={setEvolucionesEliminadas}
                   transcripcionHabilitada={transcripcionHabilitada}
                   resumirAlTerminar={resumenAutomatico?.evoluciones}
+                  sesiones={sesiones}
                   psicologia={psicologia}
                 />
               </TabsContent>
