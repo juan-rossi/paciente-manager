@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { edadLegible } from "./utils";
+import { edadLegible, tieneExamenFisicoCargado } from "./utils";
+
+describe("tieneExamenFisicoCargado", () => {
+  it("detecta un examen físico de antes del cambio de especialidad", () => {
+    expect(tieneExamenFisicoCargado({ pcfg: "Nevo en espalda" }, "DERMATOLOGICA")).toBe(true);
+    expect(tieneExamenFisicoCargado({ pcfg: "  ", sensorio: null }, "DERMATOLOGICA")).toBe(false);
+  });
+
+  it("no cuenta los signos que el grupo carga desde su propia pestaña", () => {
+    expect(tieneExamenFisicoCargado({ pesoActual: "80", estatura: "1,70" }, "NUTRICION")).toBe(false);
+    expect(tieneExamenFisicoCargado({ presionArterial: "120/80" }, "PSIQUIATRICA")).toBe(false);
+    expect(tieneExamenFisicoCargado({ presionArterial: "120/80" }, "DERMATOLOGICA")).toBe(true);
+  });
+});
 
 const HOY = { year: 2026, month: 11, day: 21 };
 

@@ -373,6 +373,85 @@ export function camposSesionFromApi(e: any): Pick<
   };
 }
 
+// Campos del examen físico general (pestaña "Exámen Físico").
+export const CAMPOS_EXAMEN_FISICO = [
+  "frecuenciaCardiaca",
+  "pulsoRadial",
+  "ritmo",
+  "presionArterial",
+  "frecuenciaRespiratoria",
+  "pesoActual",
+  "pesoHabitual",
+  "estatura",
+  "temperatura",
+  "craneo",
+  "ojo",
+  "oido",
+  "pcfg",
+  "cuelloPalpacion",
+  "cuelloTamanio",
+  "cuelloAuscultacion",
+  "toraxForma",
+  "toraxMamas",
+  "auscultacionMV",
+  "auscultacionVV",
+  "rales",
+  "excursion",
+  "acvR1",
+  "acvR2",
+  "soplos",
+  "carotideo",
+  "radial",
+  "femoral",
+  "pedio",
+  "abdomenInspeccion",
+  "abdomenPalpacion",
+  "abdomenAuscultacion",
+  "ppRenalDerecha",
+  "ppRenalIzquierda",
+  "mamas",
+  "sensorio",
+  "lenguaje",
+  "marcha",
+  "temblor",
+  "taxia",
+  "reflejosFotomotor",
+  "reflejosAcomodacion",
+  "osteotendinosos",
+  "sensibilidad",
+  "columnaCervical",
+  "dorsal",
+  "lumbar",
+  "movilidad",
+  "dolor",
+  "tumefaccion",
+] as const;
+
+// Signos vitales que algunos grupos cargan desde su propia pestaña (control
+// clínico de psiquiatría, antropometría de nutrición): no cuentan como
+// "examen físico cargado".
+const SIGNOS_PROPIOS: Partial<Record<GrupoEspecialidad, readonly string[]>> = {
+  PSIQUIATRICA: ["pesoActual", "estatura", "presionArterial", "frecuenciaCardiaca"],
+  NUTRICION: ["pesoActual", "pesoHabitual", "estatura"],
+};
+
+// Red de seguridad para las especialidades que reemplazaron el examen físico
+// por uno propio (psiquiatría, nutrición, oftalmología, ORL, dermatología):
+// si el paciente ya tiene algo cargado en el examen físico (de antes del
+// cambio, o de otra especialidad), la pestaña se sigue mostrando para que ese
+// dato no quede invisible e imposible de corregir.
+export function tieneExamenFisicoCargado(
+  paciente: Record<string, unknown>,
+  grupo: GrupoEspecialidad
+): boolean {
+  const propios = SIGNOS_PROPIOS[grupo] ?? [];
+  return CAMPOS_EXAMEN_FISICO.some((campo) => {
+    if (propios.includes(campo)) return false;
+    const v = paciente[campo];
+    return typeof v === "string" && v.trim() !== "";
+  });
+}
+
 // Menor de edad según la fecha de nacimiento ("YYYY-MM-DD"). Sin fecha, no.
 export function esMenorDeEdad(fechaNacimiento: string): boolean {
   const edad = calcularEdad(fechaNacimiento);

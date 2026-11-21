@@ -8,7 +8,7 @@ import { esActivo, isPremium } from "@/lib/plan";
 import { getResumenAutomatico } from "@/lib/resumen-automatico";
 import { Button } from "@/components/ui/button";
 import { PatientForm } from "@/components/patient-form/patient-form";
-import { patientFromApi } from "@/components/patient-form/utils";
+import { patientFromApi, tieneExamenFisicoCargado } from "@/components/patient-form/utils";
 import { PageEnter } from "@/components/page-transition";
 import { odontogramaFromApi } from "@/components/patient-form/utils";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
@@ -48,7 +48,9 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
   const { values, evoluciones, evolucionesEliminadas } = patientFromApi(patient, grupo);
   const resumenAutomatico = await getResumenAutomatico(user);
   const odontogramaHabilitado = await tenantEsOdontologo(patient.doctorId);
-  const examenFisicoHabilitado = usaExamenFisico(especialidad);
+  // Las especialidades con examen propio no usan el físico, salvo que este
+  // paciente ya tenga algo cargado ahí (ver tieneExamenFisicoCargado()).
+  const examenFisicoHabilitado = usaExamenFisico(especialidad) || tieneExamenFisicoCargado(patient, grupo);
   const odontogramas = odontogramaHabilitado
     ? await prisma.patientOdontograma.findMany({
         where: { patientId: patient.id, deletedAt: null },
