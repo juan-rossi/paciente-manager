@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  Apple,
   Brain,
   ChevronLeft,
   ChevronRight,
@@ -32,6 +33,7 @@ import { AntecedentesTab } from "./antecedentes-tab";
 import { ExamenFisicoTab } from "./examen-fisico-tab";
 import { DiagnosticoTab } from "./diagnostico-tab";
 import { ExamenPsiquicoTab } from "./examen-psiquico-tab";
+import { EvaluacionNutricionalTab } from "./evaluacion-nutricional-tab";
 import { EvolucionTab } from "./evolucion-tab";
 import { HistorialPracticasTab } from "./historial-practicas-tab";
 import {
@@ -164,6 +166,8 @@ export function PatientForm({
   const sesiones = usaSesiones(grupo);
   // Psiquiatría: examen psíquico en lugar del examen físico.
   const examenPsiquicoHabilitado = grupo === "PSIQUIATRICA";
+  // Nutrición: evaluación nutricional en lugar del examen físico.
+  const evaluacionNutricionalHabilitada = grupo === "NUTRICION";
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
     initialValues ?? emptyPatientFormValues(grupo)
@@ -346,6 +350,12 @@ export function PatientForm({
               Examen Psíquico
             </TabsTrigger>
           )}
+          {evaluacionNutricionalHabilitada && (
+            <TabsTrigger value="evaluacion-nutricional">
+              <Apple className="size-4" />
+              Evaluación Nutricional
+            </TabsTrigger>
+          )}
           <TabsTrigger value="diagnostico">
             <ClipboardCheck className="size-4" />
             Diagnóstico
@@ -408,6 +418,15 @@ export function PatientForm({
             >
               <Brain className="size-[18px]" />
               Examen Psíquico
+            </TabsTrigger>
+          )}
+          {evaluacionNutricionalHabilitada && (
+            <TabsTrigger
+              value="evaluacion-nutricional"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <Apple className="size-[18px]" />
+              Evaluación Nutricional
             </TabsTrigger>
           )}
           <TabsTrigger
@@ -481,6 +500,11 @@ export function PatientForm({
             {examenPsiquicoHabilitado && (
               <TabsContent value="examen-psiquico">
                 <ExamenPsiquicoTab values={values} onChange={handleChange} />
+              </TabsContent>
+            )}
+            {evaluacionNutricionalHabilitada && (
+              <TabsContent value="evaluacion-nutricional">
+                <EvaluacionNutricionalTab values={values} onChange={handleChange} />
               </TabsContent>
             )}
             <TabsContent value="diagnostico">

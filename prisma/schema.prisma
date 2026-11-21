@@ -239,6 +239,14 @@ enum TipoAntecedente {
   CIRUGIAS_GINECOLOGICAS
   CANCER_MAMA_OVARIO_FAMILIAR
   TRATAMIENTO_HORMONAL
+  // Nutrición (ver ANTECEDENTES_NUTRICION en patient-form/constants.ts).
+  ENFERMEDAD_CELIACA
+  INTOLERANCIAS_ALIMENTARIAS
+  TRASTORNOS_CONDUCTA_ALIMENTARIA
+  CIRUGIA_BARIATRICA
+  ENFERMEDADES_DIGESTIVAS
+  ENFERMEDAD_RENAL
+  DIETAS_PREVIAS
   OTROS
 }
 
@@ -1002,6 +1010,17 @@ model Patient {
   epPsicomotricidad  String?
   epSuenoApetito     String?
   epJuicio           String?
+
+  // Evaluación nutricional -- solo la carga la historia clínica de nutrición
+  // (ver esNutricion()), en lugar del examen físico. Peso, peso habitual y
+  // estatura usan las columnas de signos vitales.
+  circunferenciaCintura String?
+  circunferenciaCadera  String?
+  porcentajeGrasa       String?
+  pesoObjetivo          String?
+  actividadFisica       String?
+  habitosAlimentarios   String?
+  recordatorio24h       String?
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?

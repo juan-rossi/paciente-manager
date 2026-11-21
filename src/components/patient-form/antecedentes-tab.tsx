@@ -86,6 +86,24 @@ const DETALLE_PSIQUIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   ALERGIA: "A qué y qué reacción",
 };
 
+// Nutrición: qué conviene anotar en el detalle de cada antecedente.
+const DETALLE_NUTRICION: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  DIABETES: "Tipo, medicación (insulina, metformina) y último valor",
+  DISLIPEMIA: "Último valor y medicación",
+  HTA: "Medicación",
+  HIPOTIROIDISMO: "Medicación",
+  ENFERMEDAD_RENAL: "Estadio, diálisis y restricciones indicadas",
+  ENFERMEDADES_DIGESTIVAS: "Reflujo, colon irritable, enfermedad inflamatoria, constipación",
+  EMBARAZO: "Semanas de gestación o meses de lactancia",
+  ENFERMEDAD_CELIACA: "Desde cuándo y si hace la dieta sin TACC",
+  ALERGIA: "A qué alimento y qué reacción",
+  INTOLERANCIAS_ALIMENTARIAS: "A qué (lactosa, fructosa...) y qué síntomas",
+  TRASTORNOS_CONDUCTA_ALIMENTARIA: "Cuál, desde cuándo y quién lo trata",
+  CIRUGIA_BARIATRICA: "Técnica, año y peso previo",
+  DIETAS_PREVIAS: "Cuáles, cuánto bajó y si lo recuperó",
+  ANTECEDENTES_FAMILIARES: "Familiar y enfermedad",
+};
+
 // Salud de la mujer: qué conviene anotar en el detalle de cada antecedente.
 const DETALLE_GINECOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   EMBARAZO: "Controles, quién la sigue y si es de riesgo",
@@ -141,6 +159,8 @@ function AntecedenteRow({
         ? DETALLE_FONOAUDIOLOGIA
         : grupo === "PSIQUIATRICA"
           ? DETALLE_PSIQUIATRIA
+          : grupo === "NUTRICION"
+          ? DETALLE_NUTRICION
           : grupo === "PEDIATRICA"
           ? DETALLE_PEDIATRIA
           : grupo === "GINECOLOGICA"

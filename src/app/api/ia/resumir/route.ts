@@ -149,6 +149,26 @@ ${REGLAS_PSIQUIATRIA}`,
 ${REGLAS_PSIQUIATRIA}`,
 };
 
+const REGLAS_NUTRICION = `Reglas:
+- No inventes ni infieras datos que no estén en el dictado. Si algo es ambiguo, dejalo como está.
+- Conservá exactos el peso, la talla, el IMC, las circunferencias, los porcentajes, las calorías, las porciones, los alimentos y cantidades, las fechas y los valores de laboratorio.
+- El texto viene de un reconocimiento de voz: corregí solo errores de transcripción evidentes en términos de nutrición o nombres de alimentos. Ante la duda, dejá la palabra como está.
+- Eliminá muletillas, repeticiones, autocorrecciones y frases que no aportan información clínica.
+- Usá lenguaje profesional conciso, en español rioplatense neutro, en tercera persona ("Paciente refiere..."). Describí el peso y la alimentación sin juicios de valor.
+- Texto plano: sin markdown, sin títulos con #, sin negritas. Podés usar guiones "- " para listar ítems.
+- Respondé solo con el resumen, sin introducción ni comentarios.`;
+
+// Nutricionistas: el foco es la evolución del peso, la alimentación y la
+// adherencia al plan.
+const SYSTEM_PROMPTS_NUTRICION: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas de nutrición. Vas a recibir la transcripción de un dictado de un nutricionista sobre la historia del peso y la alimentación de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: motivo de consulta, evolución del peso, dietas o tratamientos previos y sus resultados, hábitos alimentarios, actividad física, enfermedades que condicionen la alimentación y lo que espera lograr.
+
+${REGLAS_NUTRICION}`,
+  evolucion: `Sos un asistente que redacta historias clínicas de nutrición. Vas a recibir la transcripción de un dictado de un nutricionista sobre un control. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, peso y medidas del día, adherencia al plan y dificultades, cambios en la alimentación y la actividad física, ajustes al plan alimentario, objetivos y próximo control.
+
+${REGLAS_NUTRICION}`,
+};
+
 const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GrupoEspecialidad,
   Record<z.infer<typeof resumirInput>["tipo"], string>
@@ -157,6 +177,7 @@ const SYSTEM_PROMPTS_POR_GRUPO: Record<
   PEDIATRICA: SYSTEM_PROMPTS_PEDIATRIA,
   GINECOLOGICA: SYSTEM_PROMPTS_GINECOLOGIA,
   PSIQUIATRICA: SYSTEM_PROMPTS_PSIQUIATRIA,
+  NUTRICION: SYSTEM_PROMPTS_NUTRICION,
   ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
   PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
   FONOAUDIOLOGIA: SYSTEM_PROMPTS_FONOAUDIOLOGIA,

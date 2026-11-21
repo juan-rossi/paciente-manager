@@ -3,6 +3,7 @@ import { textoPlano } from "@/lib/evolucion-formato";
 import type { ComponentType, ReactNode } from "react";
 import {
   AlertTriangle,
+  Apple,
   ClipboardCheck,
   ClipboardSignature,
   FileText,
@@ -25,8 +26,10 @@ import {
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
   alertasClinicas,
+  datosEvaluacionNutricional,
   datosGinecoObstetricos,
   esSaludMental,
+  ETIQUETAS_NUTRICION,
   ETIQUETAS_GINECOLOGIA,
   ASISTENCIA_LABELS,
   MODALIDAD_LABELS,
@@ -37,6 +40,7 @@ import {
 } from "@/components/patient-form/constants";
 import {
   edadLegible,
+  esMenorDeEdad,
   camposSesionFromApi,
   formatFechaCorta,
 } from "@/components/patient-form/utils";
@@ -261,6 +265,15 @@ export function PatientSummary({
     patient.encuadre,
   ].some(hay);
   const tieneHistoriaPersonal = hay(patient.grupoFamiliar) || hay(patient.historiaVital);
+  const evaluacionNutricional =
+    grupo === "NUTRICION"
+      ? datosEvaluacionNutricional(
+          patient,
+          esMenorDeEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "")
+        )
+      : [];
+  const tieneEvaluacionNutricional =
+    evaluacionNutricional.length > 0 || hay(patient.habitosAlimentarios) || hay(patient.recordatorio24h);
   const ginecoObstetricos = datosGinecoObstetricos(
     patient,
     patient.antecedentes.some((a) => a.tipo === "EMBARAZO" && a.respuesta)
@@ -433,6 +446,21 @@ export function PatientSummary({
     </FormSection>
   );
 
+  // Nutrición: la evaluación (con el IMC) va en la ficha, a la vista.
+  const nutricional = tieneEvaluacionNutricional && (
+    <FormSection title="Evaluación nutricional" icon={Apple} contentClassName="bg-card">
+      {evaluacionNutricional.length > 0 && (
+        <div className="col-span-full grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          {evaluacionNutricional.map((d) => (
+            <InfoField key={d.label} label={d.label} value={d.value} />
+          ))}
+        </div>
+      )}
+      <Bloque label={ETIQUETAS_NUTRICION.habitosAlimentarios} value={patient.habitosAlimentarios} />
+      <Bloque label={ETIQUETAS_NUTRICION.recordatorio24h} value={patient.recordatorio24h} />
+    </FormSection>
+  );
+
   const diagnostico = tieneDiagnostico && (
     <FormSection title="Diagnóstico" icon={ClipboardCheck} contentClassName="bg-card">
       <Bloque label={etiquetas.diagnosticoPresuntivo} value={patient.diagnosticoPresuntivo} />
@@ -591,6 +619,7 @@ export function PatientSummary({
           {informacion}
           {diferenciasTurno}
           {antecedentes}
+          {nutricional}
           {diagnostico}
 
           {auditEntries.length > 0 && (

@@ -3,14 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
-import { edadLegible } from "@/components/patient-form/utils";
+import { edadLegible, esMenorDeEdad } from "@/components/patient-form/utils";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
   ANTECEDENTE_LABELS,
   ESTADO_CIVIL_OPTIONS,
   ETIQUETAS_PSICOLOGIA,
+  datosEvaluacionNutricional,
   datosGinecoObstetricos,
   esSaludMental,
+  ETIQUETAS_NUTRICION,
   EXAMEN_PSIQUICO,
   etiquetasHistoriaClinica,
   usaSesiones,
@@ -308,6 +310,20 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             { label: "Peso Habitual", value: patient.pesoHabitual },
             { label: "Estatura", value: patient.estatura },
             { label: "Temperatura", value: patient.temperatura },
+          ]}
+        />
+
+        <Seccion
+          titulo="Evaluación nutricional"
+          fields={[
+            ...(grupo === "NUTRICION"
+              ? datosEvaluacionNutricional(
+                  patient,
+                  esMenorDeEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "")
+                )
+              : []),
+            { label: ETIQUETAS_NUTRICION.habitosAlimentarios, value: patient.habitosAlimentarios },
+            { label: ETIQUETAS_NUTRICION.recordatorio24h, value: patient.recordatorio24h },
           ]}
         />
 

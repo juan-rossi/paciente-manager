@@ -229,15 +229,25 @@ export function esPsiquiatrica(especialidad: Especialidad | null | undefined): b
   return especialidad === "PSIQUIATRIA" || especialidad === "PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE";
 }
 
+// Nutrición: la ejercen sobre todo licenciados (también médicos
+// nutricionistas). En vez del examen físico usa la evaluación nutricional
+// (antropometría y anamnesis alimentaria). Cualquier lógica que dependa de
+// "es nutricionista" tiene que pasar por esNutricion().
+export function esNutricion(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "NUTRICION";
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
-// tienen el odontograma en su lugar, los psiquiatras el examen psíquico, y
-// los psicólogos y fonoaudiólogos no lo usan.
+// tienen el odontograma en su lugar, los psiquiatras el examen psíquico, los
+// nutricionistas la evaluación nutricional, y los psicólogos y fonoaudiólogos
+// no lo usan.
 export function usaExamenFisico(especialidad: Especialidad | null | undefined): boolean {
   return (
     !esOdontologica(especialidad) &&
     !esPsicologia(especialidad) &&
     !esFonoaudiologia(especialidad) &&
-    !esPsiquiatrica(especialidad)
+    !esPsiquiatrica(especialidad) &&
+    !esNutricion(especialidad)
   );
 }
 
@@ -247,17 +257,26 @@ export function usaExamenFisico(especialidad: Especialidad | null | undefined): 
 // plantillas de consentimiento): ver grupoEspecialidad(). Lo que un grupo no
 // personaliza (ej. consentimientos de fonoaudiología) usa lo médico.
 // PEDIATRICA, GINECOLOGICA y PSIQUIATRICA son profesiones médicas: en el
-// registro van siempre junto a MEDICA (ver GRUPOS_MEDICOS).
+// registro van siempre junto a MEDICA (ver GRUPOS_MEDICOS). NUTRICION también
+// va con ellas: la ejercen licenciados ("Lic.", que ve las médicas) y médicos
+// nutricionistas.
 export type GrupoEspecialidad =
   | "MEDICA"
   | "PEDIATRICA"
   | "GINECOLOGICA"
   | "PSIQUIATRICA"
+  | "NUTRICION"
   | "ODONTOLOGICA"
   | "PSICOLOGIA"
   | "FONOAUDIOLOGIA";
 
-const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = ["MEDICA", "PEDIATRICA", "GINECOLOGICA", "PSIQUIATRICA"];
+const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = [
+  "MEDICA",
+  "PEDIATRICA",
+  "GINECOLOGICA",
+  "PSIQUIATRICA",
+  "NUTRICION",
+];
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esOdontologica(especialidad)) return "ODONTOLOGICA";
@@ -266,6 +285,7 @@ function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esPediatrica(especialidad)) return "PEDIATRICA";
   if (esGinecologica(especialidad)) return "GINECOLOGICA";
   if (esPsiquiatrica(especialidad)) return "PSIQUIATRICA";
+  if (esNutricion(especialidad)) return "NUTRICION";
   return "MEDICA";
 }
 

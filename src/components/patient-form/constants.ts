@@ -1,5 +1,6 @@
 import type { GrupoEspecialidad } from "@/lib/especialidad";
 import { edadGestacional, formatEdadGestacional, formulaObstetrica } from "@/lib/obstetricia";
+import { imcLegible } from "@/lib/nutricion";
 
 export const ANTECEDENTES_COLUMNA_1 = [
   { tipo: "DISLIPEMIA", label: "Dislipemia" },
@@ -213,8 +214,43 @@ export const ANTECEDENTES_PSIQUIATRIA_ORDEN = [
   ...ANTECEDENTES_PSIQUIATRIA_COLUMNA_2,
 ];
 
+// Historia clínica de nutrición (ver esNutricion()): lo que cambia el plan
+// alimentario. Reusa del enum DIABETES, DISLIPEMIA, HTA, HIPOTIROIDISMO,
+// ALERGIA, EMBARAZO y ANTECEDENTES_FAMILIARES.
+export const ANTECEDENTES_NUTRICION_COLUMNA_1 = [
+  { tipo: "DIABETES", label: "Diabetes o glucemia alterada" },
+  { tipo: "DISLIPEMIA", label: "Colesterol o triglicéridos altos" },
+  { tipo: "HTA", label: "Hipertensión" },
+  { tipo: "HIPOTIROIDISMO", label: "Hipotiroidismo" },
+  { tipo: "ENFERMEDAD_RENAL", label: "Enfermedad renal" },
+  { tipo: "ENFERMEDADES_DIGESTIVAS", label: "Enfermedades digestivas" },
+  { tipo: "EMBARAZO", label: "Embarazo o lactancia" },
+] as const;
+
+export const ANTECEDENTES_NUTRICION_COLUMNA_2 = [
+  { tipo: "ENFERMEDAD_CELIACA", label: "Celiaquía" },
+  { tipo: "ALERGIA", label: "Alergias alimentarias" },
+  { tipo: "INTOLERANCIAS_ALIMENTARIAS", label: "Intolerancias alimentarias" },
+  { tipo: "TRASTORNOS_CONDUCTA_ALIMENTARIA", label: "Trastornos de la conducta alimentaria" },
+  { tipo: "CIRUGIA_BARIATRICA", label: "Cirugía bariátrica" },
+  { tipo: "DIETAS_PREVIAS", label: "Dietas o tratamientos previos para el peso" },
+  { tipo: "ANTECEDENTES_FAMILIARES", label: "Obesidad, diabetes o enfermedad cardiovascular en la familia" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_NUTRICION_ORDEN = [
+  ...ANTECEDENTES_NUTRICION_COLUMNA_1,
+  ...ANTECEDENTES_NUTRICION_COLUMNA_2,
+];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "NUTRICION":
+      return {
+        columna1: ANTECEDENTES_NUTRICION_COLUMNA_1,
+        columna2: ANTECEDENTES_NUTRICION_COLUMNA_2,
+        orden: ANTECEDENTES_NUTRICION_ORDEN,
+      };
     case "PSIQUIATRICA":
       return {
         columna1: ANTECEDENTES_PSIQUIATRIA_COLUMNA_1,
@@ -295,7 +331,18 @@ export const ANTECEDENTES_CRITICOS_PSIQUIATRIA: ReadonlyMap<string, string> = ne
   ["ALERGIA", "Alergia"],
 ]);
 
+// Nutrición: lo que no puede faltar al armar un plan alimentario (y un TCA,
+// que cambia cómo se habla del peso).
+export const ANTECEDENTES_CRITICOS_NUTRICION: ReadonlyMap<string, string> = new Map([
+  ["ENFERMEDAD_CELIACA", "Celiaquía"],
+  ["ALERGIA", "Alergia alimentaria"],
+  ["TRASTORNOS_CONDUCTA_ALIMENTARIA", "Trastorno de la conducta alimentaria"],
+  ["CIRUGIA_BARIATRICA", "Cirugía bariátrica"],
+  ["EMBARAZO", "Embarazo o lactancia"],
+]);
+
 const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
+  NUTRICION: ANTECEDENTES_CRITICOS_NUTRICION,
   PSIQUIATRICA: ANTECEDENTES_CRITICOS_PSIQUIATRIA,
   ODONTOLOGICA: ANTECEDENTES_CRITICOS_ODONTOLOGIA,
   PEDIATRICA: ANTECEDENTES_CRITICOS_PEDIATRIA,
@@ -351,9 +398,12 @@ export function antecedenteAplicaAlSexo(
 // gana la última (ej. "Hipertensión" en vez de "HTA"); pediatría y
 // fonoaudiología van primeras para que los tipos que reusan sigan con su
 // etiqueta de siempre (ej. NEUROLOGICAS dice "Neurológicas"). Igual con salud
-// de la mujer y psiquiatría.
+// de la mujer, psiquiatría y nutrición.
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
-  [...ANTECEDENTES_PSIQUIATRIA_ORDEN, ...ANTECEDENTES_GINECOLOGIA_ORDEN, ...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
+  [
+    ...ANTECEDENTES_NUTRICION_ORDEN,
+    ...ANTECEDENTES_PSIQUIATRIA_ORDEN,
+    ...ANTECEDENTES_GINECOLOGIA_ORDEN, ...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
     a.tipo,
     a.label,
   ])
@@ -373,6 +423,18 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
       tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "NUTRICION") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Historia del peso y la alimentación",
+      antecedentesEnfermedadAyuda:
+        "Cómo fue cambiando el peso (máximo, mínimo, cambios recientes), dietas o tratamientos anteriores y cómo le fue, qué le cuesta de su alimentación y qué espera lograr.",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico nutricional",
+      metodosComplementarios: "Laboratorio y estudios",
+      tratamiento: "Plan alimentario y objetivos",
     };
   }
   if (grupo === "PSIQUIATRICA") {
@@ -519,6 +581,11 @@ export function ayudasDiagnostico(grupo: GrupoEspecialidad): {
         tratamiento:
           "Psicofármacos (droga, dosis, horario y desde cuándo), psicoterapia indicada, pautas de alarma y próximo control.",
       };
+    case "NUTRICION":
+      return {
+        metodosComplementarios: "Glucemia, perfil lipídico, función tiroidea, hemograma, etc., con fecha y resultados.",
+        tratamiento: "Tipo de plan, calorías o porciones, objetivos (peso, hábitos) y frecuencia de los controles.",
+      };
     case "PEDIATRICA":
       return {
         metodosComplementarios: "Laboratorio, RX, ecografía, etc.",
@@ -573,6 +640,45 @@ export type CampoExamenPsiquico = (typeof EXAMEN_PSIQUICO)[number]["campo"];
 export const ETIQUETAS_EXAMEN_PSIQUICO = Object.fromEntries(
   EXAMEN_PSIQUICO.map((e) => [e.campo, e.label])
 ) as Record<CampoExamenPsiquico, string>;
+
+// Evaluación nutricional (en lugar del examen físico). Peso, peso habitual y
+// estatura son las columnas de signos vitales.
+export const ETIQUETAS_NUTRICION = {
+  circunferenciaCintura: "Circunferencia de cintura",
+  circunferenciaCadera: "Circunferencia de cadera",
+  porcentajeGrasa: "Masa grasa (%)",
+  pesoObjetivo: "Peso objetivo",
+  actividadFisica: "Actividad física",
+  habitosAlimentarios: "Hábitos alimentarios",
+  recordatorio24h: "Recordatorio de 24 horas",
+} as const;
+
+type DatosNutricionales = { [K in keyof typeof ETIQUETAS_NUTRICION]?: string | null } & {
+  pesoActual?: string | null;
+  pesoHabitual?: string | null;
+  estatura?: string | null;
+};
+
+// Lo cargado de la evaluación nutricional, listo para la ficha y la copia de
+// la historia clínica (solo lo que tiene valor), con el IMC calculado. Los
+// textos largos (hábitos, recordatorio) van aparte.
+export function datosEvaluacionNutricional(
+  p: DatosNutricionales,
+  menorDeEdad: boolean
+): { label: string; value: string }[] {
+  const datos = [
+    { label: "Peso", value: p.pesoActual },
+    { label: "Peso habitual", value: p.pesoHabitual },
+    { label: "Estatura", value: p.estatura },
+    { label: "IMC", value: imcLegible(p.pesoActual, p.estatura, menorDeEdad) },
+    { label: ETIQUETAS_NUTRICION.circunferenciaCintura, value: p.circunferenciaCintura },
+    { label: ETIQUETAS_NUTRICION.circunferenciaCadera, value: p.circunferenciaCadera },
+    { label: ETIQUETAS_NUTRICION.porcentajeGrasa, value: p.porcentajeGrasa },
+    { label: ETIQUETAS_NUTRICION.pesoObjetivo, value: p.pesoObjetivo },
+    { label: ETIQUETAS_NUTRICION.actividadFisica, value: p.actividadFisica },
+  ];
+  return datos.filter((d): d is { label: string; value: string } => Boolean(d.value?.trim()));
+}
 
 // Psicología y fonoaudiología trabajan por tratamiento en sesiones: cada
 // evolución es una sesión numerada, con asistencia y modalidad. El riesgo y

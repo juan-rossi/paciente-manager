@@ -92,6 +92,13 @@ export const TIPO_ANTECEDENTE_VALUES = [
   "CIRUGIAS_GINECOLOGICAS",
   "CANCER_MAMA_OVARIO_FAMILIAR",
   "TRATAMIENTO_HORMONAL",
+  "ENFERMEDAD_CELIACA",
+  "INTOLERANCIAS_ALIMENTARIAS",
+  "TRASTORNOS_CONDUCTA_ALIMENTARIA",
+  "CIRUGIA_BARIATRICA",
+  "ENFERMEDADES_DIGESTIVAS",
+  "ENFERMEDAD_RENAL",
+  "DIETAS_PREVIAS",
   "OTROS",
 ] as const;
 
@@ -191,6 +198,15 @@ export const patientSchema = z.object({
   epPsicomotricidad: optionalString,
   epSuenoApetito: optionalString,
   epJuicio: optionalString,
+
+  // Solo historia clínica de nutrición (ver esNutricion()).
+  circunferenciaCintura: optionalShortString,
+  circunferenciaCadera: optionalShortString,
+  porcentajeGrasa: optionalShortString,
+  pesoObjetivo: optionalShortString,
+  actividadFisica: optionalShortString,
+  habitosAlimentarios: optionalLongString,
+  recordatorio24h: optionalLongString,
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca: optionalString,

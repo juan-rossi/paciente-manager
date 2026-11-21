@@ -46,7 +46,12 @@ const PROMPT_GINECOLOGIA =
 const PROMPT_PSIQUIATRIA =
   "Consulta psiquiátrica en español. Paciente lúcido, orientado en tiempo y espacio, hipoprosexia, humor depresivo, afecto congruente, ideas de muerte sin ideación suicida estructurada, sin alteraciones sensoperceptivas, insomnio de conciliación, hiporexia, juicio conservado, con conciencia de enfermedad. Trastorno depresivo mayor, trastorno bipolar, trastorno de ansiedad generalizada, esquizofrenia, TOC, TDAH, ataques de pánico. Sertralina 50 miligramos, escitalopram, fluoxetina, venlafaxina, quetiapina, olanzapina, risperidona, aripiprazol, litio, litemia, ácido valproico, lamotrigina, clonazepam, alprazolam, lorazepam, metilfenidato. Se ajusta la dosis y se pauta control en 15 días.";
 
+// Para nutricionistas: antropometría, anamnesis alimentaria y planes.
+const PROMPT_NUTRICION =
+  "Consulta de nutrición en español. Peso actual 82,4 kilos, talla 1,65, IMC 30,3, circunferencia de cintura 98 centímetros. Realiza cuatro comidas, saltea el desayuno, picotea a la tarde, consume gaseosas y ultraprocesados, poca fruta y verdura, dos litros de agua. Recordatorio de 24 horas: mate con galletitas, milanesa con puré, yogur, fideos. Sedentarismo, camina 30 minutos tres veces por semana. Celiaquía, dieta sin TACC, intolerancia a la lactosa, resistencia a la insulina, hígado graso, dislipemia. Plan hipocalórico de 1500 kilocalorías, plato saludable, proteínas, hidratos de carbono, grasas, fibra, porciones. Control en 15 días.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  NUTRICION: PROMPT_NUTRICION,
   PSIQUIATRICA: PROMPT_PSIQUIATRIA,
   GINECOLOGICA: PROMPT_GINECOLOGIA,
   MEDICA: PROMPT_CLINICO,

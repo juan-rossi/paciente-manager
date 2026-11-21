@@ -28,6 +28,13 @@ describe("grupoEspecialidad", () => {
     expect(usaExamenFisico("PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE")).toBe(false);
   });
 
+  it("nutrición es su propio grupo, con evaluación nutricional en vez de examen físico", () => {
+    expect(grupoEspecialidad("NUTRICION")).toBe("NUTRICION");
+    expect(usaExamenFisico("NUTRICION")).toBe(false);
+    expect(especialidadesParaTitulo("LIC").map((o) => o.value)).toContain("NUTRICION");
+    expect(especialidadesParaTitulo("DR").map((o) => o.value)).toContain("NUTRICION");
+  });
+
   it("psicólogos y psiquiatras dictan hasta una hora; el resto, 10 minutos", () => {
     expect(limitesDictado("PSICOLOGIA").maxGrabacionSegundos).toBe(60 * 60);
     expect(limitesDictado("PSIQUIATRIA").maxGrabacionSegundos).toBe(60 * 60);

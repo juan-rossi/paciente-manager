@@ -5,6 +5,7 @@ import {
   alertasOdontologicas,
   antecedenteAplicaAlSexo,
   ayudasDiagnostico,
+  datosEvaluacionNutricional,
   datosGinecoObstetricos,
   esSaludMental,
   EXAMEN_PSIQUICO,
@@ -46,6 +47,7 @@ describe("antecedentesPara", () => {
       "PEDIATRICA",
       "GINECOLOGICA",
       "PSIQUIATRICA",
+      "NUTRICION",
       "PSICOLOGIA",
       "ODONTOLOGICA",
       "FONOAUDIOLOGIA",
@@ -159,6 +161,35 @@ describe("psiquiatría", () => {
   it("los reusados mantienen su etiqueta de siempre", () => {
     expect(ANTECEDENTE_LABELS.get("CARDIOPATIAS")).toBe("Cardiopatías");
     expect(ANTECEDENTE_LABELS.get("MEDICACION_PSIQUIATRICA")).toBe("Medicación psiquiátrica");
+  });
+});
+
+describe("nutrición", () => {
+  it("avisa celiaquía, alergias alimentarias y TCA", () => {
+    expect(
+      alertasClinicas("NUTRICION", [
+        { tipo: "ENFERMEDAD_CELIACA", respuesta: true },
+        { tipo: "ALERGIA", respuesta: true, descripcion: "maní" },
+        { tipo: "TRASTORNOS_CONDUCTA_ALIMENTARIA", respuesta: true },
+        { tipo: "DIABETES", respuesta: true },
+      ])
+    ).toEqual(["Celiaquía", "Alergia alimentaria (maní)", "Trastorno de la conducta alimentaria"]);
+  });
+
+  it("la evaluación lista lo cargado con el IMC calculado", () => {
+    expect(
+      datosEvaluacionNutricional({ pesoActual: "82,4", estatura: "1,65", circunferenciaCintura: "98" }, false)
+    ).toEqual([
+      { label: "Peso", value: "82,4" },
+      { label: "Estatura", value: "1,65" },
+      { label: "IMC", value: "30,3 (Obesidad grado I)" },
+      { label: "Circunferencia de cintura", value: "98" },
+    ]);
+  });
+
+  it("los reusados mantienen su etiqueta de siempre", () => {
+    expect(ANTECEDENTE_LABELS.get("DIABETES")).toBe("Diabetes");
+    expect(ANTECEDENTE_LABELS.get("ANTECEDENTES_FAMILIARES")).toBe("Enfermedades familiares relevantes");
   });
 });
 

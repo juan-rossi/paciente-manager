@@ -76,6 +76,15 @@ export type PatientFormValues = {
   epSuenoApetito: string;
   epJuicio: string;
 
+  // Solo historia clínica de nutrición (ver esNutricion()).
+  circunferenciaCintura: string;
+  circunferenciaCadera: string;
+  porcentajeGrasa: string;
+  pesoObjetivo: string;
+  actividadFisica: string;
+  habitosAlimentarios: string;
+  recordatorio24h: string;
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca: string;
   pulsoRadial: string;
