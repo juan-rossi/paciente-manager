@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Apple,
+  ScanSearch,
   Brain,
   ChevronLeft,
   ChevronRight,
@@ -34,6 +35,8 @@ import { ExamenFisicoTab } from "./examen-fisico-tab";
 import { DiagnosticoTab } from "./diagnostico-tab";
 import { ExamenPsiquicoTab } from "./examen-psiquico-tab";
 import { EvaluacionNutricionalTab } from "./evaluacion-nutricional-tab";
+import { ExamenEspecialidadTab } from "./examen-especialidad-tab";
+import { examenEspecialidad } from "./examenes-especialidad";
 import { EvolucionTab } from "./evolucion-tab";
 import { HistorialPracticasTab } from "./historial-practicas-tab";
 import {
@@ -168,6 +171,8 @@ export function PatientForm({
   const examenPsiquicoHabilitado = grupo === "PSIQUIATRICA";
   // Nutrición: evaluación nutricional en lugar del examen físico.
   const evaluacionNutricionalHabilitada = grupo === "NUTRICION";
+  // Oftalmología, ORL y dermatología: su examen de órgano en lugar del físico.
+  const examenOrgano = examenEspecialidad(grupo);
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
     initialValues ?? emptyPatientFormValues(grupo)
@@ -356,6 +361,12 @@ export function PatientForm({
               Evaluación Nutricional
             </TabsTrigger>
           )}
+          {examenOrgano && (
+            <TabsTrigger value="examen-organo">
+              <ScanSearch className="size-4" />
+              {examenOrgano.titulo}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="diagnostico">
             <ClipboardCheck className="size-4" />
             Diagnóstico
@@ -429,6 +440,15 @@ export function PatientForm({
               Evaluación Nutricional
             </TabsTrigger>
           )}
+          {examenOrgano && (
+            <TabsTrigger
+              value="examen-organo"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <ScanSearch className="size-[18px]" />
+              {examenOrgano.titulo}
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="diagnostico"
             className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
@@ -500,6 +520,11 @@ export function PatientForm({
             {examenPsiquicoHabilitado && (
               <TabsContent value="examen-psiquico">
                 <ExamenPsiquicoTab values={values} onChange={handleChange} />
+              </TabsContent>
+            )}
+            {examenOrgano && (
+              <TabsContent value="examen-organo">
+                <ExamenEspecialidadTab examen={examenOrgano} values={values} onChange={handleChange} />
               </TabsContent>
             )}
             {evaluacionNutricionalHabilitada && (

@@ -169,6 +169,44 @@ ${REGLAS_NUTRICION}`,
 ${REGLAS_NUTRICION}`,
 };
 
+// Oftalmología, ORL y dermatología: las reglas médicas comunes, con lo que
+// cada examen tiene que conservar exacto.
+const REGLAS_OFTALMOLOGIA = `${REGLAS_COMUNES}
+- Conservá exactos, ojo por ojo (OD / OI), la agudeza visual, la refracción (esfera, cilindro, eje), la presión intraocular y la relación excavación/papila.`;
+
+const REGLAS_ORL = `${REGLAS_COMUNES}
+- Conservá exacto de qué lado es cada hallazgo (oído o fosa nasal derecha o izquierda), los resultados de Weber y Rinne, los umbrales de audiometría y el grado de las amígdalas.`;
+
+const REGLAS_DERMATOLOGIA = `${REGLAS_COMUNES}
+- Conservá exactos la lesión elemental, la localización, el tamaño, el color, los bordes y los hallazgos de la dermatoscopía, tal como los describe el dermatólogo.`;
+
+const SYSTEM_PROMPTS_OFTALMOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas oftalmológicas. Vas a recibir la transcripción de un dictado de un oftalmólogo sobre la enfermedad actual de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: qué ojo, inicio y evolución de los síntomas visuales, dolor, ojo rojo, antecedentes oculares y tratamientos que usó.
+
+${REGLAS_OFTALMOLOGIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas oftalmológicas. Vas a recibir la transcripción de un dictado de un oftalmólogo sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, agudeza visual, refracción, presión intraocular, biomicroscopía, fondo de ojo, diagnóstico, indicaciones (gotas, anteojos, estudios) y próximo control.
+
+${REGLAS_OFTALMOLOGIA}`,
+};
+
+const SYSTEM_PROMPTS_ORL: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas otorrinolaringológicas. Vas a recibir la transcripción de un dictado de un otorrinolaringólogo sobre la enfermedad actual de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: lado, inicio y evolución de los síntomas (oído, nariz, garganta, voz, equilibrio), episodios previos y tratamientos que recibió.
+
+${REGLAS_ORL}`,
+  evolucion: `Sos un asistente que redacta historias clínicas otorrinolaringológicas. Vas a recibir la transcripción de un dictado de un otorrinolaringólogo sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, otoscopía, acumetría y audiometría, rinoscopía, orofaringe, laringoscopía, cuello, diagnóstico, indicaciones y próximo control.
+
+${REGLAS_ORL}`,
+};
+
+const SYSTEM_PROMPTS_DERMATOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas dermatológicas. Vas a recibir la transcripción de un dictado de un dermatólogo sobre la enfermedad actual de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: desde cuándo, dónde empezó y cómo se extendió, síntomas (prurito, dolor, sangrado), cambios de la lesión, desencadenantes y tratamientos que usó.
+
+${REGLAS_DERMATOLOGIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas dermatológicas. Vas a recibir la transcripción de un dictado de un dermatólogo sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, lesiones (tipo, localización, descripción), dermatoscopía, respuesta al tratamiento, diagnóstico, indicaciones (tópicos, sistémicos, biopsia, fotoprotección) y próximo control.
+
+${REGLAS_DERMATOLOGIA}`,
+};
+
 const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GrupoEspecialidad,
   Record<z.infer<typeof resumirInput>["tipo"], string>
@@ -178,6 +216,9 @@ const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GINECOLOGICA: SYSTEM_PROMPTS_GINECOLOGIA,
   PSIQUIATRICA: SYSTEM_PROMPTS_PSIQUIATRIA,
   NUTRICION: SYSTEM_PROMPTS_NUTRICION,
+  OFTALMOLOGICA: SYSTEM_PROMPTS_OFTALMOLOGIA,
+  ORL: SYSTEM_PROMPTS_ORL,
+  DERMATOLOGICA: SYSTEM_PROMPTS_DERMATOLOGIA,
   ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
   PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
   FONOAUDIOLOGIA: SYSTEM_PROMPTS_FONOAUDIOLOGIA,

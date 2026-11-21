@@ -16,6 +16,8 @@ import {
   CAMPOS_CONTROL,
   compararControles,
   controlFromDb,
+  formatCambio,
+  formatIndicador,
   formatValor,
   indicadoresPara,
   parseValor,
@@ -81,9 +83,7 @@ function columnaContexto(
 }
 
 function valorIndicador(indicador: Indicador, c: ControlValue): string | null {
-  const partes = indicador.campos.map((campo) => (c[campo] == null ? null : formatValor(campo, c[campo]!)));
-  if (partes.every((p) => p == null)) return null;
-  return partes.map((p) => p ?? "–").join("/");
+  return formatIndicador(indicador, c);
 }
 
 type Formulario = { fecha: string; nota: string } & Record<CampoControl, string>;
@@ -236,10 +236,7 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
             const ultimo = conValor[conValor.length - 1];
             const anterior = conValor.length > 1 ? conValor[conValor.length - 2] : null;
             const principal = indicador.campos[0];
-            const delta =
-              anterior && ultimo[principal] != null && anterior[principal] != null
-                ? ultimo[principal]! - anterior[principal]!
-                : null;
+            const cambio = anterior ? formatCambio(indicador, ultimo, anterior) : null;
             return (
               <div
                 key={indicador.id}
@@ -253,13 +250,13 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
                         <svg width="14" height="4" aria-hidden>
                           <line x1="0" x2="14" y1="2" y2="2" stroke="var(--primary)" strokeWidth="2" />
                         </svg>
-                        Máx
+                        {CAMPO_CONTROL_INFO[indicador.campos[0]].corto}
                       </span>
                       <span className="flex items-center gap-1">
                         <svg width="14" height="4" aria-hidden>
                           <line x1="0" x2="14" y1="2" y2="2" stroke="var(--primary)" strokeWidth="2" strokeDasharray="4 3" />
                         </svg>
-                        Mín
+                        {CAMPO_CONTROL_INFO[indicador.campos[1]].corto}
                       </span>
                     </span>
                   )}
@@ -267,10 +264,9 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-xl font-semibold tabular-nums">{valorIndicador(indicador, ultimo)}</span>
                   <span className="text-sm text-muted-foreground">{indicador.unidad}</span>
-                  {delta != null && delta !== 0 && (
+                  {cambio && (
                     <span className="text-xs text-muted-foreground tabular-nums">
-                      {delta > 0 ? "+" : "−"}
-                      {formatValor(principal, Math.abs(delta))}{" "}
+                      {cambio}{" "}
                       {anterior!.fecha === ultimo.fecha
                         ? "respecto del control anterior"
                         : `desde el ${formatFechaCorta(anterior!.fecha)}`}

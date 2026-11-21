@@ -35,6 +35,16 @@ describe("grupoEspecialidad", () => {
     expect(especialidadesParaTitulo("DR").map((o) => o.value)).toContain("NUTRICION");
   });
 
+  it("oftalmología, ORL y dermatología usan su examen de órgano", () => {
+    expect(grupoEspecialidad("OFTALMOLOGIA")).toBe("OFTALMOLOGICA");
+    expect(grupoEspecialidad("OTORRINOLARINGOLOGIA")).toBe("ORL");
+    expect(grupoEspecialidad("DERMATOLOGIA")).toBe("DERMATOLOGICA");
+    for (const e of ["OFTALMOLOGIA", "OTORRINOLARINGOLOGIA", "DERMATOLOGIA"] as const) {
+      expect(usaExamenFisico(e)).toBe(false);
+      expect(especialidadesParaTitulo("DR").map((o) => o.value)).toContain(e);
+    }
+  });
+
   it("psicólogos y psiquiatras dictan hasta una hora; el resto, 10 minutos", () => {
     expect(limitesDictado("PSICOLOGIA").maxGrabacionSegundos).toBe(60 * 60);
     expect(limitesDictado("PSIQUIATRIA").maxGrabacionSegundos).toBe(60 * 60);

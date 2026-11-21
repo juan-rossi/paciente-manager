@@ -50,7 +50,20 @@ const PROMPT_PSIQUIATRIA =
 const PROMPT_NUTRICION =
   "Consulta de nutrición en español. Peso actual 82,4 kilos, talla 1,65, IMC 30,3, circunferencia de cintura 98 centímetros. Realiza cuatro comidas, saltea el desayuno, picotea a la tarde, consume gaseosas y ultraprocesados, poca fruta y verdura, dos litros de agua. Recordatorio de 24 horas: mate con galletitas, milanesa con puré, yogur, fideos. Sedentarismo, camina 30 minutos tres veces por semana. Celiaquía, dieta sin TACC, intolerancia a la lactosa, resistencia a la insulina, hígado graso, dislipemia. Plan hipocalórico de 1500 kilocalorías, plato saludable, proteínas, hidratos de carbono, grasas, fibra, porciones. Control en 15 días.";
 
+// Oftalmología, ORL y dermatología: vocabulario de cada examen de órgano.
+const PROMPT_OFTALMOLOGIA =
+  "Consulta oftalmológica en español. Agudeza visual sin corrección ojo derecho 5/10, ojo izquierdo 8/10, con corrección 10/10 en ambos ojos. Refracción: esfera menos 1,50, cilindro menos 0,75 a 180 grados. Presión intraocular 16 y 18 milímetros de mercurio. Biomicroscopía: córnea transparente, cámara anterior formada, cristalino con catarata nuclear. Fondo de ojo: papila con excavación 0,4, mácula sin alteraciones, retinopatía diabética no proliferativa. Glaucoma, conjuntivitis, ojo seco, blefaritis, chalazión, pterigión, desprendimiento de retina, degeneración macular. Campo visual, OCT, topografía corneal. Timolol, latanoprost, lágrimas artificiales, tobramicina, dexametasona.";
+
+const PROMPT_ORL =
+  "Consulta otorrinolaringológica en español. Otoscopía: conducto auditivo permeable, membrana timpánica íntegra y nacarada, tapón de cerumen, otitis media aguda, otitis externa, perforación timpánica. Weber lateralizado a la derecha, Rinne positivo. Hipoacusia neurosensorial, acúfenos, vértigo posicional paroxístico benigno, maniobra de Epley, nistagmo. Rinoscopía: desviación septal, hipertrofia de cornetes, pólipos nasales, rinosinusitis. Orofaringe: amígdalas grado 3, faringoamigdalitis. Laringoscopía: nódulos en cuerdas vocales, disfonía. Audiometría, impedanciometría, fibroscopía. Amoxicilina clavulánico, mometasona nasal, betahistina.";
+
+const PROMPT_DERMATOLOGIA =
+  "Consulta dermatológica en español. Fototipo III. Placa eritematoescamosa en codos y rodillas, pápulas, pústulas, comedones, máculas hiperpigmentadas, nevo melanocítico, lesión asimétrica de bordes irregulares. Dermatoscopía con retículo pigmentado atípico. Psoriasis, dermatitis atópica, dermatitis seborreica, acné, rosácea, melasma, vitiligo, onicomicosis, carcinoma basocelular, queratosis actínica, melanoma. Biopsia, crioterapia, isotretinoína, clobetasol, tacrolimus, doxiciclina, terbinafina, protector solar FPS 50.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  OFTALMOLOGICA: PROMPT_OFTALMOLOGIA,
+  ORL: PROMPT_ORL,
+  DERMATOLOGICA: PROMPT_DERMATOLOGIA,
   NUTRICION: PROMPT_NUTRICION,
   PSIQUIATRICA: PROMPT_PSIQUIATRIA,
   GINECOLOGICA: PROMPT_GINECOLOGIA,

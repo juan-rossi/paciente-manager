@@ -243,8 +243,89 @@ export const ANTECEDENTES_NUTRICION_ORDEN = [
   ...ANTECEDENTES_NUTRICION_COLUMNA_2,
 ];
 
+// Oftalmología (ver esOftalmologica()): lo que pesa en el ojo, incluidos el
+// glaucoma familiar y los corticoides (cataratas, hipertensión ocular).
+export const ANTECEDENTES_OFTALMOLOGIA_COLUMNA_1 = [
+  { tipo: "USO_ANTEOJOS_LENTES", label: "Usa anteojos o lentes de contacto" },
+  { tipo: "GLAUCOMA", label: "Glaucoma o hipertensión ocular" },
+  { tipo: "CIRUGIA_OCULAR", label: "Cirugías oculares (cataratas, refractiva, láser)" },
+  { tipo: "TRAUMATISMO_OCULAR", label: "Traumatismos oculares" },
+  { tipo: "GLAUCOMA_FAMILIAR", label: "Glaucoma o ceguera en la familia" },
+] as const;
+
+export const ANTECEDENTES_OFTALMOLOGIA_COLUMNA_2 = [
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "HTA", label: "Hipertensión" },
+  { tipo: "ENFERMEDADES_AUTOINMUNES", label: "Enfermedades autoinmunes" },
+  { tipo: "CORTICOIDES", label: "Uso de corticoides" },
+  { tipo: "ALERGIA", label: "Alergias" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+// ORL (ver esOtorrinolaringologica()).
+export const ANTECEDENTES_ORL_COLUMNA_1 = [
+  { tipo: "OTITIS_REPETICION", label: "Otitis a repetición" },
+  { tipo: "HIPOACUSIA", label: "Hipoacusia" },
+  { tipo: "ACUFENOS", label: "Acúfenos" },
+  { tipo: "VERTIGO", label: "Vértigo o mareos" },
+  { tipo: "RINOSINUSITIS_CRONICA", label: "Rinitis o sinusitis crónica" },
+  { tipo: "RONQUIDO_APNEAS", label: "Ronquidos o apneas del sueño" },
+] as const;
+
+export const ANTECEDENTES_ORL_COLUMNA_2 = [
+  { tipo: "CIRUGIAS_ORL", label: "Cirugías ORL (amígdalas, adenoides, tubos, nariz)" },
+  { tipo: "EXPOSICION_RUIDO", label: "Exposición a ruido" },
+  { tipo: "USO_PROFESIONAL_VOZ", label: "Uso profesional de la voz" },
+  { tipo: "ANTICOAGULANTES", label: "Anticoagulantes o antiagregantes" },
+  { tipo: "ALERGIA", label: "Alergias" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+// Dermatología (ver esDermatologica()). Embarazo e inmunosupresión importan
+// para indicar retinoides, inmunosupresores o biológicos.
+export const ANTECEDENTES_DERMATOLOGIA_COLUMNA_1 = [
+  { tipo: "DERMATITIS_ATOPICA", label: "Dermatitis atópica" },
+  { tipo: "PSORIASIS", label: "Psoriasis" },
+  { tipo: "EXPOSICION_SOLAR", label: "Exposición solar intensa o quemaduras solares" },
+  { tipo: "CANCER_PIEL", label: "Cáncer de piel propio o familiar" },
+  { tipo: "TRATAMIENTOS_DERMATOLOGICOS_PREVIOS", label: "Tratamientos dermatológicos previos" },
+] as const;
+
+export const ANTECEDENTES_DERMATOLOGIA_COLUMNA_2 = [
+  { tipo: "ENFERMEDADES_AUTOINMUNES", label: "Enfermedades autoinmunes" },
+  { tipo: "INMUNOSUPRESION", label: "Inmunosupresión o trasplante" },
+  { tipo: "EMBARAZO", label: "Embarazo o lactancia" },
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "ALERGIA", label: "Alergias (medicamentos, contacto)" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_OFTALMOLOGIA_ORDEN = [
+  ...ANTECEDENTES_OFTALMOLOGIA_COLUMNA_1,
+  ...ANTECEDENTES_OFTALMOLOGIA_COLUMNA_2,
+];
+export const ANTECEDENTES_ORL_ORDEN = [...ANTECEDENTES_ORL_COLUMNA_1, ...ANTECEDENTES_ORL_COLUMNA_2];
+export const ANTECEDENTES_DERMATOLOGIA_ORDEN = [
+  ...ANTECEDENTES_DERMATOLOGIA_COLUMNA_1,
+  ...ANTECEDENTES_DERMATOLOGIA_COLUMNA_2,
+];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "OFTALMOLOGICA":
+      return {
+        columna1: ANTECEDENTES_OFTALMOLOGIA_COLUMNA_1,
+        columna2: ANTECEDENTES_OFTALMOLOGIA_COLUMNA_2,
+        orden: ANTECEDENTES_OFTALMOLOGIA_ORDEN,
+      };
+    case "ORL":
+      return { columna1: ANTECEDENTES_ORL_COLUMNA_1, columna2: ANTECEDENTES_ORL_COLUMNA_2, orden: ANTECEDENTES_ORL_ORDEN };
+    case "DERMATOLOGICA":
+      return {
+        columna1: ANTECEDENTES_DERMATOLOGIA_COLUMNA_1,
+        columna2: ANTECEDENTES_DERMATOLOGIA_COLUMNA_2,
+        orden: ANTECEDENTES_DERMATOLOGIA_ORDEN,
+      };
     case "NUTRICION":
       return {
         columna1: ANTECEDENTES_NUTRICION_COLUMNA_1,
@@ -341,7 +422,30 @@ export const ANTECEDENTES_CRITICOS_NUTRICION: ReadonlyMap<string, string> = new 
   ["EMBARAZO", "Embarazo o lactancia"],
 ]);
 
+// Oftalmología: glaucoma (contraindica midriáticos y corticoides sin
+// control) y alergias (a colirios).
+export const ANTECEDENTES_CRITICOS_OFTALMOLOGIA: ReadonlyMap<string, string> = new Map([
+  ["GLAUCOMA", "Glaucoma o hipertensión ocular"],
+  ["ALERGIA", "Alergia"],
+]);
+
+// ORL: sangrado en procedimientos y alergias.
+export const ANTECEDENTES_CRITICOS_ORL: ReadonlyMap<string, string> = new Map([
+  ["ANTICOAGULANTES", "Anticoagulado"],
+  ["ALERGIA", "Alergia"],
+]);
+
+// Dermatología: lo que contraindica retinoides, inmunosupresores o biológicos.
+export const ANTECEDENTES_CRITICOS_DERMATOLOGIA: ReadonlyMap<string, string> = new Map([
+  ["EMBARAZO", "Embarazo o lactancia"],
+  ["INMUNOSUPRESION", "Inmunosupresión"],
+  ["ALERGIA", "Alergia"],
+]);
+
 const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
+  OFTALMOLOGICA: ANTECEDENTES_CRITICOS_OFTALMOLOGIA,
+  ORL: ANTECEDENTES_CRITICOS_ORL,
+  DERMATOLOGICA: ANTECEDENTES_CRITICOS_DERMATOLOGIA,
   NUTRICION: ANTECEDENTES_CRITICOS_NUTRICION,
   PSIQUIATRICA: ANTECEDENTES_CRITICOS_PSIQUIATRIA,
   ODONTOLOGICA: ANTECEDENTES_CRITICOS_ODONTOLOGIA,
@@ -398,9 +502,12 @@ export function antecedenteAplicaAlSexo(
 // gana la última (ej. "Hipertensión" en vez de "HTA"); pediatría y
 // fonoaudiología van primeras para que los tipos que reusan sigan con su
 // etiqueta de siempre (ej. NEUROLOGICAS dice "Neurológicas"). Igual con salud
-// de la mujer, psiquiatría y nutrición.
+// de la mujer, psiquiatría, nutrición, oftalmología, ORL y dermatología.
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
   [
+    ...ANTECEDENTES_OFTALMOLOGIA_ORDEN,
+    ...ANTECEDENTES_ORL_ORDEN,
+    ...ANTECEDENTES_DERMATOLOGIA_ORDEN,
     ...ANTECEDENTES_NUTRICION_ORDEN,
     ...ANTECEDENTES_PSIQUIATRIA_ORDEN,
     ...ANTECEDENTES_GINECOLOGIA_ORDEN, ...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
@@ -423,6 +530,42 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
       tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "OFTALMOLOGICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Qué ojo, desde cuándo, cómo empezó (brusco o progresivo), visión borrosa, dolor, ojo rojo, secreción, fotofobia, moscas volantes o destellos, y qué gotas o tratamiento usó.",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios (campo visual, OCT, topografía, ecografía)",
+      tratamiento: "Tratamiento e indicaciones",
+    };
+  }
+  if (grupo === "ORL") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Desde cuándo y de qué lado, características (dolor, secreción, hipoacusia, acúfenos, vértigo, obstrucción nasal, disfonía, disfagia), episodios previos y tratamientos que recibió.",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios (audiometría, impedanciometría, fibroscopía, imágenes)",
+      tratamiento: "Tratamiento e indicaciones",
+    };
+  }
+  if (grupo === "DERMATOLOGICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Desde cuándo, dónde empezó y cómo se extendió, si pica, duele o sangra, cambios de tamaño o color, desencadenantes (sol, contacto, medicamentos) y qué se aplicó o tomó.",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios (biopsia, cultivo, laboratorio)",
+      tratamiento: "Tratamiento e indicaciones",
     };
   }
   if (grupo === "NUTRICION") {

@@ -85,6 +85,38 @@ export type PatientFormValues = {
   habitosAlimentarios: string;
   recordatorio24h: string;
 
+  // Exámenes de órgano (oftalmología, ORL, dermatología).
+  ofAvScOd: string;
+  ofAvScOi: string;
+  ofAvCcOd: string;
+  ofAvCcOi: string;
+  ofRefraccionOd: string;
+  ofRefraccionOi: string;
+  ofPioOd: string;
+  ofPioOi: string;
+  ofBiomicroscopiaOd: string;
+  ofBiomicroscopiaOi: string;
+  ofFondoOjoOd: string;
+  ofFondoOjoOi: string;
+  ofMotilidad: string;
+  ofPupilas: string;
+  orlOtoscopiaOd: string;
+  orlOtoscopiaOi: string;
+  orlRinoscopia: string;
+  orlOrofaringe: string;
+  orlLaringoscopia: string;
+  orlCuello: string;
+  orlAcumetria: string;
+  orlAudiometria: string;
+  orlVestibular: string;
+  dermFototipo: string;
+  dermLesiones: string;
+  dermLocalizacion: string;
+  dermDescripcion: string;
+  dermDermatoscopia: string;
+  dermFaneras: string;
+  dermMucosas: string;
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca: string;
   pulsoRadial: string;

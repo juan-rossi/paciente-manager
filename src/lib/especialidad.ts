@@ -237,17 +237,37 @@ export function esNutricion(especialidad: Especialidad | null | undefined): bool
   return especialidad === "NUTRICION";
 }
 
+// Especialidades con un examen de órgano propio (en lugar del examen físico
+// general): oftalmología, otorrinolaringología y dermatología. Cada una es
+// su propio grupo; ver EXAMENES_ESPECIALIDAD en
+// patient-form/examenes-especialidad.ts.
+export function esOftalmologica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "OFTALMOLOGIA";
+}
+
+export function esOtorrinolaringologica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "OTORRINOLARINGOLOGIA";
+}
+
+export function esDermatologica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "DERMATOLOGIA";
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
 // tienen el odontograma en su lugar, los psiquiatras el examen psíquico, los
-// nutricionistas la evaluación nutricional, y los psicólogos y fonoaudiólogos
-// no lo usan.
+// nutricionistas la evaluación nutricional, oftalmólogos, otorrinos y
+// dermatólogos su examen de órgano, y los psicólogos y fonoaudiólogos no lo
+// usan.
 export function usaExamenFisico(especialidad: Especialidad | null | undefined): boolean {
   return (
     !esOdontologica(especialidad) &&
     !esPsicologia(especialidad) &&
     !esFonoaudiologia(especialidad) &&
     !esPsiquiatrica(especialidad) &&
-    !esNutricion(especialidad)
+    !esNutricion(especialidad) &&
+    !esOftalmologica(especialidad) &&
+    !esOtorrinolaringologica(especialidad) &&
+    !esDermatologica(especialidad)
   );
 }
 
@@ -266,6 +286,9 @@ export type GrupoEspecialidad =
   | "GINECOLOGICA"
   | "PSIQUIATRICA"
   | "NUTRICION"
+  | "OFTALMOLOGICA"
+  | "ORL"
+  | "DERMATOLOGICA"
   | "ODONTOLOGICA"
   | "PSICOLOGIA"
   | "FONOAUDIOLOGIA";
@@ -276,6 +299,9 @@ const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = [
   "GINECOLOGICA",
   "PSIQUIATRICA",
   "NUTRICION",
+  "OFTALMOLOGICA",
+  "ORL",
+  "DERMATOLOGICA",
 ];
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
@@ -286,6 +312,9 @@ function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esGinecologica(especialidad)) return "GINECOLOGICA";
   if (esPsiquiatrica(especialidad)) return "PSIQUIATRICA";
   if (esNutricion(especialidad)) return "NUTRICION";
+  if (esOftalmologica(especialidad)) return "OFTALMOLOGICA";
+  if (esOtorrinolaringologica(especialidad)) return "ORL";
+  if (esDermatologica(especialidad)) return "DERMATOLOGICA";
   return "MEDICA";
 }
 

@@ -247,6 +247,26 @@ enum TipoAntecedente {
   ENFERMEDADES_DIGESTIVAS
   ENFERMEDAD_RENAL
   DIETAS_PREVIAS
+  // Oftalmología, ORL y dermatología (ver patient-form/constants.ts).
+  USO_ANTEOJOS_LENTES
+  GLAUCOMA
+  CIRUGIA_OCULAR
+  TRAUMATISMO_OCULAR
+  GLAUCOMA_FAMILIAR
+  ENFERMEDADES_AUTOINMUNES
+  CORTICOIDES
+  ACUFENOS
+  VERTIGO
+  CIRUGIAS_ORL
+  RINOSINUSITIS_CRONICA
+  RONQUIDO_APNEAS
+  EXPOSICION_RUIDO
+  DERMATITIS_ATOPICA
+  PSORIASIS
+  EXPOSICION_SOLAR
+  CANCER_PIEL
+  INMUNOSUPRESION
+  TRATAMIENTOS_DERMATOLOGICOS_PREVIOS
   OTROS
 }
 
@@ -1023,6 +1043,42 @@ model Patient {
   habitosAlimentarios   String?
   recordatorio24h       String?
 
+  // Exámenes de órgano -- en lugar del examen físico (ver
+  // EXAMENES_ESPECIALIDAD en patient-form/examenes-especialidad.ts).
+  // Oftalmología (Od/Oi = ojo derecho/izquierdo):
+  ofAvScOd             String?
+  ofAvScOi             String?
+  ofAvCcOd             String?
+  ofAvCcOi             String?
+  ofRefraccionOd       String?
+  ofRefraccionOi       String?
+  ofPioOd              String?
+  ofPioOi              String?
+  ofBiomicroscopiaOd   String?
+  ofBiomicroscopiaOi   String?
+  ofFondoOjoOd         String?
+  ofFondoOjoOi         String?
+  ofMotilidad          String?
+  ofPupilas            String?
+  // Otorrinolaringología (Od/Oi = oído derecho/izquierdo):
+  orlOtoscopiaOd       String?
+  orlOtoscopiaOi       String?
+  orlRinoscopia        String?
+  orlOrofaringe        String?
+  orlLaringoscopia     String?
+  orlCuello            String?
+  orlAcumetria         String?
+  orlAudiometria       String?
+  orlVestibular        String?
+  // Dermatología:
+  dermFototipo         String?
+  dermLesiones         String?
+  dermLocalizacion     String?
+  dermDescripcion      String?
+  dermDermatoscopia    String?
+  dermFaneras          String?
+  dermMucosas          String?
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?
   pulsoRadial            String?
@@ -1170,6 +1226,8 @@ model PatientControl {
   litemia                 Float?
   alturaUterina           Float?
   frecuenciaCardiacaFetal Float?
+  pioOd                   Float?
+  pioOi                   Float?
 
   nota      String?
   createdAt DateTime  @default(now())

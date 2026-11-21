@@ -86,6 +86,47 @@ const DETALLE_PSIQUIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   ALERGIA: "A qué y qué reacción",
 };
 
+// Oftalmología, ORL y dermatología: qué conviene anotar en el detalle.
+const DETALLE_OFTALMOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  USO_ANTEOJOS_LENTES: "Para lejos, cerca o ambos; desde cuándo",
+  GLAUCOMA: "Qué ojo, gotas que usa y quién lo sigue",
+  CIRUGIA_OCULAR: "Cuál, qué ojo y año",
+  TRAUMATISMO_OCULAR: "Qué pasó, qué ojo y cuándo",
+  GLAUCOMA_FAMILIAR: "Familiar y enfermedad",
+  DIABETES: "Tipo, desde cuándo y último control de fondo de ojo",
+  HTA: "Medicación",
+  ENFERMEDADES_AUTOINMUNES: "Cuál y tratamiento",
+  CORTICOIDES: "Cuál, vía (gotas, oral, inhalada) y desde cuándo",
+  ALERGIA: "A qué (colirios, medicamentos) y qué reacción",
+};
+
+const DETALLE_ORL: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  OTITIS_REPETICION: "Cuántas por año y tratamiento (tubos, cirugía)",
+  HIPOACUSIA: "Qué oído, desde cuándo y si usa audífono",
+  ACUFENOS: "Qué oído, continuo o pulsátil, desde cuándo",
+  VERTIGO: "Cuánto dura, qué lo desencadena, si gira todo",
+  RINOSINUSITIS_CRONICA: "Síntomas, tratamientos y si es alérgica",
+  RONQUIDO_APNEAS: "Pausas al dormir, somnolencia, estudios del sueño",
+  CIRUGIAS_ORL: "Cuál y año",
+  EXPOSICION_RUIDO: "Trabajo o actividad, años y si usa protección",
+  USO_PROFESIONAL_VOZ: "Profesión y horas de uso por día",
+  ANTICOAGULANTES: "Droga y dosis",
+  ALERGIA: "A qué y qué reacción",
+};
+
+const DETALLE_DERMATOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  DERMATITIS_ATOPICA: "Desde cuándo, zonas y tratamientos",
+  PSORIASIS: "Tipo, extensión y tratamientos",
+  EXPOSICION_SOLAR: "Trabajo al aire libre, quemaduras con ampollas, camas solares",
+  CANCER_PIEL: "Tipo (melanoma, basocelular...), quién y cuándo",
+  TRATAMIENTOS_DERMATOLOGICOS_PREVIOS: "Isotretinoína, biológicos, fototerapia...",
+  ENFERMEDADES_AUTOINMUNES: "Cuál y tratamiento",
+  INMUNOSUPRESION: "Causa y medicación",
+  EMBARAZO: "Semanas de gestación o meses de lactancia",
+  DIABETES: "Tipo y medicación",
+  ALERGIA: "A qué (medicamentos, metales, cosméticos) y qué reacción",
+};
+
 // Nutrición: qué conviene anotar en el detalle de cada antecedente.
 const DETALLE_NUTRICION: Partial<Record<AntecedenteValue["tipo"], string>> = {
   DIABETES: "Tipo, medicación (insulina, metformina) y último valor",
@@ -161,6 +202,12 @@ function AntecedenteRow({
           ? DETALLE_PSIQUIATRIA
           : grupo === "NUTRICION"
           ? DETALLE_NUTRICION
+          : grupo === "OFTALMOLOGICA"
+          ? DETALLE_OFTALMOLOGIA
+          : grupo === "ORL"
+          ? DETALLE_ORL
+          : grupo === "DERMATOLOGICA"
+          ? DETALLE_DERMATOLOGIA
           : grupo === "PEDIATRICA"
           ? DETALLE_PEDIATRIA
           : grupo === "GINECOLOGICA"

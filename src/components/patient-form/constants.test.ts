@@ -48,6 +48,9 @@ describe("antecedentesPara", () => {
       "GINECOLOGICA",
       "PSIQUIATRICA",
       "NUTRICION",
+      "OFTALMOLOGICA",
+      "ORL",
+      "DERMATOLOGICA",
       "PSICOLOGIA",
       "ODONTOLOGICA",
       "FONOAUDIOLOGIA",
@@ -190,6 +193,16 @@ describe("nutrición", () => {
   it("los reusados mantienen su etiqueta de siempre", () => {
     expect(ANTECEDENTE_LABELS.get("DIABETES")).toBe("Diabetes");
     expect(ANTECEDENTE_LABELS.get("ANTECEDENTES_FAMILIARES")).toBe("Enfermedades familiares relevantes");
+  });
+});
+
+describe("exámenes de órgano", () => {
+  it("cada uno avisa lo suyo", () => {
+    expect(alertasClinicas("OFTALMOLOGICA", [{ tipo: "GLAUCOMA", respuesta: true, descripcion: "OD" }])).toEqual([
+      "Glaucoma o hipertensión ocular (OD)",
+    ]);
+    expect(alertasClinicas("ORL", [{ tipo: "ANTICOAGULANTES", respuesta: true }])).toEqual(["Anticoagulado"]);
+    expect(alertasClinicas("DERMATOLOGICA", [{ tipo: "EMBARAZO", respuesta: true }])).toEqual(["Embarazo o lactancia"]);
   });
 });
 

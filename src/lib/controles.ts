@@ -20,6 +20,8 @@ export const CAMPOS_CONTROL = [
   "litemia",
   "alturaUterina",
   "frecuenciaCardiacaFetal",
+  "pioOd",
+  "pioOi",
 ] as const;
 
 export type CampoControl = (typeof CAMPOS_CONTROL)[number];
@@ -43,6 +45,8 @@ export const CAMPO_CONTROL_INFO: Record<
   litemia: { label: "Litemia", corto: "Litemia", min: 0.01, max: 5, decimales: 2 },
   alturaUterina: { label: "Altura uterina", corto: "AU", min: 5, max: 50, decimales: 0 },
   frecuenciaCardiacaFetal: { label: "Latidos fetales", corto: "FCF", min: 60, max: 240, decimales: 0 },
+  pioOd: { label: "Presión intraocular OD", corto: "OD", min: 1, max: 80, decimales: 0 },
+  pioOi: { label: "Presión intraocular OI", corto: "OI", min: 1, max: 80, decimales: 0 },
 };
 
 export type Indicador = {
@@ -51,6 +55,10 @@ export type Indicador = {
   // Para encabezados angostos (la tabla de controles de la ficha).
   corto: string;
   unidad: string;
+  // Con dos campos: "barra" los escribe como la presión arterial ("120/80");
+  // si no, cada uno con su nombre ("OD 16 · OI 18"), porque en la PIO "9/10"
+  // se confunde con una agudeza visual.
+  formato?: "barra";
   campos: readonly CampoControl[];
 };
 
@@ -76,6 +84,7 @@ const INDICADORES = {
     label: "Presión arterial",
     unidad: "mmHg",
     campos: ["presionSistolica", "presionDiastolica"],
+    formato: "barra",
   },
   frecuenciaCardiaca: {
     id: "frecuenciaCardiaca",
@@ -99,6 +108,13 @@ const INDICADORES = {
     unidad: "lpm",
     campos: ["frecuenciaCardiacaFetal"],
   },
+  pio: {
+    id: "pio",
+    corto: "PIO",
+    label: "Presión intraocular",
+    unidad: "mmHg",
+    campos: ["pioOd", "pioOi"],
+  },
 } as const satisfies Record<string, Indicador>;
 
 // Qué sigue cada grupo en el tiempo. Los grupos sin indicadores no muestran
@@ -116,6 +132,8 @@ export function indicadoresPara(grupo: GrupoEspecialidad): readonly Indicador[] 
       return [i.peso, i.presion, i.cintura, i.litemia];
     case "NUTRICION":
       return [i.peso, i.cintura, i.porcentajeGrasa];
+    case "OFTALMOLOGICA":
+      return [i.pio];
     default:
       return [];
   }
@@ -129,6 +147,35 @@ export function camposPara(grupo: GrupoEspecialidad): CampoControl[] {
 export function formatValor(campo: CampoControl, valor: number): string {
   const decimales = CAMPO_CONTROL_INFO[campo].decimales;
   return valor.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: decimales });
+}
+
+type ValoresControl = Partial<Record<CampoControl, number | null>>;
+
+// El valor de un indicador en un control, listo para mostrar: "72,5",
+// "120/80" o "OD 16 · OI 18". Null si el control no lo tiene.
+export function formatIndicador(indicador: Indicador, c: ValoresControl): string | null {
+  const valores = indicador.campos.map((campo) => (c[campo] == null ? null : formatValor(campo, c[campo]!)));
+  if (valores.every((v) => v == null)) return null;
+  if (indicador.campos.length === 1) return valores[0];
+  if (indicador.formato === "barra") return valores.map((v) => v ?? "–").join("/");
+  return indicador.campos
+    .map((campo, k) => (valores[k] == null ? null : `${CAMPO_CONTROL_INFO[campo].corto} ${valores[k]}`))
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// Cuánto cambió cada campo del indicador desde el control anterior: "+1",
+// o con dos campos "OD +1 · OI +3" (los que no cambiaron no se nombran).
+// Null si no hay nada que comparar o nada cambió.
+export function formatCambio(indicador: Indicador, ultimo: ValoresControl, anterior: ValoresControl): string | null {
+  const partes = indicador.campos.flatMap((campo) => {
+    const a = ultimo[campo];
+    const b = anterior[campo];
+    if (a == null || b == null || a === b) return [];
+    const delta = `${a > b ? "+" : "−"}${formatValor(campo, Math.abs(a - b))}`;
+    return [indicador.campos.length > 1 ? `${CAMPO_CONTROL_INFO[campo].corto} ${delta}` : delta];
+  });
+  return partes.length > 0 ? partes.join(" · ") : null;
 }
 
 // Lo que tipea el médico ("72,5") -> número, o null si está vacío. NaN si no

@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { edadLegible, esMenorDeEdad } from "@/components/patient-form/utils";
-import { formatValor, indicadoresPara } from "@/lib/controles";
+import { formatIndicador, indicadoresPara } from "@/lib/controles";
+import { datosExamen, EXAMENES_ESPECIALIDAD } from "@/components/patient-form/examenes-especialidad";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
   ANTECEDENTE_LABELS,
@@ -341,6 +342,10 @@ export default async function HistoriaClinicaPage({ params }: Props) {
           ]}
         />
 
+        {EXAMENES_ESPECIALIDAD.map((examen) => (
+          <Seccion key={examen.titulo} titulo={examen.titulo} fields={datosExamen(examen, patient)} />
+        ))}
+
         <Seccion
           titulo="Examen psíquico"
           fields={EXAMEN_PSIQUICO.map((e) => ({ label: e.label, value: patient[e.campo] }))}
@@ -449,9 +454,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
                     <td className="py-1 pr-3 whitespace-nowrap">{formatFecha(c.fecha)}</td>
                     {indicadoresControl.map((i) => (
                       <td key={i.id} className="py-1 pr-3 tabular-nums">
-                        {i.campos.some((campo) => c[campo] != null)
-                          ? i.campos.map((campo) => (c[campo] == null ? "–" : formatValor(campo, c[campo]!))).join("/")
-                          : ""}
+                        {formatIndicador(i, c) ?? ""}
                       </td>
                     ))}
                     <td className="py-1">{c.nota}</td>
