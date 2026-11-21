@@ -21,7 +21,15 @@ export type FilaBilateral = {
   largo?: boolean;
 };
 
-export type CampoExamen = { label: string; ayuda?: string; campo: CampoTexto; largo?: boolean };
+export type CampoExamen = {
+  label: string;
+  ayuda?: string;
+  campo: CampoTexto;
+  largo?: boolean;
+  // Texto largo que ocupa una sola columna (de a dos por fila) en vez del
+  // ancho completo.
+  mitad?: boolean;
+};
 
 export type SeccionExamen = {
   titulo: string;
@@ -97,8 +105,20 @@ const ORL: ExamenEspecialidad = {
       ],
       campos: [
         { label: "Acumetría", ayuda: "Weber y Rinne", campo: "orlAcumetria" },
-        { label: "Audiometría", ayuda: "Tipo y grado de hipoacusia, umbrales, logoaudiometría", campo: "orlAudiometria", largo: true },
-        { label: "Equilibrio", ayuda: "Nistagmo, Romberg, pruebas vestibulares", campo: "orlVestibular", largo: true },
+        {
+          label: "Audiometría",
+          ayuda: "Tipo y grado de hipoacusia, umbrales, logoaudiometría",
+          campo: "orlAudiometria",
+          largo: true,
+          mitad: true,
+        },
+        {
+          label: "Equilibrio",
+          ayuda: "Nistagmo, Romberg, pruebas vestibulares",
+          campo: "orlVestibular",
+          largo: true,
+          mitad: true,
+        },
       ],
     },
     {

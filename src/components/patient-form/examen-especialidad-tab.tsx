@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FormSection, TextAreaField, TextField } from "./fields";
-import type { ExamenEspecialidad, FilaBilateral } from "./examenes-especialidad";
+import type { CampoExamen, ExamenEspecialidad, FilaBilateral } from "./examenes-especialidad";
 import type { PatientFormValues } from "./types";
 
 type Props = {
@@ -16,6 +16,13 @@ const ICONOS: Record<string, LucideIcon> = {
   "Examen oftalmológico": Eye,
   "Examen otorrinolaringológico": Ear,
 };
+
+// Cuántos campos "mitad" seguidos hay justo antes de `idx` (para armar pares).
+function mitadesSeguidas(campos: readonly CampoExamen[], idx: number): number {
+  let n = 0;
+  for (let k = idx - 1; k >= 0 && campos[k].largo && campos[k].mitad; k--) n++;
+  return n;
+}
 
 // Examen de órgano (oftalmología, ORL, dermatología) en lugar del examen
 // físico general. Las filas bilaterales se cargan lado a lado (OD | OI).
@@ -61,9 +68,21 @@ export function ExamenEspecialidadTab({ examen, values, onChange }: Props) {
           contentClassName="sm:grid-cols-2 lg:grid-cols-2"
         >
           {seccion.bilaterales?.map((fila) => bilateral(fila, seccion.lados ?? ["D", "I"]))}
-          {seccion.campos?.map((c) =>
+          {seccion.campos?.map((c, idx, campos) =>
             c.largo ? (
-              <div key={c.campo} className="col-span-full">
+              <div
+                key={c.campo}
+                className={
+                  !c.mitad
+                    ? "col-span-full"
+                    : // El primero de cada par de "mitad" arranca fila nueva,
+                      // así los dos quedan juntos aunque antes haya un campo
+                      // corto ocupando media fila.
+                      mitadesSeguidas(campos, idx) % 2 === 0
+                      ? "sm:col-start-1"
+                      : undefined
+                }
+              >
                 <TextAreaField
                   label={c.label}
                   helpText={c.ayuda}
