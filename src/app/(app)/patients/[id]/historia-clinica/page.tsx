@@ -21,6 +21,7 @@ import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import { PrintButton } from "@/components/print-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageEnter } from "@/components/page-transition";
+import { TextoConFormato } from "@/components/patient-form/texto-con-formato";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -369,7 +370,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
                       .join(" · ")}
                   </p>
                   {/* El riesgo y las notas privadas del psicólogo no van en la copia. */}
-                  {e.contenido && <p className="whitespace-pre-wrap">{e.contenido}</p>}
+                  {e.contenido && <TextoConFormato texto={e.contenido} />}
                   <div className="mt-1 print:hidden">
                     <DictadoCompleto dictado={e.contenidoDictado} />
                   </div>

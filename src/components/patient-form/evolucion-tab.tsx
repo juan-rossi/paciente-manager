@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { textoPlano } from "@/lib/evolucion-formato";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -45,6 +46,8 @@ import { TITULO_YA_RESUMIDO, useResumenIA } from "./use-resumen-ia";
 import { DictadoCompleto } from "./dictado-completo";
 import { anexarTexto, formatElapsed, mensajeErrorDictado } from "./dictado-utils";
 import { DateInput } from "./date-input";
+import { EditorConFormato } from "./editor-con-formato";
+import { TextoConFormato } from "./texto-con-formato";
 import { formatDateParamBA } from "@/lib/timezone";
 
 // Selector de una opción entre pocas (asistencia, modalidad, riesgo), a la
@@ -161,7 +164,7 @@ export function EvolucionTab({
   psicologia = false,
 }: Props) {
   const voc = vocabularioEvolucion(psicologia);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [fecha, setFecha] = useState(todayLocal());
@@ -190,7 +193,7 @@ export function EvolucionTab({
   const numeros = psicologia ? numerarSesiones(evoluciones) : null;
   // Sin notas solo se puede guardar una sesión a la que no vino.
   const asistio = !psicologia || asistencia === "PRESENTE";
-  const puedeGuardar = contenido.trim().length > 0 || !asistio;
+  const puedeGuardar = textoPlano(contenido).trim().length > 0 || !asistio;
   const sesion = psicologia
     ? { asistencia, modalidad, riesgo, notasPrivadas: notasPrivadas.trim() || null }
     : {};
@@ -231,11 +234,14 @@ export function EvolucionTab({
   }
 
   async function resumirDesde(fuente: string) {
-    if (!fuente.trim()) return;
+    // La IA recibe el texto sin marcas de formato, y el resumen vuelve sin
+    // formato. El original queda guardado como dictado, también sin marcas.
+    const plano = textoPlano(fuente);
+    if (!plano.trim()) return;
     const formulario = formularioRef.current;
-    const texto = await resumen.resumir(fuente);
+    const texto = await resumen.resumir(plano);
     if (texto === null || formulario !== formularioRef.current) return;
-    setDictado(fuente);
+    setDictado(plano);
     setContenido(texto);
   }
 
@@ -461,7 +467,7 @@ export function EvolucionTab({
                   </button>
                 </div>
               </div>
-              {entry.contenido && <p className="whitespace-pre-wrap text-sm">{entry.contenido}</p>}
+              {entry.contenido && <TextoConFormato texto={entry.contenido} className="text-sm" />}
               <DictadoCompleto dictado={entry.contenidoDictado} />
               {entry.notasPrivadas && (
                 <div className="flex flex-col gap-1 rounded-md bg-muted/60 p-3">
@@ -506,9 +512,10 @@ export function EvolucionTab({
                       {restoringId === entry.id ? "Restaurando..." : "Restaurar"}
                     </Button>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground line-through">
-                    {entry.contenido}
-                  </p>
+                  <TextoConFormato
+                    texto={entry.contenido}
+                    className="text-sm text-muted-foreground line-through"
+                  />
                 </CardContent>
               </Card>
             ))}
@@ -533,7 +540,7 @@ export function EvolucionTab({
           </Button>
           <DialogContent
             className={psicologia ? "sm:max-w-2xl" : "sm:max-w-xl"}
-            initialFocus={textareaRef}
+            initialFocus={editorRef}
           >
             <DialogHeader>
               <DialogTitle>{isEditing ? voc.editar : voc.nueva}</DialogTitle>
@@ -659,25 +666,30 @@ export function EvolucionTab({
                 )}
                 {(transcription.recordingStatus === "idle" ||
                   transcription.recordingStatus === "error") && (
-                  <Textarea
-                    ref={textareaRef}
-                    rows={10}
-                    // Crece con el texto (field-sizing-content) pero con tope:
-                    // pasado el 50% del alto de pantalla scrollea el textarea,
-                    // así el botón de guardar nunca queda fuera del viewport.
-                    className={cn(
-                      "overflow-y-auto",
-                      psicologia ? "max-h-[35dvh] min-h-[10rem]" : "max-h-[50dvh] min-h-[15rem]"
-                    )}
-                    value={contenido}
-                    onChange={(e) => setContenido(e.target.value)}
-                    disabled={resumen.resumiendo}
-                    placeholder={
-                      transcripcionHabilitada
-                        ? `${voc.placeholder} o presioná «Dictar»...`
-                        : `${voc.placeholder}...`
-                    }
-                  />
+                  <>
+                    <EditorConFormato
+                      ref={editorRef}
+                      aria-label={voc.campo}
+                      // Crece con el texto pero con tope: pasado el 50% del alto
+                      // de pantalla scrollea, así el botón de guardar nunca queda
+                      // fuera del viewport.
+                      className={cn(
+                        "overflow-y-auto",
+                        psicologia ? "max-h-[35dvh] min-h-[10rem]" : "max-h-[50dvh] min-h-[15rem]"
+                      )}
+                      value={contenido}
+                      onChange={setContenido}
+                      disabled={resumen.resumiendo}
+                      placeholder={
+                        transcripcionHabilitada
+                          ? `${voc.placeholder} o presioná «Dictar»...`
+                          : `${voc.placeholder}...`
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Seleccioná texto para ponerlo en negrita, cursiva o de color.
+                    </p>
+                  </>
                 )}
               </div>
               {transcripcionHabilitada && (

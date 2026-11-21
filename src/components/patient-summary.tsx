@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { textoPlano } from "@/lib/evolucion-formato";
 import type { ComponentType, ReactNode } from "react";
 import {
   AlertTriangle,
@@ -156,6 +157,8 @@ function formatDetalleValor(entidad: string, campo: string, value: unknown): str
       (campo === "modalidad" && MODALIDAD_LABELS.get(value)) ||
       (campo === "riesgo" && RIESGO_LABELS.get(value));
     if (etiqueta) return etiqueta;
+    // El historial muestra el texto, no las marcas de formato.
+    if (campo === "contenido") return textoPlano(value);
   }
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
