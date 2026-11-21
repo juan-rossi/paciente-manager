@@ -15,8 +15,8 @@ export function esFormatoPlaca(valor: string | null): valor is FormatoPlaca {
   return valor !== null && Object.hasOwn(FORMATOS_PLACA, valor);
 }
 
-const TITULOS_FEMENINOS: TituloCortesia[] = ["DRA", "BIOQCA", "KLGA"];
-const TITULOS_MASCULINOS: TituloCortesia[] = ["DR", "BIOQ", "KLGO"];
+const TITULOS_FEMENINOS: TituloCortesia[] = ["DRA", "BIOQCA", "KLGA", "FLGA"];
+const TITULOS_MASCULINOS: TituloCortesia[] = ["DR", "BIOQ", "KLGO", "FLGO"];
 
 // El perfil del médico no guarda el sexo, solo el título. Con "Dra." o
 // "Klgo." se sabe; con "Lic.", "Psic.", "Méd.", "Odont." o "Enf." no -- ahí

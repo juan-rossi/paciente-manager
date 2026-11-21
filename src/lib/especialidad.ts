@@ -47,6 +47,7 @@ export type Especialidad =
   | "INFECTOLOGIA_INFANTIL"
   | "PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE"
   | "PSICOLOGIA"
+  | "FONOAUDIOLOGIA"
   | "ODONTOLOGIA_GENERAL"
   | "ORTODONCIA"
   | "ENDODONCIA"
@@ -59,8 +60,8 @@ export type Especialidad =
 
 // El orden acá define el orden del <select> -- generales primero, después
 // las más específicas, después las subespecialidades pediátricas (mismo
-// orden en el que las pidió el usuario), psicología y por último el bloque
-// de odontología.
+// orden en el que las pidió el usuario), psicología, fonoaudiología y por
+// último el bloque de odontología.
 export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   CLINICA_MEDICA: "Clínica Médica",
   MEDICINA_FAMILIAR_GENERAL: "Medicina Familiar / Medicina General",
@@ -110,6 +111,9 @@ export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   // Psicología no es una especialidad médica (es Lic. en Psicología): no
   // confundir con Psiquiatría. Ver esPsicologia().
   PSICOLOGIA: "Psicología",
+  // Fonoaudiología tampoco es médica (Lic. en Fonoaudiología), pero usa la
+  // historia clínica médica sin examen físico. Ver esFonoaudiologia().
+  FONOAUDIOLOGIA: "Fonoaudiología",
   // Odontología: bloque aparte al final, general primero.
   ODONTOLOGIA_GENERAL: "Odontología General",
   ORTODONCIA: "Ortodoncia y Ortopedia Dentomaxilar",
@@ -172,10 +176,20 @@ export function esPsicologia(especialidad: Especialidad | null | undefined): boo
   return especialidad === "PSICOLOGIA";
 }
 
+// Fonoaudiología: va en el grupo médico (mismos antecedentes, diagnóstico y
+// evolución), pero sin examen físico. Cualquier lógica que dependa de "es
+// fonoaudiólogo" tiene que pasar por esFonoaudiologia().
+export function esFonoaudiologia(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "FONOAUDIOLOGIA";
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
-// tienen el odontograma en su lugar y los psicólogos no lo usan.
+// tienen el odontograma en su lugar y los psicólogos y fonoaudiólogos no lo
+// usan.
 export function usaExamenFisico(especialidad: Especialidad | null | undefined): boolean {
-  return !esOdontologica(especialidad) && !esPsicologia(especialidad);
+  return (
+    !esOdontologica(especialidad) && !esPsicologia(especialidad) && !esFonoaudiologia(especialidad)
+  );
 }
 
 // Grupo de profesión de cada especialidad. En el registro, el título de
@@ -206,11 +220,15 @@ export const ESPECIALIDAD_OPTIONS = ESPECIALIDAD_VALUES.map((value) => ({
 // especialidades se ofrecen:
 //  - Od./Odont. -> solo las odontológicas.
 //  - Psic./Psi. -> solo Psicología.
+//  - Flgo./Flga. -> solo Fonoaudiología.
 //  - Dr./Dra./Méd./Med. -> solo las médicas.
 //  - El resto (Lic., Bioq., Klgo., Enf.) o sin título -> médicas y Psicología
 //    ("Lic." lo usan psicólogos, pero también nutricionistas, kinesiólogos...).
+// Fonoaudiología está en el grupo médico, así que también la ven los títulos
+// que ofrecen médicas.
 const TITULOS_ODONTOLOGICOS: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["OD", "ODONT"]);
 const TITULOS_PSICOLOGIA: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["PSIC", "PSI"]);
+const TITULOS_FONOAUDIOLOGIA: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["FLGO", "FLGA"]);
 const TITULOS_MEDICOS: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>([
   "DR",
   "DRA",
@@ -227,17 +245,17 @@ function gruposParaTitulo(
   return new Set(["MEDICA", "PSICOLOGIA"]);
 }
 
-export function especialidadesParaTitulo(titulo: TituloCortesia | null | undefined | "") {
-  const grupos = gruposParaTitulo(titulo);
-  return ESPECIALIDAD_OPTIONS.filter((o) => grupos.has(o.grupo));
-}
-
 export function especialidadCompatibleConTitulo(
   titulo: TituloCortesia | null | undefined | "",
   especialidad: Especialidad | null | undefined | "",
 ): boolean {
   if (!especialidad) return true;
+  if (titulo && TITULOS_FONOAUDIOLOGIA.has(titulo)) return esFonoaudiologia(especialidad);
   return gruposParaTitulo(titulo).has(grupoDe(especialidad));
+}
+
+export function especialidadesParaTitulo(titulo: TituloCortesia | null | undefined | "") {
+  return ESPECIALIDAD_OPTIONS.filter((o) => especialidadCompatibleConTitulo(titulo, o.value));
 }
 
 // Límites del dictado por voz y del resumen con IA. Los psicólogos dictan

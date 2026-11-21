@@ -191,7 +191,7 @@ export function LoginForm() {
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           ¿No tenés cuenta?{" "}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
+          <Link href="/signup?plan=PREMIUM" className="font-medium text-primary hover:underline">
             Registrate gratis
           </Link>
         </p>

@@ -12,6 +12,8 @@ export type TituloCortesia =
   | "BIOQCA"
   | "KLGO"
   | "KLGA"
+  | "FLGO"
+  | "FLGA"
   | "ENF";
 
 export const TITULO_CORTESIA_LABELS: Record<TituloCortesia, string> = {
@@ -28,6 +30,8 @@ export const TITULO_CORTESIA_LABELS: Record<TituloCortesia, string> = {
   BIOQCA: "Bioqca.",
   KLGO: "Klgo.",
   KLGA: "Klga.",
+  FLGO: "Flgo.",
+  FLGA: "Flga.",
   ENF: "Enf.",
 };
 
