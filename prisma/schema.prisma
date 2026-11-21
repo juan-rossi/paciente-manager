@@ -991,6 +991,18 @@ model Patient {
   ultimoPap            String?
   ultimaMamografia     String?
 
+  // Examen psíquico -- solo lo carga la historia clínica de psiquiatría (ver
+  // esPsiquiatrica()), en lugar del examen físico.
+  epAspecto          String?
+  epConciencia       String?
+  epAtencionMemoria  String?
+  epPensamiento      String?
+  epSensopercepcion  String?
+  epAfectividad      String?
+  epPsicomotricidad  String?
+  epSuenoApetito     String?
+  epJuicio           String?
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?
   pulsoRadial            String?

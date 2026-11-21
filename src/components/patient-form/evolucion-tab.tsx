@@ -152,8 +152,8 @@ type Props = {
   // Psicología y fonoaudiología (ver usaSesiones()): cada entrada es una
   // "sesión" numerada, con asistencia y modalidad.
   sesiones?: boolean;
-  // Solo psicología (ver esPsicologia()): riesgo y notas privadas.
-  psicologia?: boolean;
+  // Psicología y psiquiatría (ver esSaludMental()): riesgo y notas privadas.
+  saludMental?: boolean;
 };
 
 export function EvolucionTab({
@@ -165,7 +165,7 @@ export function EvolucionTab({
   transcripcionHabilitada = false,
   resumirAlTerminar = false,
   sesiones = false,
-  psicologia = false,
+  saludMental = false,
 }: Props) {
   const voc = vocabularioEvolucion(sesiones);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -176,7 +176,7 @@ export function EvolucionTab({
   // Texto original dictado, cuando `contenido` pasó a ser un resumen de IA.
   const [dictado, setDictado] = useState("");
   // Solo sesiones (psicología y fonoaudiología); riesgo y notas privadas,
-  // solo psicología.
+  // solo salud mental (psicología y psiquiatría).
   const [asistencia, setAsistencia] = useState<AsistenciaSesion>("PRESENTE");
   const [modalidad, setModalidad] = useState<ModalidadSesion | null>(null);
   const [riesgo, setRiesgo] = useState<NivelRiesgo | null>(null);
@@ -199,11 +199,10 @@ export function EvolucionTab({
   // Sin notas solo se puede guardar una sesión a la que no vino.
   const asistio = !sesiones || asistencia === "PRESENTE";
   const puedeGuardar = textoPlano(contenido).trim().length > 0 || !asistio;
-  const sesion = psicologia
-    ? { asistencia, modalidad, riesgo, notasPrivadas: notasPrivadas.trim() || null }
-    : sesiones
-      ? { asistencia, modalidad }
-      : {};
+  const sesion = {
+    ...(sesiones ? { asistencia, modalidad } : {}),
+    ...(saludMental ? { riesgo, notasPrivadas: notasPrivadas.trim() || null } : {}),
+  };
   const isRecording =
     transcription.recordingStatus === "grabando" || transcription.recordingStatus === "conectando";
   const ocupado = transcription.recordingStatus === "finalizando" || resumen.resumiendo;
@@ -546,7 +545,7 @@ export function EvolucionTab({
             {voc.nueva}
           </Button>
           <DialogContent
-            className={sesiones ? "sm:max-w-2xl" : "sm:max-w-xl"}
+            className={sesiones || saludMental ? "sm:max-w-2xl" : "sm:max-w-xl"}
             initialFocus={editorRef}
           >
             <DialogHeader>
@@ -572,7 +571,7 @@ export function EvolucionTab({
                     onChange={setModalidad}
                     opcional
                   />
-                  {psicologia && (
+                  {saludMental && (
                     <Segmentado
                       label="Riesgo"
                       options={RIESGO_OPCIONES_CORTAS}
@@ -582,6 +581,22 @@ export function EvolucionTab({
                       claseElegida={(v) => CLASE_RIESGO[v]}
                     />
                   )}
+                </div>
+              ) : saludMental ? (
+                // Psiquiatría: consultas sin numerar, pero con riesgo.
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Fecha</Label>
+                    <DateInput value={fecha} onChange={setFecha} />
+                  </div>
+                  <Segmentado
+                    label="Riesgo"
+                    options={RIESGO_OPCIONES_CORTAS}
+                    value={riesgo}
+                    onChange={setRiesgo}
+                    opcional
+                    claseElegida={(v) => CLASE_RIESGO[v]}
+                  />
                 </div>
               ) : (
                 <div className="flex flex-col gap-1.5">
@@ -704,7 +719,7 @@ export function EvolucionTab({
               {transcripcionHabilitada && (
                 <DictadoCompleto dictado={dictado} onRestaurar={handleRestaurarDictado} />
               )}
-              {psicologia && (
+              {saludMental && (
                 <div className="flex flex-col gap-1.5">
                   <Label className="flex items-center gap-1.5">
                     <Lock className="size-3.5" />

@@ -10,6 +10,8 @@ import {
   ESTADO_CIVIL_OPTIONS,
   ETIQUETAS_PSICOLOGIA,
   datosGinecoObstetricos,
+  esSaludMental,
+  EXAMEN_PSIQUICO,
   etiquetasHistoriaClinica,
   usaSesiones,
   vocabularioEvolucion,
@@ -140,7 +142,8 @@ export default async function HistoriaClinicaPage({ params }: Props) {
     select: { nombre: true, apellido: true, nroMatricula: true, especialidad: true },
   });
   const grupo = grupoEspecialidad(doctor?.especialidad);
-  const psicologia = grupo === "PSICOLOGIA";
+  // Salud mental y pediatría hablan de consumo, no de "hábitos tóxicos".
+  const consumo = esSaludMental(grupo) || grupo === "PEDIATRICA";
   const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
 
@@ -241,8 +244,8 @@ export default async function HistoriaClinicaPage({ params }: Props) {
               label: etiquetas.habitos,
               value: [
                 patient.habitoAlcohol && "Alcohol",
-                patient.habitoCigarrillos && (psicologia ? "Tabaco" : "Cigarrillos"),
-                patient.habitoDrogas && (psicologia ? "Otras sustancias" : "Drogas"),
+                patient.habitoCigarrillos && (consumo ? "Tabaco" : "Cigarrillos"),
+                patient.habitoDrogas && (consumo ? "Otras sustancias" : "Drogas"),
               ]
                 .filter(Boolean)
                 .join(", ") || null,
@@ -306,6 +309,11 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             { label: "Estatura", value: patient.estatura },
             { label: "Temperatura", value: patient.temperatura },
           ]}
+        />
+
+        <Seccion
+          titulo="Examen psíquico"
+          fields={EXAMEN_PSIQUICO.map((e) => ({ label: e.label, value: patient[e.campo] }))}
         />
 
         <Seccion

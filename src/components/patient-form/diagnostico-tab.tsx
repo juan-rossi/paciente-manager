@@ -1,4 +1,4 @@
-import { etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
+import { ayudasDiagnostico, etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
 import { TextAreaField, TextField } from "./fields";
 import type { PatientFormValues } from "./types";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
@@ -51,22 +51,26 @@ export function DiagnosticoTab({ values, onChange, grupo = "MEDICA" }: Props) {
     );
   }
 
+  const ayudas = ayudasDiagnostico(grupo);
   return (
     <div className="flex flex-col gap-6">
       <TextAreaField
         label={etiquetas.diagnosticoPresuntivo}
+        helpText={ayudas.diagnosticoPresuntivo}
         value={values.diagnosticoPresuntivo}
         onChange={(v) => onChange("diagnosticoPresuntivo", v)}
         rows={4}
       />
       <TextAreaField
-        label="Métodos Complementarios (Laboratorio, RX, Eco, etc.)"
+        label={etiquetas.metodosComplementarios}
+        helpText={ayudas.metodosComplementarios}
         value={values.metodosComplementarios}
         onChange={(v) => onChange("metodosComplementarios", v)}
         rows={4}
       />
       <TextAreaField
-        label="Tratamiento (drogas, dósis, nro. de tomas, tiempo de duración)"
+        label={etiquetas.tratamiento}
+        helpText={ayudas.tratamiento}
         value={values.tratamiento}
         onChange={(v) => onChange("tratamiento", v)}
         rows={4}

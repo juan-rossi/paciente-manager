@@ -22,7 +22,7 @@ function mensajeTope(response: Response, data: { code?: unknown; error?: unknown
 // Opus son ~1,8 MB, con margen de sobra. Por eso la grabación se parte en
 // segmentos de 10 minutos que se suben por separado (mientras se sigue
 // grabando) y el texto se une al final. El total permitido lo dice
-// `/api/ia/disponible` (60 min para psicólogos, 10 para el resto; ver
+// `/api/ia/disponible` (60 min para psicólogos y psiquiatras, 10 para el resto; ver
 // limitesDictado() en src/lib/especialidad.ts).
 const SEGMENTO_SEGUNDOS = 10 * 60;
 const MAX_GRABACION_SEGUNDOS_DEFAULT = 10 * 60;

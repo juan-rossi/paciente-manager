@@ -65,6 +65,17 @@ export type PatientFormValues = {
   ultimoPap: string;
   ultimaMamografia: string;
 
+  // Solo historia clínica de psiquiatría (ver esPsiquiatrica()).
+  epAspecto: string;
+  epConciencia: string;
+  epAtencionMemoria: string;
+  epPensamiento: string;
+  epSensopercepcion: string;
+  epAfectividad: string;
+  epPsicomotricidad: string;
+  epSuenoApetito: string;
+  epJuicio: string;
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca: string;
   pulsoRadial: string;

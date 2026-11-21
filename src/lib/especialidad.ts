@@ -220,12 +220,24 @@ export function esGinecologica(especialidad: Especialidad | null | undefined): b
   return especialidad != null && ESPECIALIDADES_GINECOLOGICAS.has(especialidad);
 }
 
+// Psiquiatría (adultos e infantojuvenil): médicos de salud mental. En vez del
+// examen físico usan el examen psíquico; comparten con psicología los
+// antecedentes de salud mental, el riesgo y las notas privadas, pero no
+// trabajan en sesiones. Cualquier lógica que dependa de "es psiquiatra" tiene
+// que pasar por esPsiquiatrica().
+export function esPsiquiatrica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "PSIQUIATRIA" || especialidad === "PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE";
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
-// tienen el odontograma en su lugar y los psicólogos y fonoaudiólogos no lo
-// usan.
+// tienen el odontograma en su lugar, los psiquiatras el examen psíquico, y
+// los psicólogos y fonoaudiólogos no lo usan.
 export function usaExamenFisico(especialidad: Especialidad | null | undefined): boolean {
   return (
-    !esOdontologica(especialidad) && !esPsicologia(especialidad) && !esFonoaudiologia(especialidad)
+    !esOdontologica(especialidad) &&
+    !esPsicologia(especialidad) &&
+    !esFonoaudiologia(especialidad) &&
+    !esPsiquiatrica(especialidad)
   );
 }
 
@@ -234,17 +246,18 @@ export function usaExamenFisico(especialidad: Especialidad | null | undefined): 
 // También decide la historia clínica (antecedentes, etiquetas, dictado y
 // plantillas de consentimiento): ver grupoEspecialidad(). Lo que un grupo no
 // personaliza (ej. consentimientos de fonoaudiología) usa lo médico.
-// PEDIATRICA y GINECOLOGICA son profesiones médicas: en el registro van
-// siempre junto a MEDICA (ver GRUPOS_MEDICOS).
+// PEDIATRICA, GINECOLOGICA y PSIQUIATRICA son profesiones médicas: en el
+// registro van siempre junto a MEDICA (ver GRUPOS_MEDICOS).
 export type GrupoEspecialidad =
   | "MEDICA"
   | "PEDIATRICA"
   | "GINECOLOGICA"
+  | "PSIQUIATRICA"
   | "ODONTOLOGICA"
   | "PSICOLOGIA"
   | "FONOAUDIOLOGIA";
 
-const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = ["MEDICA", "PEDIATRICA", "GINECOLOGICA"];
+const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = ["MEDICA", "PEDIATRICA", "GINECOLOGICA", "PSIQUIATRICA"];
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esOdontologica(especialidad)) return "ODONTOLOGICA";
@@ -252,6 +265,7 @@ function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esFonoaudiologia(especialidad)) return "FONOAUDIOLOGIA";
   if (esPediatrica(especialidad)) return "PEDIATRICA";
   if (esGinecologica(especialidad)) return "GINECOLOGICA";
+  if (esPsiquiatrica(especialidad)) return "PSIQUIATRICA";
   return "MEDICA";
 }
 
@@ -309,12 +323,13 @@ export function especialidadesParaTitulo(titulo: TituloCortesia | null | undefin
   return ESPECIALIDAD_OPTIONS.filter((o) => especialidadCompatibleConTitulo(titulo, o.value));
 }
 
-// Límites del dictado por voz y del resumen con IA. Los psicólogos dictan
-// sesiones enteras (hasta una hora); el resto, notas de consulta (10 min).
-// El dictado largo se graba y sube en segmentos de 10 min (ver
-// use-cloud-transcription.ts), así que esto solo fija el total.
+// Límites del dictado por voz y del resumen con IA. Los psicólogos y los
+// psiquiatras dictan sesiones o entrevistas enteras (hasta una hora); el
+// resto, notas de consulta (10 min). El dictado largo se graba y sube en
+// segmentos de 10 min (ver use-cloud-transcription.ts), así que esto solo
+// fija el total.
 export function limitesDictado(especialidad: Especialidad | null | undefined) {
-  return esPsicologia(especialidad)
+  return esPsicologia(especialidad) || esPsiquiatrica(especialidad)
     ? { maxGrabacionSegundos: 60 * 60, maxCaracteresResumen: 100_000, maxTokensResumen: 4096 }
     : { maxGrabacionSegundos: 10 * 60, maxCaracteresResumen: 20_000, maxTokensResumen: 1024 };
 }

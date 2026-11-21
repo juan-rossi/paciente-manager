@@ -128,6 +128,27 @@ ${REGLAS_GINECOLOGIA}`,
 ${REGLAS_GINECOLOGIA}`,
 };
 
+const REGLAS_PSIQUIATRIA = `Reglas:
+- No inventes ni infieras datos que no estén en el dictado. No agregues diagnósticos, hipótesis ni interpretaciones que el psiquiatra no haya dicho. Si algo es ambiguo, dejalo como está.
+- Conservá exactos los psicofármacos, dosis, horarios, cambios de dosis, efectos adversos, valores de laboratorio (ej. litemia), fechas, tiempos de evolución y las frases textuales del paciente que el psiquiatra destaque (entre comillas).
+- Conservá siempre, sin suavizarla, cualquier mención de ideación suicida, autolesiones, heteroagresividad o consumo.
+- El texto viene de un reconocimiento de voz: corregí solo errores de transcripción evidentes en términos psiquiátricos o nombres de medicamentos (ej. "cetralina" → "sertralina"). Ante la duda, dejá la palabra como está.
+- Eliminá muletillas, repeticiones, autocorrecciones y frases que no aportan información clínica.
+- Usá lenguaje médico conciso, en español rioplatense neutro, en tercera persona ("Paciente refiere...").
+- Texto plano: sin markdown, sin títulos con #, sin negritas. Podés usar guiones "- " para listar ítems.
+- Respondé solo con el resumen, sin introducción ni comentarios.`;
+
+// Psiquiatras: examen psíquico en vez de examen físico, y el foco del control
+// está en la respuesta a la medicación y el riesgo.
+const SYSTEM_PROMPTS_PSIQUIATRIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas psiquiátricas. Vas a recibir la transcripción de un dictado de un psiquiatra sobre la enfermedad actual de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: motivo de consulta y quién deriva, inicio y evolución de los síntomas, desencadenantes, tratamientos y psicofármacos previos (dosis, respuesta, efectos adversos), internaciones, consumo, riesgo y cómo afecta su vida cotidiana.
+
+${REGLAS_PSIQUIATRIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas psiquiátricas. Vas a recibir la transcripción de un dictado de un psiquiatra sobre una consulta de control. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, examen psíquico (humor, afecto, pensamiento, sensopercepción, sueño, apetito, juicio), riesgo, adherencia, respuesta y efectos adversos de la medicación, cambios en el tratamiento con sus dosis, estudios indicados y próximo control.
+
+${REGLAS_PSIQUIATRIA}`,
+};
+
 const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GrupoEspecialidad,
   Record<z.infer<typeof resumirInput>["tipo"], string>
@@ -135,6 +156,7 @@ const SYSTEM_PROMPTS_POR_GRUPO: Record<
   MEDICA: SYSTEM_PROMPTS,
   PEDIATRICA: SYSTEM_PROMPTS_PEDIATRIA,
   GINECOLOGICA: SYSTEM_PROMPTS_GINECOLOGIA,
+  PSIQUIATRICA: SYSTEM_PROMPTS_PSIQUIATRIA,
   ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
   PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
   FONOAUDIOLOGIA: SYSTEM_PROMPTS_FONOAUDIOLOGIA,

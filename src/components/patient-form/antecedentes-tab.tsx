@@ -9,6 +9,7 @@ import { formatFechaCorta } from "./utils";
 import {
   antecedenteAplicaAlSexo,
   antecedentesPara,
+  esSaludMental,
   ETIQUETAS_GINECOLOGIA,
   ETIQUETAS_PSICOLOGIA,
 } from "./constants";
@@ -74,6 +75,17 @@ const DETALLE_PEDIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   ANTECEDENTES_FAMILIARES: "Familiar y enfermedad",
 };
 
+// Psiquiatría: lo de psicología, más lo que pesa al indicar un psicofármaco.
+const DETALLE_PSIQUIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  ...DETALLE_PSICOLOGIA,
+  MEDICACION_PSIQUIATRICA: "Droga, dosis, respuesta y efectos adversos",
+  TRATAMIENTO_PSICOLOGICO_PREVIO: "Con quién, enfoque y si continúa",
+  NEUROLOGICAS: "Diagnóstico y tratamiento",
+  CARDIOPATIAS: "Cuál, ECG y medicación",
+  EMBARAZO: "Semanas de gestación o meses de lactancia",
+  ALERGIA: "A qué y qué reacción",
+};
+
 // Salud de la mujer: qué conviene anotar en el detalle de cada antecedente.
 const DETALLE_GINECOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   EMBARAZO: "Controles, quién la sigue y si es de riesgo",
@@ -127,7 +139,9 @@ function AntecedenteRow({
       ? DETALLE_PSICOLOGIA
       : grupo === "FONOAUDIOLOGIA"
         ? DETALLE_FONOAUDIOLOGIA
-        : grupo === "PEDIATRICA"
+        : grupo === "PSIQUIATRICA"
+          ? DETALLE_PSIQUIATRIA
+          : grupo === "PEDIATRICA"
           ? DETALLE_PEDIATRIA
           : grupo === "GINECOLOGICA"
             ? DETALLE_GINECOLOGIA
@@ -274,7 +288,7 @@ function AntecedentesGinecoObstetricos({
 }
 
 export function AntecedentesTab({ values, onAntecedenteChange, onChange, grupo = "MEDICA" }: Props) {
-  const psicologia = grupo === "PSICOLOGIA";
+  const saludMental = esSaludMental(grupo);
   // Mastología también atiende hombres: a ellos no se les pregunta la historia
   // gineco-obstétrica.
   const ginecoObstetricos = grupo === "GINECOLOGICA" && values.sexo !== "MASCULINO";
@@ -310,7 +324,7 @@ export function AntecedentesTab({ values, onAntecedenteChange, onChange, grupo =
         {columna(columna2)}
       </div>
 
-      {psicologia && (
+      {saludMental && (
         <div className="flex flex-col gap-6 border-t pt-6">
           <TextAreaField
             label={ETIQUETAS_PSICOLOGIA.grupoFamiliar}

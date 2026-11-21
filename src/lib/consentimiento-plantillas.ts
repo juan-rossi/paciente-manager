@@ -58,6 +58,28 @@ Registro de las sesiones: el profesional lleva una historia clínica del tratami
   },
 ];
 
+// Texto base para psiquiatras: tratamiento con psicofármacos. Igual que los
+// otros, el profesional lo ajusta al caso (droga, controles) antes de guardar,
+// y lo del dictado tiene que coincidir con los términos.
+export const PLANTILLAS_PSIQUIATRIA: readonly PlantillaConsentimiento[] = [
+  {
+    id: "tratamiento-psicofarmacologico",
+    label: "Tratamiento psicofarmacológico",
+    procedimiento: "Tratamiento psiquiátrico con psicofármacos",
+    riesgosBeneficios: `Naturaleza del tratamiento: consultas de seguimiento con la frecuencia acordada y la indicación de uno o más psicofármacos, cuya dosis puede ajustarse según la respuesta y la tolerancia. Algunos requieren estudios de control (laboratorio, electrocardiograma).
+
+Beneficios esperados: alivio de los síntomas que motivan la consulta y prevención de recaídas. La respuesta suele tardar algunas semanas y no puede garantizarse.
+
+Posibles efectos adversos: según la medicación, somnolencia, mareos, cambios de peso o de apetito, molestias digestivas, alteraciones del sueño o de la función sexual, entre otros. Debe tomarse como fue indicada, no suspenderse de golpe y avisar ante cualquier efecto adverso, embarazo o lactancia, y antes de tomar otros medicamentos o alcohol.
+
+Confidencialidad: lo conversado en las consultas está protegido por el secreto profesional, con los únicos límites que fija la ley (riesgo cierto e inminente para la vida del paciente o de terceros, orden judicial, o situaciones de abuso o violencia contra personas en situación de vulnerabilidad).
+
+Registro de las consultas: el profesional lleva una historia clínica del tratamiento. Para redactar sus notas puede grabar el audio de la consulta, que se envía a un servicio externo de transcripción y no se conserva: solo queda el texto en la historia clínica. Puede pedir que no se grabe en cualquier momento.`,
+    alternativas:
+      "Puede interrumpir el tratamiento cuando lo desee, preferentemente acordándolo con el profesional. Otras alternativas: otra medicación, psicoterapia sola o combinada, otro profesional, o no realizar tratamiento, asumiendo que los síntomas pueden persistir o empeorar.",
+  },
+];
+
 // Textos base para odontólogos. Igual que el de psicoterapia, son un punto de
 // partida que el profesional ajusta al caso antes de guardar.
 export const PLANTILLAS_ODONTOLOGIA: readonly PlantillaConsentimiento[] = [
@@ -128,5 +150,6 @@ export function plantillasConsentimiento(grupo: GrupoEspecialidad): readonly Pla
   if (grupo === "PSICOLOGIA") return PLANTILLAS_PSICOLOGIA;
   if (grupo === "ODONTOLOGICA") return PLANTILLAS_ODONTOLOGIA;
   if (grupo === "FONOAUDIOLOGIA") return PLANTILLAS_FONOAUDIOLOGIA;
+  if (grupo === "PSIQUIATRICA") return PLANTILLAS_PSIQUIATRIA;
   return [];
 }

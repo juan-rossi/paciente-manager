@@ -42,7 +42,12 @@ const PROMPT_PEDIATRIA =
 const PROMPT_GINECOLOGIA =
   "Consulta ginecológica en español. Fecha de última menstruación 3 de marzo, ciclos de 28 por 5 días. Gestas 2, partos 1, cesáreas 1, abortos 0. Embarazo de 24 semanas, altura uterina 23 centímetros, latidos cardíacos fetales positivos, movimientos fetales presentes, tensión arterial 110/70. Flujo, dismenorrea, metrorragia, amenorrea, endometriosis, mioma, quiste de ovario, síndrome de ovario poliquístico, menopausia. PAP y colposcopía normales, HPV, ecografía transvaginal, mamografía BI-RADS 2. Anticonceptivos orales, DIU, implante subdérmico, ácido fólico, sulfato ferroso.";
 
+// Para psiquiatras: examen psíquico y psicofármacos.
+const PROMPT_PSIQUIATRIA =
+  "Consulta psiquiátrica en español. Paciente lúcido, orientado en tiempo y espacio, hipoprosexia, humor depresivo, afecto congruente, ideas de muerte sin ideación suicida estructurada, sin alteraciones sensoperceptivas, insomnio de conciliación, hiporexia, juicio conservado, con conciencia de enfermedad. Trastorno depresivo mayor, trastorno bipolar, trastorno de ansiedad generalizada, esquizofrenia, TOC, TDAH, ataques de pánico. Sertralina 50 miligramos, escitalopram, fluoxetina, venlafaxina, quetiapina, olanzapina, risperidona, aripiprazol, litio, litemia, ácido valproico, lamotrigina, clonazepam, alprazolam, lorazepam, metilfenidato. Se ajusta la dosis y se pauta control en 15 días.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  PSIQUIATRICA: PROMPT_PSIQUIATRIA,
   GINECOLOGICA: PROMPT_GINECOLOGIA,
   MEDICA: PROMPT_CLINICO,
   PEDIATRICA: PROMPT_PEDIATRIA,

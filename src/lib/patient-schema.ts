@@ -181,6 +181,17 @@ export const patientSchema = z.object({
   ultimoPap: optionalString,
   ultimaMamografia: optionalString,
 
+  // Solo historia clínica de psiquiatría (ver esPsiquiatrica()).
+  epAspecto: optionalString,
+  epConciencia: optionalString,
+  epAtencionMemoria: optionalString,
+  epPensamiento: optionalString,
+  epSensopercepcion: optionalString,
+  epAfectividad: optionalString,
+  epPsicomotricidad: optionalString,
+  epSuenoApetito: optionalString,
+  epJuicio: optionalString,
+
   // Examen fisico - signos vitales
   frecuenciaCardiaca: optionalString,
   pulsoRadial: optionalString,

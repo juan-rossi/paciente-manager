@@ -184,8 +184,43 @@ export const ANTECEDENTES_GINECOLOGIA_ORDEN = [
   ...ANTECEDENTES_GINECOLOGIA_COLUMNA_2,
 ];
 
+// Historia clínica de psiquiatría (ver esPsiquiatrica()): los antecedentes de
+// salud mental de psicología más los médicos que pesan al indicar un
+// psicofármaco (epilepsia, QT prolongado, embarazo o lactancia).
+export const ANTECEDENTES_PSIQUIATRIA_COLUMNA_1 = [
+  { tipo: "TRATAMIENTO_PSIQUIATRICO_PREVIO", label: "Tratamiento psiquiátrico previo" },
+  { tipo: "MEDICACION_PSIQUIATRICA", label: "Psicofármacos (actuales o previos)" },
+  { tipo: "INTERNACIONES_PSIQUIATRICAS", label: "Internaciones psiquiátricas" },
+  { tipo: "TRATAMIENTO_PSICOLOGICO_PREVIO", label: "Psicoterapia previa o actual" },
+  { tipo: "CONSUMO_SUSTANCIAS", label: "Consumo de sustancias" },
+  { tipo: "AUTOLESIONES", label: "Autolesiones" },
+  { tipo: "INTENTOS_SUICIDIO", label: "Intentos de suicidio" },
+] as const;
+
+export const ANTECEDENTES_PSIQUIATRIA_COLUMNA_2 = [
+  { tipo: "SALUD_MENTAL_FAMILIAR", label: "Antecedentes psiquiátricos familiares" },
+  { tipo: "SITUACIONES_TRAUMATICAS", label: "Situaciones traumáticas" },
+  { tipo: "NEUROLOGICAS", label: "Neurológicas (epilepsia, TEC, demencia)" },
+  { tipo: "CARDIOPATIAS", label: "Cardiopatías o QT prolongado" },
+  { tipo: "ENFERMEDADES_MEDICAS", label: "Otras enfermedades médicas" },
+  { tipo: "EMBARAZO", label: "Embarazo o lactancia" },
+  { tipo: "ALERGIA", label: "Alergias" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_PSIQUIATRIA_ORDEN = [
+  ...ANTECEDENTES_PSIQUIATRIA_COLUMNA_1,
+  ...ANTECEDENTES_PSIQUIATRIA_COLUMNA_2,
+];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "PSIQUIATRICA":
+      return {
+        columna1: ANTECEDENTES_PSIQUIATRIA_COLUMNA_1,
+        columna2: ANTECEDENTES_PSIQUIATRIA_COLUMNA_2,
+        orden: ANTECEDENTES_PSIQUIATRIA_ORDEN,
+      };
     case "GINECOLOGICA":
       return {
         columna1: ANTECEDENTES_GINECOLOGIA_COLUMNA_1,
@@ -252,7 +287,16 @@ export const ANTECEDENTES_CRITICOS_GINECOLOGIA: ReadonlyMap<string, string> = ne
   ["ALERGIA", "Alergia"],
 ]);
 
+// Psiquiatría: lo que cambia la evaluación del riesgo y qué se puede indicar.
+// El riesgo actual se avisa aparte (último registrado en la evolución).
+export const ANTECEDENTES_CRITICOS_PSIQUIATRIA: ReadonlyMap<string, string> = new Map([
+  ["INTENTOS_SUICIDIO", "Intentos de suicidio previos"],
+  ["EMBARAZO", "Embarazo o lactancia"],
+  ["ALERGIA", "Alergia"],
+]);
+
 const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
+  PSIQUIATRICA: ANTECEDENTES_CRITICOS_PSIQUIATRIA,
   ODONTOLOGICA: ANTECEDENTES_CRITICOS_ODONTOLOGIA,
   PEDIATRICA: ANTECEDENTES_CRITICOS_PEDIATRIA,
   GINECOLOGICA: ANTECEDENTES_CRITICOS_GINECOLOGIA,
@@ -307,9 +351,9 @@ export function antecedenteAplicaAlSexo(
 // gana la última (ej. "Hipertensión" en vez de "HTA"); pediatría y
 // fonoaudiología van primeras para que los tipos que reusan sigan con su
 // etiqueta de siempre (ej. NEUROLOGICAS dice "Neurológicas"). Igual con salud
-// de la mujer.
+// de la mujer y psiquiatría.
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
-  [...ANTECEDENTES_GINECOLOGIA_ORDEN, ...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
+  [...ANTECEDENTES_PSIQUIATRIA_ORDEN, ...ANTECEDENTES_GINECOLOGIA_ORDEN, ...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
     a.tipo,
     a.label,
   ])
@@ -329,6 +373,18 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
       tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "PSIQUIATRICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Quién consulta y quién deriva, cuándo y cómo empezó, desencadenantes, síntomas y su evolución, tratamientos y psicofármacos que recibió (dosis, respuesta, efectos adversos) y cómo afecta su vida cotidiana.",
+      habitos: "Consumo",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios y escalas",
+      tratamiento: "Plan terapéutico y psicofármacos",
     };
   }
   if (grupo === "GINECOLOGICA") {
@@ -446,6 +502,77 @@ export function datosGinecoObstetricos(
   ];
   return datos.filter((d): d is { label: string; value: string } => Boolean(d.value?.trim()));
 }
+
+// Texto de ayuda de los campos de Diagnóstico, según el grupo. Lo que no
+// figura va sin ayuda (el nombre del campo ya lo dice).
+export function ayudasDiagnostico(grupo: GrupoEspecialidad): {
+  diagnosticoPresuntivo?: string;
+  metodosComplementarios?: string;
+  tratamiento?: string;
+} {
+  switch (grupo) {
+    case "PSIQUIATRICA":
+      return {
+        diagnosticoPresuntivo: "Si usás CIE-10, CIE-11 o DSM-5, podés anotar el código.",
+        metodosComplementarios:
+          "Laboratorio (litemia, función tiroidea, hemograma, perfil metabólico), ECG, neuroimágenes y escalas (PHQ-9, GAD-7, MMSE, etc.), con fecha y resultados.",
+        tratamiento:
+          "Psicofármacos (droga, dosis, horario y desde cuándo), psicoterapia indicada, pautas de alarma y próximo control.",
+      };
+    case "PEDIATRICA":
+      return {
+        metodosComplementarios: "Laboratorio, RX, ecografía, etc.",
+        tratamiento: "Drogas con dosis por kilo, número de tomas y duración; pautas de alarma y próximo control.",
+      };
+    case "MEDICA":
+      return {
+        metodosComplementarios: "Laboratorio, RX, ecografía, etc.",
+        tratamiento: "Drogas, dosis, número de tomas y tiempo de duración.",
+      };
+    default:
+      return {};
+  }
+}
+
+// Psicología y psiquiatría son salud mental: registran el nivel de riesgo y
+// notas privadas en cada evolución (y se avisa arriba de la ficha si el último
+// es moderado o alto), y usan la derivación, el grupo familiar, la historia
+// vital y "consumo" en vez de "hábitos tóxicos".
+export function esSaludMental(grupo: GrupoEspecialidad): boolean {
+  return grupo === "PSICOLOGIA" || grupo === "PSIQUIATRICA";
+}
+
+// Examen psíquico de psiquiatría (en lugar del examen físico). Cada campo
+// lleva qué explorar.
+export const EXAMEN_PSIQUICO = [
+  { campo: "epAspecto", label: "Aspecto y actitud", ayuda: "Vestimenta, higiene, contacto, actitud ante la entrevista" },
+  { campo: "epConciencia", label: "Conciencia y orientación", ayuda: "Lúcido, orientado en tiempo, espacio y persona" },
+  { campo: "epAtencionMemoria", label: "Atención y memoria", ayuda: "Hipoprosexia, distraibilidad, fallas de memoria reciente o remota" },
+  {
+    campo: "epPensamiento",
+    label: "Pensamiento",
+    ayuda: "Curso (velocidad, coherencia) y contenido (ideas delirantes, obsesivas, de muerte o suicidio)",
+  },
+  { campo: "epSensopercepcion", label: "Sensopercepción", ayuda: "Alucinaciones o ilusiones (tipo y contenido)" },
+  {
+    campo: "epAfectividad",
+    label: "Humor y afectividad",
+    ayuda: "Eutímico, deprimido, eufórico, ansioso; afecto congruente, aplanado o lábil",
+  },
+  { campo: "epPsicomotricidad", label: "Psicomotricidad y conducta", ayuda: "Inquietud, enlentecimiento, impulsividad, agresividad" },
+  {
+    campo: "epSuenoApetito",
+    label: "Sueño y apetito",
+    ayuda: "Insomnio (de conciliación, intermedio o de despertar precoz), hipersomnia, cambios de apetito o de peso",
+  },
+  { campo: "epJuicio", label: "Juicio e insight", ayuda: "Juicio conservado o desviado; conciencia de enfermedad" },
+] as const;
+
+export type CampoExamenPsiquico = (typeof EXAMEN_PSIQUICO)[number]["campo"];
+
+export const ETIQUETAS_EXAMEN_PSIQUICO = Object.fromEntries(
+  EXAMEN_PSIQUICO.map((e) => [e.campo, e.label])
+) as Record<CampoExamenPsiquico, string>;
 
 // Psicología y fonoaudiología trabajan por tratamiento en sesiones: cada
 // evolución es una sesión numerada, con asistencia y modalidad. El riesgo y

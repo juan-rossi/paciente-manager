@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { especialidadesParaTitulo, grupoEspecialidad, usaExamenFisico } from "./especialidad";
+import { especialidadesParaTitulo, grupoEspecialidad, limitesDictado, usaExamenFisico } from "./especialidad";
 
 describe("grupoEspecialidad", () => {
   it("pediatría y sus subespecialidades médicas van al grupo pediátrico", () => {
     expect(grupoEspecialidad("PEDIATRIA")).toBe("PEDIATRICA");
     expect(grupoEspecialidad("CARDIOLOGIA_INFANTIL")).toBe("PEDIATRICA");
-    expect(grupoEspecialidad("PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE")).toBe("MEDICA");
+    expect(grupoEspecialidad("PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE")).toBe("PSIQUIATRICA");
     expect(grupoEspecialidad("ODONTOPEDIATRIA")).toBe("ODONTOLOGICA");
     expect(grupoEspecialidad(null)).toBe("MEDICA");
   });
@@ -21,6 +21,19 @@ describe("grupoEspecialidad", () => {
   it("los pediatras usan examen físico", () => {
     expect(usaExamenFisico("PEDIATRIA")).toBe(true);
   });
+
+  it("psiquiatría es su propio grupo, con examen psíquico en vez de físico", () => {
+    expect(grupoEspecialidad("PSIQUIATRIA")).toBe("PSIQUIATRICA");
+    expect(usaExamenFisico("PSIQUIATRIA")).toBe(false);
+    expect(usaExamenFisico("PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE")).toBe(false);
+  });
+
+  it("psicólogos y psiquiatras dictan hasta una hora; el resto, 10 minutos", () => {
+    expect(limitesDictado("PSICOLOGIA").maxGrabacionSegundos).toBe(60 * 60);
+    expect(limitesDictado("PSIQUIATRIA").maxGrabacionSegundos).toBe(60 * 60);
+    expect(limitesDictado("PSIQUIATRIA_INFANTIL_Y_ADOLESCENTE").maxGrabacionSegundos).toBe(60 * 60);
+    expect(limitesDictado("CLINICA_MEDICA").maxGrabacionSegundos).toBe(10 * 60);
+  });
 });
 
 describe("especialidadesParaTitulo", () => {
@@ -30,5 +43,7 @@ describe("especialidadesParaTitulo", () => {
     expect(especialidadesParaTitulo("OD").map((o) => o.value)).not.toContain("PEDIATRIA");
     expect(especialidadesParaTitulo("DRA").map((o) => o.value)).toContain("OBSTETRICIA");
     expect(especialidadesParaTitulo("PSIC").map((o) => o.value)).not.toContain("GINECOLOGIA");
+    expect(especialidadesParaTitulo("DR").map((o) => o.value)).toContain("PSIQUIATRIA");
+    expect(especialidadesParaTitulo("PSIC").map((o) => o.value)).not.toContain("PSIQUIATRIA");
   });
 });

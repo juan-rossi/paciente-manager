@@ -26,6 +26,7 @@ import {
   etiquetasHistoriaClinica,
   alertasClinicas,
   datosGinecoObstetricos,
+  esSaludMental,
   ETIQUETAS_GINECOLOGIA,
   ASISTENCIA_LABELS,
   MODALIDAD_LABELS,
@@ -243,7 +244,7 @@ export function PatientSummary({
   // campos propios en consulta inicial, antecedentes y diagnóstico.
   grupo?: GrupoEspecialidad;
 }) {
-  const psicologia = grupo === "PSICOLOGIA";
+  const saludMental = esSaludMental(grupo);
   const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
   // Antecedentes que cambian la atención (odontología, pediatría), arriba de
@@ -279,9 +280,10 @@ export function PatientSummary({
     ...camposSesionFromApi(e),
   }));
 
-  // Psicología: el último riesgo registrado manda (si la sesión siguiente lo
-  // bajó, deja de alertar). Moderado o alto se avisa arriba de todo.
-  const ultimoRiesgo = psicologia
+  // Salud mental: el último riesgo registrado manda (si la evolución
+  // siguiente lo bajó, deja de alertar). Moderado o alto se avisa arriba de
+  // todo.
+  const ultimoRiesgo = saludMental
     ? evolucionValues
         .filter((e) => e.riesgo)
         .sort((a, b) => a.fecha.localeCompare(b.fecha))
@@ -299,7 +301,7 @@ export function PatientSummary({
     >
       <AlertTriangle className="size-4 shrink-0" />
       <span>
-        <strong>{RIESGO_LABELS.get(ultimoRiesgo.riesgo!)}</strong> registrado en la sesión del{" "}
+        <strong>{RIESGO_LABELS.get(ultimoRiesgo.riesgo!)}</strong> registrado en {sesiones ? "la sesión" : "la consulta"} del{" "}
         {formatFechaCorta(ultimoRiesgo.fecha)}.
       </span>
     </div>
@@ -616,7 +618,7 @@ export function PatientSummary({
                   transcripcionHabilitada={transcripcionHabilitada}
                   resumirAlTerminar={resumirEvolucionesAlTerminar}
                   sesiones={sesiones}
-                  psicologia={psicologia}
+                  saludMental={saludMental}
                 />
               </div>
             </FormSection>

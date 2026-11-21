@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  Brain,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
@@ -30,6 +31,7 @@ import { ConsultaInicialTab } from "./consulta-inicial-tab";
 import { AntecedentesTab } from "./antecedentes-tab";
 import { ExamenFisicoTab } from "./examen-fisico-tab";
 import { DiagnosticoTab } from "./diagnostico-tab";
+import { ExamenPsiquicoTab } from "./examen-psiquico-tab";
 import { EvolucionTab } from "./evolucion-tab";
 import { HistorialPracticasTab } from "./historial-practicas-tab";
 import {
@@ -39,7 +41,7 @@ import {
 } from "./odontograma-tab";
 import { tieneMarcas } from "@/lib/odontograma";
 import { emptyPatientFormValues } from "./utils";
-import { alertasOdontologicas, usaSesiones, vocabularioEvolucion } from "./constants";
+import { alertasOdontologicas, esSaludMental, usaSesiones, vocabularioEvolucion } from "./constants";
 import { AlertasClinicas } from "@/components/alertas-clinicas";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
 import type {
@@ -158,8 +160,10 @@ export function PatientForm({
   initialOdontogramas = [],
   initialTab,
 }: Props) {
-  const psicologia = grupo === "PSICOLOGIA";
+  const saludMental = esSaludMental(grupo);
   const sesiones = usaSesiones(grupo);
+  // Psiquiatría: examen psíquico en lugar del examen físico.
+  const examenPsiquicoHabilitado = grupo === "PSIQUIATRICA";
   const router = useRouter();
   const [values, setValues] = useState<PatientFormValues>(
     initialValues ?? emptyPatientFormValues(grupo)
@@ -336,6 +340,12 @@ export function PatientForm({
               Exámen Físico
             </TabsTrigger>
           )}
+          {examenPsiquicoHabilitado && (
+            <TabsTrigger value="examen-psiquico">
+              <Brain className="size-4" />
+              Examen Psíquico
+            </TabsTrigger>
+          )}
           <TabsTrigger value="diagnostico">
             <ClipboardCheck className="size-4" />
             Diagnóstico
@@ -389,6 +399,15 @@ export function PatientForm({
             >
               <Stethoscope className="size-[18px]" />
               Exámen Físico
+            </TabsTrigger>
+          )}
+          {examenPsiquicoHabilitado && (
+            <TabsTrigger
+              value="examen-psiquico"
+              className="h-full flex-col justify-center gap-1.5 rounded-xl px-1.5 py-2.5 text-center text-[10.5px] leading-tight whitespace-normal"
+            >
+              <Brain className="size-[18px]" />
+              Examen Psíquico
             </TabsTrigger>
           )}
           <TabsTrigger
@@ -459,6 +478,11 @@ export function PatientForm({
                 <ExamenFisicoTab values={values} onChange={handleChange} />
               </TabsContent>
             )}
+            {examenPsiquicoHabilitado && (
+              <TabsContent value="examen-psiquico">
+                <ExamenPsiquicoTab values={values} onChange={handleChange} />
+              </TabsContent>
+            )}
             <TabsContent value="diagnostico">
               <DiagnosticoTab values={values} onChange={handleChange} grupo={grupo} />
             </TabsContent>
@@ -491,7 +515,7 @@ export function PatientForm({
                   transcripcionHabilitada={transcripcionHabilitada}
                   resumirAlTerminar={resumenAutomatico?.evoluciones}
                   sesiones={sesiones}
-                  psicologia={psicologia}
+                  saludMental={saludMental}
                 />
               </TabsContent>
             )}

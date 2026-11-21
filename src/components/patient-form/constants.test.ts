@@ -4,7 +4,10 @@ import {
   alertasClinicas,
   alertasOdontologicas,
   antecedenteAplicaAlSexo,
+  ayudasDiagnostico,
   datosGinecoObstetricos,
+  esSaludMental,
+  EXAMEN_PSIQUICO,
   antecedentesPara,
   etiquetasHistoriaClinica,
   usaSesiones,
@@ -38,7 +41,15 @@ describe("antecedentesPara", () => {
   });
 
   it("no repite tipos dentro de un grupo y todos son valores válidos", () => {
-    for (const grupo of ["MEDICA", "PEDIATRICA", "GINECOLOGICA", "PSICOLOGIA", "ODONTOLOGICA", "FONOAUDIOLOGIA"] as const) {
+    for (const grupo of [
+      "MEDICA",
+      "PEDIATRICA",
+      "GINECOLOGICA",
+      "PSIQUIATRICA",
+      "PSICOLOGIA",
+      "ODONTOLOGICA",
+      "FONOAUDIOLOGIA",
+    ] as const) {
       const tipos = antecedentesPara(grupo).orden.map((a) => a.tipo);
       expect(new Set(tipos).size).toBe(tipos.length);
       for (const tipo of tipos) expect(TIPO_ANTECEDENTE_VALUES).toContain(tipo);
@@ -118,6 +129,44 @@ describe("datosGinecoObstetricos", () => {
     const datos = datosGinecoObstetricos({ fum: "2026-06-01" }, false);
     expect(datos.map((d) => d.label)).toEqual(["FUM"]);
     expect(datos[0].value).toBe("1/6/2026");
+  });
+});
+
+describe("psiquiatría", () => {
+  it("comparte con psicología el riesgo y la historia personal, pero no las sesiones", () => {
+    expect(esSaludMental("PSIQUIATRICA")).toBe(true);
+    expect(esSaludMental("PSICOLOGIA")).toBe(true);
+    expect(esSaludMental("MEDICA")).toBe(false);
+    expect(usaSesiones("PSIQUIATRICA")).toBe(false);
+  });
+
+  it("avisa intentos de suicidio previos y embarazo", () => {
+    expect(
+      alertasClinicas("PSIQUIATRICA", [
+        { tipo: "INTENTOS_SUICIDIO", respuesta: true, descripcion: "2019" },
+        { tipo: "EMBARAZO", respuesta: true },
+        { tipo: "CONSUMO_SUSTANCIAS", respuesta: true },
+      ])
+    ).toEqual(["Intentos de suicidio previos (2019)", "Embarazo o lactancia"]);
+  });
+
+  it("todos los campos del examen psíquico son del formulario", () => {
+    const campos = EXAMEN_PSIQUICO.map((e) => e.campo);
+    expect(new Set(campos).size).toBe(campos.length);
+    expect(campos.every((c) => c.startsWith("ep"))).toBe(true);
+  });
+
+  it("los reusados mantienen su etiqueta de siempre", () => {
+    expect(ANTECEDENTE_LABELS.get("CARDIOPATIAS")).toBe("Cardiopatías");
+    expect(ANTECEDENTE_LABELS.get("MEDICACION_PSIQUIATRICA")).toBe("Medicación psiquiátrica");
+  });
+});
+
+describe("ayudasDiagnostico", () => {
+  it("los médicos conservan la ayuda que tenían; los grupos con nombre propio no la necesitan", () => {
+    expect(ayudasDiagnostico("MEDICA").tratamiento).toContain("dosis");
+    expect(ayudasDiagnostico("PSIQUIATRICA").tratamiento).toContain("Psicofármacos");
+    expect(ayudasDiagnostico("ODONTOLOGICA")).toEqual({});
   });
 });
 

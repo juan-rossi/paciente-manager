@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
+import { esSaludMental, etiquetasHistoriaClinica, ETIQUETAS_PSICOLOGIA } from "./constants";
 import { TextAreaField, TextField } from "./fields";
 import { TranscribableTextAreaField } from "./transcribable-textarea-field";
 import type { PatientFormValues } from "./types";
@@ -14,7 +14,8 @@ type Props = {
   resumirAntecedentesAlTerminar?: boolean;
   // Etiquetas según el grupo (ver etiquetasHistoriaClinica()). Psicología
   // además va sin autovalidez, con derivación, demanda y encuadre. Pediatría
-  // va sin autovalidez (es una escala de adultos mayores).
+  // va sin autovalidez (es una escala de adultos mayores). Psiquiatría, como
+  // psicología, va con derivación y sin autovalidez.
   grupo?: GrupoEspecialidad;
 };
 
@@ -27,9 +28,10 @@ export function ConsultaInicialTab({
   grupo = "MEDICA",
 }: Props) {
   const psicologia = grupo === "PSICOLOGIA";
+  const saludMental = esSaludMental(grupo);
   const pediatria = grupo === "PEDIATRICA";
-  // Psicología y pediatría hablan de consumo, no de "hábitos tóxicos".
-  const consumo = psicologia || pediatria;
+  // Salud mental y pediatría hablan de consumo, no de "hábitos tóxicos".
+  const consumo = saludMental || pediatria;
   const etiquetas = etiquetasHistoriaClinica(grupo);
 
   const habitos: { field: "habitoAlcohol" | "habitoCigarrillos" | "habitoDrogas"; label: string }[] = [
@@ -40,7 +42,7 @@ export function ConsultaInicialTab({
 
   return (
     <div className="flex flex-col gap-6">
-      {psicologia ? (
+      {saludMental ? (
         <div className="grid gap-6 md:grid-cols-2">
           <TextField
             label={ETIQUETAS_PSICOLOGIA.derivadoPor}
@@ -126,7 +128,7 @@ export function ConsultaInicialTab({
             </div>
           ))}
         </div>
-        {psicologia && (
+        {saludMental && (
           <p className="text-xs text-muted-foreground">
             El detalle (frecuencia, cantidad, desde cuándo) va en Antecedentes → Consumo de sustancias.
           </p>
