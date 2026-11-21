@@ -51,6 +51,8 @@ describe("antecedentesPara", () => {
       "OFTALMOLOGICA",
       "ORL",
       "DERMATOLOGICA",
+      "LOCOMOTOR",
+      "ONCOLOGICA",
       "PSICOLOGIA",
       "ODONTOLOGICA",
       "FONOAUDIOLOGIA",
@@ -203,6 +205,8 @@ describe("exámenes de órgano", () => {
     ]);
     expect(alertasClinicas("ORL", [{ tipo: "ANTICOAGULANTES", respuesta: true }])).toEqual(["Anticoagulado"]);
     expect(alertasClinicas("DERMATOLOGICA", [{ tipo: "EMBARAZO", respuesta: true }])).toEqual(["Embarazo o lactancia"]);
+    expect(alertasClinicas("LOCOMOTOR", [{ tipo: "ANTICOAGULANTES", respuesta: true }])).toEqual(["Anticoagulado"]);
+    expect(alertasClinicas("ONCOLOGICA", [{ tipo: "INMUNOSUPRESION", respuesta: true }])).toEqual(["Inmunosuprimido"]);
   });
 });
 

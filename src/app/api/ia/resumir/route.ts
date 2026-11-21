@@ -207,6 +207,30 @@ ${REGLAS_DERMATOLOGIA}`,
 ${REGLAS_DERMATOLOGIA}`,
 };
 
+const REGLAS_LOCOMOTOR = `${REGLAS_COMUNES}
+- Conservá exactos el lado (derecho o izquierdo), la región, la escala de dolor (EVA), los grados de movilidad, la fuerza (0 a 5), el resultado de cada maniobra y el recuento articular.`;
+
+const REGLAS_ONCOLOGIA = `${REGLAS_COMUNES}
+- Conservá exactos el tipo histológico, la estadificación (TNM, estadio), el esquema y número de ciclo, las dosis, el ECOG, los valores del hemograma y las toxicidades con su grado.`;
+
+const SYSTEM_PROMPTS_LOCOMOTOR: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas de traumatología, reumatología y rehabilitación. Vas a recibir la transcripción de un dictado de un médico sobre la enfermedad actual de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: región y lado, mecanismo, desde cuándo, características del dolor, limitación funcional y tratamientos recibidos.
+
+${REGLAS_LOCOMOTOR}`,
+  evolucion: `Sos un asistente que redacta historias clínicas de traumatología, reumatología y rehabilitación. Vas a recibir la transcripción de un dictado de un médico sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, dolor (EVA), examen de la región (inspección, palpación, movilidad, fuerza, maniobras), funcionalidad, estudios, diagnóstico, indicaciones y próximo control.
+
+${REGLAS_LOCOMOTOR}`,
+};
+
+const SYSTEM_PROMPTS_ONCOLOGIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas de oncología, hematología y cuidados paliativos. Vas a recibir la transcripción de un dictado de un médico sobre la enfermedad actual de un paciente. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: diagnóstico y estadificación, fecha del diagnóstico, tratamientos recibidos y su respuesta, síntomas actuales y toxicidades.
+
+${REGLAS_ONCOLOGIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas de oncología, hematología y cuidados paliativos. Vas a recibir la transcripción de un dictado de un médico sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refiere el paciente, estado general (ECOG), síntomas y toxicidades con su grado, examen, laboratorio, respuesta al tratamiento, conducta (esquema, ciclo, ajustes de dosis, soporte) y próximo control.
+
+${REGLAS_ONCOLOGIA}`,
+};
+
 const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GrupoEspecialidad,
   Record<z.infer<typeof resumirInput>["tipo"], string>
@@ -219,6 +243,8 @@ const SYSTEM_PROMPTS_POR_GRUPO: Record<
   OFTALMOLOGICA: SYSTEM_PROMPTS_OFTALMOLOGIA,
   ORL: SYSTEM_PROMPTS_ORL,
   DERMATOLOGICA: SYSTEM_PROMPTS_DERMATOLOGIA,
+  LOCOMOTOR: SYSTEM_PROMPTS_LOCOMOTOR,
+  ONCOLOGICA: SYSTEM_PROMPTS_ONCOLOGIA,
   ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
   PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
   FONOAUDIOLOGIA: SYSTEM_PROMPTS_FONOAUDIOLOGIA,

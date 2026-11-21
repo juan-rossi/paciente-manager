@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { edadLegible, esMenorDeEdad } from "@/components/patient-form/utils";
-import { formatIndicador, indicadoresPara } from "@/lib/controles";
+import { formatIndicador, indicadoresPara, unidadIndicador } from "@/lib/controles";
 import { datosExamen, EXAMENES_ESPECIALIDAD } from "@/components/patient-form/examenes-especialidad";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
@@ -442,7 +442,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
                   <th className="py-1 pr-3 font-semibold">Fecha</th>
                   {indicadoresControl.map((i) => (
                     <th key={i.id} className="py-1 pr-3 font-semibold">
-                      {i.label} ({i.unidad})
+                      {i.label} ({unidadIndicador(i, "rango")})
                     </th>
                   ))}
                   <th className="py-1 font-semibold">Nota</th>

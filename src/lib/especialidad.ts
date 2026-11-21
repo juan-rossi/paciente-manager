@@ -253,6 +253,33 @@ export function esDermatologica(especialidad: Especialidad | null | undefined): 
   return especialidad === "DERMATOLOGIA";
 }
 
+// Aparato locomotor y dolor: traumatología, deporte, fisiatría, reumatología
+// y dolor. En vez del examen físico general usan el examen osteoarticular.
+// Reumatología infantil queda en pediatría.
+export const ESPECIALIDADES_LOCOMOTOR: ReadonlySet<Especialidad> = new Set<Especialidad>([
+  "TRAUMATOLOGIA_Y_ORTOPEDIA",
+  "MEDICINA_DEL_DEPORTE",
+  "MEDICINA_FISICA_Y_REHABILITACION_FISIATRIA",
+  "REUMATOLOGIA",
+  "MEDICINA_DEL_DOLOR",
+]);
+
+export function esLocomotor(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad != null && ESPECIALIDADES_LOCOMOTOR.has(especialidad);
+}
+
+// Oncología, hematología y cuidados paliativos: siguen con el examen físico;
+// cambian los antecedentes, los controles (ECOG, hemograma) y el dictado.
+export const ESPECIALIDADES_ONCOLOGICAS: ReadonlySet<Especialidad> = new Set<Especialidad>([
+  "ONCOLOGIA",
+  "HEMATOLOGIA",
+  "MEDICINA_PALIATIVA",
+]);
+
+export function esOncologica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad != null && ESPECIALIDADES_ONCOLOGICAS.has(especialidad);
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
 // tienen el odontograma en su lugar, los psiquiatras el examen psíquico, los
 // nutricionistas la evaluación nutricional, oftalmólogos, otorrinos y
@@ -267,7 +294,8 @@ export function usaExamenFisico(especialidad: Especialidad | null | undefined): 
     !esNutricion(especialidad) &&
     !esOftalmologica(especialidad) &&
     !esOtorrinolaringologica(especialidad) &&
-    !esDermatologica(especialidad)
+    !esDermatologica(especialidad) &&
+    !esLocomotor(especialidad)
   );
 }
 
@@ -289,6 +317,8 @@ export type GrupoEspecialidad =
   | "OFTALMOLOGICA"
   | "ORL"
   | "DERMATOLOGICA"
+  | "LOCOMOTOR"
+  | "ONCOLOGICA"
   | "ODONTOLOGICA"
   | "PSICOLOGIA"
   | "FONOAUDIOLOGIA";
@@ -302,6 +332,8 @@ const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = [
   "OFTALMOLOGICA",
   "ORL",
   "DERMATOLOGICA",
+  "LOCOMOTOR",
+  "ONCOLOGICA",
 ];
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
@@ -315,6 +347,8 @@ function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esOftalmologica(especialidad)) return "OFTALMOLOGICA";
   if (esOtorrinolaringologica(especialidad)) return "ORL";
   if (esDermatologica(especialidad)) return "DERMATOLOGICA";
+  if (esLocomotor(especialidad)) return "LOCOMOTOR";
+  if (esOncologica(especialidad)) return "ONCOLOGICA";
   return "MEDICA";
 }
 

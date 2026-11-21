@@ -160,7 +160,56 @@ const DERMATOLOGIA: ExamenEspecialidad = {
   ],
 };
 
+const LOCOMOTOR: ExamenEspecialidad = {
+  titulo: "Examen osteoarticular",
+  secciones: [
+    {
+      titulo: "Dolor",
+      campos: [
+        { label: "Escala de dolor (EVA)", ayuda: "De 0 (sin dolor) a 10 (el peor imaginable)", campo: "locEva" },
+        { label: "Región", ayuda: "Ej. rodilla derecha, columna lumbar", campo: "locRegion" },
+        {
+          label: "Características del dolor",
+          ayuda: "Mecánico o inflamatorio, irradiación, horario, rigidez matinal",
+          campo: "locDolor",
+          largo: true,
+        },
+      ],
+    },
+    {
+      titulo: "Examen de la región",
+      campos: [
+        { label: "Inspección", ayuda: "Tumefacción, deformidad, atrofia, eritema", campo: "locInspeccion", largo: true, mitad: true },
+        { label: "Palpación", ayuda: "Puntos dolorosos, derrame, crepitación", campo: "locPalpacion", largo: true, mitad: true },
+        { label: "Movilidad", ayuda: "Rango articular activo y pasivo (grados)", campo: "locMovilidad", largo: true, mitad: true },
+        { label: "Fuerza muscular", ayuda: "Escala 0 a 5 por grupo muscular", campo: "locFuerza", largo: true, mitad: true },
+        {
+          label: "Maniobras y pruebas especiales",
+          ayuda: "Ej. Lachman, McMurray, Phalen, Lasègue, Jobe",
+          campo: "locManiobras",
+          largo: true,
+        },
+        { label: "Neurovascular distal", ayuda: "Pulsos, sensibilidad, reflejos", campo: "locNeurovascular", largo: true },
+      ],
+    },
+    {
+      titulo: "Funcionalidad",
+      campos: [
+        { label: "Marcha", ayuda: "Normal, claudicante, con asistencia", campo: "locMarcha" },
+        { label: "Escala funcional", ayuda: "Ej. Barthel, HAQ, Oswestry (con el puntaje)", campo: "locFuncional" },
+        {
+          label: "Recuento articular",
+          ayuda: "Articulaciones dolorosas y tumefactas (reumatología)",
+          campo: "locArticulaciones",
+          largo: true,
+        },
+      ],
+    },
+  ],
+};
+
 const EXAMENES: Partial<Record<GrupoEspecialidad, ExamenEspecialidad>> = {
+  LOCOMOTOR,
   OFTALMOLOGICA: OFTALMOLOGIA,
   ORL,
   DERMATOLOGICA: DERMATOLOGIA,
@@ -172,7 +221,7 @@ export function examenEspecialidad(grupo: GrupoEspecialidad): ExamenEspecialidad
 
 // Todos los exámenes, para mostrar lo cargado aunque el profesional haya
 // cambiado de especialidad.
-export const EXAMENES_ESPECIALIDAD: readonly ExamenEspecialidad[] = [OFTALMOLOGIA, ORL, DERMATOLOGIA];
+export const EXAMENES_ESPECIALIDAD: readonly ExamenEspecialidad[] = [OFTALMOLOGIA, ORL, DERMATOLOGIA, LOCOMOTOR];
 
 // Lo cargado de un examen como pares rótulo/valor para la copia de la
 // historia clínica. Las filas bilaterales van como "OD: … · OI: …".

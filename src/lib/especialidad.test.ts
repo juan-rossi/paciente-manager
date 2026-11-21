@@ -45,6 +45,18 @@ describe("grupoEspecialidad", () => {
     }
   });
 
+  it("locomotor usa examen osteoarticular; oncología sigue con el físico", () => {
+    for (const e of ["TRAUMATOLOGIA_Y_ORTOPEDIA", "MEDICINA_DEL_DEPORTE", "REUMATOLOGIA", "MEDICINA_DEL_DOLOR"] as const) {
+      expect(grupoEspecialidad(e)).toBe("LOCOMOTOR");
+      expect(usaExamenFisico(e)).toBe(false);
+    }
+    expect(grupoEspecialidad("REUMATOLOGIA_INFANTIL")).toBe("PEDIATRICA");
+    for (const e of ["ONCOLOGIA", "HEMATOLOGIA", "MEDICINA_PALIATIVA"] as const) {
+      expect(grupoEspecialidad(e)).toBe("ONCOLOGICA");
+      expect(usaExamenFisico(e)).toBe(true);
+    }
+  });
+
   it("psicólogos y psiquiatras dictan hasta una hora; el resto, 10 minutos", () => {
     expect(limitesDictado("PSICOLOGIA").maxGrabacionSegundos).toBe(60 * 60);
     expect(limitesDictado("PSIQUIATRIA").maxGrabacionSegundos).toBe(60 * 60);

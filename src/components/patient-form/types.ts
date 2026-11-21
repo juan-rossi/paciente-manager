@@ -116,6 +116,18 @@ export type PatientFormValues = {
   dermDermatoscopia: string;
   dermFaneras: string;
   dermMucosas: string;
+  locEva: string;
+  locDolor: string;
+  locRegion: string;
+  locInspeccion: string;
+  locPalpacion: string;
+  locMovilidad: string;
+  locFuerza: string;
+  locManiobras: string;
+  locNeurovascular: string;
+  locMarcha: string;
+  locFuncional: string;
+  locArticulaciones: string;
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca: string;

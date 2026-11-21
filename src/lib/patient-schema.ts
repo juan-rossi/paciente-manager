@@ -118,6 +118,14 @@ export const TIPO_ANTECEDENTE_VALUES = [
   "CANCER_PIEL",
   "INMUNOSUPRESION",
   "TRATAMIENTOS_DERMATOLOGICOS_PREVIOS",
+  "TRAUMATISMOS_PREVIOS",
+  "OSTEOPOROSIS",
+  "ACTIVIDAD_DEPORTIVA",
+  "QUIMIOTERAPIA_PREVIA",
+  "RADIOTERAPIA_PREVIA",
+  "CIRUGIA_ONCOLOGICA",
+  "TRANSFUSIONES",
+  "DISPOSITIVO_ACCESO_VENOSO",
   "OTROS",
 ] as const;
 
@@ -258,6 +266,18 @@ export const patientSchema = z.object({
   dermDermatoscopia: optionalString,
   dermFaneras: optionalString,
   dermMucosas: optionalString,
+  locEva: optionalString,
+  locDolor: optionalString,
+  locRegion: optionalString,
+  locInspeccion: optionalString,
+  locPalpacion: optionalString,
+  locMovilidad: optionalString,
+  locFuerza: optionalString,
+  locManiobras: optionalString,
+  locNeurovascular: optionalString,
+  locMarcha: optionalString,
+  locFuncional: optionalString,
+  locArticulaciones: optionalString,
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca: optionalString,

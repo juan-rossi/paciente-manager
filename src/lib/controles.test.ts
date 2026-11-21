@@ -10,6 +10,7 @@ import {
   formatValor,
   indicadoresPara,
   parseValor,
+  unidadIndicador,
 } from "./controles";
 
 const vacio = Object.fromEntries(CAMPOS_CONTROL.map((c) => [c, null]));
@@ -20,6 +21,8 @@ describe("indicadoresPara", () => {
     expect(camposPara("GINECOLOGICA")).toContain("alturaUterina");
     expect(camposPara("PSIQUIATRICA")).toContain("litemia");
     expect(camposPara("OFTALMOLOGICA")).toEqual(["pioOd", "pioOi"]);
+    expect(camposPara("LOCOMOTOR")).toEqual(["eva", "peso"]);
+    expect(camposPara("ONCOLOGICA")).toEqual(["peso", "ecog", "hemoglobina", "plaquetas", "leucocitos"]);
     expect(camposPara("MEDICA")).toEqual(
       expect.arrayContaining(["peso", "presionSistolica", "presionDiastolica", "glucemia"])
     );
@@ -38,6 +41,13 @@ describe("parseValor y formatValor", () => {
     expect(parseValor(" 120 ")).toBe(120);
     expect(parseValor("")).toBeNull();
     expect(parseValor("72 kg")).toBeNaN();
+  });
+
+  it("en los campos sin decimales, el punto es separador de miles", () => {
+    expect(parseValor("145.000", "plaquetas")).toBe(145000);
+    expect(parseValor("1.250.000", "plaquetas")).toBe(1250000);
+    expect(parseValor("10,5", "hemoglobina")).toBe(10.5);
+    expect(parseValor("0", "ecog")).toBe(0);
   });
 
   it("formatea con los decimales del campo", () => {
@@ -80,6 +90,16 @@ describe("formatIndicador y formatCambio", () => {
     expect(formatCambio(pio, { pioOd: 9, pioOi: 7 }, { pioOd: 8, pioOi: 7 })).toBe("OD +1");
     expect(formatCambio(peso, { peso: 101 }, { peso: 106 })).toBe("−5");
     expect(formatCambio(peso, { peso: 70 }, { peso: 70 })).toBeNull();
+  });
+});
+
+describe("unidadIndicador", () => {
+  it("las escalas muestran su rango, no una unidad", () => {
+    const [eva, peso] = indicadoresPara("LOCOMOTOR");
+    expect(unidadIndicador(eva, "valor")).toBe("de 10");
+    expect(unidadIndicador(eva, "rango")).toBe("0 a 10");
+    expect(unidadIndicador(eva, "corto")).toBe("0–10");
+    expect(unidadIndicador(peso, "valor")).toBe("kg");
   });
 });
 

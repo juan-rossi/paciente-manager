@@ -1,4 +1,4 @@
-import { Eye, Ear, ScanSearch, type LucideIcon } from "lucide-react";
+import { Bone, Eye, Ear, ScanSearch, type LucideIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ type Props = {
 const ICONOS: Record<string, LucideIcon> = {
   "Examen oftalmológico": Eye,
   "Examen otorrinolaringológico": Ear,
+  "Examen osteoarticular": Bone,
 };
 
 // Cuántos campos "mitad" seguidos hay justo antes de `idx` (para armar pares).

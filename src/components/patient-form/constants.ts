@@ -310,8 +310,62 @@ export const ANTECEDENTES_DERMATOLOGIA_ORDEN = [
   ...ANTECEDENTES_DERMATOLOGIA_COLUMNA_2,
 ];
 
+// Aparato locomotor y dolor (ver esLocomotor()). Anticoagulantes y
+// corticoides importan antes de una infiltración o una cirugía.
+export const ANTECEDENTES_LOCOMOTOR_COLUMNA_1 = [
+  { tipo: "TRAUMATISMOS_PREVIOS", label: "Traumatismos o fracturas previas" },
+  { tipo: "CIRUGIAS_PREVIAS", label: "Cirugías (incluye prótesis)" },
+  { tipo: "ARTROSIS", label: "Artrosis" },
+  { tipo: "ARTRITIS", label: "Artritis o enfermedad reumática" },
+  { tipo: "OSTEOPOROSIS", label: "Osteoporosis" },
+  { tipo: "ENFERMEDADES_AUTOINMUNES", label: "Enfermedades autoinmunes" },
+] as const;
+
+export const ANTECEDENTES_LOCOMOTOR_COLUMNA_2 = [
+  { tipo: "ACTIVIDAD_DEPORTIVA", label: "Actividad deportiva o trabajo de esfuerzo" },
+  { tipo: "ANTICOAGULANTES", label: "Anticoagulantes o antiagregantes" },
+  { tipo: "CORTICOIDES", label: "Uso de corticoides" },
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "ALERGIA", label: "Alergias (incluye AINEs)" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+// Oncología y hematología (ver esOncologica()).
+export const ANTECEDENTES_ONCOLOGIA_COLUMNA_1 = [
+  { tipo: "QUIMIOTERAPIA_PREVIA", label: "Quimioterapia o inmunoterapia" },
+  { tipo: "RADIOTERAPIA_PREVIA", label: "Radioterapia" },
+  { tipo: "CIRUGIA_ONCOLOGICA", label: "Cirugía oncológica" },
+  { tipo: "TRANSFUSIONES", label: "Transfusiones" },
+  { tipo: "DISPOSITIVO_ACCESO_VENOSO", label: "Catéter o port implantable" },
+  { tipo: "ANTECEDENTES_FAMILIARES", label: "Cáncer en la familia" },
+] as const;
+
+export const ANTECEDENTES_ONCOLOGIA_COLUMNA_2 = [
+  { tipo: "TRASTORNOS_COAGULACION", label: "Trombosis o trastornos de la coagulación" },
+  { tipo: "INMUNOSUPRESION", label: "Inmunosupresión o infecciones graves" },
+  { tipo: "CARDIOPATIAS", label: "Cardiopatías" },
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "ALERGIA", label: "Alergias (incluye reacciones a quimioterapia)" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_LOCOMOTOR_ORDEN = [...ANTECEDENTES_LOCOMOTOR_COLUMNA_1, ...ANTECEDENTES_LOCOMOTOR_COLUMNA_2];
+export const ANTECEDENTES_ONCOLOGIA_ORDEN = [...ANTECEDENTES_ONCOLOGIA_COLUMNA_1, ...ANTECEDENTES_ONCOLOGIA_COLUMNA_2];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "LOCOMOTOR":
+      return {
+        columna1: ANTECEDENTES_LOCOMOTOR_COLUMNA_1,
+        columna2: ANTECEDENTES_LOCOMOTOR_COLUMNA_2,
+        orden: ANTECEDENTES_LOCOMOTOR_ORDEN,
+      };
+    case "ONCOLOGICA":
+      return {
+        columna1: ANTECEDENTES_ONCOLOGIA_COLUMNA_1,
+        columna2: ANTECEDENTES_ONCOLOGIA_COLUMNA_2,
+        orden: ANTECEDENTES_ONCOLOGIA_ORDEN,
+      };
     case "OFTALMOLOGICA":
       return {
         columna1: ANTECEDENTES_OFTALMOLOGIA_COLUMNA_1,
@@ -442,7 +496,22 @@ export const ANTECEDENTES_CRITICOS_DERMATOLOGIA: ReadonlyMap<string, string> = n
   ["ALERGIA", "Alergia"],
 ]);
 
+// Aparato locomotor: sangrado en infiltraciones o cirugías y alergias (AINEs).
+export const ANTECEDENTES_CRITICOS_LOCOMOTOR: ReadonlyMap<string, string> = new Map([
+  ["ANTICOAGULANTES", "Anticoagulado"],
+  ["ALERGIA", "Alergia"],
+]);
+
+// Oncología: trombosis, inmunosupresión (riesgo de infección) y alergias.
+export const ANTECEDENTES_CRITICOS_ONCOLOGIA: ReadonlyMap<string, string> = new Map([
+  ["TRASTORNOS_COAGULACION", "Trombosis o trastorno de la coagulación"],
+  ["INMUNOSUPRESION", "Inmunosuprimido"],
+  ["ALERGIA", "Alergia"],
+]);
+
 const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
+  LOCOMOTOR: ANTECEDENTES_CRITICOS_LOCOMOTOR,
+  ONCOLOGICA: ANTECEDENTES_CRITICOS_ONCOLOGIA,
   OFTALMOLOGICA: ANTECEDENTES_CRITICOS_OFTALMOLOGIA,
   ORL: ANTECEDENTES_CRITICOS_ORL,
   DERMATOLOGICA: ANTECEDENTES_CRITICOS_DERMATOLOGIA,
@@ -505,6 +574,8 @@ export function antecedenteAplicaAlSexo(
 // de la mujer, psiquiatría, nutrición, oftalmología, ORL y dermatología.
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
   [
+    ...ANTECEDENTES_LOCOMOTOR_ORDEN,
+    ...ANTECEDENTES_ONCOLOGIA_ORDEN,
     ...ANTECEDENTES_OFTALMOLOGIA_ORDEN,
     ...ANTECEDENTES_ORL_ORDEN,
     ...ANTECEDENTES_DERMATOLOGIA_ORDEN,
@@ -529,6 +600,30 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       habitos: "Hábitos",
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
+      tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "LOCOMOTOR") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Mecanismo (traumatismo, sobreuso o espontáneo), desde cuándo, características del dolor (mecánico o inflamatorio, irradiación, rigidez matinal), limitación funcional y tratamientos recibidos (AINEs, kinesiología, infiltraciones).",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios (RX, ecografía, RMN, laboratorio)",
+      tratamiento: "Tratamiento e indicaciones",
+    };
+  }
+  if (grupo === "ONCOLOGICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Diagnóstico oncológico o hematológico y cuándo se hizo, tratamientos recibidos y su respuesta, síntomas actuales (dolor, fatiga, pérdida de peso, fiebre) y toxicidades.",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico",
+      metodosComplementarios: "Estudios (laboratorio, imágenes, anatomía patológica, marcadores)",
       tratamiento: "Plan de tratamiento",
     };
   }
@@ -723,6 +818,17 @@ export function ayudasDiagnostico(grupo: GrupoEspecialidad): {
           "Laboratorio (litemia, función tiroidea, hemograma, perfil metabólico), ECG, neuroimágenes y escalas (PHQ-9, GAD-7, MMSE, etc.), con fecha y resultados.",
         tratamiento:
           "Psicofármacos (droga, dosis, horario y desde cuándo), psicoterapia indicada, pautas de alarma y próximo control.",
+      };
+    case "LOCOMOTOR":
+      return {
+        tratamiento:
+          "Medicación (droga, dosis y duración), kinesiología, reposo u ortesis, infiltraciones o cirugía, y próximo control.",
+      };
+    case "ONCOLOGICA":
+      return {
+        diagnosticoPresuntivo: "Tipo histológico, estadificación (TNM o la que corresponda) y fecha del diagnóstico.",
+        tratamiento:
+          "Esquema (drogas, dosis, ciclo número), intención (curativa o paliativa), tratamiento de soporte y próximos controles.",
       };
     case "NUTRICION":
       return {

@@ -267,6 +267,15 @@ enum TipoAntecedente {
   CANCER_PIEL
   INMUNOSUPRESION
   TRATAMIENTOS_DERMATOLOGICOS_PREVIOS
+  // Aparato locomotor y oncología (ver patient-form/constants.ts).
+  TRAUMATISMOS_PREVIOS
+  OSTEOPOROSIS
+  ACTIVIDAD_DEPORTIVA
+  QUIMIOTERAPIA_PREVIA
+  RADIOTERAPIA_PREVIA
+  CIRUGIA_ONCOLOGICA
+  TRANSFUSIONES
+  DISPOSITIVO_ACCESO_VENOSO
   OTROS
 }
 
@@ -1078,6 +1087,19 @@ model Patient {
   dermDermatoscopia    String?
   dermFaneras          String?
   dermMucosas          String?
+  // Aparato locomotor (examen osteoarticular):
+  locEva               String?
+  locDolor             String?
+  locRegion            String?
+  locInspeccion        String?
+  locPalpacion         String?
+  locMovilidad         String?
+  locFuerza            String?
+  locManiobras         String?
+  locNeurovascular     String?
+  locMarcha            String?
+  locFuncional         String?
+  locArticulaciones    String?
 
   // Examen fisico - signos vitales
   frecuenciaCardiaca     String?
@@ -1228,6 +1250,11 @@ model PatientControl {
   frecuenciaCardiacaFetal Float?
   pioOd                   Float?
   pioOi                   Float?
+  eva                     Float?
+  ecog                    Float?
+  hemoglobina             Float?
+  plaquetas               Float?
+  leucocitos              Float?
 
   nota      String?
   createdAt DateTime  @default(now())

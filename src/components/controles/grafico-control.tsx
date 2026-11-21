@@ -12,6 +12,9 @@ type Props = {
   formatear: (serie: number, valor: number) => string;
   unidad: string;
   titulo: string;
+  // Escala fija (EVA, ECOG): el eje va de punta a punta en vez de ajustarse
+  // a los valores medidos.
+  dominio?: { min: number; max: number };
 };
 
 const ALTO = 128;
@@ -32,7 +35,7 @@ function fechaEje(fecha: string): string {
 // dos series, la segunda va punteada y la leyenda la nombra (la identidad no
 // depende solo del color). Al pasar el mouse marca el control más cercano y
 // muestra sus valores; la tabla de controles es la vista accesible.
-export function GraficoControl({ puntos, series, formatear, unidad, titulo }: Props) {
+export function GraficoControl({ puntos, series, formatear, unidad, titulo, dominio }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const [ancho, setAncho] = useState(0);
   const [activo, setActivo] = useState<number | null>(null);
@@ -48,13 +51,15 @@ export function GraficoControl({ puntos, series, formatear, unidad, titulo }: Pr
   const valores = puntos.flatMap((p) => p.valores.filter((v): v is number => v != null));
   if (valores.length === 0) return null;
 
-  let min = Math.min(...valores);
-  let max = Math.max(...valores);
+  let min = dominio ? dominio.min : Math.min(...valores);
+  let max = dominio ? dominio.max : Math.max(...valores);
   if (min === max) {
     min -= 1;
     max += 1;
   }
-  const margen = (max - min) * 0.12;
+  // Con escala fija, un margen chico para que los puntos en 0 o en el máximo
+  // no queden cortados contra el borde.
+  const margen = (max - min) * (dominio ? 0.06 : 0.12);
   const yMin = min - margen;
   const yMax = max + margen;
 

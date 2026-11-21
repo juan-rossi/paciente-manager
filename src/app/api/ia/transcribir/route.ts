@@ -60,7 +60,16 @@ const PROMPT_ORL =
 const PROMPT_DERMATOLOGIA =
   "Consulta dermatológica en español. Fototipo III. Placa eritematoescamosa en codos y rodillas, pápulas, pústulas, comedones, máculas hiperpigmentadas, nevo melanocítico, lesión asimétrica de bordes irregulares. Dermatoscopía con retículo pigmentado atípico. Psoriasis, dermatitis atópica, dermatitis seborreica, acné, rosácea, melasma, vitiligo, onicomicosis, carcinoma basocelular, queratosis actínica, melanoma. Biopsia, crioterapia, isotretinoína, clobetasol, tacrolimus, doxiciclina, terbinafina, protector solar FPS 50.";
 
+// Aparato locomotor y oncología.
+const PROMPT_LOCOMOTOR =
+  "Consulta de traumatología en español. Dolor de rodilla derecha de tres semanas tras un esguince jugando al fútbol, EVA 7 sobre 10, derrame articular, Lachman positivo, McMurray positivo, flexión 110 grados, extensión completa, fuerza 4 sobre 5. Lumbalgia mecánica con irradiación a miembro inferior izquierdo, Lasègue positivo a 45 grados. Tendinitis del manguito rotador, maniobra de Jobe, epicondilitis, síndrome del túnel carpiano, Phalen y Tinel. Artritis reumatoidea, 6 articulaciones dolorosas y 4 tumefactas, rigidez matinal de una hora, metotrexato. Radiografía, resonancia, ecografía. Ibuprofeno, diclofenac, kinesiología, infiltración con corticoides, inmovilización.";
+
+const PROMPT_ONCOLOGIA =
+  "Consulta de oncología en español. Carcinoma ductal infiltrante de mama, estadio IIA, T2 N0 M0, receptores hormonales positivos, HER2 negativo. Ciclo 3 de quimioterapia esquema AC, doxorrubicina y ciclofosfamida, luego paclitaxel semanal. ECOG 1. Neutropenia febril, mucositis, náuseas, neuropatía periférica. Hemoglobina 10,2, plaquetas 145.000, leucocitos 3.200, neutrófilos 1.500. Linfoma, leucemia, mieloma, adenocarcinoma de colon, cáncer de pulmón. Radioterapia, inmunoterapia, pembrolizumab, filgrastim, ondansetrón, dexametasona, morfina. Cuidados paliativos.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  LOCOMOTOR: PROMPT_LOCOMOTOR,
+  ONCOLOGICA: PROMPT_ONCOLOGIA,
   OFTALMOLOGICA: PROMPT_OFTALMOLOGIA,
   ORL: PROMPT_ORL,
   DERMATOLOGICA: PROMPT_DERMATOLOGIA,

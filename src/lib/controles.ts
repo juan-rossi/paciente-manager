@@ -22,6 +22,11 @@ export const CAMPOS_CONTROL = [
   "frecuenciaCardiacaFetal",
   "pioOd",
   "pioOi",
+  "eva",
+  "ecog",
+  "hemoglobina",
+  "plaquetas",
+  "leucocitos",
 ] as const;
 
 export type CampoControl = (typeof CAMPOS_CONTROL)[number];
@@ -30,7 +35,9 @@ export type CampoControl = (typeof CAMPOS_CONTROL)[number];
 // de tipeo (un peso de 7000), no un rango clínico normal.
 export const CAMPO_CONTROL_INFO: Record<
   CampoControl,
-  { label: string; corto: string; min: number; max: number; decimales: number }
+  // `ejemplo`: placeholder del campo cuando el formato no es obvio (los
+  // laboratorios informan las plaquetas como 250.000 o como 250 x10³).
+  { label: string; corto: string; min: number; max: number; decimales: number; ejemplo?: string }
 > = {
   peso: { label: "Peso", corto: "Peso", min: 0.3, max: 400, decimales: 1 },
   talla: { label: "Talla", corto: "Talla", min: 20, max: 250, decimales: 1 },
@@ -47,6 +54,11 @@ export const CAMPO_CONTROL_INFO: Record<
   frecuenciaCardiacaFetal: { label: "Latidos fetales", corto: "FCF", min: 60, max: 240, decimales: 0 },
   pioOd: { label: "Presión intraocular OD", corto: "OD", min: 1, max: 80, decimales: 0 },
   pioOi: { label: "Presión intraocular OI", corto: "OI", min: 1, max: 80, decimales: 0 },
+  eva: { label: "Dolor (EVA)", corto: "EVA", min: 0, max: 10, decimales: 0 },
+  ecog: { label: "ECOG", corto: "ECOG", min: 0, max: 4, decimales: 0 },
+  hemoglobina: { label: "Hemoglobina", corto: "Hb", min: 1, max: 25, decimales: 1, ejemplo: "Ej. 13,5" },
+  plaquetas: { label: "Plaquetas", corto: "Plaq.", min: 1000, max: 2_000_000, decimales: 0, ejemplo: "Ej. 250.000" },
+  leucocitos: { label: "Leucocitos", corto: "GB", min: 100, max: 500_000, decimales: 0, ejemplo: "Ej. 7.000" },
 };
 
 export type Indicador = {
@@ -59,6 +71,10 @@ export type Indicador = {
   // si no, cada uno con su nombre ("OD 16 · OI 18"), porque en la PIO "9/10"
   // se confunde con una agudeza visual.
   formato?: "barra";
+  // Escala con puntaje fijo (EVA 0-10, ECOG 0-4): no tiene unidad, se lee
+  // "5 de 10" y el gráfico va siempre de punta a punta de la escala (si se
+  // ajustara a los datos, pasar de 4 a 5 parecería un salto enorme).
+  escala?: { min: number; max: number };
   campos: readonly CampoControl[];
 };
 
@@ -115,6 +131,11 @@ const INDICADORES = {
     unidad: "mmHg",
     campos: ["pioOd", "pioOi"],
   },
+  eva: { id: "eva", corto: "EVA", label: "Dolor (EVA)", unidad: "", escala: { min: 0, max: 10 }, campos: ["eva"] },
+  ecog: { id: "ecog", corto: "ECOG", label: "ECOG", unidad: "", escala: { min: 0, max: 4 }, campos: ["ecog"] },
+  hemoglobina: { id: "hemoglobina", corto: "Hb", label: "Hemoglobina", unidad: "g/dl", campos: ["hemoglobina"] },
+  plaquetas: { id: "plaquetas", corto: "Plaq.", label: "Plaquetas", unidad: "/mm³", campos: ["plaquetas"] },
+  leucocitos: { id: "leucocitos", corto: "GB", label: "Leucocitos", unidad: "/mm³", campos: ["leucocitos"] },
 } as const satisfies Record<string, Indicador>;
 
 // Qué sigue cada grupo en el tiempo. Los grupos sin indicadores no muestran
@@ -134,6 +155,10 @@ export function indicadoresPara(grupo: GrupoEspecialidad): readonly Indicador[] 
       return [i.peso, i.cintura, i.porcentajeGrasa];
     case "OFTALMOLOGICA":
       return [i.pio];
+    case "LOCOMOTOR":
+      return [i.eva, i.peso];
+    case "ONCOLOGICA":
+      return [i.peso, i.ecog, i.hemoglobina, i.plaquetas, i.leucocitos];
     default:
       return [];
   }
@@ -150,6 +175,17 @@ export function formatValor(campo: CampoControl, valor: number): string {
 }
 
 type ValoresControl = Partial<Record<CampoControl, number | null>>;
+
+// Cómo se nombra lo que acompaña al valor: la unidad ("kg") o, en una
+// escala, su rango. `donde` elige la forma: "rango" ("0 a 10", para el
+// formulario y la copia), "corto" ("0–10", encabezado de la tabla) o "valor"
+// ("de 10", al lado del número).
+export function unidadIndicador(indicador: Indicador, donde: "rango" | "corto" | "valor"): string {
+  const e = indicador.escala;
+  if (!e) return indicador.unidad;
+  if (donde === "valor") return `de ${e.max}`;
+  return donde === "corto" ? `${e.min}–${e.max}` : `${e.min} a ${e.max}`;
+}
 
 // El valor de un indicador en un control, listo para mostrar: "72,5",
 // "120/80" o "OD 16 · OI 18". Null si el control no lo tiene.
@@ -180,8 +216,12 @@ export function formatCambio(indicador: Indicador, ultimo: ValoresControl, anter
 
 // Lo que tipea el médico ("72,5") -> número, o null si está vacío. NaN si no
 // es un número.
-export function parseValor(texto: string): number | null {
-  const limpio = texto.trim().replace(",", ".");
+// Con `campo`, en los que no llevan decimales (plaquetas, leucocitos) el punto
+// y la coma son separadores de miles: "145.000" es 145000.
+export function parseValor(texto: string, campo?: CampoControl): number | null {
+  const sinMiles =
+    campo && CAMPO_CONTROL_INFO[campo].decimales === 0 ? texto.replace(/[.,](?=\d{3}(\D|$))/g, "") : texto;
+  const limpio = sinMiles.trim().replace(",", ".");
   if (limpio === "") return null;
   return /^\d+(\.\d+)?$/.test(limpio) ? Number(limpio) : Number.NaN;
 }

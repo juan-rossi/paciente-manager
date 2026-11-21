@@ -19,6 +19,7 @@ import {
   formatCambio,
   formatIndicador,
   formatValor,
+  unidadIndicador,
   indicadoresPara,
   parseValor,
   type CampoControl,
@@ -149,7 +150,7 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
   async function guardar() {
     const valores: Partial<Record<CampoControl, number | null>> = {};
     for (const campo of CAMPOS_CONTROL) {
-      const v = parseValor(form[campo]);
+      const v = parseValor(form[campo], campo);
       if (Number.isNaN(v)) {
         setError(`${CAMPO_CONTROL_INFO[campo].label}: escribí solo el número (ej. 72,5).`);
         return;
@@ -210,7 +211,7 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
   const campo = (c: CampoControl, placeholder?: string) => (
     <Input
       inputMode="decimal"
-      placeholder={placeholder}
+      placeholder={placeholder ?? CAMPO_CONTROL_INFO[c].ejemplo}
       aria-label={CAMPO_CONTROL_INFO[c].label}
       value={form[c]}
       onChange={(e) => setForm((f) => ({ ...f, [c]: e.target.value }))}
@@ -263,7 +264,7 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
                 </div>
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-xl font-semibold tabular-nums">{valorIndicador(indicador, ultimo)}</span>
-                  <span className="text-sm text-muted-foreground">{indicador.unidad}</span>
+                  <span className="text-sm text-muted-foreground">{unidadIndicador(indicador, "valor")}</span>
                   {cambio && (
                     <span className="text-xs text-muted-foreground tabular-nums">
                       {cambio}{" "}
@@ -276,7 +277,8 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
                 {conValor.length > 1 ? (
                   <GraficoControl
                     titulo={indicador.label}
-                    unidad={indicador.unidad}
+                    unidad={unidadIndicador(indicador, "valor")}
+                    dominio={indicador.escala}
                     series={indicador.campos.map((c) => CAMPO_CONTROL_INFO[c].corto)}
                     formatear={(s, v) => formatValor(indicador.campos[s] ?? principal, v)}
                     puntos={conValor.map((c) => ({ fecha: c.fecha, valores: indicador.campos.map((f) => c[f]) }))}
@@ -316,7 +318,7 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
                   {indicadores.map((i) => (
                     <th key={i.id} className="px-1.5 py-2 text-right font-semibold" title={i.label}>
                       {i.corto}
-                      <span className="block font-normal">{i.unidad}</span>
+                      <span className="block font-normal">{unidadIndicador(i, "corto")}</span>
                     </th>
                   ))}
                   <th>
@@ -420,7 +422,8 @@ export function ControlesManager({ patientId, grupo, initialControles, fechaNaci
               {indicadores.map((i) => (
                 <div key={i.id} className="flex flex-col gap-1.5">
                   <Label>
-                    {i.label} <span className="font-normal text-muted-foreground">({i.unidad})</span>
+                    {i.label}{" "}
+                    <span className="font-normal text-muted-foreground">({unidadIndicador(i, "rango")})</span>
                   </Label>
                   {i.campos.length > 1 ? (
                     <div className="flex items-center gap-2">

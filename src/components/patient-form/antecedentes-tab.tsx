@@ -86,6 +86,35 @@ const DETALLE_PSIQUIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   ALERGIA: "A qué y qué reacción",
 };
 
+// Aparato locomotor y oncología: qué conviene anotar en el detalle.
+const DETALLE_LOCOMOTOR: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  TRAUMATISMOS_PREVIOS: "Qué, dónde y cuándo; cómo se trató",
+  CIRUGIAS_PREVIAS: "Cuál, de qué lado y año",
+  ARTROSIS: "Qué articulaciones",
+  ARTRITIS: "Diagnóstico y tratamiento",
+  OSTEOPOROSIS: "Densitometría y tratamiento",
+  ENFERMEDADES_AUTOINMUNES: "Cuál y tratamiento",
+  ACTIVIDAD_DEPORTIVA: "Deporte o trabajo, frecuencia y nivel",
+  ANTICOAGULANTES: "Droga y dosis",
+  CORTICOIDES: "Cuál, dosis y desde cuándo",
+  DIABETES: "Tipo y medicación",
+  ALERGIA: "A qué (AINEs, otros) y qué reacción",
+};
+
+const DETALLE_ONCOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  QUIMIOTERAPIA_PREVIA: "Esquema, ciclos, fechas y toxicidades",
+  RADIOTERAPIA_PREVIA: "Zona, dosis y fechas",
+  CIRUGIA_ONCOLOGICA: "Cuál y fecha",
+  TRANSFUSIONES: "Cuántas, cuándo y si hubo reacciones",
+  DISPOSITIVO_ACCESO_VENOSO: "Tipo, dónde y desde cuándo",
+  ANTECEDENTES_FAMILIARES: "Familiar, tipo de cáncer y edad al diagnóstico",
+  TRASTORNOS_COAGULACION: "Trombosis (cuándo, dónde) y anticoagulación",
+  INMUNOSUPRESION: "Causa y medicación",
+  CARDIOPATIAS: "Cuál (importa para la cardiotoxicidad)",
+  DIABETES: "Tipo y medicación",
+  ALERGIA: "A qué (incluye drogas oncológicas) y qué reacción",
+};
+
 // Oftalmología, ORL y dermatología: qué conviene anotar en el detalle.
 const DETALLE_OFTALMOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   USO_ANTEOJOS_LENTES: "Para lejos, cerca o ambos; desde cuándo",
@@ -208,6 +237,10 @@ function AntecedenteRow({
           ? DETALLE_ORL
           : grupo === "DERMATOLOGICA"
           ? DETALLE_DERMATOLOGIA
+          : grupo === "LOCOMOTOR"
+          ? DETALLE_LOCOMOTOR
+          : grupo === "ONCOLOGICA"
+          ? DETALLE_ONCOLOGIA
           : grupo === "PEDIATRICA"
           ? DETALLE_PEDIATRIA
           : grupo === "GINECOLOGICA"
