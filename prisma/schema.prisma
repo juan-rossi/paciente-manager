@@ -664,6 +664,7 @@ enum AuditAccion {
 enum AuditEntidad {
   PACIENTE
   EVOLUCION
+  CONTROL
   CONSENTIMIENTO
   ODONTOGRAMA
   PRACTICA_ODONTOLOGICA
@@ -1001,15 +1002,15 @@ model Patient {
 
   // Examen psíquico -- solo lo carga la historia clínica de psiquiatría (ver
   // esPsiquiatrica()), en lugar del examen físico.
-  epAspecto          String?
-  epConciencia       String?
-  epAtencionMemoria  String?
-  epPensamiento      String?
-  epSensopercepcion  String?
-  epAfectividad      String?
-  epPsicomotricidad  String?
-  epSuenoApetito     String?
-  epJuicio           String?
+  epAspecto         String?
+  epConciencia      String?
+  epAtencionMemoria String?
+  epPensamiento     String?
+  epSensopercepcion String?
+  epAfectividad     String?
+  epPsicomotricidad String?
+  epSuenoApetito    String?
+  epJuicio          String?
 
   // Evaluación nutricional -- solo la carga la historia clínica de nutrición
   // (ver esNutricion()), en lugar del examen físico. Peso, peso habitual y
@@ -1103,6 +1104,7 @@ model Patient {
 
   antecedentes    PatientAntecedente[]
   evoluciones     PatientEvolucion[]
+  controles       PatientControl[]
   turnos          Turno[]
   consentimientos ConsentimientoInformado[]
   odontogramas    PatientOdontograma[]
@@ -1142,6 +1144,38 @@ model PatientAntecedente {
   resolucion  String?
 
   @@unique([patientId, tipo])
+}
+
+// Controles con fecha: valores que se siguen en el tiempo (peso, presión,
+// talla, glucemia...). Qué se carga depende del grupo de la especialidad (ver
+// metricasPara() en src/lib/controles.ts); todos los valores son opcionales y
+// un control tiene al menos uno. Mismas reglas que una evolución: solo el
+// médico lo ve y nunca se borra físicamente.
+model PatientControl {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fecha     DateTime
+
+  peso                    Float?
+  talla                   Float?
+  perimetroCefalico       Float?
+  cintura                 Float?
+  porcentajeGrasa         Float?
+  presionSistolica        Float?
+  presionDiastolica       Float?
+  frecuenciaCardiaca      Float?
+  glucemia                Float?
+  hba1c                   Float?
+  litemia                 Float?
+  alturaUterina           Float?
+  frecuenciaCardiacaFetal Float?
+
+  nota      String?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([patientId, fecha])
 }
 
 model PatientEvolucion {

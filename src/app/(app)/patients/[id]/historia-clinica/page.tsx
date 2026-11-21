@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { edadLegible, esMenorDeEdad } from "@/components/patient-form/utils";
+import { formatValor, indicadoresPara } from "@/lib/controles";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
   ANTECEDENTE_LABELS,
@@ -123,6 +124,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
     include: {
       antecedentes: { where: { respuesta: true } },
       evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
+      controles: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
       consentimientos: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
     },
   });
@@ -148,6 +150,18 @@ export default async function HistoriaClinicaPage({ params }: Props) {
   const consumo = esSaludMental(grupo) || grupo === "PEDIATRICA";
   const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
+  // Los controles cargados con otra especialidad (si el médico cambió) se
+  // muestran igual: se suman los indicadores que tengan algún valor.
+  const indicadoresControl = [
+    ...indicadoresPara(grupo),
+    ...indicadoresPara("MEDICA"),
+    ...indicadoresPara("PEDIATRICA"),
+    ...indicadoresPara("GINECOLOGICA"),
+    ...indicadoresPara("PSIQUIATRICA"),
+    ...indicadoresPara("NUTRICION"),
+  ]
+    .filter((i, idx, todos) => todos.findIndex((o) => o.id === i.id) === idx)
+    .filter((i) => patient.controles.some((c) => i.campos.some((campo) => c[campo] != null)));
 
   // Ley 26.529 art. 14: deja registro de que se generó una copia de la
   // historia clínica (entregable al paciente dentro de las 48hs -- acá el
@@ -412,6 +426,39 @@ export default async function HistoriaClinicaPage({ params }: Props) {
                 </div>
               ))}
             </div>
+          </Seccion>
+        )}
+
+        {patient.controles.length > 0 && (
+          <Seccion titulo="Controles">
+            <table className="w-full break-inside-avoid text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-1 pr-3 font-semibold">Fecha</th>
+                  {indicadoresControl.map((i) => (
+                    <th key={i.id} className="py-1 pr-3 font-semibold">
+                      {i.label} ({i.unidad})
+                    </th>
+                  ))}
+                  <th className="py-1 font-semibold">Nota</th>
+                </tr>
+              </thead>
+              <tbody>
+                {patient.controles.map((c) => (
+                  <tr key={c.id} className="border-t border-border align-top">
+                    <td className="py-1 pr-3 whitespace-nowrap">{formatFecha(c.fecha)}</td>
+                    {indicadoresControl.map((i) => (
+                      <td key={i.id} className="py-1 pr-3 tabular-nums">
+                        {i.campos.some((campo) => c[campo] != null)
+                          ? i.campos.map((campo) => (c[campo] == null ? "–" : formatValor(campo, c[campo]!))).join("/")
+                          : ""}
+                      </td>
+                    ))}
+                    <td className="py-1">{c.nota}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </Seccion>
         )}
 

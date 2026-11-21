@@ -2,6 +2,7 @@ import Link from "next/link";
 import { textoPlano } from "@/lib/evolucion-formato";
 import type { ComponentType, ReactNode } from "react";
 import {
+  Activity,
   AlertTriangle,
   Apple,
   ClipboardCheck,
@@ -47,6 +48,8 @@ import {
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
+import { ControlesManager } from "@/components/controles/controles-manager";
+import { CAMPO_CONTROL_INFO, CAMPOS_CONTROL, controlFromDb, indicadoresPara } from "@/lib/controles";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
 import { plantillasConsentimiento } from "@/lib/consentimiento-plantillas";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
@@ -64,7 +67,7 @@ import { OdontogramaVisitas } from "@/components/odontograma/odontograma-visitas
 import { Presupuestos, type PresupuestosProps } from "@/components/odontograma/presupuestos";
 
 type PatientWithRelations = Prisma.PatientGetPayload<{
-  include: { antecedentes: true; evoluciones: true; consentimientos: true };
+  include: { antecedentes: true; evoluciones: true; controles: true; consentimientos: true };
 }>;
 
 type AuditEntry = Prisma.AuditLogGetPayload<{
@@ -82,6 +85,9 @@ const AUDIT_LABELS: Record<string, string> = {
   MODIFICAR_EVOLUCION: "modificó una evolución clínica",
   ELIMINAR_EVOLUCION: "eliminó una evolución clínica",
   RESTAURAR_EVOLUCION: "restauró una evolución clínica",
+  CREAR_CONTROL: "registró un control",
+  MODIFICAR_CONTROL: "modificó un control",
+  ELIMINAR_CONTROL: "eliminó un control",
   EXPORTAR_PACIENTE: "generó una copia de la historia clínica",
   CREAR_CONSENTIMIENTO: "registró un consentimiento informado",
   MODIFICAR_CONSENTIMIENTO: "revocó un consentimiento informado",
@@ -133,6 +139,7 @@ const CAMPO_LABELS: Record<string, string> = {
   tratamiento: "Tratamiento",
   ...ETIQUETAS_PSICOLOGIA,
   ...ETIQUETAS_GINECOLOGIA,
+  ...Object.fromEntries(CAMPOS_CONTROL.map((c) => [c, CAMPO_CONTROL_INFO[c].label])),
   fecha: "Fecha",
   contenido: "Contenido",
   contenidoDictado: "Dictado",
@@ -633,6 +640,21 @@ export function PatientSummary({
 
         <div className="contents lg:flex lg:flex-col lg:gap-6">
           {consultaInicial}
+
+          {indicadoresPara(grupo).length > 0 && (
+            <FormSection title="Controles" icon={Activity} contentClassName="bg-card">
+              <div className="col-span-full">
+                <ControlesManager
+                  patientId={patient.id}
+                  grupo={grupo}
+                  initialControles={patient.controles.map(controlFromDb)}
+                  fechaNacimiento={patient.fechaNacimiento?.toISOString().slice(0, 10) ?? null}
+                  fum={patient.fum}
+                  estatura={patient.estatura}
+                />
+              </div>
+            </FormSection>
+          )}
 
           {evolucionHabilitada && (
             <FormSection

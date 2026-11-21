@@ -12,6 +12,7 @@ type AuditAccion =
 type AuditEntidad =
   | "PACIENTE"
   | "EVOLUCION"
+  | "CONTROL"
   | "CONSENTIMIENTO"
   | "ODONTOGRAMA"
   | "PRACTICA_ODONTOLOGICA"

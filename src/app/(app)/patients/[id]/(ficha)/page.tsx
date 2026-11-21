@@ -37,6 +37,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     include: {
       antecedentes: true,
       evoluciones: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
+      controles: { where: { deletedAt: null }, orderBy: { fecha: "asc" } },
       // Sin filtro de deletedAt a propósito: el manager de consentimientos
       // muestra también los eliminados (en una sección aparte) para poder
       // restaurarlos, igual que la pestaña de evolución en el formulario.
@@ -65,6 +66,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const evolucionIds = (
     await prisma.patientEvolucion.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((e) => e.id);
+  const controlIds = (
+    await prisma.patientControl.findMany({ where: { patientId: id }, select: { id: true } })
+  ).map((c) => c.id);
   const consentimientoIds = (
     await prisma.consentimientoInformado.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((c) => c.id);
@@ -91,6 +95,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         { entidad: "PACIENTE", entidadId: id },
         ...(evolucionIds.length > 0
           ? [{ entidad: "EVOLUCION" as const, entidadId: { in: evolucionIds } }]
+          : []),
+        ...(controlIds.length > 0
+          ? [{ entidad: "CONTROL" as const, entidadId: { in: controlIds } }]
           : []),
         ...(consentimientoIds.length > 0
           ? [{ entidad: "CONSENTIMIENTO" as const, entidadId: { in: consentimientoIds } }]
