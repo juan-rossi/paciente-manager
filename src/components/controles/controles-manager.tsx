@@ -30,11 +30,12 @@ import { edadGestacional } from "@/lib/obstetricia";
 import { calcularImc } from "@/lib/nutricion";
 import { formatDateParamBA } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import type { GrupoEspecialidad } from "@/lib/especialidad";
+import type { Especialidad, GrupoEspecialidad } from "@/lib/especialidad";
 
 type Props = {
   patientId: string;
   grupo: GrupoEspecialidad;
+  especialidad?: Especialidad | null;
   initialControles: ControlValue[];
   // Para la columna de contexto de cada control (edad, edad gestacional, IMC).
   fechaNacimiento: string | null;
@@ -110,8 +111,16 @@ function formularioDe(c: ControlValue): Formulario {
 // Controles con fecha de la ficha (ver src/lib/controles.ts): una tarjeta por
 // indicador con el último valor, el cambio desde el control anterior y la
 // línea en el tiempo; debajo, la tabla de todos los controles.
-export function ControlesManager({ patientId, grupo, initialControles, fechaNacimiento, fum, estatura }: Props) {
-  const indicadores = indicadoresPara(grupo);
+export function ControlesManager({
+  patientId,
+  grupo,
+  especialidad,
+  initialControles,
+  fechaNacimiento,
+  fum,
+  estatura,
+}: Props) {
+  const indicadores = indicadoresPara(grupo, especialidad);
   const [controles, setControles] = useState<ControlValue[]>(initialControles);
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);

@@ -5,6 +5,7 @@ import { CODIGO_TOPE_IA, requirePremiumDoctor } from "@/lib/ia-auth";
 import { costoResumenMaximoUsd, costoResumenUsd } from "@/lib/ia-costos";
 import { confirmarUsoIA, liberarUsoIA, mensajeTopeIA, reservarUsoIA } from "@/lib/ia-tope";
 import { grupoEspecialidad, limitesDictado, type GrupoEspecialidad } from "@/lib/especialidad";
+import { REGLA_RESUMEN } from "@/lib/ia-especialidad";
 
 // Una sesión de psicología de una hora son ~20k tokens de entrada y hasta 4k
 // de salida: con Haiku puede pasar los 60 segundos.
@@ -284,6 +285,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: mensajeTopeIA(), code: CODIGO_TOPE_IA }, { status: 429 });
   }
 
+  // Dentro del grupo médico, una regla más con lo que la especialidad
+  // necesita conservar exacto.
+  const grupo = grupoEspecialidad(user.especialidad);
+  const reglaEspecialidad = grupo === "MEDICA" && user.especialidad ? REGLA_RESUMEN[user.especialidad] : undefined;
+  const systemPrompt =
+    SYSTEM_PROMPTS_POR_GRUPO[grupo][parsed.data.tipo] + (reglaEspecialidad ? `\n${reglaEspecialidad}` : "");
+
   let message: Anthropic.Message;
   try {
     // Se crea por pedido: el constructor falla sin ANTHROPIC_API_KEY, y a nivel de
@@ -292,7 +300,7 @@ export async function POST(request: NextRequest) {
     message = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: limites.maxTokensResumen,
-      system: SYSTEM_PROMPTS_POR_GRUPO[grupoEspecialidad(user.especialidad)][parsed.data.tipo],
+      system: systemPrompt,
       messages: [{ role: "user", content: `<dictado>\n${parsed.data.texto}\n</dictado>` }],
     });
   } catch (error) {

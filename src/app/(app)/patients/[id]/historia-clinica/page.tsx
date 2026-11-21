@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { edadLegible, esMenorDeEdad } from "@/components/patient-form/utils";
-import { formatIndicador, indicadoresPara, unidadIndicador } from "@/lib/controles";
+import { formatIndicador, indicadoresPara, TODOS_LOS_INDICADORES, unidadIndicador } from "@/lib/controles";
 import { datosExamen, EXAMENES_ESPECIALIDAD } from "@/components/patient-form/examenes-especialidad";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
@@ -151,16 +151,9 @@ export default async function HistoriaClinicaPage({ params }: Props) {
   const consumo = esSaludMental(grupo) || grupo === "PEDIATRICA";
   const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
-  // Los controles cargados con otra especialidad (si el médico cambió) se
-  // muestran igual: se suman los indicadores que tengan algún valor.
-  const indicadoresControl = [
-    ...indicadoresPara(grupo),
-    ...indicadoresPara("MEDICA"),
-    ...indicadoresPara("PEDIATRICA"),
-    ...indicadoresPara("GINECOLOGICA"),
-    ...indicadoresPara("PSIQUIATRICA"),
-    ...indicadoresPara("NUTRICION"),
-  ]
+  // Primero los de la especialidad actual y después cualquier otro que tenga
+  // valores (controles cargados con otra especialidad, si el médico cambió).
+  const indicadoresControl = [...indicadoresPara(grupo, doctor?.especialidad), ...TODOS_LOS_INDICADORES]
     .filter((i, idx, todos) => todos.findIndex((o) => o.id === i.id) === idx)
     .filter((i) => patient.controles.some((c) => i.campos.some((campo) => c[campo] != null)));
 

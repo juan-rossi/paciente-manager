@@ -3,6 +3,7 @@ import { CODIGO_TOPE_IA, requirePremiumDoctor } from "@/lib/ia-auth";
 import { costoDictadoMaximoUsd, costoDictadoUsd } from "@/lib/ia-costos";
 import { confirmarUsoIA, liberarUsoIA, mensajeTopeIA, reservarUsoIA } from "@/lib/ia-tope";
 import { grupoEspecialidad, type GrupoEspecialidad } from "@/lib/especialidad";
+import { VOCABULARIO_DICTADO } from "@/lib/ia-especialidad";
 
 export const maxDuration = 60;
 
@@ -111,7 +112,10 @@ export async function POST(request: NextRequest) {
   // el reporte de costos del panel admin.
   groqForm.append("response_format", "verbose_json");
   groqForm.append("temperature", "0");
-  groqForm.append("prompt", PROMPT_POR_GRUPO[grupoEspecialidad(user.especialidad)]);
+  // Dentro del grupo médico, el vocabulario de la especialidad (si lo hay).
+  const grupo = grupoEspecialidad(user.especialidad);
+  const vocabulario = grupo === "MEDICA" && user.especialidad ? VOCABULARIO_DICTADO[user.especialidad] : undefined;
+  groqForm.append("prompt", vocabulario ?? PROMPT_POR_GRUPO[grupo]);
 
   // Se reserva el costo máximo antes de llamar (ver src/lib/ia-tope.ts): un
   // pedido simultáneo ya lo ve y no puede pasar el tope junto con este.

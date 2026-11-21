@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { GrupoEspecialidad } from "@/lib/especialidad";
+import type { Especialidad, GrupoEspecialidad } from "@/lib/especialidad";
 import { esFechaValida, MENSAJE_FECHA_INVALIDA, TEXTO_MEDIO } from "@/lib/limites-texto";
 
 // Controles con fecha (ver PatientControl en prisma/schema.prisma). Cada
@@ -27,6 +27,16 @@ export const CAMPOS_CONTROL = [
   "hemoglobina",
   "plaquetas",
   "leucocitos",
+  "ldl",
+  "tsh",
+  "creatinina",
+  "filtradoGlomerular",
+  "saturacion",
+  "vef1",
+  "cd4",
+  "cargaViral",
+  "psa",
+  "barthel",
 ] as const;
 
 export type CampoControl = (typeof CAMPOS_CONTROL)[number];
@@ -59,6 +69,16 @@ export const CAMPO_CONTROL_INFO: Record<
   hemoglobina: { label: "Hemoglobina", corto: "Hb", min: 1, max: 25, decimales: 1, ejemplo: "Ej. 13,5" },
   plaquetas: { label: "Plaquetas", corto: "Plaq.", min: 1000, max: 2_000_000, decimales: 0, ejemplo: "Ej. 250.000" },
   leucocitos: { label: "Leucocitos", corto: "GB", min: 100, max: 500_000, decimales: 0, ejemplo: "Ej. 7.000" },
+  ldl: { label: "Colesterol LDL", corto: "LDL", min: 10, max: 500, decimales: 0 },
+  tsh: { label: "TSH", corto: "TSH", min: 0.01, max: 100, decimales: 2, ejemplo: "Ej. 2,5" },
+  creatinina: { label: "Creatinina", corto: "Creat.", min: 0.1, max: 20, decimales: 2, ejemplo: "Ej. 0,9" },
+  filtradoGlomerular: { label: "Filtrado glomerular", corto: "FG", min: 1, max: 200, decimales: 0 },
+  saturacion: { label: "Saturación de O₂", corto: "SatO₂", min: 50, max: 100, decimales: 0 },
+  vef1: { label: "VEF1", corto: "VEF1", min: 5, max: 150, decimales: 0, ejemplo: "% del predicho" },
+  cd4: { label: "CD4", corto: "CD4", min: 0, max: 5000, decimales: 0 },
+  cargaViral: { label: "Carga viral", corto: "CV", min: 0, max: 10_000_000, decimales: 0, ejemplo: "Indetectable: 0" },
+  psa: { label: "PSA", corto: "PSA", min: 0, max: 1000, decimales: 2, ejemplo: "Ej. 1,8" },
+  barthel: { label: "Índice de Barthel", corto: "Barthel", min: 0, max: 100, decimales: 0 },
 };
 
 export type Indicador = {
@@ -136,15 +156,81 @@ const INDICADORES = {
   hemoglobina: { id: "hemoglobina", corto: "Hb", label: "Hemoglobina", unidad: "g/dl", campos: ["hemoglobina"] },
   plaquetas: { id: "plaquetas", corto: "Plaq.", label: "Plaquetas", unidad: "/mm³", campos: ["plaquetas"] },
   leucocitos: { id: "leucocitos", corto: "GB", label: "Leucocitos", unidad: "/mm³", campos: ["leucocitos"] },
+  ldl: { id: "ldl", corto: "LDL", label: "Colesterol LDL", unidad: "mg/dl", campos: ["ldl"] },
+  tsh: { id: "tsh", corto: "TSH", label: "TSH", unidad: "µUI/ml", campos: ["tsh"] },
+  creatinina: { id: "creatinina", corto: "Creat.", label: "Creatinina", unidad: "mg/dl", campos: ["creatinina"] },
+  filtradoGlomerular: {
+    id: "filtradoGlomerular",
+    corto: "FG",
+    label: "Filtrado glomerular",
+    unidad: "ml/min",
+    campos: ["filtradoGlomerular"],
+  },
+  saturacion: { id: "saturacion", corto: "SatO₂", label: "Saturación de O₂", unidad: "%", campos: ["saturacion"] },
+  vef1: { id: "vef1", corto: "VEF1", label: "VEF1", unidad: "% pred.", campos: ["vef1"] },
+  cd4: { id: "cd4", corto: "CD4", label: "CD4", unidad: "/mm³", campos: ["cd4"] },
+  cargaViral: { id: "cargaViral", corto: "CV", label: "Carga viral", unidad: "copias/ml", campos: ["cargaViral"] },
+  psa: { id: "psa", corto: "PSA", label: "PSA", unidad: "ng/ml", campos: ["psa"] },
+  barthel: {
+    id: "barthel",
+    corto: "Barthel",
+    label: "Índice de Barthel",
+    unidad: "",
+    escala: { min: 0, max: 100 },
+    campos: ["barthel"],
+  },
 } as const satisfies Record<string, Indicador>;
+
+// Todos los indicadores, para la copia de la historia clínica: muestra lo
+// cargado aunque el profesional haya cambiado de especialidad.
+export const TODOS_LOS_INDICADORES: readonly Indicador[] = Object.values(INDICADORES);
+
+// Las especialidades médicas sin grupo propio comparten la historia clínica,
+// pero cada una sigue en el tiempo sus propios valores. Las que no figuran
+// usan los controles generales (peso, presión, FC, glucemia, HbA1c).
+function indicadoresMedicos(especialidad: Especialidad | null | undefined): readonly Indicador[] {
+  const i = INDICADORES;
+  switch (especialidad) {
+    case "CARDIOLOGIA":
+      return [i.presion, i.frecuenciaCardiaca, i.peso, i.ldl];
+    case "DIABETOLOGIA":
+      return [i.glucemia, i.hba1c, i.peso, i.presion];
+    case "ENDOCRINOLOGIA":
+      return [i.peso, i.tsh, i.glucemia, i.hba1c];
+    case "NEFROLOGIA":
+      return [i.presion, i.creatinina, i.filtradoGlomerular, i.peso];
+    case "NEUMONOLOGIA":
+      return [i.saturacion, i.vef1, i.frecuenciaCardiaca, i.peso];
+    case "INFECTOLOGIA":
+      return [i.peso, i.cd4, i.cargaViral];
+    case "UROLOGIA":
+      return [i.psa, i.peso];
+    case "GERIATRIA":
+      return [i.peso, i.presion, i.barthel];
+    case "GASTROENTEROLOGIA":
+    case "HEPATOLOGIA":
+    case "COLOPROCTOLOGIA":
+      return [i.peso];
+    case "FLEBOLOGIA":
+    case "ANDROLOGIA":
+      return [i.peso, i.presion];
+    default:
+      return [i.peso, i.presion, i.frecuenciaCardiaca, i.glucemia, i.hba1c];
+  }
+}
 
 // Qué sigue cada grupo en el tiempo. Los grupos sin indicadores no muestran
 // controles (psicología, fonoaudiología, odontología).
-export function indicadoresPara(grupo: GrupoEspecialidad): readonly Indicador[] {
+// En el grupo médico, la especialidad afina qué se sigue (ver
+// indicadoresMedicos()).
+export function indicadoresPara(
+  grupo: GrupoEspecialidad,
+  especialidad?: Especialidad | null
+): readonly Indicador[] {
   const i = INDICADORES;
   switch (grupo) {
     case "MEDICA":
-      return [i.peso, i.presion, i.frecuenciaCardiaca, i.glucemia, i.hba1c];
+      return indicadoresMedicos(especialidad);
     case "PEDIATRICA":
       return [i.peso, i.talla, i.perimetroCefalico];
     case "GINECOLOGICA":
@@ -164,8 +250,8 @@ export function indicadoresPara(grupo: GrupoEspecialidad): readonly Indicador[] 
   }
 }
 
-export function camposPara(grupo: GrupoEspecialidad): CampoControl[] {
-  return indicadoresPara(grupo).flatMap((i) => i.campos);
+export function camposPara(grupo: GrupoEspecialidad, especialidad?: Especialidad | null): CampoControl[] {
+  return indicadoresPara(grupo, especialidad).flatMap((i) => i.campos);
 }
 
 // "72,5" con los decimales del campo, en formato argentino.

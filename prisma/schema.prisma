@@ -1255,6 +1255,16 @@ model PatientControl {
   hemoglobina             Float?
   plaquetas               Float?
   leucocitos              Float?
+  ldl                     Float?
+  tsh                     Float?
+  creatinina              Float?
+  filtradoGlomerular      Float?
+  saturacion              Float?
+  vef1                    Float?
+  cd4                     Float?
+  cargaViral              Float?
+  psa                     Float?
+  barthel                 Float?
 
   nota      String?
   createdAt DateTime  @default(now())

@@ -129,7 +129,8 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     }
   }
 
-  const grupo = grupoEspecialidad(await tenantEspecialidad(tenantId));
+  const especialidad = await tenantEspecialidad(tenantId);
+  const grupo = grupoEspecialidad(especialidad);
   const { values: patientValues } = patientFromApi(patient, grupo);
   const resumenAutomatico = await getResumenAutomatico(user);
   const esOdontologo = await tenantEsOdontologo(tenantId);
@@ -216,6 +217,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         odontograma={odontograma}
         presupuestos={presupuestos}
         grupo={grupo}
+        especialidad={especialidad}
       />
     </PageEnter>
   );

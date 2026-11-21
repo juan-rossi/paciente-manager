@@ -28,6 +28,15 @@ describe("indicadoresPara", () => {
     );
   });
 
+  it("en el grupo médico, cada especialidad sigue sus valores", () => {
+    expect(camposPara("MEDICA", "CARDIOLOGIA")).toContain("ldl");
+    expect(camposPara("MEDICA", "NEFROLOGIA")).toEqual(
+      expect.arrayContaining(["creatinina", "filtradoGlomerular"])
+    );
+    expect(camposPara("MEDICA", "INFECTOLOGIA")).toEqual(["peso", "cd4", "cargaViral"]);
+    expect(camposPara("MEDICA", "CLINICA_MEDICA")).toEqual(camposPara("MEDICA"));
+  });
+
   it("psicología, fonoaudiología y odontología no tienen controles", () => {
     expect(indicadoresPara("PSICOLOGIA")).toEqual([]);
     expect(indicadoresPara("FONOAUDIOLOGIA")).toEqual([]);

@@ -52,7 +52,7 @@ import { ControlesManager } from "@/components/controles/controles-manager";
 import { CAMPO_CONTROL_INFO, CAMPOS_CONTROL, controlFromDb, indicadoresPara } from "@/lib/controles";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
 import { plantillasConsentimiento } from "@/lib/consentimiento-plantillas";
-import type { GrupoEspecialidad } from "@/lib/especialidad";
+import type { Especialidad, GrupoEspecialidad } from "@/lib/especialidad";
 import { AlertasClinicas } from "@/components/alertas-clinicas";
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
@@ -236,6 +236,7 @@ export function PatientSummary({
   odontograma = null,
   presupuestos = null,
   grupo = "MEDICA",
+  especialidad = null,
 }: {
   patient: PatientWithRelations;
   diffs?: TurnoDiff[];
@@ -254,6 +255,8 @@ export function PatientSummary({
   // Grupo de la especialidad (ver grupoEspecialidad()): otros nombres y
   // campos propios en consulta inicial, antecedentes y diagnóstico.
   grupo?: GrupoEspecialidad;
+  // Afina los controles del grupo médico (ver indicadoresPara()).
+  especialidad?: Especialidad | null;
 }) {
   const saludMental = esSaludMental(grupo);
   const sesiones = usaSesiones(grupo);
@@ -641,12 +644,13 @@ export function PatientSummary({
         <div className="contents lg:flex lg:flex-col lg:gap-6">
           {consultaInicial}
 
-          {indicadoresPara(grupo).length > 0 && (
+          {indicadoresPara(grupo, especialidad).length > 0 && (
             <FormSection title="Controles" icon={Activity} contentClassName="bg-card">
               <div className="col-span-full">
                 <ControlesManager
                   patientId={patient.id}
                   grupo={grupo}
+                  especialidad={especialidad}
                   initialControles={patient.controles.map(controlFromDb)}
                   fechaNacimiento={patient.fechaNacimiento?.toISOString().slice(0, 10) ?? null}
                   fum={patient.fum}
