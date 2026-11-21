@@ -28,10 +28,16 @@ const PROMPT_PSICOLOGIA =
 const PROMPT_ODONTOLOGIA =
   "Consulta odontológica en español. Pieza 3.6 con caries en cara oclusal y distal, se realiza obturación con composite. Pieza 1.1 con fractura de cara vestibular y mesial. Pieza 4.6 con tratamiento de conducto, se indica corona. Exodoncia de la pieza 3.8. Tartrectomía y topicación con flúor. Periodontitis, gingivitis, bolsa periodontal, movilidad dentaria. Anestesia local, implante, amalgama, radiografía periapical y panorámica. Cara palatina, lingual, vestibular, mesial, distal, oclusal.";
 
+// Para fonoaudiólogos: trastornos de lenguaje, habla, voz, audición y
+// deglución, con los nombres de las pruebas más usadas.
+const PROMPT_FONOAUDIOLOGIA =
+  "Sesión de fonoaudiología en español. Paciente con dislalia, sustituye el fonema /r/ por /l/ y omite /s/ en sílabas trabadas. Retraso simple del lenguaje, trastorno específico del lenguaje, TEA, tartamudez, disfemia, disfonía, nódulos vocales, disfagia, deglución atípica, respiración bucal, praxias linguales y labiales, conciencia fonológica, lectoescritura, dislexia. Audiometría tonal, logoaudiometría, impedanciometría, otoemisiones acústicas, hipoacusia neurosensorial, audífonos, implante coclear. Se indican ejercicios para el hogar.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
   MEDICA: PROMPT_CLINICO,
   ODONTOLOGICA: PROMPT_ODONTOLOGIA,
   PSICOLOGIA: PROMPT_PSICOLOGIA,
+  FONOAUDIOLOGIA: PROMPT_FONOAUDIOLOGIA,
 };
 
 export async function POST(request: NextRequest) {

@@ -111,8 +111,8 @@ export const ESPECIALIDAD_LABELS: Record<Especialidad, string> = {
   // Psicología no es una especialidad médica (es Lic. en Psicología): no
   // confundir con Psiquiatría. Ver esPsicologia().
   PSICOLOGIA: "Psicología",
-  // Fonoaudiología tampoco es médica (Lic. en Fonoaudiología), pero usa la
-  // historia clínica médica sin examen físico. Ver esFonoaudiologia().
+  // Fonoaudiología tampoco es médica (Lic. en Fonoaudiología): tiene su grupo
+  // propio, sin examen físico. Ver esFonoaudiologia().
   FONOAUDIOLOGIA: "Fonoaudiología",
   // Odontología: bloque aparte al final, general primero.
   ODONTOLOGIA_GENERAL: "Odontología General",
@@ -176,8 +176,8 @@ export function esPsicologia(especialidad: Especialidad | null | undefined): boo
   return especialidad === "PSICOLOGIA";
 }
 
-// Fonoaudiología: va en el grupo médico (mismos antecedentes, diagnóstico y
-// evolución), pero sin examen físico. Cualquier lógica que dependa de "es
+// Fonoaudiología: grupo propio (antecedentes y dictado), sin examen físico.
+// Los campos de la historia clínica son los médicos. Cualquier lógica que dependa de "es
 // fonoaudiólogo" tiene que pasar por esFonoaudiologia().
 export function esFonoaudiologia(especialidad: Especialidad | null | undefined): boolean {
   return especialidad === "FONOAUDIOLOGIA";
@@ -195,12 +195,14 @@ export function usaExamenFisico(especialidad: Especialidad | null | undefined): 
 // Grupo de profesión de cada especialidad. En el registro, el título de
 // cortesía decide qué grupos se ofrecen (ver gruposParaTitulo()).
 // También decide la historia clínica (antecedentes, etiquetas, dictado y
-// plantillas de consentimiento): ver grupoEspecialidad().
-export type GrupoEspecialidad = "MEDICA" | "ODONTOLOGICA" | "PSICOLOGIA";
+// plantillas de consentimiento): ver grupoEspecialidad(). Lo que un grupo no
+// personaliza (ej. etiquetas y consentimientos de fonoaudiología) usa lo médico.
+export type GrupoEspecialidad = "MEDICA" | "ODONTOLOGICA" | "PSICOLOGIA" | "FONOAUDIOLOGIA";
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esOdontologica(especialidad)) return "ODONTOLOGICA";
   if (esPsicologia(especialidad)) return "PSICOLOGIA";
+  if (esFonoaudiologia(especialidad)) return "FONOAUDIOLOGIA";
   return "MEDICA";
 }
 
@@ -224,8 +226,8 @@ export const ESPECIALIDAD_OPTIONS = ESPECIALIDAD_VALUES.map((value) => ({
 //  - Dr./Dra./Méd./Med. -> solo las médicas.
 //  - El resto (Lic., Bioq., Klgo., Enf.) o sin título -> médicas y Psicología
 //    ("Lic." lo usan psicólogos, pero también nutricionistas, kinesiólogos...).
-// Fonoaudiología está en el grupo médico, así que también la ven los títulos
-// que ofrecen médicas.
+// Fonoaudiología también se ofrece con los títulos médicos y con el resto
+// (un fonoaudiólogo suele firmar "Lic.").
 const TITULOS_ODONTOLOGICOS: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["OD", "ODONT"]);
 const TITULOS_PSICOLOGIA: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["PSIC", "PSI"]);
 const TITULOS_FONOAUDIOLOGIA: ReadonlySet<TituloCortesia> = new Set<TituloCortesia>(["FLGO", "FLGA"]);
@@ -241,8 +243,9 @@ function gruposParaTitulo(
 ): ReadonlySet<GrupoEspecialidad> {
   if (titulo && TITULOS_ODONTOLOGICOS.has(titulo)) return new Set(["ODONTOLOGICA"]);
   if (titulo && TITULOS_PSICOLOGIA.has(titulo)) return new Set(["PSICOLOGIA"]);
-  if (titulo && TITULOS_MEDICOS.has(titulo)) return new Set(["MEDICA"]);
-  return new Set(["MEDICA", "PSICOLOGIA"]);
+  if (titulo && TITULOS_FONOAUDIOLOGIA.has(titulo)) return new Set(["FONOAUDIOLOGIA"]);
+  if (titulo && TITULOS_MEDICOS.has(titulo)) return new Set(["MEDICA", "FONOAUDIOLOGIA"]);
+  return new Set(["MEDICA", "PSICOLOGIA", "FONOAUDIOLOGIA"]);
 }
 
 export function especialidadCompatibleConTitulo(
@@ -250,7 +253,6 @@ export function especialidadCompatibleConTitulo(
   especialidad: Especialidad | null | undefined | "",
 ): boolean {
   if (!especialidad) return true;
-  if (titulo && TITULOS_FONOAUDIOLOGIA.has(titulo)) return esFonoaudiologia(especialidad);
   return gruposParaTitulo(titulo).has(grupoDe(especialidad));
 }
 

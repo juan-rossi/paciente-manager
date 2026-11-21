@@ -94,8 +94,43 @@ export const ANTECEDENTES_ODONTOLOGIA_ORDEN = [
   ...ANTECEDENTES_ODONTOLOGIA_COLUMNA_2,
 ];
 
+// Historia clínica de fonoaudiología (ver esFonoaudiologia()): audición,
+// desarrollo del lenguaje, funciones orofaciales y voz. Muchos pacientes son
+// chicos, así que entran los perinatales y los hábitos orales. Reusa del enum
+// NEUROLOGICAS y ENFERMEDADES_MEDICAS.
+export const ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_1 = [
+  { tipo: "ANTECEDENTES_PERINATALES", label: "Antecedentes perinatales" },
+  { tipo: "RETRASO_LENGUAJE", label: "Retraso en la adquisición del lenguaje" },
+  { tipo: "OTITIS_REPETICION", label: "Otitis a repetición" },
+  { tipo: "HIPOACUSIA", label: "Hipoacusia" },
+  { tipo: "AUDIFONOS_IMPLANTE_COCLEAR", label: "Audífonos o implante coclear" },
+  { tipo: "RESPIRACION_BUCAL", label: "Respiración bucal o adenoides" },
+  { tipo: "HABITOS_ORALES", label: "Chupete, mamadera o succión digital prolongados" },
+] as const;
+
+export const ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_2 = [
+  { tipo: "DIFICULTADES_DEGLUCION", label: "Dificultades para tragar o alimentarse" },
+  { tipo: "USO_PROFESIONAL_VOZ", label: "Uso profesional de la voz" },
+  { tipo: "NEUROLOGICAS", label: "Neurológicas (ACV, TEA, parálisis cerebral...)" },
+  { tipo: "DIFICULTADES_APRENDIZAJE", label: "Dificultades escolares o de aprendizaje" },
+  { tipo: "TRATAMIENTO_FONOAUDIOLOGICO_PREVIO", label: "Tratamiento fonoaudiológico previo" },
+  { tipo: "ENFERMEDADES_MEDICAS", label: "Enfermedades médicas" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_FONOAUDIOLOGIA_ORDEN = [
+  ...ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_1,
+  ...ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_2,
+];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "FONOAUDIOLOGIA":
+      return {
+        columna1: ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_1,
+        columna2: ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_2,
+        orden: ANTECEDENTES_FONOAUDIOLOGIA_ORDEN,
+      };
     case "PSICOLOGIA":
       return {
         columna1: ANTECEDENTES_PSICOLOGIA_COLUMNA_1,
@@ -144,12 +179,13 @@ export function alertasOdontologicas(
   return alertas;
 }
 
-// Etiqueta de cualquier antecedente, sea de la lista médica, de psicología o
-// de odontología (un paciente puede tener cargados de varias si el
-// profesional cambió de especialidad). Si un tipo está en más de una lista,
-// gana la última (ej. "Hipertensión" en vez de "HTA").
+// Etiqueta de cualquier antecedente, sea de la lista médica, de psicología,
+// de odontología o de fonoaudiología (un paciente puede tener cargados de
+// varias si el profesional cambió de especialidad). Si un tipo está en más de
+// una lista, gana la última (ej. "Hipertensión" en vez de "HTA"); la de
+// fonoaudiología va primera para que NEUROLOGICAS siga diciendo "Neurológicas".
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
-  [...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
+  [...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
     a.tipo,
     a.label,
   ])

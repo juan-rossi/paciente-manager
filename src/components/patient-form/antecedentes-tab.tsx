@@ -12,8 +12,9 @@ type Props = {
   values: PatientFormValues;
   onAntecedenteChange: (tipo: AntecedenteValue["tipo"], patch: Partial<AntecedenteValue>) => void;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
-  // Cada grupo tiene su checklist (ver antecedentesPara()). Psicología además
-  // usa detalle libre en vez de medicación y suma la historia vital/familiar.
+  // Cada grupo tiene su checklist (ver antecedentesPara()). Psicología y
+  // fonoaudiología usan detalle libre en vez de medicación, y psicología suma
+  // la historia vital/familiar.
   grupo?: GrupoEspecialidad;
 };
 
@@ -29,6 +30,23 @@ const DETALLE_PSICOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   INTENTOS_SUICIDIO: "Cuántos, método y último episodio",
   SALUD_MENTAL_FAMILIAR: "Familiar y diagnóstico o problemática",
   SITUACIONES_TRAUMATICAS: "Qué pasó y a qué edad",
+};
+
+// Fonoaudiología: qué conviene anotar en el detalle de cada antecedente.
+const DETALLE_FONOAUDIOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  ANTECEDENTES_PERINATALES: "Prematurez, peso al nacer, internación neonatal",
+  RETRASO_LENGUAJE: "Edad de las primeras palabras y frases",
+  OTITIS_REPETICION: "Cuántas por año y tratamiento (tubos, cirugía)",
+  HIPOACUSIA: "Oído, grado y desde cuándo",
+  AUDIFONOS_IMPLANTE_COCLEAR: "Cuál, en qué oído y desde cuándo",
+  RESPIRACION_BUCAL: "Adenoidectomía, amigdalectomía u ortodoncia",
+  HABITOS_ORALES: "Cuál y hasta qué edad",
+  DIFICULTADES_DEGLUCION: "Con qué consistencias y desde cuándo",
+  USO_PROFESIONAL_VOZ: "Profesión y horas de uso por día",
+  NEUROLOGICAS: "Diagnóstico y quién lo sigue",
+  DIFICULTADES_APRENDIZAJE: "Grado, área y si tiene apoyo escolar",
+  TRATAMIENTO_FONOAUDIOLOGICO_PREVIO: "Con quién, motivo y duración",
+  ENFERMEDADES_MEDICAS: "Enfermedad y tratamiento actual",
 };
 
 // Odontología: qué conviene anotar en "Medicación" (la droga importa: un
@@ -59,9 +77,12 @@ function AntecedenteRow({
   onChange: (patch: Partial<AntecedenteValue>) => void;
   grupo: GrupoEspecialidad;
 }) {
-  const psicologia = grupo === "PSICOLOGIA";
-  // Las listas de psicología y odontología tienen etiquetas largas: van con
-  // ancho flexible en vez de la columna fija de la lista médica.
+  // Psicología y fonoaudiología anotan un detalle libre en vez de la
+  // medicación.
+  const detalles =
+    grupo === "PSICOLOGIA" ? DETALLE_PSICOLOGIA : grupo === "FONOAUDIOLOGIA" ? DETALLE_FONOAUDIOLOGIA : null;
+  // Las listas que no son la médica tienen etiquetas largas: van con ancho
+  // flexible en vez de la columna fija de la lista médica.
   const etiquetaLarga = grupo !== "MEDICA";
   return (
     <div className="rounded-md border p-3">
@@ -76,7 +97,7 @@ function AntecedenteRow({
         </Label>
         <RadioGroup
           // w-auto: el RadioGroup base trae w-full y, con la etiqueta flexible
-          // (psicología y odontología), la aplastaba hasta ancho 0.
+          // (todas menos la médica), la aplastaba hasta ancho 0.
           className="flex w-auto shrink-0 gap-4"
           value={antecedente.respuesta ? "SI" : "NO"}
           onValueChange={(v) => onChange({ respuesta: v === "SI" })}
@@ -97,14 +118,14 @@ function AntecedenteRow({
       </div>
 
       {antecedente.respuesta &&
-        (psicologia ? (
+        (detalles ? (
           <div className="mt-3 grid gap-2 sm:grid-cols-[3fr_7fr]">
             <DateInput
               value={antecedente.fechaInicio}
               onChange={(fechaInicio) => onChange({ fechaInicio })}
             />
             <Input
-              placeholder={DETALLE_PSICOLOGIA[tipo] ?? "Detalle"}
+              placeholder={detalles[tipo] ?? "Detalle"}
               value={antecedente.descripcion}
               onChange={(e) => onChange({ descripcion: e.target.value })}
             />

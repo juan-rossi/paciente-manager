@@ -14,10 +14,17 @@ describe("antecedentesPara", () => {
     const odonto = antecedentesPara("ODONTOLOGICA").orden.map((a) => a.tipo);
     expect(odonto).toContain("ANTICOAGULANTES");
     expect(odonto).not.toContain("PROSTATA");
+    const fono = antecedentesPara("FONOAUDIOLOGIA").orden.map((a) => a.tipo);
+    expect(fono).toContain("HIPOACUSIA");
+    expect(fono).not.toContain("PROSTATA");
+  });
+
+  it("los antecedentes reusados por fonoaudiología mantienen su etiqueta médica", () => {
+    expect(ANTECEDENTE_LABELS.get("NEUROLOGICAS")).toBe("Neurológicas");
   });
 
   it("no repite tipos dentro de un grupo y todos son valores válidos", () => {
-    for (const grupo of ["MEDICA", "PSICOLOGIA", "ODONTOLOGICA"] as const) {
+    for (const grupo of ["MEDICA", "PSICOLOGIA", "ODONTOLOGICA", "FONOAUDIOLOGIA"] as const) {
       const tipos = antecedentesPara(grupo).orden.map((a) => a.tipo);
       expect(new Set(tipos).size).toBe(tipos.length);
       for (const tipo of tipos) expect(TIPO_ANTECEDENTE_VALUES).toContain(tipo);
