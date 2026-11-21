@@ -280,6 +280,12 @@ export function esOncologica(especialidad: Especialidad | null | undefined): boo
   return especialidad != null && ESPECIALIDADES_ONCOLOGICAS.has(especialidad);
 }
 
+// Geriatría: grupo propio por sus antecedentes (caídas, deterioro cognitivo,
+// polifarmacia). Sigue con el examen físico.
+export function esGeriatrica(especialidad: Especialidad | null | undefined): boolean {
+  return especialidad === "GERIATRIA";
+}
+
 // El examen físico (y sus signos vitales) es cosa de médicos: los odontólogos
 // tienen el odontograma en su lugar, los psiquiatras el examen psíquico, los
 // nutricionistas la evaluación nutricional, oftalmólogos, otorrinos y
@@ -319,6 +325,7 @@ export type GrupoEspecialidad =
   | "DERMATOLOGICA"
   | "LOCOMOTOR"
   | "ONCOLOGICA"
+  | "GERIATRICA"
   | "ODONTOLOGICA"
   | "PSICOLOGIA"
   | "FONOAUDIOLOGIA";
@@ -334,6 +341,7 @@ const GRUPOS_MEDICOS: readonly GrupoEspecialidad[] = [
   "DERMATOLOGICA",
   "LOCOMOTOR",
   "ONCOLOGICA",
+  "GERIATRICA",
 ];
 
 function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
@@ -349,6 +357,7 @@ function grupoDe(especialidad: Especialidad): GrupoEspecialidad {
   if (esDermatologica(especialidad)) return "DERMATOLOGICA";
   if (esLocomotor(especialidad)) return "LOCOMOTOR";
   if (esOncologica(especialidad)) return "ONCOLOGICA";
+  if (esGeriatrica(especialidad)) return "GERIATRICA";
   return "MEDICA";
 }
 

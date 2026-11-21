@@ -68,7 +68,12 @@ const PROMPT_LOCOMOTOR =
 const PROMPT_ONCOLOGIA =
   "Consulta de oncología en español. Carcinoma ductal infiltrante de mama, estadio IIA, T2 N0 M0, receptores hormonales positivos, HER2 negativo. Ciclo 3 de quimioterapia esquema AC, doxorrubicina y ciclofosfamida, luego paclitaxel semanal. ECOG 1. Neutropenia febril, mucositis, náuseas, neuropatía periférica. Hemoglobina 10,2, plaquetas 145.000, leucocitos 3.200, neutrófilos 1.500. Linfoma, leucemia, mieloma, adenocarcinoma de colon, cáncer de pulmón. Radioterapia, inmunoterapia, pembrolizumab, filgrastim, ondansetrón, dexametasona, morfina. Cuidados paliativos.";
 
+// Geriatría: valoración geriátrica integral, escalas y polifarmacia.
+const PROMPT_GERIATRIA =
+  "Consulta de geriatría en español. Valoración geriátrica integral, índice de Barthel 75, Lawton, minimental 22, deterioro cognitivo, demencia, delirium, caídas, fragilidad, sarcopenia, polifarmacia, desprescripción, incontinencia, úlceras por presión. Escala de depresión geriátrica de Yesavage. Donepecilo, memantina, quetiapina, vitamina D, calcio.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
+  GERIATRICA: PROMPT_GERIATRIA,
   LOCOMOTOR: PROMPT_LOCOMOTOR,
   ONCOLOGICA: PROMPT_ONCOLOGIA,
   OFTALMOLOGICA: PROMPT_OFTALMOLOGIA,

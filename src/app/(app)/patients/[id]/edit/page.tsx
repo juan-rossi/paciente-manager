@@ -14,6 +14,7 @@ import { odontogramaFromApi } from "@/components/patient-form/utils";
 import { tenantEsOdontologo } from "@/lib/odontograma-server";
 import { tenantEspecialidad } from "@/lib/especialidad-server";
 import { grupoEspecialidad, usaExamenFisico } from "@/lib/especialidad";
+import { fotoFromDb, SELECT_FOTO_SIN_DATOS, WHERE_FOTO_VISIBLE } from "@/lib/foto-clinica";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -61,6 +62,18 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
       })
     : [];
 
+  // Dermatología: fotos clínicas de las evoluciones (sin los bytes).
+  const fotos =
+    grupo === "DERMATOLOGICA"
+      ? (
+          await prisma.patientFoto.findMany({
+            where: { patientId: patient.id, ...WHERE_FOTO_VISIBLE },
+            orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+            select: SELECT_FOTO_SIN_DATOS,
+          })
+        ).map(fotoFromDb)
+      : null;
+
   return (
     <PageEnter>
       <div className="flex flex-col gap-4">
@@ -89,6 +102,7 @@ export default async function EditPatientPage({ params, searchParams }: Props) {
           odontogramaHabilitado={odontogramaHabilitado}
           examenFisicoHabilitado={examenFisicoHabilitado}
           grupo={grupo}
+          fotos={fotos}
           initialOdontogramas={odontogramas.map(odontogramaFromApi)}
           initialTab={tab}
         />

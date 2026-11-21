@@ -30,8 +30,6 @@ export const VOCABULARIO_DICTADO: Partial<Record<Especialidad, string>> = {
     "Consulta de infectología en español. HIV, carga viral indetectable, CD4 450, tratamiento antirretroviral con bictegravir, emtricitabina, tenofovir, dolutegravir. Hepatitis B y C, sífilis, VDRL, tuberculosis, PPD, profilaxis PrEP. Hemocultivos, urocultivo, antibiograma, germen multirresistente. Amoxicilina clavulánico, ceftriaxona, ciprofloxacina, vancomicina, trimetoprima sulfametoxazol, fluconazol.",
   ALERGIA_E_INMUNOLOGIA:
     "Consulta de alergia e inmunología en español. Rinitis alérgica, asma, urticaria crónica, angioedema, alergia alimentaria, alergia a medicamentos, anafilaxia, dermatitis de contacto. Prick test positivo para ácaros y pólenes, IgE total, IgE específica, prueba de provocación. Inmunoterapia sublingual, antihistamínicos, cetirizina, desloratadina, montelukast, omalizumab, adrenalina autoinyectable.",
-  GERIATRIA:
-    "Consulta de geriatría en español. Valoración geriátrica integral, índice de Barthel 75, Lawton, minimental 22, deterioro cognitivo, demencia, delirium, caídas, fragilidad, sarcopenia, polifarmacia, desprescripción, incontinencia, úlceras por presión. Escala de depresión geriátrica de Yesavage. Donepecilo, memantina, quetiapina, vitamina D, calcio.",
   FLEBOLOGIA:
     "Consulta de flebología en español. Insuficiencia venosa crónica, clasificación CEAP C2, várices, telangiectasias, edema, úlcera venosa, trombosis venosa profunda, eco-Doppler venoso con reflujo safeno. Escleroterapia, láser endovenoso, media de compresión. Diosmina, hesperidina, rivaroxabán.",
 };
@@ -59,7 +57,5 @@ export const REGLA_RESUMEN: Partial<Record<Especialidad, string>> = {
     "- Conservá exactos CD4, carga viral, el esquema antirretroviral o antibiótico (drogas, dosis, duración) y los resultados de cultivos y serologías.",
   ALERGIA_E_INMUNOLOGIA:
     "- Conservá exactos los alérgenos, el resultado de las pruebas cutáneas o de IgE, las reacciones descriptas y el esquema de inmunoterapia.",
-  GERIATRIA:
-    "- Conservá exactos los puntajes de las escalas (Barthel, Lawton, minimental), las caídas y la lista de medicación (con los cambios por desprescripción).",
   FLEBOLOGIA: "- Conservá exactos la clasificación CEAP, los hallazgos del eco-Doppler y el lado afectado.",
 };

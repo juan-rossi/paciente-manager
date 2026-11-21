@@ -80,6 +80,24 @@ Registro de las consultas: el profesional lleva una historia clínica del tratam
   },
 ];
 
+// Dermatología: consentimiento para el registro fotográfico de las lesiones.
+// Las fotos quedan en la historia clínica (mismo acceso restringido que el
+// resto) y no se usan para nada más sin otra autorización.
+export const PLANTILLAS_DERMATOLOGIA: readonly PlantillaConsentimiento[] = [
+  {
+    id: "registro-fotografico",
+    label: "Registro fotográfico",
+    procedimiento: "Registro fotográfico de lesiones de la piel",
+    riesgosBeneficios: `Qué se hace: el profesional toma fotografías de las lesiones de la piel, limitadas a la zona afectada y evitando que se vea el rostro u otras partes identificables salvo que sea necesario para el diagnóstico.
+
+Para qué: comparar la evolución de las lesiones en el tiempo y documentar el diagnóstico y la respuesta al tratamiento.
+
+Resguardo: las fotos forman parte de la historia clínica, con el mismo secreto profesional y acceso restringido que el resto de ella. No se publican ni se usan con fines docentes, de investigación o de difusión sin una autorización aparte y por escrito.`,
+    alternativas:
+      "Puede negarse a que se tomen fotografías o pedir que no se tome alguna en particular, sin que eso afecte su atención. También puede revocar este consentimiento en cualquier momento.",
+  },
+];
+
 // Textos base para odontólogos. Igual que el de psicoterapia, son un punto de
 // partida que el profesional ajusta al caso antes de guardar.
 export const PLANTILLAS_ODONTOLOGIA: readonly PlantillaConsentimiento[] = [
@@ -151,5 +169,6 @@ export function plantillasConsentimiento(grupo: GrupoEspecialidad): readonly Pla
   if (grupo === "ODONTOLOGICA") return PLANTILLAS_ODONTOLOGIA;
   if (grupo === "FONOAUDIOLOGIA") return PLANTILLAS_FONOAUDIOLOGIA;
   if (grupo === "PSIQUIATRICA") return PLANTILLAS_PSIQUIATRIA;
+  if (grupo === "DERMATOLOGICA") return PLANTILLAS_DERMATOLOGIA;
   return [];
 }

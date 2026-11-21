@@ -16,6 +16,7 @@ import { practicaVisitaFromDb } from "@/lib/practica-odontologica";
 import type { OdontogramaResumenProps } from "@/components/odontograma/odontograma-resumen";
 import type { PresupuestosProps } from "@/components/odontograma/presupuestos";
 import { presupuestoFromDb } from "@/lib/presupuesto";
+import { fotoFromDb, SELECT_FOTO_SIN_DATOS, WHERE_FOTO_VISIBLE } from "@/lib/foto-clinica";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -69,6 +70,9 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
   const controlIds = (
     await prisma.patientControl.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((c) => c.id);
+  const fotoIds = (
+    await prisma.patientFoto.findMany({ where: { patientId: id }, select: { id: true } })
+  ).map((f) => f.id);
   const consentimientoIds = (
     await prisma.consentimientoInformado.findMany({ where: { patientId: id }, select: { id: true } })
   ).map((c) => c.id);
@@ -99,6 +103,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         ...(controlIds.length > 0
           ? [{ entidad: "CONTROL" as const, entidadId: { in: controlIds } }]
           : []),
+        ...(fotoIds.length > 0 ? [{ entidad: "FOTO" as const, entidadId: { in: fotoIds } }] : []),
         ...(consentimientoIds.length > 0
           ? [{ entidad: "CONSENTIMIENTO" as const, entidadId: { in: consentimientoIds } }]
           : []),
@@ -204,6 +209,18 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
     };
   }
 
+  // Dermatología: fotos clínicas (sin los bytes; las imágenes se piden aparte).
+  const fotos =
+    grupo === "DERMATOLOGICA"
+      ? (
+          await prisma.patientFoto.findMany({
+            where: { patientId: id, ...WHERE_FOTO_VISIBLE },
+            orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+            select: SELECT_FOTO_SIN_DATOS,
+          })
+        ).map(fotoFromDb)
+      : null;
+
   return (
     <PageEnter>
       <PatientSummary
@@ -216,6 +233,7 @@ export default async function PatientDetailPage({ params, searchParams }: Props)
         evolucionHabilitada={!esOdontologo}
         odontograma={odontograma}
         presupuestos={presupuestos}
+        fotos={fotos}
         grupo={grupo}
         especialidad={especialidad}
       />

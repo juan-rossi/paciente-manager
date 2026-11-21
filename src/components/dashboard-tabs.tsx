@@ -76,7 +76,7 @@ export function DashboardTabs({
             className="hidden cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex"
           >
             <span className="text-sm font-bold text-foreground">{totalPacientes}</span>
-            <span className="text-sm text-muted-foreground">pacientes</span>
+            <span className="text-sm text-muted-foreground">{totalPacientes === 1 ? "paciente" : "pacientes"}</span>
           </button>
           <Button
             nativeButton={false}

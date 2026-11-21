@@ -39,6 +39,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     },
   });
 
+  // Las fotos de la evolución llevan su fecha.
+  if (nuevaFecha.getTime() !== antes.fecha.getTime()) {
+    await prisma.patientFoto.updateMany({ where: { evolucionId }, data: { fecha: nuevaFecha } });
+  }
+
   const detalleAnterior = calcularDiffAnterior(antes, {
     fecha: nuevaFecha,
     contenido: parsed.data.contenido,

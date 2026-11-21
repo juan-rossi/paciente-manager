@@ -1,4 +1,6 @@
-import { Bone, Eye, Ear, ScanSearch, type LucideIcon } from "lucide-react";
+import { Bone, Camera, Eye, Ear, ScanSearch, type LucideIcon } from "lucide-react";
+import { FotosConsultaInicial } from "@/components/fotos/fotos-consulta-inicial";
+import type { FotoValue } from "@/lib/foto-clinica";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +12,9 @@ type Props = {
   examen: ExamenEspecialidad;
   values: PatientFormValues;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
+  // Fotos de la consulta inicial (solo si el examen las usa). Sin patientId
+  // (paciente nuevo, sin guardar) se ven pero no se pueden subir.
+  fotos?: { patientId: string | undefined; todas: FotoValue[] } | null;
 };
 
 const ICONOS: Record<string, LucideIcon> = {
@@ -27,7 +32,7 @@ function mitadesSeguidas(campos: readonly CampoExamen[], idx: number): number {
 
 // Examen de órgano (oftalmología, ORL, dermatología) en lugar del examen
 // físico general. Las filas bilaterales se cargan lado a lado (OD | OI).
-export function ExamenEspecialidadTab({ examen, values, onChange }: Props) {
+export function ExamenEspecialidadTab({ examen, values, onChange, fotos = null }: Props) {
   const Icono = ICONOS[examen.titulo] ?? ScanSearch;
 
   const bilateral = (fila: FilaBilateral, lados: [string, string]) => {
@@ -104,6 +109,12 @@ export function ExamenEspecialidadTab({ examen, values, onChange }: Props) {
           )}
         </FormSection>
       ))}
+
+      {examen.fotos && fotos && (
+        <FormSection title="Fotos de la consulta inicial" icon={Camera} contentClassName="sm:grid-cols-1 lg:grid-cols-1">
+          <FotosConsultaInicial patientId={fotos.patientId} fotos={fotos.todas} editable />
+        </FormSection>
+      )}
     </div>
   );
 }

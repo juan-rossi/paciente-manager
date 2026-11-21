@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EvolucionTab } from "@/components/patient-form/evolucion-tab";
 import type { EvolucionValue } from "@/components/patient-form/types";
+import type { FotoValue } from "@/lib/foto-clinica";
 
 type Props = {
   patientId: string;
@@ -11,6 +12,8 @@ type Props = {
   resumirAlTerminar?: boolean;
   sesiones?: boolean;
   saludMental?: boolean;
+  fotosHabilitadas?: boolean;
+  fotosIniciales?: FotoValue[];
 };
 
 export function EvolucionManager({
@@ -20,6 +23,8 @@ export function EvolucionManager({
   resumirAlTerminar,
   sesiones,
   saludMental,
+  fotosHabilitadas,
+  fotosIniciales,
 }: Props) {
   const [evoluciones, setEvoluciones] = useState<EvolucionValue[]>(initialEvoluciones);
 
@@ -32,6 +37,8 @@ export function EvolucionManager({
       resumirAlTerminar={resumirAlTerminar}
       sesiones={sesiones}
       saludMental={saludMental}
+      fotosHabilitadas={fotosHabilitadas}
+      fotosIniciales={fotosIniciales}
     />
   );
 }

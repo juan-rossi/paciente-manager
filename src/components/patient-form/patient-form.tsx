@@ -49,6 +49,7 @@ import { emptyPatientFormValues } from "./utils";
 import { alertasOdontologicas, esSaludMental, usaSesiones, vocabularioEvolucion } from "./constants";
 import { AlertasClinicas } from "@/components/alertas-clinicas";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
+import type { FotoValue } from "@/lib/foto-clinica";
 import type {
   AntecedenteValue,
   EvolucionValue,
@@ -73,6 +74,8 @@ type Props = {
   // Grupo de la especialidad (ver grupoEspecialidad()): cambia los campos y
   // etiquetas de Consulta inicial, Antecedentes y Diagnóstico.
   grupo?: GrupoEspecialidad;
+  // Dermatología: fotos clínicas de las evoluciones (null = no se usan).
+  fotos?: FotoValue[] | null;
   initialOdontogramas?: OdontogramaValue[];
   // Pestaña con la que abre (ej. ?tab=odontograma desde el detalle). Se ignora
   // si no existe para este modo/especialidad.
@@ -162,6 +165,7 @@ export function PatientForm({
   odontogramaHabilitado = false,
   examenFisicoHabilitado = true,
   grupo = "MEDICA",
+  fotos = null,
   initialOdontogramas = [],
   initialTab,
 }: Props) {
@@ -524,7 +528,12 @@ export function PatientForm({
             )}
             {examenOrgano && (
               <TabsContent value="examen-organo">
-                <ExamenEspecialidadTab examen={examenOrgano} values={values} onChange={handleChange} />
+                <ExamenEspecialidadTab
+                  examen={examenOrgano}
+                  values={values}
+                  onChange={handleChange}
+                  fotos={fotos ? { patientId: mode === "edit" ? patientId : undefined, todas: fotos } : null}
+                />
               </TabsContent>
             )}
             {evaluacionNutricionalHabilitada && (
@@ -565,6 +574,8 @@ export function PatientForm({
                   resumirAlTerminar={resumenAutomatico?.evoluciones}
                   sesiones={sesiones}
                   saludMental={saludMental}
+                  fotosHabilitadas={fotos !== null}
+                  fotosIniciales={fotos ?? undefined}
                 />
               </TabsContent>
             )}

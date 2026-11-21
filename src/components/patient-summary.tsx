@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 import {
   Activity,
   AlertTriangle,
+  Camera,
   Apple,
   ClipboardCheck,
   ClipboardSignature,
@@ -49,6 +50,8 @@ import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import type { EvolucionValue, PatientFormValues } from "@/components/patient-form/types";
 import { EvolucionManager } from "@/components/evolucion-manager";
 import { ControlesManager } from "@/components/controles/controles-manager";
+import { FotosConsultaInicial } from "@/components/fotos/fotos-consulta-inicial";
+import type { FotoValue } from "@/lib/foto-clinica";
 import { CAMPO_CONTROL_INFO, CAMPOS_CONTROL, controlFromDb, indicadoresPara } from "@/lib/controles";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
 import { plantillasConsentimiento } from "@/lib/consentimiento-plantillas";
@@ -86,6 +89,8 @@ const AUDIT_LABELS: Record<string, string> = {
   ELIMINAR_EVOLUCION: "eliminó una evolución clínica",
   RESTAURAR_EVOLUCION: "restauró una evolución clínica",
   CREAR_CONTROL: "registró un control",
+  CREAR_FOTO: "agregó una foto clínica",
+  ELIMINAR_FOTO: "eliminó una foto clínica",
   MODIFICAR_CONTROL: "modificó un control",
   ELIMINAR_CONTROL: "eliminó un control",
   EXPORTAR_PACIENTE: "generó una copia de la historia clínica",
@@ -235,6 +240,7 @@ export function PatientSummary({
   evolucionHabilitada = true,
   odontograma = null,
   presupuestos = null,
+  fotos = null,
   grupo = "MEDICA",
   especialidad = null,
 }: {
@@ -252,6 +258,8 @@ export function PatientSummary({
   odontograma?: OdontogramaResumenProps | null;
   // Solo odontólogos: presupuestos del plan de tratamiento.
   presupuestos?: PresupuestosProps | null;
+  // Dermatología: fotos clínicas (null = la especialidad no las usa).
+  fotos?: FotoValue[] | null;
   // Grupo de la especialidad (ver grupoEspecialidad()): otros nombres y
   // campos propios en consulta inicial, antecedentes y diagnóstico.
   grupo?: GrupoEspecialidad;
@@ -644,6 +652,14 @@ export function PatientSummary({
         <div className="contents lg:flex lg:flex-col lg:gap-6">
           {consultaInicial}
 
+          {fotos && fotos.some((f) => f.evolucionId === null) && (
+            <FormSection title="Fotos de la consulta inicial" icon={Camera} contentClassName="bg-card">
+              <div className="col-span-full">
+                <FotosConsultaInicial patientId={patient.id} fotos={fotos} editable={false} />
+              </div>
+            </FormSection>
+          )}
+
           {indicadoresPara(grupo, especialidad).length > 0 && (
             <FormSection title="Controles" icon={Activity} contentClassName="bg-card">
               <div className="col-span-full">
@@ -655,6 +671,7 @@ export function PatientSummary({
                   fechaNacimiento={patient.fechaNacimiento?.toISOString().slice(0, 10) ?? null}
                   fum={patient.fum}
                   estatura={patient.estatura}
+                  sexo={patient.sexo}
                 />
               </div>
             </FormSection>
@@ -674,6 +691,8 @@ export function PatientSummary({
                   resumirAlTerminar={resumirEvolucionesAlTerminar}
                   sesiones={sesiones}
                   saludMental={saludMental}
+                  fotosHabilitadas={fotos !== null}
+                  fotosIniciales={fotos ?? undefined}
                 />
               </div>
             </FormSection>

@@ -10,7 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DateInput } from "@/components/patient-form/date-input";
 import { edadLegible, formatFechaCorta } from "@/components/patient-form/utils";
-import { GraficoControl } from "@/components/controles/grafico-control";
+import { GraficoControl, type CurvaReferencia } from "@/components/controles/grafico-control";
+import {
+  formatPercentil,
+  percentilOms,
+  PERCENTILES_REFERENCIA,
+  puntajeZOms,
+  valorReferencia,
+  Z_INVEROSIMIL,
+  type IndicadorOms,
+} from "@/lib/percentiles-oms";
 import {
   CAMPO_CONTROL_INFO,
   CAMPOS_CONTROL,
@@ -19,6 +28,8 @@ import {
   formatCambio,
   formatIndicador,
   formatValor,
+  MENSAJE_PRESION_INVERTIDA,
+  presionCoherente,
   unidadIndicador,
   indicadoresPara,
   parseValor,
@@ -41,7 +52,16 @@ type Props = {
   fechaNacimiento: string | null;
   fum: string | null;
   estatura: string | null;
+  // Pediatría: con el sexo y la fecha de nacimiento se calculan los
+  // percentiles de la OMS (0 a 5 años).
+  sexo?: string | null;
 };
+
+const INDICADORES_OMS: ReadonlySet<string> = new Set<IndicadorOms>(["peso", "talla", "perimetroCefalico"]);
+
+function fechaIso(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
 
 const FILAS_VISIBLES = 5;
 
@@ -119,14 +139,42 @@ export function ControlesManager({
   fechaNacimiento,
   fum,
   estatura,
+  sexo,
 }: Props) {
   const indicadores = indicadoresPara(grupo, especialidad);
+
+  // Percentil OMS de un indicador en un control (solo pediatría, 0-5 años).
+  const conPercentiles = grupo === "PEDIATRICA" && !!fechaNacimiento && (sexo === "MASCULINO" || sexo === "FEMENINO");
+  const percentil = (indicador: Indicador, c: ControlValue): string | null => {
+    if (!conPercentiles || !INDICADORES_OMS.has(indicador.id)) return null;
+    const p = percentilOms(indicador.id as IndicadorOms, sexo, fechaNacimiento, c.fecha, c[indicador.campos[0]]);
+    return p == null ? null : formatPercentil(p);
+  };
+
+  // Curvas P3, P50 y P97 entre el primer y el último control del indicador.
+  const referencias = (indicador: Indicador, controles: ControlValue[]): CurvaReferencia[] => {
+    if (!conPercentiles || !INDICADORES_OMS.has(indicador.id) || controles.length < 2) return [];
+    const t0 = Date.parse(controles[0].fecha);
+    const t1 = Date.parse(controles[controles.length - 1].fecha);
+    if (!(t1 > t0)) return [];
+    const fechas = Array.from({ length: 25 }, (_, k) => fechaIso(t0 + ((t1 - t0) * k) / 24));
+    return PERCENTILES_REFERENCIA.map(({ etiqueta, z }) => ({
+      etiqueta,
+      puntos: fechas.flatMap((fecha) => {
+        const valor = valorReferencia(indicador.id as IndicadorOms, sexo as "MASCULINO" | "FEMENINO", fechaNacimiento!, fecha, z);
+        return valor == null ? [] : [{ fecha, valor }];
+      }),
+    })).filter((c) => c.puntos.length > 1);
+  };
   const [controles, setControles] = useState<ControlValue[]>(initialControles);
   const [abierto, setAbierto] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
   const [form, setForm] = useState<Formulario>(formularioVacio);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Pediatría: valores muy lejos de lo esperado para la edad. El primer
+  // "Guardar" los avisa; el segundo ("Guardar igual") guarda.
+  const [advertencia, setAdvertencia] = useState<string | null>(null);
   const [eliminarId, setEliminarId] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState(false);
   const [verTodos, setVerTodos] = useState(false);
@@ -146,6 +194,7 @@ export function ControlesManager({
     setEditando(null);
     setForm(formularioVacio());
     setError(null);
+    setAdvertencia(null);
     setAbierto(true);
   }
 
@@ -153,6 +202,7 @@ export function ControlesManager({
     setEditando(c.id);
     setForm(formularioDe(c));
     setError(null);
+    setAdvertencia(null);
     setAbierto(true);
   }
 
@@ -169,6 +219,24 @@ export function ControlesManager({
     if (CAMPOS_CONTROL.every((c) => valores[c] == null)) {
       setError("Cargá al menos un valor.");
       return;
+    }
+    if (!presionCoherente(valores.presionSistolica, valores.presionDiastolica)) {
+      setError(MENSAJE_PRESION_INVERTIDA);
+      return;
+    }
+    if (!advertencia && conPercentiles) {
+      const raros = indicadores.flatMap((i) => {
+        if (!INDICADORES_OMS.has(i.id)) return [];
+        const z = puntajeZOms(i.id as IndicadorOms, sexo, fechaNacimiento, form.fecha, valores[i.campos[0]]);
+        return z != null && Math.abs(z) > Z_INVEROSIMIL ? [`${i.label} ${formatValor(i.campos[0], valores[i.campos[0]]!)} ${i.unidad}`] : [];
+      });
+      if (raros.length > 0) {
+        setError(null);
+        setAdvertencia(
+          `${raros.join(", ")}: muy lejos de lo esperado para la edad. ¿Está bien cargado? Si es correcto, guardalo igual.`
+        );
+        return;
+      }
     }
 
     setGuardando(true);
@@ -223,7 +291,11 @@ export function ControlesManager({
       placeholder={placeholder ?? CAMPO_CONTROL_INFO[c].ejemplo}
       aria-label={CAMPO_CONTROL_INFO[c].label}
       value={form[c]}
-      onChange={(e) => setForm((f) => ({ ...f, [c]: e.target.value }))}
+      onChange={(e) => {
+        setForm((f) => ({ ...f, [c]: e.target.value }));
+        // Un valor nuevo se vuelve a revisar antes de guardar.
+        setAdvertencia(null);
+      }}
     />
   );
 
@@ -274,6 +346,11 @@ export function ControlesManager({
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-xl font-semibold tabular-nums">{valorIndicador(indicador, ultimo)}</span>
                   <span className="text-sm text-muted-foreground">{unidadIndicador(indicador, "valor")}</span>
+                  {percentil(indicador, ultimo) && (
+                    <span className="rounded bg-muted px-1.5 text-xs font-medium tabular-nums">
+                      {percentil(indicador, ultimo)}
+                    </span>
+                  )}
                   {cambio && (
                     <span className="text-xs text-muted-foreground tabular-nums">
                       {cambio}{" "}
@@ -291,6 +368,7 @@ export function ControlesManager({
                     series={indicador.campos.map((c) => CAMPO_CONTROL_INFO[c].corto)}
                     formatear={(s, v) => formatValor(indicador.campos[s] ?? principal, v)}
                     puntos={conValor.map((c) => ({ fecha: c.fecha, valores: indicador.campos.map((f) => c[f]) }))}
+                    referencias={referencias(indicador, conValor)}
                   />
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -348,6 +426,9 @@ export function ControlesManager({
                       {indicadores.map((i) => (
                         <td key={i.id} className="px-1.5 py-2 text-right tabular-nums">
                           {valorIndicador(i, c) ?? <span className="text-muted-foreground">—</span>}
+                          {percentil(i, c) && (
+                            <span className="block text-xs text-muted-foreground">{percentil(i, c)}</span>
+                          )}
                         </td>
                       ))}
                       <td className="py-1 pr-1 text-right">
@@ -456,11 +537,12 @@ export function ControlesManager({
                 onChange={(e) => setForm((f) => ({ ...f, nota: e.target.value }))}
               />
             </div>
+            {advertencia && <p className="text-sm text-amber-700 dark:text-amber-400">{advertencia}</p>}
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
             <Button type="button" onClick={guardar} disabled={guardando}>
-              {guardando ? "Guardando..." : editando ? "Guardar" : "Agregar"}
+              {guardando ? "Guardando..." : advertencia ? "Guardar igual" : editando ? "Guardar" : "Agregar"}
             </Button>
           </DialogFooter>
         </DialogContent>

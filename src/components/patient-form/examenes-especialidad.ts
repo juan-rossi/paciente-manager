@@ -43,6 +43,8 @@ export type ExamenEspecialidad = {
   // Nombre de la pestaña y de la sección en la copia de la historia clínica.
   titulo: string;
   secciones: SeccionExamen[];
+  // Suma al final las fotos de la consulta inicial (dermatología).
+  fotos?: boolean;
 };
 
 const OFTALMOLOGIA: ExamenEspecialidad = {
@@ -135,6 +137,7 @@ const ORL: ExamenEspecialidad = {
 
 const DERMATOLOGIA: ExamenEspecialidad = {
   titulo: "Examen dermatológico",
+  fotos: true,
   secciones: [
     {
       titulo: "Lesiones",

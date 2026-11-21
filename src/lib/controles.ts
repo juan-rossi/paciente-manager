@@ -205,8 +205,6 @@ function indicadoresMedicos(especialidad: Especialidad | null | undefined): read
       return [i.peso, i.cd4, i.cargaViral];
     case "UROLOGIA":
       return [i.psa, i.peso];
-    case "GERIATRIA":
-      return [i.peso, i.presion, i.barthel];
     case "GASTROENTEROLOGIA":
     case "HEPATOLOGIA":
     case "COLOPROCTOLOGIA":
@@ -245,6 +243,8 @@ export function indicadoresPara(
       return [i.eva, i.peso];
     case "ONCOLOGICA":
       return [i.peso, i.ecog, i.hemoglobina, i.plaquetas, i.leucocitos];
+    case "GERIATRICA":
+      return [i.peso, i.presion, i.barthel];
     default:
       return [];
   }
@@ -326,6 +326,14 @@ const valoresSchema = Object.fromEntries(
   })
 ) as Record<CampoControl, z.ZodNullable<z.ZodNumber>>;
 
+// La máxima (sistólica) siempre es mayor que la mínima (diastólica): si no,
+// casi seguro se cargaron al revés.
+export const MENSAJE_PRESION_INVERTIDA = "La presión máxima tiene que ser mayor que la mínima.";
+
+export function presionCoherente(sistolica: number | null | undefined, diastolica: number | null | undefined): boolean {
+  return sistolica == null || diastolica == null || sistolica > diastolica;
+}
+
 // Alta y edición de un control. Viajan todos los campos (null = vacío): la
 // edición reemplaza el control entero.
 export const controlInput = z
@@ -342,6 +350,10 @@ export const controlInput = z
   .refine((data) => CAMPOS_CONTROL.some((campo) => data[campo] != null), {
     message: "Cargá al menos un valor.",
     path: ["fecha"],
+  })
+  .refine((data) => presionCoherente(data.presionSistolica, data.presionDiastolica), {
+    message: MENSAJE_PRESION_INVERTIDA,
+    path: ["presionSistolica"],
   });
 
 export type ControlInput = z.infer<typeof controlInput>;

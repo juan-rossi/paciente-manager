@@ -86,6 +86,22 @@ const DETALLE_PSIQUIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
   ALERGIA: "A qué y qué reacción",
 };
 
+// Geriatría: qué conviene anotar en el detalle de cada antecedente.
+const DETALLE_GERIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  CAIDAS: "Cuántas, cómo fueron y si hubo fracturas",
+  DETERIORO_COGNITIVO: "Diagnóstico, puntaje (minimental) y quién lo sigue",
+  POLIFARMACIA: "Cuántos medicamentos y quién los administra",
+  INCONTINENCIA: "Urinaria o fecal, desde cuándo, si usa pañal",
+  ULCERAS_PRESION: "Dónde, estadio y cuidados",
+  DEPENDENCIA_FUNCIONAL: "Para qué actividades y quién lo asiste",
+  HTA: "Medicación",
+  DIABETES: "Tipo y medicación",
+  CARDIOPATIAS: "Cuál y medicación",
+  ANTICOAGULANTES: "Droga y dosis",
+  OSTEOPOROSIS: "Densitometría y tratamiento",
+  ALERGIA: "A qué y qué reacción",
+};
+
 // Aparato locomotor y oncología: qué conviene anotar en el detalle.
 const DETALLE_LOCOMOTOR: Partial<Record<AntecedenteValue["tipo"], string>> = {
   TRAUMATISMOS_PREVIOS: "Qué, dónde y cuándo; cómo se trató",
@@ -241,6 +257,8 @@ function AntecedenteRow({
           ? DETALLE_LOCOMOTOR
           : grupo === "ONCOLOGICA"
           ? DETALLE_ONCOLOGIA
+          : grupo === "GERIATRICA"
+          ? DETALLE_GERIATRIA
           : grupo === "PEDIATRICA"
           ? DETALLE_PEDIATRIA
           : grupo === "GINECOLOGICA"

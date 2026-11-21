@@ -57,6 +57,12 @@ describe("grupoEspecialidad", () => {
     }
   });
 
+  it("geriatría es su propio grupo y sigue con el examen físico", () => {
+    expect(grupoEspecialidad("GERIATRIA")).toBe("GERIATRICA");
+    expect(usaExamenFisico("GERIATRIA")).toBe(true);
+    expect(especialidadesParaTitulo("DR").map((o) => o.value)).toContain("GERIATRIA");
+  });
+
   it("psicólogos y psiquiatras dictan hasta una hora; el resto, 10 minutos", () => {
     expect(limitesDictado("PSICOLOGIA").maxGrabacionSegundos).toBe(60 * 60);
     expect(limitesDictado("PSIQUIATRIA").maxGrabacionSegundos).toBe(60 * 60);

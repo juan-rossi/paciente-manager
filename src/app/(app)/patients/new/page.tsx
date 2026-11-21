@@ -48,6 +48,9 @@ export default async function NewPatientPage({
           odontogramaHabilitado={odontogramaHabilitado}
           examenFisicoHabilitado={examenFisicoHabilitado}
           grupo={grupo}
+          // Dermatología: la sección de fotos de la consulta inicial aparece,
+          // con el aviso de guardar el paciente antes de subirlas.
+          fotos={grupo === "DERMATOLOGICA" ? [] : null}
         />
       </div>
     </PageEnter>

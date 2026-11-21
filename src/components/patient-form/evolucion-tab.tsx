@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { FotosEvolucionEditor, MiniaturasEvolucion } from "@/components/fotos/fotos-evolucion";
+import { subirFotosPendientes, type FotoPendiente } from "@/components/fotos/foto-utils";
+import type { FotoValue } from "@/lib/foto-clinica";
 import {
   ChevronDown,
   Loader2,
@@ -154,7 +157,12 @@ type Props = {
   sesiones?: boolean;
   // Psicología y psiquiatría (ver esSaludMental()): riesgo y notas privadas.
   saludMental?: boolean;
+  // Dermatología: cada evolución lleva sus fotos clínicas (ver PatientFoto).
+  fotosHabilitadas?: boolean;
+  fotosIniciales?: FotoValue[];
 };
+
+const SIN_FOTOS: FotoValue[] = [];
 
 export function EvolucionTab({
   patientId,
@@ -166,8 +174,21 @@ export function EvolucionTab({
   resumirAlTerminar = false,
   sesiones = false,
   saludMental = false,
+  fotosHabilitadas = false,
+  fotosIniciales = SIN_FOTOS,
 }: Props) {
   const voc = vocabularioEvolucion(sesiones);
+  // Fotos de todas las evoluciones del paciente; si la página se refresca,
+  // se toman las nuevas.
+  const [fotos, setFotos] = useState<FotoValue[]>(fotosIniciales);
+  const [fotosPrevias, setFotosPrevias] = useState(fotosIniciales);
+  if (fotosIniciales !== fotosPrevias) {
+    setFotosPrevias(fotosIniciales);
+    setFotos(fotosIniciales);
+  }
+  // Fotos elegidas en el diálogo, que se suben al guardar la evolución.
+  const [pendientes, setPendientes] = useState<FotoPendiente[]>([]);
+  const zonasConocidas = [...new Set(fotos.map((f) => f.zona))];
   const editorRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -223,7 +244,28 @@ export function EvolucionTab({
     resumen.limpiarError();
     resumen.marcarResumido("");
     setEditingIndex(null);
+    for (const p of pendientes) URL.revokeObjectURL(p.previa);
+    setPendientes([]);
     formularioRef.current += 1;
+  }
+
+  // Sube las fotos elegidas a la evolución recién guardada. Si alguna falla,
+  // quedan pendientes (para reintentar) y devuelve false.
+  async function subirPendientes(evolucionId: string): Promise<boolean> {
+    if (!patientId || pendientes.length === 0) return true;
+    const { subidas, fallidas, motivo } = await subirFotosPendientes(patientId, { evolucionId }, pendientes);
+    if (subidas.length > 0) {
+      setFotos((prev) => [...prev, ...subidas]);
+    }
+    for (const p of pendientes) if (!fallidas.includes(p)) URL.revokeObjectURL(p.previa);
+    setPendientes(fallidas);
+    if (fallidas.length > 0) {
+      setError(
+        `${voc.esta} se guardó, pero no se pudo subir ${fallidas.length === 1 ? "una foto" : `${fallidas.length} fotos`}: ${motivo} Probá de nuevo.`
+      );
+      return false;
+    }
+    return true;
   }
 
   // Mientras se graba y transcribe el textarea no se muestra, así que
@@ -287,6 +329,10 @@ export function EvolucionTab({
   async function handleGuardar() {
     if (!puedeGuardar) return;
     setError(null);
+    if (pendientes.some((p) => !p.zona.trim())) {
+      setError("Indicá la zona del cuerpo de cada foto.");
+      return;
+    }
 
     if (isEditing) {
       const entry = evoluciones[editingIndex];
@@ -303,13 +349,14 @@ export function EvolucionTab({
             setError(data?.error ?? `No se pudo editar ${voc.una}.`);
             return;
           }
-          onChangeEvoluciones(
-            sortByFechaAsc(
-              evoluciones.map((e, i) =>
-                i === editingIndex ? evolucionFromApi(data.evolucion) : e
-              )
-            )
+          const actualizadas = sortByFechaAsc(
+            evoluciones.map((e, i) => (i === editingIndex ? evolucionFromApi(data.evolucion) : e))
           );
+          onChangeEvoluciones(actualizadas);
+          if (!(await subirPendientes(entry.id))) {
+            setEditingIndex(actualizadas.findIndex((e) => e.id === entry.id));
+            return;
+          }
           setOpen(false);
           resetForm();
         } finally {
@@ -344,12 +391,15 @@ export function EvolucionTab({
           setError(data?.error ?? `No se pudo agregar ${voc.una}.`);
           return;
         }
-        onChangeEvoluciones(
-          sortByFechaAsc([
-            ...evoluciones,
-            evolucionFromApi(data.evolucion),
-          ])
-        );
+        const nueva = evolucionFromApi(data.evolucion);
+        const actualizadas = sortByFechaAsc([...evoluciones, nueva]);
+        onChangeEvoluciones(actualizadas);
+        if (!(await subirPendientes(data.evolucion.id))) {
+          // La evolución ya existe: el diálogo sigue abierto, ahora editándola,
+          // con las fotos que faltan subir.
+          setEditingIndex(actualizadas.findIndex((e) => e.id === data.evolucion.id));
+          return;
+        }
         setOpen(false);
         resetForm();
       } finally {
@@ -475,6 +525,14 @@ export function EvolucionTab({
               </div>
               {entry.contenido && <TextoConFormato texto={entry.contenido} className="text-sm" />}
               <DictadoCompleto dictado={entry.contenidoDictado} />
+              {fotosHabilitadas && patientId && entry.id && (
+                <MiniaturasEvolucion
+                  patientId={patientId}
+                  fotos={fotos.filter((f) => f.evolucionId === entry.id)}
+                  todas={fotos}
+                  onEliminada={(id) => setFotos((prev) => prev.filter((f) => f.id !== id))}
+                />
+              )}
               {entry.notasPrivadas && (
                 <div className="flex flex-col gap-1 rounded-md bg-muted/60 p-3">
                   <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -718,6 +776,19 @@ export function EvolucionTab({
               </div>
               {transcripcionHabilitada && (
                 <DictadoCompleto dictado={dictado} onRestaurar={handleRestaurarDictado} />
+              )}
+              {fotosHabilitadas && (
+                <FotosEvolucionEditor
+                  patientId={patientId}
+                  existentes={
+                    editingIndex !== null && evoluciones[editingIndex]?.id
+                      ? fotos.filter((f) => f.evolucionId === evoluciones[editingIndex].id)
+                      : []
+                  }
+                  pendientes={pendientes}
+                  onChangePendientes={setPendientes}
+                  zonasConocidas={zonasConocidas}
+                />
               )}
               {saludMental && (
                 <div className="flex flex-col gap-1.5">

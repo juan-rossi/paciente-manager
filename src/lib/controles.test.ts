@@ -35,6 +35,7 @@ describe("indicadoresPara", () => {
     );
     expect(camposPara("MEDICA", "INFECTOLOGIA")).toEqual(["peso", "cd4", "cargaViral"]);
     expect(camposPara("MEDICA", "CLINICA_MEDICA")).toEqual(camposPara("MEDICA"));
+    expect(camposPara("GERIATRICA")).toEqual(["peso", "presionSistolica", "presionDiastolica", "barthel"]);
   });
 
   it("psicología, fonoaudiología y odontología no tienen controles", () => {
@@ -71,6 +72,14 @@ describe("controlInput", () => {
     const r = controlInput.safeParse({ ...vacio, fecha: "2026-11-21", peso: 72.5, nota: "" });
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.nota).toBeNull();
+  });
+
+  it("rechaza una presión con la máxima menor o igual que la mínima (cargada al revés)", () => {
+    const invertida = controlInput.safeParse({ ...vacio, fecha: "2026-11-21", presionSistolica: 60, presionDiastolica: 65, nota: null });
+    expect(invertida.success).toBe(false);
+    if (!invertida.success) expect(invertida.error.issues[0].message).toContain("máxima");
+    expect(controlInput.safeParse({ ...vacio, fecha: "2026-11-21", presionSistolica: 120, presionDiastolica: 80, nota: null }).success).toBe(true);
+    expect(controlInput.safeParse({ ...vacio, fecha: "2026-11-21", presionSistolica: 120, nota: null }).success).toBe(true);
   });
 
   it("rechaza un control vacío o con valores fuera de rango", () => {

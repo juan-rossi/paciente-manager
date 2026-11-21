@@ -5,6 +5,9 @@ import { formatFechaCorta } from "@/components/patient-form/utils";
 
 export type PuntoControl = { fecha: string; valores: readonly (number | null)[] };
 
+// Curva de referencia que se dibuja detrás (percentiles de la OMS).
+export type CurvaReferencia = { etiqueta: string; puntos: readonly { fecha: string; valor: number }[] };
+
 type Props = {
   puntos: readonly PuntoControl[];
   // Nombre de cada serie (la presión tiene dos: máxima y mínima).
@@ -15,10 +18,13 @@ type Props = {
   // Escala fija (EVA, ECOG): el eje va de punta a punta en vez de ajustarse
   // a los valores medidos.
   dominio?: { min: number; max: number };
+  // Curvas de percentiles (pediatría): finas, grises y con su rótulo a la
+  // derecha. Solo con eje de tiempo (si hay fechas repetidas, no van).
+  referencias?: readonly CurvaReferencia[];
 };
 
 const ALTO = 128;
-const PAD = { izq: 40, der: 10, arriba: 10, abajo: 22 };
+const PAD_BASE = { izq: 40, der: 10, arriba: 10, abajo: 22 };
 
 function diaMs(fecha: string): number {
   const [y, m, d] = fecha.split("-").map(Number);
@@ -35,7 +41,7 @@ function fechaEje(fecha: string): string {
 // dos series, la segunda va punteada y la leyenda la nombra (la identidad no
 // depende solo del color). Al pasar el mouse marca el control más cercano y
 // muestra sus valores; la tabla de controles es la vista accesible.
-export function GraficoControl({ puntos, series, formatear, unidad, titulo, dominio }: Props) {
+export function GraficoControl({ puntos, series, formatear, unidad, titulo, dominio, referencias = [] }: Props) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const [ancho, setAncho] = useState(0);
   const [activo, setActivo] = useState<number | null>(null);
@@ -51,8 +57,14 @@ export function GraficoControl({ puntos, series, formatear, unidad, titulo, domi
   const valores = puntos.flatMap((p) => p.valores.filter((v): v is number => v != null));
   if (valores.length === 0) return null;
 
-  let min = dominio ? dominio.min : Math.min(...valores);
-  let max = dominio ? dominio.max : Math.max(...valores);
+  const fechasRepetidas = new Set(puntos.map((p) => p.fecha)).size < puntos.length;
+  const curvas = fechasRepetidas || puntos.length < 2 ? [] : referencias;
+  const PAD = curvas.length > 0 ? { ...PAD_BASE, der: 30 } : PAD_BASE;
+  // El eje incluye las curvas, así la línea del paciente se ve en contexto.
+  const todos = [...valores, ...curvas.flatMap((c) => c.puntos.map((p) => p.valor))];
+
+  let min = dominio ? dominio.min : Math.min(...todos);
+  let max = dominio ? dominio.max : Math.max(...todos);
   if (min === max) {
     min -= 1;
     max += 1;
@@ -70,7 +82,27 @@ export function GraficoControl({ puntos, series, formatear, unidad, titulo, domi
   // El eje es de tiempo, salvo que haya dos controles el mismo día: ahí los
   // puntos se reparten parejo (si no, caen uno encima del otro y la línea
   // queda vertical).
-  const fechasRepetidas = new Set(puntos.map((p) => p.fecha)).size < puntos.length;
+  // Rótulos de las curvas: si dos quedan a menos de 9 px (curvas muy juntas
+  // porque el paciente está lejos de ellas), se muestra solo el primero; P50
+  // va primero porque es el de referencia.
+  const rotuloVisible = (() => {
+    const orden = curvas
+      .map((c, k) => ({ k, prioridad: c.etiqueta === "P50" ? 0 : 1 }))
+      .sort((a, b) => a.prioridad - b.prioridad);
+    const visibles = new Array<boolean>(curvas.length).fill(false);
+    const usados: number[] = [];
+    for (const { k } of orden) {
+      const ultimo = curvas[k].puntos[curvas[k].puntos.length - 1];
+      if (!ultimo) continue;
+      const yr = PAD.arriba + (1 - (ultimo.valor - yMin) / (yMax - yMin)) * altoUtil;
+      if (usados.every((u) => Math.abs(u - yr) >= 9)) {
+        visibles[k] = true;
+        usados.push(yr);
+      }
+    }
+    return visibles;
+  })();
+  const xFecha = (fecha: string) => PAD.izq + ((diaMs(fecha) - t0) / (t1 - t0)) * anchoUtil;
   const x = (i: number) => {
     if (puntos.length === 1) return PAD.izq + anchoUtil / 2;
     if (fechasRepetidas) return PAD.izq + (i / (puntos.length - 1)) * anchoUtil;
@@ -178,6 +210,35 @@ export function GraficoControl({ puntos, series, formatear, unidad, titulo, domi
               strokeOpacity={0.4}
             />
           )}
+
+          {curvas.map((curva, k) => {
+            const d = curva.puntos
+              .map((p, k) => `${k ? "L" : "M"}${xFecha(p.fecha).toFixed(1)},${y(p.valor).toFixed(1)}`)
+              .join("");
+            const ultimo = curva.puntos[curva.puntos.length - 1];
+            return (
+              <g key={curva.etiqueta}>
+                <path
+                  d={d}
+                  fill="none"
+                  stroke="var(--muted-foreground)"
+                  strokeOpacity={0.45}
+                  strokeWidth={1}
+                  strokeDasharray={curva.etiqueta === "P50" ? undefined : "3 3"}
+                />
+                {ultimo && rotuloVisible[k] && (
+                  <text
+                    x={xFecha(ultimo.fecha) + 4}
+                    y={y(ultimo.valor)}
+                    dominantBaseline="middle"
+                    className="fill-muted-foreground text-[9px]"
+                  >
+                    {curva.etiqueta}
+                  </text>
+                )}
+              </g>
+            );
+          })}
 
           {trazos.map((d, s) => (
             <path

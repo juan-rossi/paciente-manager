@@ -352,8 +352,37 @@ export const ANTECEDENTES_ONCOLOGIA_COLUMNA_2 = [
 export const ANTECEDENTES_LOCOMOTOR_ORDEN = [...ANTECEDENTES_LOCOMOTOR_COLUMNA_1, ...ANTECEDENTES_LOCOMOTOR_COLUMNA_2];
 export const ANTECEDENTES_ONCOLOGIA_ORDEN = [...ANTECEDENTES_ONCOLOGIA_COLUMNA_1, ...ANTECEDENTES_ONCOLOGIA_COLUMNA_2];
 
+// Geriatría (ver esGeriatrica()): los síndromes geriátricos, más lo médico
+// que más pesa a esa edad.
+export const ANTECEDENTES_GERIATRIA_COLUMNA_1 = [
+  { tipo: "CAIDAS", label: "Caídas en el último año" },
+  { tipo: "DETERIORO_COGNITIVO", label: "Deterioro cognitivo o demencia" },
+  { tipo: "POLIFARMACIA", label: "Polifarmacia (5 o más medicamentos)" },
+  { tipo: "INCONTINENCIA", label: "Incontinencia" },
+  { tipo: "ULCERAS_PRESION", label: "Úlceras por presión" },
+  { tipo: "DEPENDENCIA_FUNCIONAL", label: "Dependencia para la vida diaria" },
+] as const;
+
+export const ANTECEDENTES_GERIATRIA_COLUMNA_2 = [
+  { tipo: "HTA", label: "Hipertensión" },
+  { tipo: "DIABETES", label: "Diabetes" },
+  { tipo: "CARDIOPATIAS", label: "Cardiopatías" },
+  { tipo: "ANTICOAGULANTES", label: "Anticoagulantes o antiagregantes" },
+  { tipo: "OSTEOPOROSIS", label: "Osteoporosis" },
+  { tipo: "ALERGIA", label: "Alergias" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_GERIATRIA_ORDEN = [...ANTECEDENTES_GERIATRIA_COLUMNA_1, ...ANTECEDENTES_GERIATRIA_COLUMNA_2];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "GERIATRICA":
+      return {
+        columna1: ANTECEDENTES_GERIATRIA_COLUMNA_1,
+        columna2: ANTECEDENTES_GERIATRIA_COLUMNA_2,
+        orden: ANTECEDENTES_GERIATRIA_ORDEN,
+      };
     case "LOCOMOTOR":
       return {
         columna1: ANTECEDENTES_LOCOMOTOR_COLUMNA_1,
@@ -509,7 +538,17 @@ export const ANTECEDENTES_CRITICOS_ONCOLOGIA: ReadonlyMap<string, string> = new 
   ["ALERGIA", "Alergia"],
 ]);
 
+// Geriatría: riesgo de caídas, deterioro cognitivo (quién decide y quién
+// toma la medicación), sangrado y alergias.
+export const ANTECEDENTES_CRITICOS_GERIATRIA: ReadonlyMap<string, string> = new Map([
+  ["CAIDAS", "Caídas"],
+  ["DETERIORO_COGNITIVO", "Deterioro cognitivo"],
+  ["ANTICOAGULANTES", "Anticoagulado"],
+  ["ALERGIA", "Alergia"],
+]);
+
 const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
+  GERIATRICA: ANTECEDENTES_CRITICOS_GERIATRIA,
   LOCOMOTOR: ANTECEDENTES_CRITICOS_LOCOMOTOR,
   ONCOLOGICA: ANTECEDENTES_CRITICOS_ONCOLOGIA,
   OFTALMOLOGICA: ANTECEDENTES_CRITICOS_OFTALMOLOGIA,
@@ -574,6 +613,7 @@ export function antecedenteAplicaAlSexo(
 // de la mujer, psiquiatría, nutrición, oftalmología, ORL y dermatología.
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
   [
+    ...ANTECEDENTES_GERIATRIA_ORDEN,
     ...ANTECEDENTES_LOCOMOTOR_ORDEN,
     ...ANTECEDENTES_ONCOLOGIA_ORDEN,
     ...ANTECEDENTES_OFTALMOLOGIA_ORDEN,
@@ -601,6 +641,18 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
       tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "GERIATRICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Quién acompaña y quién relata, desde cuándo, cambios en la funcionalidad, la memoria o el ánimo, caídas recientes y medicación que toma (incluida la de venta libre).",
+      habitos: "Hábitos Tóxicos",
+      diagnosticoPresuntivo: "Diagnóstico Presuntivo",
+      metodosComplementarios: "Métodos Complementarios",
+      tratamiento: "Tratamiento e indicaciones",
     };
   }
   if (grupo === "LOCOMOTOR") {
@@ -823,6 +875,12 @@ export function ayudasDiagnostico(grupo: GrupoEspecialidad): {
       return {
         tratamiento:
           "Medicación (droga, dosis y duración), kinesiología, reposo u ortesis, infiltraciones o cirugía, y próximo control.",
+      };
+    case "GERIATRICA":
+      return {
+        metodosComplementarios: "Laboratorio, imágenes y escalas (Barthel, Lawton, minimental, Yesavage), con fecha y puntaje.",
+        tratamiento:
+          "Cambios de medicación (incluida la desprescripción), cuidados, rehabilitación, apoyo familiar y próximo control.",
       };
     case "ONCOLOGICA":
       return {

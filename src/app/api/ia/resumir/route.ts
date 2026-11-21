@@ -232,6 +232,20 @@ ${REGLAS_ONCOLOGIA}`,
 ${REGLAS_ONCOLOGIA}`,
 };
 
+// Geriatría: los prompts médicos, con lo que la valoración geriátrica tiene
+// que conservar exacto.
+const REGLAS_GERIATRIA = `${REGLAS_COMUNES}
+- Conservá exactos los puntajes de las escalas (Barthel, Lawton, minimental), las caídas y la lista de medicación (con los cambios por desprescripción).`;
+
+const SYSTEM_PROMPTS_GERIATRIA: Record<z.infer<typeof resumirInput>["tipo"], string> = {
+  antecedentes: `Sos un asistente que redacta historias clínicas geriátricas. Vas a recibir la transcripción de un dictado de un médico sobre la enfermedad actual de un paciente mayor. Resumila en un párrafo breve (o pocos ítems) con lo clínicamente relevante: quién relata, inicio y evolución de los síntomas, cambios en la funcionalidad, la memoria o el ánimo, caídas y medicación que toma.
+
+${REGLAS_GERIATRIA}`,
+  evolucion: `Sos un asistente que redacta historias clínicas geriátricas. Vas a recibir la transcripción de un dictado de un médico sobre una consulta. Resumila con lo clínicamente relevante, en este orden y omitiendo lo que no se mencione: lo que refieren el paciente y su acompañante, funcionalidad y escalas, estado cognitivo y afectivo, caídas, examen, medicación (cambios y desprescripción), indicaciones y próximo control.
+
+${REGLAS_GERIATRIA}`,
+};
+
 const SYSTEM_PROMPTS_POR_GRUPO: Record<
   GrupoEspecialidad,
   Record<z.infer<typeof resumirInput>["tipo"], string>
@@ -246,6 +260,7 @@ const SYSTEM_PROMPTS_POR_GRUPO: Record<
   DERMATOLOGICA: SYSTEM_PROMPTS_DERMATOLOGIA,
   LOCOMOTOR: SYSTEM_PROMPTS_LOCOMOTOR,
   ONCOLOGICA: SYSTEM_PROMPTS_ONCOLOGIA,
+  GERIATRICA: SYSTEM_PROMPTS_GERIATRIA,
   ODONTOLOGICA: SYSTEM_PROMPTS_ODONTOLOGIA,
   PSICOLOGIA: SYSTEM_PROMPTS_PSICOLOGIA,
   FONOAUDIOLOGIA: SYSTEM_PROMPTS_FONOAUDIOLOGIA,

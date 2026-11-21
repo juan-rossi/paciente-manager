@@ -276,6 +276,13 @@ enum TipoAntecedente {
   CIRUGIA_ONCOLOGICA
   TRANSFUSIONES
   DISPOSITIVO_ACCESO_VENOSO
+  // Geriatría (ver ANTECEDENTES_GERIATRIA en patient-form/constants.ts).
+  CAIDAS
+  DETERIORO_COGNITIVO
+  POLIFARMACIA
+  INCONTINENCIA
+  ULCERAS_PRESION
+  DEPENDENCIA_FUNCIONAL
   OTROS
 }
 
@@ -694,6 +701,7 @@ enum AuditEntidad {
   PACIENTE
   EVOLUCION
   CONTROL
+  FOTO
   CONSENTIMIENTO
   ODONTOGRAMA
   PRACTICA_ODONTOLOGICA
@@ -1183,6 +1191,7 @@ model Patient {
   antecedentes    PatientAntecedente[]
   evoluciones     PatientEvolucion[]
   controles       PatientControl[]
+  fotos PatientFoto[]
   turnos          Turno[]
   consentimientos ConsentimientoInformado[]
   odontogramas    PatientOdontograma[]
@@ -1273,6 +1282,36 @@ model PatientControl {
   @@index([patientId, fecha])
 }
 
+// Fotos clínicas (dermatología): se guardan en la base, como el resto de la
+// historia clínica, para que valga el mismo control de acceso (solo el
+// médico). `datos` es siempre un JPEG re-codificado en el servidor, sin
+// metadatos (ni GPS); `miniatura` es la versión chica para la grilla. Nunca
+// se borran físicamente.
+model PatientFoto {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fecha     DateTime
+  // Evolución a la que pertenece: la foto documenta esa consulta y toma su
+  // fecha (si la evolución cambia de fecha, la foto también). Si la
+  // evolución se elimina, sus fotos se ocultan con ella.
+  evolucionId String?
+  evolucion   PatientEvolucion? @relation(fields: [evolucionId], references: [id], onDelete: SetNull)
+  // Zona del cuerpo ("Espalda", "Antebrazo izquierdo"): agrupa las fotos para
+  // comparar la misma lesión en el tiempo.
+  zona      String
+  nota      String?
+  datos     Bytes
+  miniatura Bytes
+  ancho     Int
+  alto      Int
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@index([patientId, fecha])
+  @@index([evolucionId])
+}
+
 model PatientEvolucion {
   id               String   @id @default(cuid())
   patientId        String
@@ -1293,6 +1332,9 @@ model PatientEvolucion {
   // Mismo criterio que Patient.deletedAt -- una entrada de evolución nunca
   // se borra físicamente, se oculta.
   deletedAt DateTime?
+
+  // Fotos clínicas de esta consulta (dermatología).
+  fotos PatientFoto[]
 }
 
 enum AsistenciaSesion {

@@ -13,6 +13,7 @@ type AuditEntidad =
   | "PACIENTE"
   | "EVOLUCION"
   | "CONTROL"
+  | "FOTO"
   | "CONSENTIMIENTO"
   | "ODONTOGRAMA"
   | "PRACTICA_ODONTOLOGICA"

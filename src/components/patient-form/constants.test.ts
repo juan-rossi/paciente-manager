@@ -53,6 +53,7 @@ describe("antecedentesPara", () => {
       "DERMATOLOGICA",
       "LOCOMOTOR",
       "ONCOLOGICA",
+      "GERIATRICA",
       "PSICOLOGIA",
       "ODONTOLOGICA",
       "FONOAUDIOLOGIA",
@@ -207,6 +208,18 @@ describe("exámenes de órgano", () => {
     expect(alertasClinicas("DERMATOLOGICA", [{ tipo: "EMBARAZO", respuesta: true }])).toEqual(["Embarazo o lactancia"]);
     expect(alertasClinicas("LOCOMOTOR", [{ tipo: "ANTICOAGULANTES", respuesta: true }])).toEqual(["Anticoagulado"]);
     expect(alertasClinicas("ONCOLOGICA", [{ tipo: "INMUNOSUPRESION", respuesta: true }])).toEqual(["Inmunosuprimido"]);
+  });
+});
+
+describe("geriatría", () => {
+  it("avisa caídas, deterioro cognitivo y anticoagulación", () => {
+    expect(
+      alertasClinicas("GERIATRICA", [
+        { tipo: "CAIDAS", respuesta: true, descripcion: "2 en el año" },
+        { tipo: "DETERIORO_COGNITIVO", respuesta: true },
+        { tipo: "POLIFARMACIA", respuesta: true },
+      ])
+    ).toEqual(["Caídas (2 en el año)", "Deterioro cognitivo"]);
   });
 });
 

@@ -5,6 +5,8 @@ import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
 import { edadLegible, esMenorDeEdad } from "@/components/patient-form/utils";
 import { formatIndicador, indicadoresPara, TODOS_LOS_INDICADORES, unidadIndicador } from "@/lib/controles";
+import { formatPercentil, percentilOms, type IndicadorOms } from "@/lib/percentiles-oms";
+import { WHERE_FOTO_VISIBLE } from "@/lib/foto-clinica";
 import { datosExamen, EXAMENES_ESPECIALIDAD } from "@/components/patient-form/examenes-especialidad";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
@@ -134,6 +136,14 @@ export default async function HistoriaClinicaPage({ params }: Props) {
 
   // Visitas del odontograma (solo existen para odontólogos). Mismo orden que
   // la ficha: el inicial primero, después por fecha.
+  // Fotos clínicas: en la copia van listadas (fecha, zona y nota), sin la
+  // imagen.
+  const fotos = await prisma.patientFoto.findMany({
+    where: { patientId: patient.id, ...WHERE_FOTO_VISIBLE },
+    orderBy: [{ fecha: "asc" }, { createdAt: "asc" }],
+    select: { id: true, evolucionId: true, fecha: true, zona: true, nota: true },
+  });
+
   const visitasOdontograma = (
     await prisma.patientOdontograma.findMany({
       where: { patientId: patient.id, deletedAt: null },
@@ -153,6 +163,18 @@ export default async function HistoriaClinicaPage({ params }: Props) {
   const etiquetas = etiquetasHistoriaClinica(grupo);
   // Primero los de la especialidad actual y después cualquier otro que tenga
   // valores (controles cargados con otra especialidad, si el médico cambió).
+  // Pediatría: percentil OMS al lado de peso, talla y perímetro cefálico.
+  const percentilImpreso = (indicadorId: string, c: (typeof patient.controles)[number]) => {
+    if (indicadorId !== "peso" && indicadorId !== "talla" && indicadorId !== "perimetroCefalico") return null;
+    const p = percentilOms(
+      indicadorId as IndicadorOms,
+      patient.sexo,
+      patient.fechaNacimiento?.toISOString().slice(0, 10),
+      c.fecha.toISOString().slice(0, 10),
+      c[indicadorId]
+    );
+    return p == null ? null : ` (${formatPercentil(p)})`;
+  };
   const indicadoresControl = [...indicadoresPara(grupo, doctor?.especialidad), ...TODOS_LOS_INDICADORES]
     .filter((i, idx, todos) => todos.findIndex((o) => o.id === i.id) === idx)
     .filter((i) => patient.controles.some((c) => i.campos.some((campo) => c[campo] != null)));
@@ -427,6 +449,24 @@ export default async function HistoriaClinicaPage({ params }: Props) {
           </Seccion>
         )}
 
+        {fotos.length > 0 && (
+          <Seccion titulo="Fotos clínicas">
+            <ul className="flex flex-col gap-1 text-sm">
+              {fotos.map((f) => (
+                <li key={f.id}>
+                  <span className="tabular-nums">{formatFecha(f.fecha)}</span>
+                  {f.evolucionId === null && <span className="text-muted-foreground"> (consulta inicial)</span>} —{" "}
+                  <strong>{f.zona}</strong>
+                  {f.nota && <span className="text-muted-foreground">{` — ${f.nota}`}</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Las imágenes se conservan en la historia clínica digital.
+            </p>
+          </Seccion>
+        )}
+
         {patient.controles.length > 0 && (
           <Seccion titulo="Controles">
             <table className="w-full break-inside-avoid text-sm">
@@ -448,6 +488,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
                     {indicadoresControl.map((i) => (
                       <td key={i.id} className="py-1 pr-3 tabular-nums">
                         {formatIndicador(i, c) ?? ""}
+                        {grupo === "PEDIATRICA" && percentilImpreso(i.id, c)}
                       </td>
                     ))}
                     <td className="py-1">{c.nota}</td>
