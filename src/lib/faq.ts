@@ -10,6 +10,10 @@ export const FAQS = [
     a: "Te registrás en un par de minutos y arrancás con un período de prueba gratis, sin tarjeta de crédito: 60 días del plan Básico o 30 días del Premium.",
   },
   {
+    q: "Ya uso otro sistema, Excel o Word. ¿Tengo que cargar todo de nuevo?",
+    a: "No. Pasamos tus pacientes a Semio360 sin cargo y sin tope: los datos de cada paciente y, siempre que el formato lo permita, también sus evoluciones. Una vez registrado, pedís la migración desde Soporte, dentro de la app, y ahí coordinamos cómo nos pasás los archivos (el export de tu sistema actual, planillas de Excel o CSV, o documentos de Word). No trabajamos con PDF escaneados ni historias en papel.",
+  },
+  {
     q: "¿Necesito instalar algo?",
     a: "No. Semio360 corre en el navegador, sin instalación, incluido el dictado de la evolución: solo necesitás un micrófono.",
   },

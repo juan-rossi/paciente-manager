@@ -7,6 +7,7 @@ import { ScrollStory } from "@/components/marketing/scroll-story";
 import { Features } from "@/components/marketing/features";
 import { LessAdmin } from "@/components/marketing/less-admin";
 import { InteractiveDemo } from "@/components/marketing/interactive-demo";
+import { Migracion } from "@/components/marketing/migracion";
 import { TrustSecurity } from "@/components/marketing/trust-security";
 import { Testimonials } from "@/components/marketing/testimonials";
 import { Pricing } from "@/components/marketing/pricing";
@@ -69,6 +70,7 @@ export default function MarketingHomePage() {
       <Features />
       <LessAdmin />
       <InteractiveDemo />
+      <Migracion />
       <TrustSecurity />
       <Testimonials />
       <DirectorioBanner />

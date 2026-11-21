@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PLAN_FEATURES, TRIAL_DIAS } from "@/lib/plan";
@@ -78,6 +78,33 @@ export function Pricing() {
             </motion.div>
           ))}
         </div>
+
+        {/* Vale para los dos planes, por eso va debajo de las tarjetas y no
+            en PLAN_FEATURES. Linkea a la sección Migracion del home. */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-10%" }}
+          transition={{ duration: 0.45, delay: 0.2 }}
+          className="mt-6 flex flex-col gap-3 rounded-2xl border border-dashed border-brand-accent/50 bg-brand-accent/[0.04] px-5 py-4 sm:flex-row sm:items-center sm:gap-4"
+        >
+          <span className="self-start rounded-md bg-brand-accent/12 px-2 py-1 text-[11px] font-bold tracking-wide text-brand-accent uppercase sm:self-center">
+            Incluido
+          </span>
+          <p className="flex-1 text-sm">
+            <span className="font-semibold">Migración de tus pacientes, sin cargo.</span>{" "}
+            <span className="text-muted-foreground">
+              Desde otro sistema, Excel o Word, en cualquiera de los dos planes y sin tope de pacientes.
+            </span>
+          </p>
+          <a
+            href="#migracion"
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-accent underline-offset-4 hover:underline"
+          >
+            Cómo funciona
+            <ArrowRight className="size-3.5" />
+          </a>
+        </motion.div>
       </div>
     </section>
   );
