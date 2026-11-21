@@ -1,10 +1,11 @@
 import { AlertTriangle } from "lucide-react";
 
-// Antecedentes que cambian la atención odontológica (ver
-// alertasOdontologicas() en patient-form/constants.ts). Va arriba de la ficha
-// y del odontograma, para verlo antes de anestesiar o extraer. Sin alertas no
+// Antecedentes críticos del paciente según el grupo del profesional (ver
+// alertasClinicas() en patient-form/constants.ts): en odontología, lo que hay
+// que ver antes de anestesiar o extraer; en pediatría, antes de indicar un
+// medicamento. Va arriba de la ficha (y del odontograma). Sin alertas no
 // renderiza nada.
-export function AlertasOdontologicas({ alertas }: { alertas: readonly string[] }) {
+export function AlertasClinicas({ alertas }: { alertas: readonly string[] }) {
   if (alertas.length === 0) return null;
   return (
     <div

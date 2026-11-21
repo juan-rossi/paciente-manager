@@ -13,7 +13,8 @@ type Props = {
   transcripcionHabilitada?: boolean;
   resumirAntecedentesAlTerminar?: boolean;
   // Etiquetas según el grupo (ver etiquetasHistoriaClinica()). Psicología
-  // además va sin autovalidez, con derivación, demanda y encuadre.
+  // además va sin autovalidez, con derivación, demanda y encuadre. Pediatría
+  // va sin autovalidez (es una escala de adultos mayores).
   grupo?: GrupoEspecialidad;
 };
 
@@ -26,12 +27,15 @@ export function ConsultaInicialTab({
   grupo = "MEDICA",
 }: Props) {
   const psicologia = grupo === "PSICOLOGIA";
+  const pediatria = grupo === "PEDIATRICA";
+  // Psicología y pediatría hablan de consumo, no de "hábitos tóxicos".
+  const consumo = psicologia || pediatria;
   const etiquetas = etiquetasHistoriaClinica(grupo);
 
   const habitos: { field: "habitoAlcohol" | "habitoCigarrillos" | "habitoDrogas"; label: string }[] = [
     { field: "habitoAlcohol", label: "Alcohol" },
-    { field: "habitoCigarrillos", label: psicologia ? "Tabaco" : "Cigarrillos" },
-    { field: "habitoDrogas", label: psicologia ? "Otras sustancias" : "Drogas" },
+    { field: "habitoCigarrillos", label: consumo ? "Tabaco" : "Cigarrillos" },
+    { field: "habitoDrogas", label: consumo ? "Otras sustancias" : "Drogas" },
   ];
 
   return (
@@ -45,7 +49,7 @@ export function ConsultaInicialTab({
             helpText="Profesional, institución o persona que lo derivó. Vacío si consultó por su cuenta."
           />
         </div>
-      ) : (
+      ) : pediatria ? null : (
         <div className="grid gap-6 md:grid-cols-3">
           <TextField
             label="AUTOVALIDO Total"
@@ -125,6 +129,11 @@ export function ConsultaInicialTab({
         {psicologia && (
           <p className="text-xs text-muted-foreground">
             El detalle (frecuencia, cantidad, desde cuándo) va en Antecedentes → Consumo de sustancias.
+          </p>
+        )}
+        {pediatria && (
+          <p className="text-xs text-muted-foreground">
+            Del propio paciente adolescente. El humo de tabaco en la casa va en Antecedentes.
           </p>
         )}
       </div>

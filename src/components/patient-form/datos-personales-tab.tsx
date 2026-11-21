@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { ESTADO_CIVIL_OPTIONS } from "./constants";
 import { FormSection, TextField } from "./fields";
-import { calcularEdad, esMenorDeEdad } from "./utils";
+import { edadLegible, esMenorDeEdad } from "./utils";
 import type { PatientFormValues } from "./types";
 
 type Props = {
@@ -54,7 +54,7 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
 
         <div className="flex flex-col gap-1.5">
           <Label>Edad</Label>
-          <Input value={calcularEdad(values.fechaNacimiento)} readOnly disabled />
+          <Input value={edadLegible(values.fechaNacimiento)} readOnly disabled />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Sexo *</Label>

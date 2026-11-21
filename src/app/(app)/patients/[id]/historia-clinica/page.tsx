@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getTenantId } from "@/lib/tenant";
 import { registrarAuditoria } from "@/lib/audit-log";
-import { calcularEdad } from "@/components/patient-form/utils";
+import { edadLegible } from "@/components/patient-form/utils";
 import { DictadoCompleto } from "@/components/patient-form/dictado-completo";
 import {
   ANTECEDENTE_LABELS,
@@ -154,7 +154,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
     entidadId: patient.id,
   });
 
-  const edad = calcularEdad(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "");
+  const edad = edadLegible(patient.fechaNacimiento?.toISOString().slice(0, 10) ?? "");
 
   // Psicología y fonoaudiología: número de cada sesión (ver numerarSesiones()).
   const numerosSesion = new Map<(typeof patient.evoluciones)[number], number>();
@@ -199,7 +199,7 @@ export default async function HistoriaClinicaPage({ params }: Props) {
             {
               label: "Fecha de nacimiento",
               value: patient.fechaNacimiento
-                ? `${formatFecha(patient.fechaNacimiento)}${edad ? ` (${edad} años)` : ""}`
+                ? `${formatFecha(patient.fechaNacimiento)}${edad ? ` (${edad})` : ""}`
                 : null,
             },
             { label: "Sexo", value: patient.sexo ? SEXO_LABELS[patient.sexo] : null },

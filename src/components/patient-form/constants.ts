@@ -1,7 +1,7 @@
 import type { GrupoEspecialidad } from "@/lib/especialidad";
 
 export const ANTECEDENTES_COLUMNA_1 = [
-  { tipo: "DISLIPEMIA", label: "Displemia" },
+  { tipo: "DISLIPEMIA", label: "Dislipemia" },
   { tipo: "HIPOTIROIDISMO", label: "Hipotiroidismo" },
   { tipo: "HIPERTIROIDISMO", label: "Hipertiroidismo" },
   { tipo: "ARTRITIS", label: "Artritis" },
@@ -123,8 +123,43 @@ export const ANTECEDENTES_FONOAUDIOLOGIA_ORDEN = [
   ...ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_2,
 ];
 
+// Historia clínica pediátrica (ver esPediatrica()): lo que un pediatra
+// pregunta en la primera consulta. Reusa del enum ALERGIA, ASMA,
+// CARDIOPATIAS, OTITIS_REPETICION, ANTECEDENTES_PERINATALES y
+// ENFERMEDADES_MEDICAS.
+export const ANTECEDENTES_PEDIATRIA_COLUMNA_1 = [
+  { tipo: "ANTECEDENTES_PERINATALES", label: "Antecedentes perinatales" },
+  { tipo: "VACUNACION_INCOMPLETA", label: "Vacunación incompleta" },
+  { tipo: "RETRASO_DESARROLLO", label: "Retraso madurativo o del desarrollo" },
+  { tipo: "ALERGIA", label: "Alergias" },
+  { tipo: "ASMA", label: "Asma o broncoespasmo recurrente" },
+  { tipo: "OTITIS_REPETICION", label: "Otitis a repetición" },
+  { tipo: "CONVULSIONES", label: "Convulsiones (incluye febriles)" },
+] as const;
+
+export const ANTECEDENTES_PEDIATRIA_COLUMNA_2 = [
+  { tipo: "CARDIOPATIAS", label: "Cardiopatías" },
+  { tipo: "ENFERMEDADES_MEDICAS", label: "Enfermedades crónicas" },
+  { tipo: "INTERNACIONES_PREVIAS", label: "Internaciones" },
+  { tipo: "CIRUGIAS_PREVIAS", label: "Cirugías" },
+  { tipo: "TABAQUISMO_HOGAR", label: "Humo de tabaco en el hogar" },
+  { tipo: "ANTECEDENTES_FAMILIARES", label: "Enfermedades familiares relevantes" },
+  { tipo: "OTROS", label: "Otros" },
+] as const;
+
+export const ANTECEDENTES_PEDIATRIA_ORDEN = [
+  ...ANTECEDENTES_PEDIATRIA_COLUMNA_1,
+  ...ANTECEDENTES_PEDIATRIA_COLUMNA_2,
+];
+
 export function antecedentesPara(grupo: GrupoEspecialidad) {
   switch (grupo) {
+    case "PEDIATRICA":
+      return {
+        columna1: ANTECEDENTES_PEDIATRIA_COLUMNA_1,
+        columna2: ANTECEDENTES_PEDIATRIA_COLUMNA_2,
+        orden: ANTECEDENTES_PEDIATRIA_ORDEN,
+      };
     case "FONOAUDIOLOGIA":
       return {
         columna1: ANTECEDENTES_FONOAUDIOLOGIA_COLUMNA_1,
@@ -163,14 +198,35 @@ export const ANTECEDENTES_CRITICOS_ODONTOLOGIA: ReadonlyMap<string, string> = ne
   ["RADIOTERAPIA_CABEZA_CUELLO", "Radioterapia de cabeza y cuello"],
 ]);
 
-// Alertas a mostrar, en el orden del checklist. El detalle (qué anestésico,
-// qué droga) va entre paréntesis si se cargó.
-export function alertasOdontologicas(
-  antecedentes: readonly { tipo: string; respuesta: boolean; descripcion?: string | null; medicacion?: string | null }[]
-): string[] {
+// Pediatría: lo que hay que tener presente antes de indicar un medicamento o
+// ante un cuadro febril.
+export const ANTECEDENTES_CRITICOS_PEDIATRIA: ReadonlyMap<string, string> = new Map([
+  ["ALERGIA", "Alergia"],
+  ["CARDIOPATIAS", "Cardiopatía"],
+  ["CONVULSIONES", "Convulsiones"],
+]);
+
+const ANTECEDENTES_CRITICOS: Partial<Record<GrupoEspecialidad, ReadonlyMap<string, string>>> = {
+  ODONTOLOGICA: ANTECEDENTES_CRITICOS_ODONTOLOGIA,
+  PEDIATRICA: ANTECEDENTES_CRITICOS_PEDIATRIA,
+};
+
+type AntecedenteParaAlerta = {
+  tipo: string;
+  respuesta: boolean;
+  descripcion?: string | null;
+  medicacion?: string | null;
+};
+
+// Alertas a mostrar arriba de la ficha, en el orden del checklist. El detalle
+// (qué anestésico, a qué es alérgico) va entre paréntesis si se cargó. Los
+// grupos sin antecedentes críticos no tienen alertas.
+export function alertasClinicas(grupo: GrupoEspecialidad, antecedentes: readonly AntecedenteParaAlerta[]): string[] {
+  const criticos = ANTECEDENTES_CRITICOS[grupo];
+  if (!criticos) return [];
   const porTipo = new Map(antecedentes.map((a) => [a.tipo, a]));
   const alertas: string[] = [];
-  for (const [tipo, label] of ANTECEDENTES_CRITICOS_ODONTOLOGIA) {
+  for (const [tipo, label] of criticos) {
     const a = porTipo.get(tipo);
     if (!a?.respuesta) continue;
     const detalle = (a.medicacion || a.descripcion || "").trim();
@@ -179,13 +235,33 @@ export function alertasOdontologicas(
   return alertas;
 }
 
+export function alertasOdontologicas(antecedentes: readonly AntecedenteParaAlerta[]): string[] {
+  return alertasClinicas("ODONTOLOGICA", antecedentes);
+}
+
+// Antecedentes que solo aplican a un sexo. Si el paciente es del otro sexo y
+// no están marcados, el formulario no los muestra (si están en SI se muestran
+// igual, para no esconder un dato cargado). Sin sexo cargado se muestran todos.
+const ANTECEDENTES_SOLO_MASCULINO: ReadonlySet<string> = new Set(["PROSTATA"]);
+
+export function antecedenteAplicaAlSexo(
+  tipo: string,
+  sexo: string | null | undefined,
+  respuesta: boolean
+): boolean {
+  if (respuesta) return true;
+  return !(sexo === "FEMENINO" && ANTECEDENTES_SOLO_MASCULINO.has(tipo));
+}
+
 // Etiqueta de cualquier antecedente, sea de la lista médica, de psicología,
-// de odontología o de fonoaudiología (un paciente puede tener cargados de
-// varias si el profesional cambió de especialidad). Si un tipo está en más de
-// una lista, gana la última (ej. "Hipertensión" en vez de "HTA"); la de
-// fonoaudiología va primera para que NEUROLOGICAS siga diciendo "Neurológicas".
+// de odontología, de fonoaudiología o de pediatría (un paciente puede tener
+// cargados de varias si el profesional cambió de especialidad, o si lo atiende
+// otro profesional del consultorio). Si un tipo está en más de una lista,
+// gana la última (ej. "Hipertensión" en vez de "HTA"); pediatría y
+// fonoaudiología van primeras para que los tipos que reusan sigan con su
+// etiqueta de siempre (ej. NEUROLOGICAS dice "Neurológicas").
 export const ANTECEDENTE_LABELS: ReadonlyMap<string, string> = new Map(
-  [...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
+  [...ANTECEDENTES_PEDIATRIA_ORDEN, ...ANTECEDENTES_FONOAUDIOLOGIA_ORDEN, ...ANTECEDENTES_ORDEN, ...ANTECEDENTES_PSICOLOGIA_ORDEN, ...ANTECEDENTES_ODONTOLOGIA_ORDEN].map((a) => [
     a.tipo,
     a.label,
   ])
@@ -205,6 +281,18 @@ export function etiquetasHistoriaClinica(grupo: GrupoEspecialidad) {
       diagnosticoPresuntivo: "Diagnóstico",
       metodosComplementarios: "Estudios complementarios (Rx, panorámica, etc.)",
       tratamiento: "Plan de tratamiento",
+    };
+  }
+  if (grupo === "PEDIATRICA") {
+    return {
+      motivoConsulta: "Motivo de consulta",
+      antecedentesEnfermedad: "Enfermedad actual",
+      antecedentesEnfermedadAyuda:
+        "Quién consulta y quién relata, cuándo empezó, síntomas (fiebre, tos, vómitos, diarrea), cómo come, toma líquidos y orina, medicación que recibió con la dosis, y si hay contactos enfermos en casa, el jardín o la escuela.",
+      habitos: "Consumo (adolescentes)",
+      diagnosticoPresuntivo: "Diagnóstico presuntivo",
+      metodosComplementarios: "Métodos complementarios",
+      tratamiento: "Tratamiento e indicaciones",
     };
   }
   if (grupo === "FONOAUDIOLOGIA") {

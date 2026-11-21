@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
-import { antecedentesPara, ETIQUETAS_PSICOLOGIA } from "./constants";
+import { antecedenteAplicaAlSexo, antecedentesPara, ETIQUETAS_PSICOLOGIA } from "./constants";
 import { DateInput } from "./date-input";
 import { TextAreaField } from "./fields";
 import type { AntecedenteValue, PatientFormValues } from "./types";
@@ -12,9 +12,9 @@ type Props = {
   values: PatientFormValues;
   onAntecedenteChange: (tipo: AntecedenteValue["tipo"], patch: Partial<AntecedenteValue>) => void;
   onChange: <K extends keyof PatientFormValues>(field: K, value: PatientFormValues[K]) => void;
-  // Cada grupo tiene su checklist (ver antecedentesPara()). Psicología y
-  // fonoaudiología usan detalle libre en vez de medicación, y psicología suma
-  // la historia vital/familiar.
+  // Cada grupo tiene su checklist (ver antecedentesPara()). Psicología,
+  // fonoaudiología y pediatría usan detalle libre en vez de medicación, y
+  // psicología suma la historia vital/familiar.
   grupo?: GrupoEspecialidad;
 };
 
@@ -49,6 +49,23 @@ const DETALLE_FONOAUDIOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> 
   ENFERMEDADES_MEDICAS: "Enfermedad y tratamiento actual",
 };
 
+// Pediatría: qué conviene anotar en el detalle de cada antecedente.
+const DETALLE_PEDIATRIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
+  ANTECEDENTES_PERINATALES: "Edad gestacional, peso al nacer, tipo de parto, internación neonatal",
+  VACUNACION_INCOMPLETA: "Qué vacunas faltan o están atrasadas",
+  RETRASO_DESARROLLO: "Área (motora, lenguaje, social) y quién lo sigue",
+  ALERGIA: "A qué (alimentos, medicamentos) y qué reacción",
+  ASMA: "Frecuencia de las crisis y medicación",
+  OTITIS_REPETICION: "Cuántas por año y tratamiento (tubos, cirugía)",
+  CONVULSIONES: "Tipo, a qué edad y si toma medicación",
+  CARDIOPATIAS: "Congénita o adquirida, cirugía y quién la sigue",
+  ENFERMEDADES_MEDICAS: "Enfermedad y tratamiento actual",
+  INTERNACIONES_PREVIAS: "Motivo, a qué edad y cuánto duró",
+  CIRUGIAS_PREVIAS: "Cuál y a qué edad",
+  TABAQUISMO_HOGAR: "Quién fuma y si lo hace dentro de la casa",
+  ANTECEDENTES_FAMILIARES: "Familiar y enfermedad",
+};
+
 // Odontología: qué conviene anotar en "Medicación" (la droga importa: un
 // anticoagulante o un bifosfonato cambian cómo se extrae o se opera).
 const MEDICACION_ODONTOLOGIA: Partial<Record<AntecedenteValue["tipo"], string>> = {
@@ -77,10 +94,16 @@ function AntecedenteRow({
   onChange: (patch: Partial<AntecedenteValue>) => void;
   grupo: GrupoEspecialidad;
 }) {
-  // Psicología y fonoaudiología anotan un detalle libre en vez de la
-  // medicación.
+  // Psicología, fonoaudiología y pediatría anotan un detalle libre en vez de
+  // la medicación.
   const detalles =
-    grupo === "PSICOLOGIA" ? DETALLE_PSICOLOGIA : grupo === "FONOAUDIOLOGIA" ? DETALLE_FONOAUDIOLOGIA : null;
+    grupo === "PSICOLOGIA"
+      ? DETALLE_PSICOLOGIA
+      : grupo === "FONOAUDIOLOGIA"
+        ? DETALLE_FONOAUDIOLOGIA
+        : grupo === "PEDIATRICA"
+          ? DETALLE_PEDIATRIA
+          : null;
   // Las listas que no son la médica tienen etiquetas largas: van con ancho
   // flexible en vez de la columna fija de la lista médica.
   const etiquetaLarga = grupo !== "MEDICA";
@@ -169,6 +192,7 @@ export function AntecedentesTab({ values, onAntecedenteChange, onChange, grupo =
       {items.map(({ tipo, label }) => {
         const antecedente = byTipo.get(tipo);
         if (!antecedente) return null;
+        if (!antecedenteAplicaAlSexo(tipo, values.sexo, antecedente.respuesta)) return null;
         return (
           <AntecedenteRow
             key={tipo}

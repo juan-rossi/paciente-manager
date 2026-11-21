@@ -24,7 +24,7 @@ import {
   ANTECEDENTE_LABELS,
   ETIQUETAS_PSICOLOGIA,
   etiquetasHistoriaClinica,
-  alertasOdontologicas,
+  alertasClinicas,
   ASISTENCIA_LABELS,
   MODALIDAD_LABELS,
   RIESGO_LABELS,
@@ -33,7 +33,7 @@ import {
   vocabularioEvolucion,
 } from "@/components/patient-form/constants";
 import {
-  calcularEdad,
+  edadLegible,
   camposSesionFromApi,
   formatFechaCorta,
 } from "@/components/patient-form/utils";
@@ -43,7 +43,7 @@ import { EvolucionManager } from "@/components/evolucion-manager";
 import { ConsentimientoManager, type ConsentimientoValue } from "@/components/consentimiento-manager";
 import { plantillasConsentimiento } from "@/lib/consentimiento-plantillas";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
-import { AlertasOdontologicas } from "@/components/odontograma/alertas-odontologicas";
+import { AlertasClinicas } from "@/components/alertas-clinicas";
 import { DeletePatientButton } from "@/components/delete-patient-button";
 import { PatientTurnoDiffSection } from "@/components/patient-turno-diff-section";
 import type { TurnoDiff } from "@/lib/patient-turno-diff";
@@ -243,10 +243,11 @@ export function PatientSummary({
   const psicologia = grupo === "PSICOLOGIA";
   const sesiones = usaSesiones(grupo);
   const etiquetas = etiquetasHistoriaClinica(grupo);
-  // Odontología: antecedentes que cambian la atención, arriba de todo.
-  const alertas = grupo === "ODONTOLOGICA" ? alertasOdontologicas(patient.antecedentes) : [];
+  // Antecedentes que cambian la atención (odontología, pediatría), arriba de
+  // todo.
+  const alertas = alertasClinicas(grupo, patient.antecedentes);
   const hay = (value: string | null) => Boolean(value?.trim());
-  const edad = calcularEdad(patient.fechaNacimiento?.toISOString() ?? "");
+  const edad = edadLegible(patient.fechaNacimiento?.toISOString() ?? "");
   const antecedentesPositivos = patient.antecedentes.filter((a) => a.respuesta);
   const tieneConsultaInicial = [
     patient.motivoConsulta,
@@ -345,7 +346,7 @@ export function PatientSummary({
     <FormSection title="Información del Paciente" icon={IdCard} contentClassName="bg-card">
       <div className="col-span-full grid grid-cols-2 gap-x-4 gap-y-3">
         <InfoField label="Nombre y Apellido" value={patient.nombreYApellido} className="col-span-2" />
-        <InfoField label="Edad" value={edad ? `${edad} años` : null} />
+        <InfoField label="Edad" value={edad || null} />
         <InfoField label="DNI" value={patient.nroDocumento} />
         <InfoField label="Teléfono" value={patient.telefono} className="col-span-2" />
         <InfoField label="Obra Social" value={patient.obraSocial} />
@@ -368,7 +369,7 @@ export function PatientSummary({
           value={patient.nombreYApellido}
           className="sm:col-span-4"
         />
-        <InfoField label="Edad" value={edad ? `${edad} años` : null} className="sm:col-span-2" />
+        <InfoField label="Edad" value={edad || null} className="sm:col-span-2" />
         <InfoField label="DNI" value={patient.nroDocumento} className="sm:col-span-3" />
         <InfoField label="Teléfono" value={patient.telefono} className="sm:col-span-3" />
         <InfoField label="Obra Social" value={patient.obraSocial} className="sm:col-span-6" />
@@ -509,7 +510,7 @@ export function PatientSummary({
       <div className="flex flex-col gap-6">
         {encabezado}
 
-        <AlertasOdontologicas alertas={alertas} />
+        <AlertasClinicas alertas={alertas} />
 
         {diferenciasTurno}
 
@@ -564,6 +565,8 @@ export function PatientSummary({
   return (
     <div className="flex flex-col gap-6">
       {encabezado}
+
+      <AlertasClinicas alertas={alertas} />
 
       {alertaRiesgo}
 

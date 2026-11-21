@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   ANTECEDENTE_LABELS,
+  alertasClinicas,
   alertasOdontologicas,
+  antecedenteAplicaAlSexo,
   antecedentesPara,
   etiquetasHistoriaClinica,
   usaSesiones,
@@ -18,6 +20,14 @@ describe("antecedentesPara", () => {
     const fono = antecedentesPara("FONOAUDIOLOGIA").orden.map((a) => a.tipo);
     expect(fono).toContain("HIPOACUSIA");
     expect(fono).not.toContain("PROSTATA");
+    const pediatria = antecedentesPara("PEDIATRICA").orden.map((a) => a.tipo);
+    expect(pediatria).toContain("VACUNACION_INCOMPLETA");
+    expect(pediatria).not.toContain("PROSTATA");
+  });
+
+  it("los antecedentes reusados por pediatría mantienen su etiqueta de siempre", () => {
+    expect(ANTECEDENTE_LABELS.get("ALERGIA")).not.toBe("Alergias");
+    expect(ANTECEDENTE_LABELS.get("DISLIPEMIA")).toBe("Dislipemia");
   });
 
   it("los antecedentes reusados por fonoaudiología mantienen su etiqueta médica", () => {
@@ -25,7 +35,7 @@ describe("antecedentesPara", () => {
   });
 
   it("no repite tipos dentro de un grupo y todos son valores válidos", () => {
-    for (const grupo of ["MEDICA", "PSICOLOGIA", "ODONTOLOGICA", "FONOAUDIOLOGIA"] as const) {
+    for (const grupo of ["MEDICA", "PEDIATRICA", "PSICOLOGIA", "ODONTOLOGICA", "FONOAUDIOLOGIA"] as const) {
       const tipos = antecedentesPara(grupo).orden.map((a) => a.tipo);
       expect(new Set(tipos).size).toBe(tipos.length);
       for (const tipo of tipos) expect(TIPO_ANTECEDENTE_VALUES).toContain(tipo);
@@ -54,6 +64,7 @@ describe("usaSesiones", () => {
     expect(usaSesiones("FONOAUDIOLOGIA")).toBe(true);
     expect(usaSesiones("MEDICA")).toBe(false);
     expect(usaSesiones("ODONTOLOGICA")).toBe(false);
+    expect(usaSesiones("PEDIATRICA")).toBe(false);
   });
 });
 
@@ -71,5 +82,31 @@ describe("alertasOdontologicas", () => {
 
   it("sin antecedentes no hay alertas", () => {
     expect(alertasOdontologicas([])).toEqual([]);
+  });
+});
+
+describe("alertasClinicas", () => {
+  it("pediatría avisa alergias, cardiopatías y convulsiones", () => {
+    expect(
+      alertasClinicas("PEDIATRICA", [
+        { tipo: "ALERGIA", respuesta: true, descripcion: "amoxicilina" },
+        { tipo: "CONVULSIONES", respuesta: true },
+        { tipo: "ASMA", respuesta: true },
+      ])
+    ).toEqual(["Alergia (amoxicilina)", "Convulsiones"]);
+  });
+
+  it("los grupos sin antecedentes críticos no tienen alertas", () => {
+    expect(alertasClinicas("MEDICA", [{ tipo: "ALERGIA", respuesta: true }])).toEqual([]);
+  });
+});
+
+describe("antecedenteAplicaAlSexo", () => {
+  it("oculta próstata en pacientes mujeres, salvo que esté marcada", () => {
+    expect(antecedenteAplicaAlSexo("PROSTATA", "FEMENINO", false)).toBe(false);
+    expect(antecedenteAplicaAlSexo("PROSTATA", "FEMENINO", true)).toBe(true);
+    expect(antecedenteAplicaAlSexo("PROSTATA", "MASCULINO", false)).toBe(true);
+    expect(antecedenteAplicaAlSexo("PROSTATA", "", false)).toBe(true);
+    expect(antecedenteAplicaAlSexo("NOD_MAMAS", "MASCULINO", false)).toBe(true);
   });
 });

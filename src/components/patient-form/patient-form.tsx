@@ -40,7 +40,7 @@ import {
 import { tieneMarcas } from "@/lib/odontograma";
 import { emptyPatientFormValues } from "./utils";
 import { alertasOdontologicas, usaSesiones, vocabularioEvolucion } from "./constants";
-import { AlertasOdontologicas } from "@/components/odontograma/alertas-odontologicas";
+import { AlertasClinicas } from "@/components/alertas-clinicas";
 import type { GrupoEspecialidad } from "@/lib/especialidad";
 import type {
   AntecedenteValue,
@@ -464,7 +464,7 @@ export function PatientForm({
             </TabsContent>
             {odontogramaHabilitado && (
               <TabsContent value="odontograma" className="flex flex-col gap-4">
-                <AlertasOdontologicas alertas={alertas} />
+                <AlertasClinicas alertas={alertas} />
                 {mode === "edit" && patientId ? (
                   <OdontogramaHistorialTab
                     patientId={patientId}

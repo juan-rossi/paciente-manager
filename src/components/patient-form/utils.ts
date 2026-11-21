@@ -251,6 +251,39 @@ export function calcularEdad(fechaNacimiento: string): string {
   return edad >= 0 ? String(edad) : "";
 }
 
+function plural(n: number, singular: string, pluralForm: string): string {
+  return `${n} ${n === 1 ? singular : pluralForm}`;
+}
+
+// Edad para mostrar: en días el primer mes, en meses el primer año, en años y
+// meses hasta los 3 (lo que usa un pediatra) y en años de ahí en adelante.
+// `hoy` es para los tests. Sin fecha (o con una fecha futura), "".
+export function edadLegible(
+  fechaNacimiento: string,
+  hoy: { year: number; month: number; day: number } = todayPartsBA()
+): string {
+  const nacimiento = parseFechaISO(fechaNacimiento);
+  if (!nacimiento) return "";
+
+  const meses =
+    (hoy.year - nacimiento.year) * 12 + (hoy.month - nacimiento.month) - (hoy.day < nacimiento.day ? 1 : 0);
+  if (meses < 0) return "";
+  if (meses === 0) {
+    const dias = Math.round(
+      (Date.UTC(hoy.year, hoy.month - 1, hoy.day) -
+        Date.UTC(nacimiento.year, nacimiento.month - 1, nacimiento.day)) /
+        86_400_000
+    );
+    if (dias < 0) return "";
+    return dias === 0 ? "Recién nacido" : plural(dias, "día", "días");
+  }
+  if (meses < 12) return plural(meses, "mes", "meses");
+  const anios = Math.floor(meses / 12);
+  const resto = meses % 12;
+  if (anios < 3 && resto > 0) return `${plural(anios, "año", "años")} y ${plural(resto, "mes", "meses")}`;
+  return plural(anios, "año", "años");
+}
+
 // Un PatientOdontograma (de Prisma o de la API) -> valor del formulario.
 // Vive acá y no en odontograma-tab.tsx porque lo usa también la página de
 // edición (server component).

@@ -33,8 +33,14 @@ const PROMPT_ODONTOLOGIA =
 const PROMPT_FONOAUDIOLOGIA =
   "Sesión de fonoaudiología en español. Paciente con dislalia, sustituye el fonema /r/ por /l/ y omite /s/ en sílabas trabadas. Retraso simple del lenguaje, trastorno específico del lenguaje, TEA, tartamudez, disfemia, disfonía, nódulos vocales, disfagia, deglución atípica, respiración bucal, praxias linguales y labiales, conciencia fonológica, lectoescritura, dislexia. Audiometría tonal, logoaudiometría, impedanciometría, otoemisiones acústicas, hipoacusia neurosensorial, audífonos, implante coclear. Se indican ejercicios para el hogar.";
 
+// Para pediatras: el relato es de los padres, la medicación va por peso y se
+// habla de percentiles, vacunas y desarrollo.
+const PROMPT_PEDIATRIA =
+  "Consulta pediátrica en español. La mamá refiere fiebre de 38,5 grados desde hace dos días, tos, rinorrea, vómitos y diarrea. Come poco pero toma líquidos y orina bien. Peso 12,4 kilos, talla 86 centímetros, perímetro cefálico 47, percentil 50. Bronquiolitis, otitis media aguda, faringoamigdalitis, broncoespasmo, gastroenteritis, deshidratación, convulsión febril. Calendario de vacunas completo. Pautas madurativas acordes. Se indica ibuprofeno 10 miligramos por kilo cada 8 horas, amoxicilina 80 miligramos por kilo por día, salbutamol, nebulizaciones y control en 48 horas.";
+
 const PROMPT_POR_GRUPO: Record<GrupoEspecialidad, string> = {
   MEDICA: PROMPT_CLINICO,
+  PEDIATRICA: PROMPT_PEDIATRIA,
   ODONTOLOGICA: PROMPT_ODONTOLOGIA,
   PSICOLOGIA: PROMPT_PSICOLOGIA,
   FONOAUDIOLOGIA: PROMPT_FONOAUDIOLOGIA,
