@@ -62,6 +62,12 @@ export function archivosVencenEl(createdAt: Date): Date {
 // a lo sumo una a la vez.
 export const ESTADOS_IMPORTACION_ABIERTOS = ["BORRADOR", "ENVIADA", "CARGADA"] as const;
 
+// Con una importación en alguno de estos estados el dashboard deja de mostrar
+// el acceso rápido "Importá tus historias clínicas": ya está en progreso
+// (BORRADOR = subiendo archivos, ENVIADA) o el equipo la terminó (CARGADA,
+// CONFIRMADA). Si se cancela, vence o se rechaza, el acceso rápido vuelve.
+export const ESTADOS_IMPORTACION_SIN_SUGERENCIA = ["BORRADOR", "ENVIADA", "CARGADA", "CONFIRMADA"] as const;
+
 export const crearImportacionSchema = z.object({
   nota: z.string().trim().max(2000, "La nota es demasiado larga.").optional(),
   aceptaAcuerdo: z.literal(true, { error: "Tenés que aceptar el Acuerdo de tratamiento de datos." }),
@@ -87,3 +93,8 @@ export const rechazarImportacionSchema = z.object({
     .min(10, "Contale al médico qué pasó con los archivos.")
     .max(2000, "El mensaje es demasiado largo."),
 });
+
+// "Quiero importar mis historias clínicas" del registro: con Google el
+// formulario de /signup se salta, así que la casilla viaja en esta cookie
+// (igual que los términos) y src/auth.ts la lee al crear la cuenta.
+export const IMPORTAR_HC_COOKIE = "semio_importar_hc";

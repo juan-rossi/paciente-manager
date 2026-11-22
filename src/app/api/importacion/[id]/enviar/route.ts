@@ -33,6 +33,9 @@ export async function POST(_request: Request, { params }: RouteParams) {
       where: { id },
       data: { estado: "ENVIADA", enviadaAt: ahora, accesoHasta: nuevoAccesoHasta(ahora) },
     });
+    // Si había cerrado el acceso rápido del dashboard y después importó igual,
+    // vuelve a valer la regla normal (reaparece si esta se cancela/rechaza).
+    await tx.user.update({ where: { id: user.id }, data: { importacionDescartadaAt: null } });
     await registrarAuditoria(tx, {
       doctorId: user.id,
       actorId: user.id,

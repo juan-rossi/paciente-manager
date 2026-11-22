@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
         acuerdoDatosVersion: ACUERDO_DATOS_VERSION,
         acuerdoDatosAceptadoAt: ahora,
         declaracionProfesionalAt: ahora,
+        importacionSolicitadaAt: parsed.data.quiereImportarHC ? ahora : null,
         role: "DOCTOR",
         // Los dos planes arrancan con período de prueba, de distinta
         // duración (ver `TRIAL_DIAS` en src/lib/plan.ts).

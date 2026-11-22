@@ -56,6 +56,7 @@ import {
   TERMINOS_COOKIE_MAX_AGE_SECONDS,
   TERMINOS_VERSION,
 } from "@/lib/terminos";
+import { IMPORTAR_HC_COOKIE } from "@/lib/importacion";
 
 type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
@@ -70,8 +71,13 @@ export function SignupForm() {
   const [tituloCortesia, setTituloCortesia] = useState<TituloCortesia | "">("");
   const [especialidad, setEspecialidad] = useState<Especialidad | "">("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  // Solo se marca cuando ya escribió algo en la confirmación, para no
+  // mostrar el error mientras todavía está tipeando la primera.
+  const passwordNoCoincide = passwordConfirm.length > 0 && passwordConfirm !== password;
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [declaracionProfesional, setDeclaracionProfesional] = useState(false);
+  const [quiereImportarHC, setQuiereImportarHC] = useState(false);
   const [terminosAbiertos, setTerminosAbiertos] = useState(false);
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "terminos"
@@ -113,6 +119,9 @@ export function SignupForm() {
     // exigir y registrar la aceptación al crear la cuenta (ver src/auth.ts).
     document.cookie = `${TERMINOS_COOKIE}=${TERMINOS_VERSION}; path=/; max-age=${TERMINOS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
     document.cookie = `${SIGNUP_PLAN_COOKIE}=${planElegido}; path=/; max-age=${TERMINOS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+    document.cookie = quiereImportarHC
+      ? `${IMPORTAR_HC_COOKIE}=1; path=/; max-age=${TERMINOS_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`
+      : `${IMPORTAR_HC_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
     void signIn("google", { redirectTo: "/dashboard" });
   }
 
@@ -134,6 +143,11 @@ export function SignupForm() {
 
     if (!especialidad) {
       setError("Elegí una especialidad.");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
@@ -167,6 +181,7 @@ export function SignupForm() {
           plan: planElegido,
           aceptaTerminos,
           declaracionProfesional,
+          quiereImportarHC,
           turnstileToken,
         }),
       });
@@ -237,7 +252,7 @@ export function SignupForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-[7rem_1fr_1fr]">
             <div className="flex flex-col gap-2">
               <Label htmlFor="tituloCortesia">Título</Label>
               <Select
@@ -261,15 +276,6 @@ export function SignupForm() {
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="nroMatricula">Nro Matrícula</Label>
-              <Input
-                id="nroMatricula"
-                value={nroMatricula}
-                onChange={(event) => setNroMatricula(event.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-2">
               <Label htmlFor="nombre">Nombre</Label>
               <Input
                 id="nombre"
@@ -289,7 +295,19 @@ export function SignupForm() {
                 required
               />
             </div>
-            <div className="flex flex-col gap-2 sm:col-span-2">
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-[7rem_1fr]">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="nroMatricula">Nro Matrícula</Label>
+              <Input
+                id="nroMatricula"
+                value={nroMatricula}
+                onChange={(event) => setNroMatricula(event.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="especialidad">Especialidad</Label>
               <Combobox
                 items={especialidadOptions}
@@ -320,17 +338,21 @@ export function SignupForm() {
                 </ComboboxContent>
               </Combobox>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Contraseña</Label>
               <PasswordInput
@@ -342,6 +364,23 @@ export function SignupForm() {
                 required
               />
               <p className="text-xs text-muted-foreground">Mínimo {PASSWORD_MIN} caracteres.</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="passwordConfirm">Confirmar contraseña</Label>
+              <PasswordInput
+                id="passwordConfirm"
+                autoComplete="new-password"
+                value={passwordConfirm}
+                onChange={(event) => setPasswordConfirm(event.target.value)}
+                aria-invalid={passwordNoCoincide || undefined}
+                aria-describedby={passwordNoCoincide ? "passwordConfirm-error" : undefined}
+                required
+              />
+              {passwordNoCoincide && (
+                <p id="passwordConfirm-error" className="text-xs text-destructive">
+                  Las contraseñas no coinciden.
+                </p>
+              )}
             </div>
           </div>
 
@@ -397,6 +436,23 @@ export function SignupForm() {
                 mi consultorio.
               </Label>
             </div>
+          </div>
+
+          <div className="flex items-start gap-2.5 px-3">
+            <Checkbox
+              id="quiereImportarHC"
+              checked={quiereImportarHC}
+              onCheckedChange={(checked) => setQuiereImportarHC(checked === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="quiereImportarHC" className="flex flex-col items-start gap-0.5 font-normal">
+              <span className="text-sm leading-snug font-medium">
+                Quiero importar mis historias clínicas
+              </span>
+              <span className="text-xs leading-snug text-muted-foreground">
+                Si usás otro sistema o planillas, nuestro equipo carga tus pacientes por vos, sin cargo.
+              </span>
+            </Label>
           </div>
 
           <TurnstileWidget key={turnstileKey} onToken={setTurnstileToken} />

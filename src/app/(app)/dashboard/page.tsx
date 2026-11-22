@@ -12,6 +12,7 @@ import {
   diasRestantesDeTrial,
 } from "@/lib/plan";
 import { prisma } from "@/lib/prisma";
+import { ESTADOS_IMPORTACION_SIN_SUGERENCIA } from "@/lib/importacion";
 import { PAGOS_HABILITADOS } from "@/lib/pagos";
 import { PageEnter } from "@/components/page-transition";
 
@@ -30,11 +31,21 @@ export default async function DashboardPage({
 
   const hoy = new Date();
   const tenantId = getTenantId(user);
-  const [{ turnos, diasConHorario }, totalPacientes, totalPracticas, totalPrepagas] = await Promise.all([
+  // Marcó en el registro que quiere importar sus HC: el acceso rápido queda
+  // hasta que tenga una importación en progreso o terminada (ver
+  // ESTADOS_IMPORTACION_SIN_SUGERENCIA) o lo cierre con "No, gracias".
+  const pidioImportarHC =
+    user.role === "DOCTOR" && user.importacionSolicitadaAt !== null && user.importacionDescartadaAt === null;
+  const [{ turnos, diasConHorario }, totalPacientes, totalPracticas, totalPrepagas, importacionesActivas] = await Promise.all([
     getTurnosDelDia(hoy, tenantId),
     prisma.patient.count({ where: { doctorId: tenantId, deletedAt: null } }),
     prisma.lugarDeTrabajo.count({ where: { userId: tenantId, deletedAt: null } }),
     user.role === "DOCTOR" ? prisma.doctorPrepaga.count({ where: { doctorId: user.id } }) : Promise.resolve(0),
+    pidioImportarHC
+      ? prisma.importacionHC.count({
+          where: { doctorId: user.id, estado: { in: [...ESTADOS_IMPORTACION_SIN_SUGERENCIA] } },
+        })
+      : Promise.resolve(0),
   ]);
 
   // Solo se le avisa al médico dueño de la cuenta (no a sus asistentes --
@@ -79,6 +90,7 @@ export default async function DashboardPage({
           sugerirPerfilPublico={user.role === "DOCTOR" && totalPracticas > 0 && !user.perfilPublico}
           sugerirCompletarBiografia={user.role === "DOCTOR" && user.perfilPublico && !user.biografia?.trim()}
           sugerirCargarPrepagas={user.role === "DOCTOR" && totalPrepagas === 0}
+          sugerirImportarHC={pidioImportarHC && importacionesActivas === 0}
         />
       </div>
     </PageEnter>

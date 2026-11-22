@@ -324,6 +324,15 @@ model User {
   // (ver `ImportacionHC`). Null en las cuentas anteriores al acuerdo.
   acuerdoDatosVersion      String?
   acuerdoDatosAceptadoAt   DateTime?
+  // El médico marcó en el registro que quiere importar sus historias clínicas
+  // de otro sistema (ver `ImportacionHC`). Lo ve el equipo en
+  // /admin/importaciones y, mientras no mande una importación, el dashboard
+  // le muestra un acceso rápido a Configuración > Mis datos.
+  importacionSolicitadaAt  DateTime?
+  // Cerró ese acceso rápido ("No, gracias"): el dashboard deja de mostrarlo.
+  // Igual puede importar desde Configuración > Mis datos; al enviar una
+  // importación se vuelve a null.
+  importacionDescartadaAt  DateTime?
   // Baja de la cuenta pedida por el médico (Configuración > Mis datos): desde
   // acá tiene `BAJA_DIAS_PARA_DESCARGAR` días en modo solo descarga (ver
   // src/lib/baja-cuenta.ts) y después el cron de limpieza borra sus datos.

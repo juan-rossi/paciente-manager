@@ -1,4 +1,4 @@
-import { Download, FileText, ShieldCheck, ShieldOff } from "lucide-react";
+import { CircleSlash, Download, FileText, Hourglass, ShieldCheck, ShieldOff } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { verificarAdminEnPagina } from "@/lib/admin-page";
 import { accesoVigente, archivosVencenEl } from "@/lib/importacion";
@@ -41,7 +41,35 @@ function formatTamano(bytes: number) {
 export default async function AdminImportacionesPage() {
   await verificarAdminEnPagina();
 
-  const importaciones = await prisma.importacionHC.findMany({
+  // Médicos que al registrarse marcaron "Quiero importar mis historias
+  // clínicas" y todavía no mandaron ninguna importación (ni hay una en curso
+  // o terminada): para saber a quién contactar si no arranca solo.
+  const solicitadasPromise = prisma.user.findMany({
+    where: {
+      importacionSolicitadaAt: { not: null },
+      eliminadaAt: null,
+      bajaAt: null,
+      importaciones: { none: { estado: { in: ["ENVIADA", "CARGADA", "CONFIRMADA"] } } },
+    },
+    orderBy: { importacionSolicitadaAt: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      tituloCortesia: true,
+      nombre: true,
+      apellido: true,
+      email: true,
+      importacionSolicitadaAt: true,
+      importacionDescartadaAt: true,
+      importaciones: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { estado: true },
+      },
+    },
+  });
+
+  const importacionesPromise = prisma.importacionHC.findMany({
     where: { estado: { not: "BORRADOR" } },
     orderBy: [{ enviadaAt: "desc" }],
     take: 100,
@@ -63,6 +91,7 @@ export default async function AdminImportacionesPage() {
       },
     },
   });
+  const [solicitadas, importaciones] = await Promise.all([solicitadasPromise, importacionesPromise]);
 
   const pendientes = importaciones.filter((i) => i.estado === "ENVIADA");
   const resto = importaciones.filter((i) => i.estado !== "ENVIADA");
@@ -153,6 +182,50 @@ export default async function AdminImportacionesPage() {
             );
           })}
         </section>
+
+        {solicitadas.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-sm font-semibold text-muted-foreground">
+                Pidieron importar al registrarse ({solicitadas.length})
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Todavía no subieron archivos. Desde su dashboard tienen un acceso directo a Configuración &gt; Mis datos,
+                salvo los que lo cerraron con &quot;No, gracias&quot;.
+              </p>
+            </div>
+            <ul className="flex flex-col divide-y divide-border/60 rounded-xl border border-border/60 bg-card">
+              {solicitadas.map((medico) => {
+                const ultima = medico.importaciones[0]?.estado;
+                return (
+                  <li key={medico.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-medium">{nombreConTitulo(medico)}</span>
+                      <span className="truncate text-xs text-muted-foreground">{medico.email}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {medico.importacionDescartadaAt ? (
+                        <CircleSlash className="size-3.5" />
+                      ) : (
+                        <Hourglass className="size-3.5" />
+                      )}
+                      {medico.importacionDescartadaAt
+                        ? `Dijo que no quiere importar (${formatFechaHora(medico.importacionDescartadaAt)})`
+                        : ultima === "BORRADOR"
+                        ? "Empezó a subir archivos"
+                        : ultima === "RECHAZADA"
+                          ? "Le rechazamos una, no mandó otra"
+                          : ultima === "CANCELADA" || ultima === "VENCIDA"
+                            ? "La última se canceló o venció"
+                            : "Sin empezar"}{" "}
+                      · se registró el {formatFechaHora(medico.importacionSolicitadaAt!)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         {resto.length > 0 && (
           <section className="flex flex-col gap-3">

@@ -7,6 +7,7 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  FileUp,
   Globe,
   HeartHandshake,
   PenLine,
@@ -59,6 +60,9 @@ type Props = {
   sugerirCompletarBiografia?: boolean;
   // Médico sin ninguna prepaga/obra social cargada: acceso rápido a Mi perfil.
   sugerirCargarPrepagas?: boolean;
+  // Médico que marcó en el registro que quiere importar sus HC y todavía no
+  // mandó la importación: acceso rápido a Configuración > Mis datos.
+  sugerirImportarHC?: boolean;
   // Cambia a la pestaña "Buscar paciente" -- la maneja el padre porque las
   // pestañas viven en `DashboardTabs`, un nivel arriba de este componente.
   onBuscarPaciente?: () => void;
@@ -73,6 +77,7 @@ export function TurnosPorDia({
   sugerirPerfilPublico = false,
   sugerirCompletarBiografia = false,
   sugerirCargarPrepagas = false,
+  sugerirImportarHC = false,
   onBuscarPaciente,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -80,6 +85,15 @@ export function TurnosPorDia({
   );
   const [turnos, setTurnos] = useState<TurnoDelDia[]>(initialTurnos);
   const [loading, setLoading] = useState(false);
+  // "No, gracias" en el acceso rápido de importar HC: se oculta al instante y,
+  // si el guardado falla, vuelve a aparecer.
+  const [importarHCDescartada, setImportarHCDescartada] = useState(false);
+
+  async function descartarImportarHC() {
+    setImportarHCDescartada(true);
+    const res = await fetch("/api/importacion/descartar-sugerencia", { method: "POST" }).catch(() => null);
+    if (!res?.ok) setImportarHCDescartada(false);
+  }
 
   const today = new Date();
 
@@ -257,6 +271,39 @@ export function TurnosPorDia({
                 <span className="px-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                   Accesos rápidos
                 </span>
+                {sugerirImportarHC && !importarHCDescartada && (
+                  <div className="flex flex-col overflow-hidden rounded-xl border border-primary/30 bg-primary/5">
+                    <Link
+                      href="/configuracion?tab=datos#importar-hc"
+                      className="flex items-center gap-3 p-3.5 pb-2.5 transition-colors hover:bg-primary/10"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                        <FileUp className="size-4 text-primary" />
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-sm font-semibold">Importá tus historias clínicas</span>
+                        <span className="text-xs text-muted-foreground">
+                          Subí tus archivos y nuestro equipo carga tus pacientes por vos
+                        </span>
+                      </span>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                    </Link>
+                    <div className="flex items-center justify-between gap-3 border-t border-primary/15 py-1.5 pr-1.5 pl-3.5">
+                      <span className="text-[11px] text-muted-foreground">
+                        Podés hacerlo cuando quieras desde Configuración
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
+                        onClick={descartarImportarHC}
+                      >
+                        No, gracias
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <Link
                   href="/patients/new"
                   className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent/40"

@@ -287,7 +287,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
           <TabsContent value="datos" className="w-full">
             <div className="flex w-full flex-col gap-5">
               <ExportSettings />
-              <ImportacionSettings importaciones={importaciones} puedeImportar={esActivo(user)} />
+              {/* Destino del acceso rápido "Importá tus historias clínicas" del dashboard. */}
+              <div id="importar-hc" className="scroll-mt-24">
+                <ImportacionSettings importaciones={importaciones} puedeImportar={esActivo(user)} />
+              </div>
               <BajaCuentaSettings
                 tieneSuscripcion={
                   !!user.mpPreapprovalId && !!mpPreapprovalStatus && mpPreapprovalStatus !== "CANCELLED"

@@ -39,6 +39,9 @@ export const registerSchema = z.object({
   declaracionProfesional: z.literal(true, {
     message: "Tenés que confirmar la declaración profesional.",
   }),
+  // Casilla opcional: quiere que el equipo le importe sus HC de otro sistema
+  // (queda en `User.importacionSolicitadaAt`).
+  quiereImportarHC: z.boolean().default(false),
 }).refine(especialidadAcordeAlTitulo, { message: ESPECIALIDAD_TITULO_MSG, path: ["especialidad"] });
 
 export const completeProfileSchema = z.object({

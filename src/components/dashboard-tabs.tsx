@@ -23,6 +23,7 @@ type Props = {
   sugerirPerfilPublico: boolean;
   sugerirCompletarBiografia: boolean;
   sugerirCargarPrepagas: boolean;
+  sugerirImportarHC: boolean;
 };
 
 // Componente cliente separado del server component de la página únicamente
@@ -41,6 +42,7 @@ export function DashboardTabs({
   sugerirPerfilPublico,
   sugerirCompletarBiografia,
   sugerirCargarPrepagas,
+  sugerirImportarHC,
 }: Props) {
   const [tab, setTabState] = useState<DashboardTab>(initialTab);
 
@@ -99,6 +101,7 @@ export function DashboardTabs({
           sugerirPerfilPublico={sugerirPerfilPublico}
           sugerirCompletarBiografia={sugerirCompletarBiografia}
           sugerirCargarPrepagas={sugerirCargarPrepagas}
+          sugerirImportarHC={sugerirImportarHC}
           onBuscarPaciente={() => setTab("buscar")}
         />
       </TabsContent>
