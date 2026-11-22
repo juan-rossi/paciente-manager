@@ -38,6 +38,8 @@ export type ImportacionVista = {
   accesoVigente: boolean;
   archivosVencenEl: string;
   cargadaEl: string | null;
+  rechazadaEl: string | null;
+  // Mensaje del equipo al terminar, o el motivo si la rechazó.
   notaEquipo: string | null;
   archivos: { id: string; nombre: string; tamano: number }[];
   accesos: AccesoImportacion[];
@@ -64,6 +66,7 @@ export async function getImportacionesVista(doctorId: string, limite = 5): Promi
       enviadaAt: true,
       accesoHasta: true,
       cargadaAt: true,
+      rechazadaAt: true,
       notaEquipo: true,
       archivos: { orderBy: { createdAt: "asc" }, select: { id: true, nombre: true, tamano: true } },
     },
@@ -121,6 +124,7 @@ export async function getImportacionesVista(doctorId: string, limite = 5): Promi
     accesoVigente: accesoVigente(imp.accesoHasta),
     archivosVencenEl: fechaFormatter.format(archivosVencenEl(imp.createdAt)),
     cargadaEl: imp.cargadaAt ? fechaFormatter.format(imp.cargadaAt) : null,
+    rechazadaEl: imp.rechazadaAt ? fechaFormatter.format(imp.rechazadaAt) : null,
     notaEquipo: imp.notaEquipo,
     archivos: imp.archivos,
     accesos: accesosPorImportacion.get(imp.id) ?? [],

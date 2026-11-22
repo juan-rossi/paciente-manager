@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verificarAdminEnPagina } from "@/lib/admin-page";
 import { accesoVigente, archivosVencenEl } from "@/lib/importacion";
 import { nombreConTitulo } from "@/lib/marketing-bienvenidas-texto";
-import { ImportacionCargadaForm } from "@/components/admin/importacion-cargada-form";
+import { ImportacionCargadaForm, ImportacionRechazarForm } from "@/components/admin/importacion-cargada-form";
 import { PageEnter } from "@/components/page-transition";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ const ESTADO_LABEL = {
   CONFIRMADA: "Confirmada",
   CANCELADA: "Cancelada por el médico",
   VENCIDA: "Vencida (archivos borrados)",
+  RECHAZADA: "Rechazada (archivos no válidos)",
 } as const;
 
 function formatFechaHora(fecha: Date) {
@@ -53,6 +54,8 @@ export default async function AdminImportacionesPage() {
       accesoHasta: true,
       cargadaAt: true,
       confirmadaAt: true,
+      rechazadaAt: true,
+      notaEquipo: true,
       doctor: { select: { tituloCortesia: true, nombre: true, apellido: true, email: true } },
       archivos: {
         orderBy: { createdAt: "asc" },
@@ -95,7 +98,10 @@ export default async function AdminImportacionesPage() {
                       {imp.doctor.email} · enviada el {formatFechaHora(imp.enviadaAt ?? imp.createdAt)}
                     </span>
                   </div>
-                  <ImportacionCargadaForm importacionId={imp.id} medico={medico} />
+                  <div className="flex flex-wrap gap-2">
+                    <ImportacionRechazarForm importacionId={imp.id} medico={medico} />
+                    <ImportacionCargadaForm importacionId={imp.id} medico={medico} />
+                  </div>
                 </div>
 
                 {imp.nota && (
@@ -157,9 +163,14 @@ export default async function AdminImportacionesPage() {
                   <span className="font-medium">{nombreConTitulo(imp.doctor)}</span>
                   <span className="text-xs text-muted-foreground">
                     {ESTADO_LABEL[imp.estado as keyof typeof ESTADO_LABEL]} ·{" "}
-                    {formatFechaHora(imp.confirmadaAt ?? imp.cargadaAt ?? imp.enviadaAt ?? imp.createdAt)} ·{" "}
-                    {imp.archivos.length} {imp.archivos.length === 1 ? "archivo" : "archivos"}
+                    {formatFechaHora(
+                      imp.confirmadaAt ?? imp.rechazadaAt ?? imp.cargadaAt ?? imp.enviadaAt ?? imp.createdAt
+                    )}{" "}
+                    · {imp.archivos.length} {imp.archivos.length === 1 ? "archivo" : "archivos"}
                   </span>
+                  {imp.estado === "RECHAZADA" && imp.notaEquipo && (
+                    <p className="w-full text-xs whitespace-pre-line text-muted-foreground">{imp.notaEquipo}</p>
+                  )}
                 </li>
               ))}
             </ul>

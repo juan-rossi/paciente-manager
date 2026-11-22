@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock,
   FileText,
@@ -56,6 +57,7 @@ const ESTADO_LABEL: Record<ImportacionVista["estado"], string> = {
   CONFIRMADA: "Confirmada",
   CANCELADA: "Cancelada",
   VENCIDA: "Vencida",
+  RECHAZADA: "No se pudo cargar",
 };
 
 const ESTADO_CLASE: Record<ImportacionVista["estado"], string> = {
@@ -64,6 +66,7 @@ const ESTADO_CLASE: Record<ImportacionVista["estado"], string> = {
   CONFIRMADA: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300",
   CANCELADA: "bg-muted text-muted-foreground",
   VENCIDA: "bg-muted text-muted-foreground",
+  RECHAZADA: "bg-destructive/10 text-destructive",
 };
 
 function EstadoPill({ estado }: { estado: ImportacionVista["estado"] }) {
@@ -121,7 +124,10 @@ async function llamar(url: string, init?: RequestInit): Promise<string | null> {
 export function ImportacionSettings({ importaciones, puedeImportar }: Props) {
   const router = useRouter();
   const enCurso = importaciones.find((i) => i.estado === "ENVIADA" || i.estado === "CARGADA") ?? null;
-  const anteriores = importaciones.filter((i) => i !== enCurso);
+  // Si la última que mandó no se pudo cargar, el motivo va arriba del
+  // formulario: es lo que necesita para saber qué mandar de nuevo.
+  const rechazada = !enCurso && importaciones[0]?.estado === "RECHAZADA" ? importaciones[0] : null;
+  const anteriores = importaciones.filter((i) => i !== enCurso && i !== rechazada);
 
   return (
     <SettingsSection
@@ -129,6 +135,8 @@ export function ImportacionSettings({ importaciones, puedeImportar }: Props) {
       description="Si usabas otro sistema, planillas o documentos, nuestro equipo carga tus pacientes por vos, sin cargo. Subís los archivos acá: no los mandes por mail, WhatsApp ni Drive."
       icon={FileUp}
     >
+      {rechazada && <AvisoRechazada importacion={rechazada} />}
+
       {enCurso ? (
         <ImportacionEnCurso importacion={enCurso} onCambio={() => router.refresh()} />
       ) : puedeImportar ? (
@@ -155,6 +163,9 @@ export function ImportacionSettings({ importaciones, puedeImportar }: Props) {
                   </span>
                   <EstadoPill estado={imp.estado} />
                 </div>
+                {imp.estado === "RECHAZADA" && imp.notaEquipo && (
+                  <p className="text-xs whitespace-pre-line text-muted-foreground">{imp.notaEquipo}</p>
+                )}
                 <RegistroAccesos accesos={imp.accesos} />
               </li>
             ))}
@@ -162,6 +173,27 @@ export function ImportacionSettings({ importaciones, puedeImportar }: Props) {
         </details>
       )}
     </SettingsSection>
+  );
+}
+
+function AvisoRechazada({ importacion }: { importacion: ImportacionVista }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+      <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">
+          No pudimos cargar los archivos que enviaste el {importacion.enviadaEl}
+        </span>
+        {importacion.notaEquipo && <p className="text-sm whitespace-pre-line">{importacion.notaEquipo}</p>}
+        <span className="text-xs text-muted-foreground">
+          Ya los borramos. Podés enviarnos otros abajo, o escribirnos desde{" "}
+          <Link href="/soporte" className="font-medium text-primary underline underline-offset-2">
+            Soporte
+          </Link>{" "}
+          si tenés dudas sobre qué mandar.
+        </span>
+      </div>
+    </div>
   );
 }
 

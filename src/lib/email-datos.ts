@@ -78,3 +78,20 @@ export async function avisarImportacionCargada(to: string, datos: Parameters<typ
     console.error("[email-datos] no se pudo enviar el aviso de importación cargada", error);
   }
 }
+
+export function mailImportacionRechazada(datos: { nombre: string; motivo: string; baseUrl: string }) {
+  return armarMail(saludoPara(datos.nombre), "No pudimos cargar tus historias clínicas", [
+    "Revisamos los archivos que nos enviaste para importar, pero no pudimos cargarlos. Ya los borramos.",
+    datos.motivo,
+    `Cuando los tengas, podés enviarnos otros desde Configuración > Mis datos: ${datos.baseUrl}/configuracion?tab=datos`,
+    "Si tenés dudas sobre qué mandar, escribinos desde Soporte.",
+  ]);
+}
+
+export async function avisarImportacionRechazada(to: string, datos: Parameters<typeof mailImportacionRechazada>[0]) {
+  try {
+    await sendEmail({ to, ...mailImportacionRechazada(datos) });
+  } catch (error) {
+    console.error("[email-datos] no se pudo enviar el aviso de importación rechazada", error);
+  }
+}

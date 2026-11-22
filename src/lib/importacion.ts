@@ -77,3 +77,13 @@ export const accesoImportacionSchema = z.object({
 export const cargadaImportacionSchema = z.object({
   notaEquipo: z.string().trim().max(2000, "La nota es demasiado larga.").optional(),
 });
+
+// El equipo no puede cargar la importación con esos archivos: el motivo es
+// obligatorio, es lo único que el médico tiene para saber qué mandar de nuevo.
+export const rechazarImportacionSchema = z.object({
+  motivo: z
+    .string()
+    .trim()
+    .min(10, "Contale al médico qué pasó con los archivos.")
+    .max(2000, "El mensaje es demasiado largo."),
+});

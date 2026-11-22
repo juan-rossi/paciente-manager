@@ -6,7 +6,9 @@ import {
   extensionPermitida,
   normalizarNombreArchivo,
   nuevoAccesoHasta,
+  rechazarImportacionSchema,
 } from "./importacion";
+import { mailImportacionRechazada } from "./email-datos";
 import { diasParaEliminacion, eliminacionProgramadaPara } from "./baja-cuenta";
 
 const HORA = 60 * 60 * 1000;
@@ -63,5 +65,24 @@ describe("baja de cuenta", () => {
     expect(diasParaEliminacion(baja, baja)).toBe(90);
     expect(diasParaEliminacion(baja, new Date(baja.getTime() + 89.5 * DIA))).toBe(1);
     expect(diasParaEliminacion(baja, new Date(baja.getTime() + 200 * DIA))).toBe(0);
+  });
+});
+
+describe("importación rechazada", () => {
+  it("exige un motivo que le sirva al médico", () => {
+    expect(rechazarImportacionSchema.safeParse({ motivo: "  " }).success).toBe(false);
+    expect(rechazarImportacionSchema.safeParse({ motivo: "no sirve" }).success).toBe(false);
+    expect(rechazarImportacionSchema.safeParse({ motivo: "El PDF es un escaneo sin texto." }).success).toBe(true);
+  });
+
+  it("el mail lleva el motivo y el link para enviar otros archivos", () => {
+    const mail = mailImportacionRechazada({
+      nombre: "Ana",
+      motivo: "El PDF es un escaneo sin texto.",
+      baseUrl: "https://semio360.com",
+    });
+    expect(mail.subject).toBe("No pudimos cargar tus historias clínicas");
+    expect(mail.text).toContain("El PDF es un escaneo sin texto.");
+    expect(mail.text).toContain("https://semio360.com/configuracion?tab=datos");
   });
 });

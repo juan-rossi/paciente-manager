@@ -1723,6 +1723,10 @@ enum ImportacionEstado {
   CANCELADA
   // Pasaron los días máximos sin que se cargara: los archivos se borraron.
   VENCIDA
+  // El equipo no pudo cargarla con esos archivos (ilegibles, incompletos,
+  // formato que no se puede leer): se borraron y el motivo va en `notaEquipo`.
+  // El médico puede mandar otra.
+  RECHAZADA
 }
 
 model ImportacionHC {
@@ -1747,7 +1751,9 @@ model ImportacionHC {
   // Archivos ya borrados (carga terminada, cancelada o vencida).
   archivosBorradosAt DateTime?
   cargadaAt          DateTime?
-  // Lo que el equipo le cuenta al médico al terminar ("cargamos 847 pacientes").
+  rechazadaAt        DateTime?
+  // Lo que el equipo le cuenta al médico al terminar ("cargamos 847 pacientes")
+  // o, si la rechazó, por qué no pudo cargar los archivos.
   notaEquipo         String?   @db.Text
   confirmadaAt       DateTime?
 
