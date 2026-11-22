@@ -384,31 +384,32 @@ export function ControlesManager({
       {controles.length > 0 && (
         <div className="flex flex-col gap-2">
           {/* Tabla compacta: la ficha la muestra en una columna angosta, así
-              que las columnas son de ancho fijo (nada empuja de costado), los
-              encabezados van abreviados con la unidad abajo, la nota va bajo
-              la fecha y las acciones en un solo menú. */}
-          <div className="rounded-md border border-border">
-            <table className="w-full table-fixed text-sm">
-              <colgroup>
-                <col className={indicadores.length > 4 ? "w-[30%]" : "w-[34%]"} />
-                {indicadores.map((i) => (
-                  <col key={i.id} />
-                ))}
-                <col className="w-9" />
-              </colgroup>
+              que los encabezados van abreviados con la unidad abajo, la nota
+              va bajo la fecha y las acciones en un solo menú. Cada columna
+              toma el ancho de su contenido (con ancho fijo, en el celular
+              "127/81" se salía de su celda y se pisaba con la de al lado); en
+              el celular la letra es más chica y el año va con dos dígitos, y
+              si igual no entra, la tabla se desplaza de costado dentro de su
+              borde en vez de encimar valores. */}
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full text-xs sm:text-sm">
               <thead className="bg-muted/50">
                 <tr className="text-[11px] leading-tight text-muted-foreground">
-                  <th className="px-2.5 py-2 text-left font-semibold">
+                  <th className="px-2 py-2 text-left font-semibold sm:px-2.5">
                     Fecha
                     {contexto && <span className="block font-normal">· {contexto.titulo}</span>}
                   </th>
                   {indicadores.map((i) => (
-                    <th key={i.id} className="px-1.5 py-2 text-right font-semibold" title={i.label}>
+                    <th
+                      key={i.id}
+                      className="px-1 py-2 text-right font-semibold whitespace-nowrap sm:px-1.5"
+                      title={i.label}
+                    >
                       {i.corto}
                       <span className="block font-normal">{unidadIndicador(i, "corto")}</span>
                     </th>
                   ))}
-                  <th>
+                  <th className="w-9">
                     <span className="sr-only">Acciones</span>
                   </th>
                 </tr>
@@ -418,13 +419,16 @@ export function ControlesManager({
                   const ctx = contexto?.valor(c);
                   return (
                     <tr key={c.id} className="border-t border-border/60 align-top">
-                      <td className="px-2.5 py-2">
-                        <span className="tabular-nums">{formatFechaCorta(c.fecha)}</span>
+                      <td className="px-2 py-2 sm:px-2.5">
+                        <span className="whitespace-nowrap tabular-nums">
+                          <span className="sm:hidden">{formatFechaCorta(c.fecha).replace(/\/\d{2}(\d{2})$/, "/$1")}</span>
+                          <span className="hidden sm:inline">{formatFechaCorta(c.fecha)}</span>
+                        </span>
                         {ctx && <span className="block text-xs text-muted-foreground tabular-nums">{ctx}</span>}
                         {c.nota && <span className="block text-xs break-words text-muted-foreground">{c.nota}</span>}
                       </td>
                       {indicadores.map((i) => (
-                        <td key={i.id} className="px-1.5 py-2 text-right tabular-nums">
+                        <td key={i.id} className="px-1 py-2 text-right whitespace-nowrap tabular-nums sm:px-1.5">
                           {valorIndicador(i, c) ?? <span className="text-muted-foreground">—</span>}
                           {percentil(i, c) && (
                             <span className="block text-xs text-muted-foreground">{percentil(i, c)}</span>
