@@ -8,7 +8,10 @@ type AuditAccion =
   | "RESTAURAR"
   | "EXPORTAR"
   | "SANCIONAR"
-  | "LEVANTAR_SANCION";
+  | "LEVANTAR_SANCION"
+  | "DESCARGAR"
+  | "AUTORIZAR_ACCESO"
+  | "REVOCAR_ACCESO";
 type AuditEntidad =
   | "PACIENTE"
   | "EVOLUCION"
@@ -18,7 +21,8 @@ type AuditEntidad =
   | "ODONTOGRAMA"
   | "PRACTICA_ODONTOLOGICA"
   | "PRESUPUESTO"
-  | "CUENTA";
+  | "CUENTA"
+  | "IMPORTACION";
 
 type RegistrarAuditoriaParams = {
   doctorId: string;

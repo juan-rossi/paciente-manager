@@ -9,15 +9,16 @@ import { SectionHeading } from "./section-heading";
 import { EASE_OUT, IN_VIEW } from "./motion-tokens";
 
 // Migración de pacientes sin cargo, para el profesional que ya usa otro
-// sistema, una planilla o documentos de Word. El pedido entra por un ticket
-// de Soporte desde la app (los tickets no tienen adjuntos: ahí se coordina
-// cómo nos pasa los archivos). Destino de los links "#migracion" de Planes y
-// del FAQ. El verde (brand-accent) la separa del índigo de los CTA de prueba.
+// sistema, una planilla o documentos de Word. Los archivos se suben desde
+// Configuración > Mis datos (ver src/components/importacion-settings.tsx y el
+// Acuerdo de tratamiento de datos, punto 3), nunca por mail ni WhatsApp.
+// Destino de los links "#migracion" de Planes y del FAQ. El verde
+// (brand-accent) la separa del índigo de los CTA de prueba.
 
 const STEPS = [
   {
-    title: "Pedís la migración desde Soporte",
-    body: "Te registrás, abrís un ticket desde la app y coordinamos cómo pasarnos tus archivos.",
+    title: "Subís tus archivos desde la app",
+    body: "Te registrás y los subís en Configuración > Mis datos. Nada por mail ni WhatsApp, y se borran solos al terminar.",
   },
   {
     title: "Ordenamos y cargamos tus datos",
@@ -25,7 +26,7 @@ const STEPS = [
   },
   {
     title: "Entrás y están todos",
-    body: "Te avisamos por el mismo ticket cuando terminamos, para que revises antes del próximo turno.",
+    body: "Te avisamos cuando terminamos, para que revises y confirmes antes del próximo turno.",
   },
 ] as const;
 

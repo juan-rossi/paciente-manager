@@ -35,10 +35,18 @@ type UsuarioActual = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
  *   lo eligiera; ver `src/lib/tenant.ts`).
  * - Médico suspendido (ver `src/lib/sanciones.ts`): nadie opera su cuenta.
  *   Al médico ya se le invalidan las sesiones; esto corta a su asistente.
+ * - Médico que dio de baja su cuenta (ver `src/lib/baja-cuenta.ts`): queda
+ *   en modo solo descarga -- él puede leer y exportar, pero no cargar ni
+ *   modificar; su asistente ya no opera la cuenta.
  * - `escritura`: además, plan vigente (`esActivo`).
  */
 async function validarCuenta(user: UsuarioActual, escritura: boolean) {
-  let cuenta: { trialEndsAt: Date | null; planEndsAt: Date | null; suspendidoAt: Date | null };
+  let cuenta: {
+    trialEndsAt: Date | null;
+    planEndsAt: Date | null;
+    suspendidoAt: Date | null;
+    bajaAt: Date | null;
+  };
 
   if (user.role === "SECRETARY") {
     const asignacion = user.activeDoctorId
@@ -46,7 +54,7 @@ async function validarCuenta(user: UsuarioActual, escritura: boolean) {
           where: { doctorId_secretariaId: { doctorId: user.activeDoctorId, secretariaId: user.id } },
           select: {
             aceptadaAt: true,
-            doctor: { select: { trialEndsAt: true, planEndsAt: true, suspendidoAt: true } },
+            doctor: { select: { trialEndsAt: true, planEndsAt: true, suspendidoAt: true, bajaAt: true } },
           },
         })
       : null;
@@ -60,6 +68,15 @@ async function validarCuenta(user: UsuarioActual, escritura: boolean) {
 
   if (cuenta.suspendidoAt) {
     return rechazo(403, "La cuenta de este médico está suspendida.", "cuenta_suspendida");
+  }
+  if (cuenta.bajaAt && (escritura || user.role === "SECRETARY")) {
+    return rechazo(
+      403,
+      user.role === "SECRETARY"
+        ? "El médico dio de baja su cuenta: ya no se puede operar."
+        : "Diste de baja tu cuenta: solo podés descargar tus datos. Si te arrepentiste, cancelá la baja.",
+      "cuenta_en_baja"
+    );
   }
   if (escritura && !esActivo(cuenta)) {
     return rechazo(

@@ -366,7 +366,16 @@ export function SignupForm() {
                   className="font-medium text-primary underline underline-offset-2"
                 >
                   Términos y condiciones
-                </button>
+                </button>{" "}
+                y el{" "}
+                <a
+                  href="/acuerdo-datos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary underline underline-offset-2"
+                >
+                  Acuerdo de tratamiento de datos
+                </a>
                 .
               </Label>
             </div>

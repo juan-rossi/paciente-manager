@@ -54,6 +54,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 </Link>
               </li>
               <li>
+                <Link href="/acuerdo-datos" className="font-medium text-[#4f46e5] hover:text-[#3730a3]">
+                  Acuerdo de datos
+                </Link>
+              </li>
+              <li>
                 <a href="mailto:contacto@semio360.com" className="break-all font-medium text-[#4f46e5] hover:text-[#3730a3]">
                   contacto@semio360.com
                 </a>

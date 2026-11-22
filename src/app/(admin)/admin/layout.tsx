@@ -27,9 +27,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // El contador va en el propio link para que una revisión pendiente no pase
   // desapercibida desde cualquier pantalla del panel.
-  const [moderacionPendientes, soporteSinLeer] = await Promise.all([
+  const [moderacionPendientes, soporteSinLeer, importacionesPendientes] = await Promise.all([
     prisma.moderacionPerfil.count({ where: { estado: "PENDIENTE" } }),
     prisma.ticketSoporte.count({ where: { noLeidoAdmin: true } }),
+    prisma.importacionHC.count({ where: { estado: "ENVIADA" } }),
   ]);
   const navLinks = [
     ...ADMIN_NAV_LINKS,
@@ -42,6 +43,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       href: "/admin/soporte",
       label: soporteSinLeer > 0 ? `Soporte (${soporteSinLeer})` : "Soporte",
       icon: "LifeBuoy" as const,
+    },
+    {
+      href: "/admin/importaciones",
+      label: importacionesPendientes > 0 ? `Importaciones (${importacionesPendientes})` : "Importaciones",
+      icon: "FileUp" as const,
     },
   ];
 

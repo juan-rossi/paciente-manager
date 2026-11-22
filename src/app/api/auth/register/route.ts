@@ -4,6 +4,7 @@ import { hashPassword } from "@/lib/auth";
 import { registerSchema } from "@/lib/register-schema";
 import { nuevaFechaFinTrial } from "@/lib/plan";
 import { TERMINOS_VERSION } from "@/lib/terminos";
+import { ACUERDO_DATOS_VERSION } from "@/lib/acuerdo-datos";
 import { getClientIp } from "@/lib/request-ip";
 import { rateLimitOk } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
@@ -63,6 +64,9 @@ export async function POST(request: NextRequest) {
         passwordHash,
         terminosVersion: TERMINOS_VERSION,
         terminosAceptadosAt: ahora,
+        // La misma casilla acepta los términos y el Acuerdo de tratamiento de datos.
+        acuerdoDatosVersion: ACUERDO_DATOS_VERSION,
+        acuerdoDatosAceptadoAt: ahora,
         declaracionProfesionalAt: ahora,
         role: "DOCTOR",
         // Los dos planes arrancan con período de prueba, de distinta

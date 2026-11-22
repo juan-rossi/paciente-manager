@@ -15,7 +15,11 @@ const PROTECTED_PREFIXES = [
   "/cuenta-inactiva",
   "/soporte",
   "/mi-cuenta",
+  "/cuenta-baja",
 ];
+// Con la cuenta dada de baja (ver src/lib/baja-cuenta.ts) solo queda
+// `/cuenta-baja`, desde donde se descargan los datos o se cancela la baja.
+const BAJA_GATED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios", "/configuracion"];
 const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
 // Rutas que requieren una cuenta al día (trial vigente o suscripción paga
 // vigente, ver `esActivo()`) -- deliberadamente sin `/configuracion`, que
@@ -36,6 +40,7 @@ const APP_PREFIXES = [
   "/soporte",
   // Datos de acceso del asistente: sin plan-gate (son de su cuenta).
   "/mi-cuenta",
+  "/cuenta-baja",
 ];
 const AUTH_ENTRY_PAGES = ["/login", "/signup"];
 
@@ -107,10 +112,19 @@ export default auth(async (request) => {
   // sesión) para que un pago recién confirmado desbloquee sin esperar a
   // que se cierre sesión. Se resuelve el tenant real de la cuenta (para
   // un asistente, el médico que tiene activo).
-  if (session && PLAN_GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+  const planGated = PLAN_GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const bajaGated = BAJA_GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  if (session && session.user.role !== "ADMIN" && (planGated || bajaGated)) {
     const actor = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, activeDoctorId: true, trialEndsAt: true, planEndsAt: true, suspendidoAt: true },
+      select: {
+        role: true,
+        activeDoctorId: true,
+        trialEndsAt: true,
+        planEndsAt: true,
+        suspendidoAt: true,
+        bajaAt: true,
+      },
     });
     if (actor) {
       const cuenta =
@@ -119,10 +133,13 @@ export default auth(async (request) => {
           : actor.activeDoctorId
             ? await prisma.user.findUnique({
                 where: { id: actor.activeDoctorId },
-                select: { trialEndsAt: true, planEndsAt: true, suspendidoAt: true },
+                select: { trialEndsAt: true, planEndsAt: true, suspendidoAt: true, bajaAt: true },
               })
             : null;
-      if (cuenta && (!esActivo(cuenta) || cuenta.suspendidoAt)) {
+      if (cuenta?.bajaAt && bajaGated) {
+        return NextResponse.redirect(new URL("/cuenta-baja", request.url));
+      }
+      if (cuenta && planGated && (!esActivo(cuenta) || cuenta.suspendidoAt)) {
         return NextResponse.redirect(new URL("/cuenta-inactiva", request.url));
       }
     }
@@ -142,6 +159,7 @@ export const config = {
     "/onboarding",
     "/admin/:path*",
     "/cuenta-inactiva",
+    "/cuenta-baja",
     "/soporte/:path*",
     "/mi-cuenta",
     "/login",

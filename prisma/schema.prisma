@@ -318,6 +318,19 @@ model User {
   terminosVersion          String?
   terminosAceptadosAt      DateTime?
   declaracionProfesionalAt DateTime?
+  // Constancia de aceptación del Acuerdo de tratamiento de datos (ver
+  // `ACUERDO_DATOS_VERSION` en src/lib/acuerdo-datos.ts): se acepta junto con
+  // los términos al registrarse y otra vez antes de cada importación de HC
+  // (ver `ImportacionHC`). Null en las cuentas anteriores al acuerdo.
+  acuerdoDatosVersion      String?
+  acuerdoDatosAceptadoAt   DateTime?
+  // Baja de la cuenta pedida por el médico (Configuración > Mis datos): desde
+  // acá tiene `BAJA_DIAS_PARA_DESCARGAR` días en modo solo descarga (ver
+  // src/lib/baja-cuenta.ts) y después el cron de limpieza borra sus datos.
+  // `eliminadaAt` marca que ese borrado ya corrió: la fila queda anonimizada
+  // solo por los pagos (`PagoSuscripcion`), que se conservan.
+  bajaAt                   DateTime?
+  eliminadaAt              DateTime?
   fotoPerfilBase64         String?         @db.Text
   biografia                String?         @db.Text
   // Lo que efectivamente ve el público (directorio, agenda pública, og:image)
@@ -534,6 +547,7 @@ model User {
   ticketsSoporte        TicketSoporte[]         @relation("TicketAutor")
   ticketsDelConsultorio TicketSoporte[]         @relation("TicketDoctor")
   mensajesSoporte       TicketMensaje[]
+  importaciones         ImportacionHC[]
 }
 
 enum ModeracionCampo {
@@ -695,6 +709,12 @@ enum AuditAccion {
   // CUENTA, `entidadId` = id del médico). Ver /api/admin/medicos/[id]/sancion.
   SANCIONAR
   LEVANTAR_SANCION
+  // Importación de HC (entidad IMPORTACION): el equipo descarga un archivo
+  // (`entidadId` = id del `ImportacionArchivo`), o el médico da/quita el
+  // permiso al equipo (`entidadId` = id de la `ImportacionHC`).
+  DESCARGAR
+  AUTORIZAR_ACCESO
+  REVOCAR_ACCESO
 }
 
 enum AuditEntidad {
@@ -707,6 +727,7 @@ enum AuditEntidad {
   PRACTICA_ODONTOLOGICA
   PRESUPUESTO
   CUENTA
+  IMPORTACION
 }
 
 // Ley 26.529 art. 13: la historia clínica digital requiere controles de
@@ -1680,4 +1701,75 @@ model PresupuestoItem {
   orden         Int
 
   @@index([presupuestoId])
+}
+
+// Importación de historias clínicas que el médico lleva en otro sistema,
+// planillas o documentos (ver el Acuerdo de tratamiento de datos, punto 3, y
+// src/lib/importacion.ts). La carga la hace el equipo de Semio 360 a mano: el
+// médico sube los archivos desde Configuración > Mis datos y, al enviarlos,
+// habilita al equipo a descargarlos durante `IMPORTACION_ACCESO_HORAS`. Los
+// archivos se borran al marcar la carga como terminada, al cancelar, o a los
+// `IMPORTACION_DIAS_ARCHIVOS` días (cron de limpieza), lo que pase primero.
+enum ImportacionEstado {
+  // El médico está subiendo los archivos (todavía no los envió).
+  BORRADOR
+  // Enviada al equipo: esperando que la carguen.
+  ENVIADA
+  // El equipo terminó de cargarla: espera que el médico la revise.
+  CARGADA
+  // El médico revisó lo cargado y confirmó que está bien.
+  CONFIRMADA
+  // El médico la canceló antes de que se cargara.
+  CANCELADA
+  // Pasaron los días máximos sin que se cargara: los archivos se borraron.
+  VENCIDA
+}
+
+model ImportacionHC {
+  id       String            @id @default(cuid())
+  doctorId String
+  doctor   User              @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  estado   ImportacionEstado @default(BORRADOR)
+  // Lo que el médico nos cuenta (de qué sistema vienen, qué hay en cada archivo).
+  nota     String?           @db.Text
+
+  // Constancia de la aceptación del acuerdo y de la declaración de que los
+  // datos son de sus pacientes (y, si vienen de una institución, que tiene
+  // su autorización). Se registra en cada importación.
+  acuerdoVersion String
+  aceptadoAt     DateTime
+  aceptadoIp     String?
+
+  // Hasta cuándo el equipo puede descargar los archivos. Null = sin permiso
+  // (borrador, o el médico lo quitó). Se fija al enviar y se puede renovar.
+  accesoHasta        DateTime?
+  enviadaAt          DateTime?
+  // Archivos ya borrados (carga terminada, cancelada o vencida).
+  archivosBorradosAt DateTime?
+  cargadaAt          DateTime?
+  // Lo que el equipo le cuenta al médico al terminar ("cargamos 847 pacientes").
+  notaEquipo         String?   @db.Text
+  confirmadaAt       DateTime?
+
+  archivos  ImportacionArchivo[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([doctorId, createdAt])
+  @@index([estado, createdAt])
+}
+
+model ImportacionArchivo {
+  id            String        @id @default(cuid())
+  importacionId String
+  importacion   ImportacionHC @relation(fields: [importacionId], references: [id], onDelete: Cascade)
+  nombre        String
+  tipo          String
+  tamano        Int
+  // Null una vez borrado: el nombre y el tamaño quedan para el historial y el
+  // registro de accesos, el contenido no.
+  datos         Bytes?
+  createdAt     DateTime      @default(now())
+
+  @@index([importacionId])
 }

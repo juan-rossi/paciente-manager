@@ -6,6 +6,7 @@ import { verifyPassword, type UserRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nuevaFechaFinTrial, SIGNUP_PLAN_COOKIE } from "@/lib/plan";
 import { TERMINOS_COOKIE, TERMINOS_VERSION } from "@/lib/terminos";
+import { ACUERDO_DATOS_VERSION } from "@/lib/acuerdo-datos";
 import { getClientIp } from "@/lib/request-ip";
 import { loginRequiereVerificacion, rateLimitOk, registrarLoginFallido } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
@@ -162,6 +163,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           passwordHash: "",
           terminosVersion: TERMINOS_VERSION,
           terminosAceptadosAt: ahora,
+          // La misma casilla acepta los términos y el Acuerdo de tratamiento de datos.
+          acuerdoDatosVersion: ACUERDO_DATOS_VERSION,
+          acuerdoDatosAceptadoAt: ahora,
           declaracionProfesionalAt: ahora,
           role: "DOCTOR",
           plan,

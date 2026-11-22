@@ -11,7 +11,7 @@ export const FAQS = [
   },
   {
     q: "Ya uso otro sistema, Excel o Word. ¿Tengo que cargar todo de nuevo?",
-    a: "No. Pasamos tus pacientes a Semio360 sin cargo y sin tope: los datos de cada paciente y, siempre que el formato lo permita, también sus evoluciones. Una vez registrado, pedís la migración desde Soporte, dentro de la app, y ahí coordinamos cómo nos pasás los archivos (el export de tu sistema actual, planillas de Excel o CSV, o documentos de Word). No trabajamos con PDF escaneados ni historias en papel.",
+    a: "No. Pasamos tus pacientes a Semio360 sin cargo y sin tope: los datos de cada paciente y, siempre que el formato lo permita, también sus evoluciones. Una vez registrado, subís los archivos desde Configuración > Mis datos, dentro de la app (el export de tu sistema actual, planillas de Excel o CSV, o documentos de Word): nunca por mail ni WhatsApp, y se borran solos cuando terminamos. No trabajamos con PDF escaneados ni historias en papel.",
   },
   {
     q: "¿Necesito instalar algo?",

@@ -32,6 +32,9 @@ import { ArancelesSettings } from "@/components/aranceles-settings";
 import { PlanSettings } from "@/components/plan-settings";
 import { PagoConfirmadoModal } from "@/components/pago-confirmado-modal";
 import { ExportSettings } from "@/components/export-settings";
+import { ImportacionSettings } from "@/components/importacion-settings";
+import { BajaCuentaSettings } from "@/components/baja-cuenta-settings";
+import { getImportacionesVista } from "@/lib/importacion-vista";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
 import { VisibilidadSettings } from "@/components/visibilidad-settings";
 import { redesDeUsuario } from "@/lib/redes-sociales";
@@ -94,7 +97,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // se completa acá, antes de leerlos, para que Mi perfil pueda mostrarlo.
   if (user.role === "DOCTOR") await ensureLugarSlugs(user.id);
 
-  const [blocks, secretarias, lugares, prepagas, prepagasDelDoctor, moderacion] = await Promise.all([
+  const [blocks, secretarias, lugares, prepagas, prepagasDelDoctor, moderacion, importaciones] = await Promise.all([
     prisma.workScheduleBlock.findMany({
       where: { userId: user.id },
       orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
@@ -107,6 +110,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
     prisma.prepaga.findMany({ select: { id: true, nombre: true, nombreCompleto: true }, orderBy: { nombre: "asc" } }),
     prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
     getEstadoModeracionPerfil(user.id),
+    getImportacionesVista(user.id),
   ]);
 
   const [practicasOdontologicas, aranceles] = arancelesHabilitados
@@ -281,7 +285,15 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             />
           </TabsContent>
           <TabsContent value="datos" className="w-full">
-            <ExportSettings />
+            <div className="flex w-full flex-col gap-5">
+              <ExportSettings />
+              <ImportacionSettings importaciones={importaciones} puedeImportar={esActivo(user)} />
+              <BajaCuentaSettings
+                tieneSuscripcion={
+                  !!user.mpPreapprovalId && !!mpPreapprovalStatus && mpPreapprovalStatus !== "CANCELLED"
+                }
+              />
+            </div>
           </TabsContent>
         </ConfiguracionTabs>
       </div>

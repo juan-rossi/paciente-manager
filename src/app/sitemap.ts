@@ -34,5 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     })),
     { url: absoluteUrl("/terminos"), changeFrequency: "yearly", priority: 0.2 },
+    { url: absoluteUrl("/acuerdo-datos"), changeFrequency: "yearly", priority: 0.2 },
   ];
 }
