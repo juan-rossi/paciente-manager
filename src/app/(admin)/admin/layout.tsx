@@ -25,8 +25,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login");
   }
 
-  // El contador va en el propio link para que una revisión pendiente no pase
-  // desapercibida desde cualquier pantalla del panel.
+  // Los contadores se suman en el ítem "Tareas" para que una revisión
+  // pendiente no pase desapercibida desde cualquier pantalla del panel.
   const [moderacionPendientes, soporteSinLeer, importacionesPendientes] = await Promise.all([
     prisma.moderacionPerfil.count({ where: { estado: "PENDIENTE" } }),
     prisma.ticketSoporte.count({ where: { noLeidoAdmin: true } }),
@@ -35,19 +35,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const navLinks = [
     ...ADMIN_NAV_LINKS,
     {
-      href: "/admin/moderacion",
-      label: moderacionPendientes > 0 ? `Moderación (${moderacionPendientes})` : "Moderación",
-      icon: "ShieldAlert" as const,
-    },
-    {
-      href: "/admin/soporte",
-      label: soporteSinLeer > 0 ? `Soporte (${soporteSinLeer})` : "Soporte",
-      icon: "LifeBuoy" as const,
-    },
-    {
-      href: "/admin/importaciones",
-      label: importacionesPendientes > 0 ? `Importaciones (${importacionesPendientes})` : "Importaciones",
-      icon: "FileUp" as const,
+      label: "Tareas",
+      icon: "ClipboardList" as const,
+      children: [
+        { href: "/admin/soporte", label: "Soporte", icon: "LifeBuoy" as const, badge: soporteSinLeer },
+        { href: "/admin/moderacion", label: "Moderación", icon: "ShieldAlert" as const, badge: moderacionPendientes },
+        { href: "/admin/importaciones", label: "Importaciones", icon: "FileUp" as const, badge: importacionesPendientes },
+      ],
     },
   ];
 
@@ -68,9 +62,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 Panel Admin
               </span>
             </a>
-            {/* Solo dos secciones -- se muestran siempre (sin el "hidden
+            {/* Pocas secciones -- se muestran siempre (sin el "hidden
                 sm:flex" del nav de la app de consultorio) en vez de armar un
-                menú mobile aparte para dos links. */}
+                menú mobile aparte. */}
             <NavLinks links={navLinks} className="flex flex-wrap gap-4" />
           </div>
           <UserChip

@@ -111,7 +111,7 @@ export default async function AdminImportacionesPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-muted-foreground">Esperando carga ({pendientes.length})</h2>
           {pendientes.length === 0 && (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
               No hay importaciones pendientes.
             </p>
           )}
