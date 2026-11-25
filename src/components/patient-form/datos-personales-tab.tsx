@@ -26,7 +26,7 @@ export function DatosPersonalesTab({ values, onChange, invalidFields }: Props) {
       <FormSection title="Identidad" icon={IdCard}>
         <div className="col-span-full">
           <TextField
-            label="Nombre Y Apellido"
+            label="Nombre y Apellido"
             value={values.nombreYApellido}
             onChange={(v) => onChange("nombreYApellido", v)}
             required

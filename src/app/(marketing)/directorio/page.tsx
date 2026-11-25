@@ -64,7 +64,7 @@ export default async function DirectorioPage({ searchParams }: Props) {
       />
       <DirectorioVista
         kicker="Directorio Semio360"
-        titulo="El médico que buscás, a un clic de distancia"
+        titulo="El profesional de salud que buscás, a un click de distancia"
         descripcion="Explorá perfiles verificados, filtrá por especialidad y ciudad, y reservá turno online cuando esté disponible."
         doctores={doctores}
         especialidades={especialidades}

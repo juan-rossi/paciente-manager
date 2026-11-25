@@ -19,7 +19,6 @@ import {
   ComboboxInputGroup,
   ComboboxInput,
   ComboboxTrigger,
-  ComboboxClear,
   ComboboxContent,
   ComboboxItem,
 } from "@/components/ui/combobox";
@@ -30,8 +29,6 @@ import {
 } from "@/lib/titulo-cortesia";
 import { ESPECIALIDAD_OPTIONS, type Especialidad } from "@/lib/especialidad";
 import { AvisoModeracion, estadoAviso, type EstadoAvisoModeracion } from "@/components/aviso-moderacion";
-
-type EspecialidadOption = (typeof ESPECIALIDAD_OPTIONS)[number];
 
 type Props = {
   initialFotoPerfilBase64: string | null;
@@ -73,7 +70,9 @@ export function MiPerfilSettings({
   );
   const [nombre, setNombre] = useState(initialNombre);
   const [apellido, setApellido] = useState(initialApellido);
-  const [especialidad, setEspecialidad] = useState<Especialidad | "">(initialEspecialidad ?? "");
+  // La especialidad se define al registrarse y no se cambia desde el perfil.
+  const especialidadLabel =
+    ESPECIALIDAD_OPTIONS.find((o) => o.value === initialEspecialidad)?.label ?? "Sin especialidad";
   const [nroMatricula, setNroMatricula] = useState(initialNroMatricula);
 
   // Monto de la consulta particular: se guarda solo con dígitos ("15000") y se
@@ -113,7 +112,6 @@ export function MiPerfilSettings({
     tituloCortesia,
     nombre,
     apellido,
-    especialidad,
     nroMatricula,
     montoConsulta,
     prepagaIds: [...prepagaIds].sort(),
@@ -193,7 +191,7 @@ export function MiPerfilSettings({
     setError(null);
     setFieldErrors({});
 
-    if (!tituloCortesia || !nombre.trim() || !apellido.trim() || !especialidad || !nroMatricula.trim()) {
+    if (!tituloCortesia || !nombre.trim() || !apellido.trim() || !nroMatricula.trim()) {
       setError("Completá los campos obligatorios de Información personal y Datos profesionales.");
       return;
     }
@@ -207,7 +205,6 @@ export function MiPerfilSettings({
           tituloCortesia,
           nombre,
           apellido,
-          especialidad,
           nroMatricula,
           prepagaIds,
           montoConsultaParticular: montoConsulta ? Number(montoConsulta) : null,
@@ -329,27 +326,14 @@ export function MiPerfilSettings({
       <SettingsSection title="Datos profesionales" icon={Briefcase}>
         <div className="grid grid-cols-[2fr_1fr] gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="perfil-especialidad">Especialidad *</Label>
-            <Combobox
-              items={ESPECIALIDAD_OPTIONS}
-              value={ESPECIALIDAD_OPTIONS.find((o) => o.value === especialidad) ?? null}
-              onValueChange={(item) =>
-                setEspecialidad((item as EspecialidadOption | null)?.value ?? "")
-              }
-            >
-              <ComboboxInputGroup>
-                <ComboboxInput id="perfil-especialidad" placeholder="Buscar especialidad..." />
-                <ComboboxClear aria-label="Limpiar especialidad" />
-                <ComboboxTrigger aria-label="Abrir especialidades" />
-              </ComboboxInputGroup>
-              <ComboboxContent>
-                {(option: EspecialidadOption) => (
-                  <ComboboxItem key={option.value} value={option}>
-                    {option.label}
-                  </ComboboxItem>
-                )}
-              </ComboboxContent>
-            </Combobox>
+            <Label htmlFor="perfil-especialidad">Especialidad</Label>
+            <Input
+              id="perfil-especialidad"
+              value={especialidadLabel}
+              readOnly
+              tabIndex={-1}
+              className="cursor-default bg-muted/60 text-muted-foreground focus-visible:ring-0"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="perfil-matricula">Nro Matrícula *</Label>
@@ -413,9 +397,11 @@ export function MiPerfilSettings({
             ))}
           </ul>
         )}
-        <p className="text-xs text-muted-foreground">
-          {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}
-        </p>
+        {prepagasElegidas.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}
+          </p>
+        )}
       </SettingsSection>
 
       <SettingsSection title="Consulta particular" icon={Banknote}>

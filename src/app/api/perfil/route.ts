@@ -31,7 +31,6 @@ export async function PATCH(request: NextRequest) {
         tituloCortesia: parsed.data.tituloCortesia,
         nombre: parsed.data.nombre,
         apellido: parsed.data.apellido,
-        especialidad: parsed.data.especialidad,
         nroMatricula: parsed.data.nroMatricula,
         montoConsultaParticular: parsed.data.montoConsultaParticular,
       },

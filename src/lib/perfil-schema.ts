@@ -1,15 +1,10 @@
 import { z } from "zod";
-import { ESPECIALIDAD_VALUES, type Especialidad } from "@/lib/especialidad";
 import { TITULO_CORTESIA_VALUES, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { normalizarRedSocial, REDES_SOCIALES, type RedSocial } from "@/lib/redes-sociales";
 import { PASSWORD_MIN } from "@/lib/password-policy";
 
 const tituloCortesiaSchema = z.enum(TITULO_CORTESIA_VALUES as [TituloCortesia, ...TituloCortesia[]], {
   message: "Elegí un título.",
-});
-
-const especialidadSchema = z.enum(ESPECIALIDAD_VALUES as [Especialidad, ...Especialidad[]], {
-  message: "Elegí una especialidad.",
 });
 
 const optionalString = z
@@ -22,7 +17,8 @@ export const perfilSchema = z.object({
   tituloCortesia: tituloCortesiaSchema,
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
   apellido: z.string().trim().min(1, "El apellido es obligatorio."),
-  especialidad: especialidadSchema,
+  // La especialidad no se acepta acá: se fija al registrarse y no se cambia
+  // desde Mi perfil.
   nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
   // Ids del catálogo `Prepaga` con las que trabaja el médico.
   prepagaIds: z.array(z.string()).max(500),
