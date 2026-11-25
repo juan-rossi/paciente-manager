@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { type LugarTrabajoTipo, nombreLugar } from "@/lib/lugar-tipo";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -46,7 +47,7 @@ function redesATexto(redes: RedesSociales): Record<RedSocial, string> {
 
 type LugarResumen = {
   id: string;
-  tipo: "PARTICULAR" | "CONSULTORIO";
+  tipo: LugarTrabajoTipo;
   nombre: string | null;
   direccion: string;
   telefono: string;
@@ -489,10 +490,12 @@ export function VisibilidadSettings({
                                 !visible && "text-muted-foreground",
                               )}
                             >
-                              {lugar.nombre ?? "Consulta particular"}
+                              {nombreLugar(lugar)}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {lugar.direccion} · {lugar.telefono}
+                              {lugar.tipo === "VIRTUAL"
+                                ? "Teleconsulta por videollamada"
+                                : [lugar.direccion, lugar.telefono].filter(Boolean).join(" · ")}
                             </span>
                           </div>
                           <Switch
@@ -500,7 +503,7 @@ export function VisibilidadSettings({
                             onCheckedChange={(checked) =>
                               toggleLugarVisible(lugar.id, checked)
                             }
-                            aria-label={`Mostrar ${lugar.nombre ?? "Consulta particular"} en el perfil`}
+                            aria-label={`Mostrar ${nombreLugar(lugar)} en el perfil`}
                           />
                         </li>
                       );
@@ -721,7 +724,7 @@ export function VisibilidadSettings({
               <ul className="flex flex-col divide-y divide-border/60">
                 {lugares.map((lugar) => {
                   const habilitado = reservaPorLugar[lugar.id] ?? false;
-                  const nombreLugar = lugar.nombre ?? "Consulta particular";
+                  const nombreLugarTxt = nombreLugar(lugar);
                   const linkLugar =
                     publicSlug && lugar.publicSlug
                       ? `${origin ?? "semio360.com"}/directorio/${publicSlug}/${lugar.publicSlug}`
@@ -739,7 +742,7 @@ export function VisibilidadSettings({
                               !habilitado && "text-muted-foreground",
                             )}
                           >
-                            {nombreLugar}
+                            {nombreLugarTxt}
                           </span>
                           {!habilitado && (
                             <span className="text-xs text-muted-foreground">
@@ -753,7 +756,7 @@ export function VisibilidadSettings({
                             handleToggleReservaLugar(lugar.id, checked)
                           }
                           disabled={lugarAgendaSaving === lugar.id}
-                          aria-label={`Turnos online en ${nombreLugar}`}
+                          aria-label={`Turnos online en ${nombreLugarTxt}`}
                         />
                       </div>
                       {habilitado && linkLugar && (

@@ -6,7 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { nextDiaConHorario } from "@/lib/dia-nav";
-import { buildMensajeRecordatorio, buildWhatsAppHref } from "@/lib/recordatorio-mensaje";
+import {
+  buildMensajeRecordatorio,
+  buildWhatsAppHref,
+  plantillaRecordatorio,
+  type PlantillasRecordatorio,
+} from "@/lib/recordatorio-mensaje";
 import {
   dateParamToDateBA,
   formatDateParamBA,
@@ -27,7 +32,7 @@ type Props = {
   initialTurnos: RecordatorioTurno[];
   initialDiasConHorario: DiaSemana[];
   initialSinConfigurar: boolean;
-  mensajeTemplate: string;
+  plantillas: PlantillasRecordatorio;
   // Config del médico (Mensajería): "Enviar WhatsApp" también marca el
   // turno como enviado, y el botón aparte "Marcar como enviado" se oculta.
   autoMarcarEnviado: boolean;
@@ -40,7 +45,7 @@ export function RecordatoriosCalendar({
   initialTurnos,
   initialDiasConHorario,
   initialSinConfigurar,
-  mensajeTemplate,
+  plantillas,
   autoMarcarEnviado,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
@@ -181,7 +186,7 @@ export function RecordatoriosCalendar({
                 const inicio = new Date(turno.inicio);
                 const hora = formatHoraBA(inicio);
                 const mensaje = buildMensajeRecordatorio(
-                  mensajeTemplate,
+                  plantillaRecordatorio(plantillas, turno.links),
                   turno.nombreYApellido,
                   inicio,
                   new Date(),

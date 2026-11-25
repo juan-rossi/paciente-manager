@@ -11,6 +11,7 @@ export type TurnoInfo = {
   estado: string;
   recordatorioEnviado: boolean;
   confirmadoAt: string | null;
+  teleconsulta?: boolean;
 };
 
 export type Slot = {

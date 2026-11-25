@@ -7,9 +7,10 @@ type TurnoLike = {
 
 // Campos internos que nunca viajan al navegador, para ningún rol: el hash del
 // token de cancelación pública, el código del link que recibe el paciente
-// (`/t/<codigo>`, permite confirmar/cancelar como él) y quién lo cargó. La UI
-// no los usa: el link del recordatorio se arma del lado del servidor.
-const CAMPOS_INTERNOS = ["cancelTokenHash", "linkCodigo", "creadoPorId"] as const;
+// (`/t/<codigo>`, permite confirmar/cancelar como él), quién lo cargó y el
+// nombre de la sala de la teleconsulta. La UI no los usa: el link del
+// recordatorio y el acceso a la sala se arman del lado del servidor.
+const CAMPOS_INTERNOS = ["cancelTokenHash", "linkCodigo", "creadoPorId", "salaVideoNombre"] as const;
 
 /**
  * El vínculo con el paciente clínico (`patientId`) es información exclusiva del médico.

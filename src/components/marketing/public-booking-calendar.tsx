@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Loader2, MapPin, Phone, X } from "lucide-react";
+import { LUGAR_TIPO_LABEL, nombreLugar, type LugarTrabajoTipo } from "@/lib/lugar-tipo";
+import { CalendarDays, Loader2, MapPin, Phone, X, Video } from "lucide-react";
 import { ObraSocialSelect } from "@/components/obra-social-select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +25,7 @@ type HorarioDisponible = { inicio: string; lugarId: string | null };
 type DisponibilidadDia = { fecha: string; horarios: HorarioDisponible[] };
 type LugarOption = {
   id: string;
-  tipo: "PARTICULAR" | "CONSULTORIO";
+  tipo: LugarTrabajoTipo;
   nombre: string | null;
   ciudad: string | null;
   direccion?: string | null;
@@ -31,7 +33,7 @@ type LugarOption = {
 };
 
 function lugarLabel(lugar: LugarOption | undefined): string {
-  return lugar?.nombre ?? "Consulta particular";
+  return nombreLugar(lugar);
 }
 
 function filtrarPorLugar(dias: DisponibilidadDia[], lugarId: string): DisponibilidadDia[] {
@@ -114,6 +116,7 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [consentimientoRemoto, setConsentimientoRemoto] = useState(false);
 
   // Mobile: el calendario se reemplaza por un botón fijo abajo que abre un
   // modal a pantalla completa con la reserva en pasos (día, horario, datos).
@@ -228,6 +231,11 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
       setError(DNI_ERROR_MESSAGE);
       return;
     }
+    if (lugarElegido?.tipo === "VIRTUAL" && !consentimientoRemoto) {
+      setTriedSubmit(true);
+      setError("Para una teleconsulta tenés que aceptar la atención por videollamada.");
+      return;
+    }
     if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
       setError("Completá la verificación de seguridad.");
       return;
@@ -245,6 +253,7 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
           telefono,
           obraSocial: obraSocial || undefined,
           turnstileToken,
+          consentimientoRemoto: lugarElegido?.tipo === "VIRTUAL" ? consentimientoRemoto : undefined,
         }),
       });
       const data = await response.json().catch(() => null);
@@ -428,7 +437,7 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
               {lugarLabel(lugar)}
             </span>
             <span className="block truncate text-[11.5px] text-muted-foreground">
-              {lugar.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
+              {LUGAR_TIPO_LABEL[lugar.tipo]}
               {lugar.ciudad && ` · ${lugar.ciudad}`}
               {!tieneDisponibilidad && " · sin turnos"}
             </span>
@@ -441,6 +450,12 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
   const lugarInfo = lugarElegido && (
     <div className="mt-4 flex flex-col gap-1.5 text-[13px]">
       {lugares.length === 1 && <span className="font-bold">{lugarLabel(lugarElegido)}</span>}
+      {lugarElegido.tipo === "VIRTUAL" && (
+        <span className="flex items-start gap-2">
+          <Video className="mt-0.5 size-3.5 shrink-0 text-primary" />
+          <span>Consulta por videollamada: entrás con el link que te llega antes del turno.</span>
+        </span>
+      )}
       {lugarElegido.direccion && (
         <span className="flex items-start gap-2">
           <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary" />
@@ -576,6 +591,26 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
     </div>
   );
 
+  // Ley 27.553: la atención remota requiere el consentimiento del paciente.
+  const campoConsentimientoRemoto = lugarElegido?.tipo === "VIRTUAL" && (
+    <div
+      className={`flex items-start gap-2.5 rounded-lg border p-3 ${
+        triedSubmit && !consentimientoRemoto ? "border-destructive" : "border-border/60"
+      }`}
+    >
+      <Checkbox
+        id="consentimiento-remoto"
+        checked={consentimientoRemoto}
+        onCheckedChange={(checked) => setConsentimientoRemoto(checked === true)}
+        className="mt-0.5"
+      />
+      <Label htmlFor="consentimiento-remoto" className="block text-xs leading-snug font-normal">
+        Acepto ser atendido/a por videollamada. Antes del turno vas a recibir el link para entrar
+        a la consulta desde el celular o la computadora, sin descargar nada.
+      </Label>
+    </div>
+  );
+
   const tituloPaso = paso === 1 ? "Elegí día y horario" : "Tus datos";
 
   return (
@@ -638,6 +673,7 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
                 {campoTelefono}
               </div>
               {campoObraSocial}
+              {campoConsentimientoRemoto}
               <TurnstileWidget onToken={setTurnstileToken} />
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
@@ -720,6 +756,7 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
                 {campoDni}
                 {campoTelefono}
                 {campoObraSocial}
+                {campoConsentimientoRemoto}
                 <TurnstileWidget onToken={setTurnstileToken} />
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>

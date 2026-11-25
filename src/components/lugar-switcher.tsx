@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { type LugarTrabajoTipo, nombreLugar } from "@/lib/lugar-tipo";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,12 +9,12 @@ import { cn } from "@/lib/utils";
 
 export type LugarOption = {
   id: string;
-  tipo: "PARTICULAR" | "CONSULTORIO";
+  tipo: LugarTrabajoTipo;
   nombre: string | null;
 };
 
 function lugarLabel(lugar: LugarOption): string {
-  return lugar.nombre ?? "Consulta particular";
+  return nombreLugar(lugar);
 }
 
 type Props = {

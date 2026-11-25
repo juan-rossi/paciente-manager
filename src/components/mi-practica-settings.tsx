@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Clock,
   MapPin,
+  Video,
   Pencil,
   Phone,
   Plus,
@@ -38,6 +39,7 @@ import { AddressAutocomplete, type AddressResult } from "@/components/address-au
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { DIA_SEMANA_VALUES, type DiaSemana } from "@/lib/slots";
 import { cn, filterTelefono } from "@/lib/utils";
+import { LUGAR_TIPO_LABEL, type LugarTrabajoTipo, nombreLugar } from "@/lib/lugar-tipo";
 
 const DIA_LABELS: Record<DiaSemana, string> = {
   LUNES: "Lunes",
@@ -48,8 +50,6 @@ const DIA_LABELS: Record<DiaSemana, string> = {
   SABADO: "Sábado",
   DOMINGO: "Domingo",
 };
-
-type LugarTrabajoTipo = "PARTICULAR" | "CONSULTORIO";
 
 type LugarDeTrabajo = {
   id: string;
@@ -84,8 +84,8 @@ type Props = {
   initialSobreturnosHabilitados: boolean;
 };
 
-function lugarLabel(lugar: LugarDeTrabajo | { nombre: string | null }): string {
-  return lugar.nombre ?? "Consulta particular";
+function lugarLabel(lugar: { tipo: LugarTrabajoTipo; nombre: string | null }): string {
+  return nombreLugar(lugar);
 }
 
 function formatFechaHora(iso: string) {
@@ -287,7 +287,10 @@ export function MiPracticaSettings({
   const particularDeshabilitado = hayParticular && editingLugar?.tipo !== "PARTICULAR";
 
   async function handleGuardarLugar() {
-    if (!direccion.trim() || !telefono.trim() || (tipo === "CONSULTORIO" && !nombre.trim())) {
+    if (
+      (tipo !== "VIRTUAL" && (!direccion.trim() || !telefono.trim())) ||
+      (tipo === "CONSULTORIO" && !nombre.trim())
+    ) {
       setTriedSubmitLugar(true);
       setLugarError("Completá los campos obligatorios.");
       return;
@@ -302,9 +305,9 @@ export function MiPracticaSettings({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             tipo,
-            nombre: tipo === "CONSULTORIO" ? nombre : undefined,
-            direccion,
-            telefono,
+            nombre: tipo === "PARTICULAR" ? undefined : nombre,
+            direccion: tipo === "VIRTUAL" ? undefined : direccion,
+            telefono: tipo === "VIRTUAL" ? undefined : telefono,
             latitud,
             longitud,
             ciudad,
@@ -348,7 +351,7 @@ export function MiPracticaSettings({
       );
       setNotice(
         data?.softDeleted
-          ? `"${deleteLugarTarget.nombre ?? "Consulta particular"}" tenía turnos registrados, así que se dio de baja en vez de eliminarse del todo.`
+          ? `"${lugarLabel(deleteLugarTarget)}" tenía turnos registrados, así que se dio de baja en vez de eliminarse del todo.`
           : null
       );
       setDeleteLugarTarget(null);
@@ -557,13 +560,14 @@ export function MiPracticaSettings({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span
-                    className={
-                      lugarActivo.tipo === "PARTICULAR"
-                        ? "rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
-                        : "rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
-                    }
+                    className={cn(
+                      "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                      lugarActivo.tipo === "PARTICULAR" && "bg-muted text-muted-foreground",
+                      lugarActivo.tipo === "CONSULTORIO" && "bg-primary/10 text-primary",
+                      lugarActivo.tipo === "VIRTUAL" && "bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                    )}
                   >
-                    {lugarActivo.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
+                    {LUGAR_TIPO_LABEL[lugarActivo.tipo]}
                   </span>
                   <span className="text-sm font-medium">{lugarLabel(lugarActivo)}</span>
                 </div>
@@ -593,14 +597,23 @@ export function MiPracticaSettings({
               <div className="h-px bg-border/60" />
 
               <div className="flex flex-col gap-1.5">
-                <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                  <MapPin className="size-3.5 shrink-0" />
-                  {lugarActivo.direccion}
-                </span>
-                <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                  <Phone className="size-3.5 shrink-0" />
-                  {lugarActivo.telefono}
-                </span>
+                {lugarActivo.tipo === "VIRTUAL" ? (
+                  <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <Video className="size-3.5 shrink-0" />
+                    Videollamada dentro de Semio 360 · el paciente recibe el link para entrar
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <MapPin className="size-3.5 shrink-0" />
+                    {lugarActivo.direccion}
+                  </span>
+                )}
+                {lugarActivo.telefono && (
+                  <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <Phone className="size-3.5 shrink-0" />
+                    {lugarActivo.telefono}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -696,7 +709,19 @@ export function MiPracticaSettings({
                     Consultorio
                   </Label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="VIRTUAL" id="lugar-virtual" />
+                  <Label htmlFor="lugar-virtual" className="font-normal">
+                    Teleconsulta
+                  </Label>
+                </div>
               </RadioGroup>
+              {tipo === "VIRTUAL" && (
+                <p className="text-xs text-muted-foreground">
+                  Consultas por videollamada dentro de Semio 360. Cada turno tiene su propia sala
+                  privada; el paciente entra con el link del turno, sin descargar nada.
+                </p>
+              )}
             </div>
 
             {tipo === "CONSULTORIO" && (
@@ -711,27 +736,43 @@ export function MiPracticaSettings({
               </div>
             )}
 
-            <div className="flex flex-col gap-1.5 mt-2">
-              <Label htmlFor="lugar-direccion">Dirección *</Label>
-              <AddressAutocomplete
-                id="lugar-direccion"
-                value={direccion}
-                onChangeText={handleDireccionTextChange}
-                onSelect={handleDireccionSelect}
-                className={triedSubmitLugar && !direccion.trim() ? "border-destructive" : undefined}
-              />
-            </div>
+            {tipo === "VIRTUAL" && (
+              <div className="flex flex-col gap-1.5 mt-2">
+                <Label htmlFor="lugar-nombre-virtual">Nombre (opcional)</Label>
+                <Input
+                  id="lugar-nombre-virtual"
+                  value={nombre}
+                  placeholder="Teleconsulta"
+                  onChange={(e) => setNombre(e.target.value)}
+                />
+              </div>
+            )}
 
-            <div className="flex flex-col gap-1.5 mt-2">
-              <Label htmlFor="lugar-telefono">Teléfono *</Label>
-              <Input
-                id="lugar-telefono"
-                inputMode="numeric"
-                value={telefono}
-                onChange={(e) => setTelefono(filterTelefono(e.target.value))}
-                className={triedSubmitLugar && !telefono.trim() ? "border-destructive" : undefined}
-              />
-            </div>
+            {tipo !== "VIRTUAL" && (
+              <div className="flex flex-col gap-1.5 mt-2">
+                <Label htmlFor="lugar-direccion">Dirección *</Label>
+                <AddressAutocomplete
+                  id="lugar-direccion"
+                  value={direccion}
+                  onChangeText={handleDireccionTextChange}
+                  onSelect={handleDireccionSelect}
+                  className={triedSubmitLugar && !direccion.trim() ? "border-destructive" : undefined}
+                />
+              </div>
+            )}
+
+            {tipo !== "VIRTUAL" && (
+              <div className="flex flex-col gap-1.5 mt-2">
+                <Label htmlFor="lugar-telefono">Teléfono *</Label>
+                <Input
+                  id="lugar-telefono"
+                  inputMode="numeric"
+                  value={telefono}
+                  onChange={(e) => setTelefono(filterTelefono(e.target.value))}
+                  className={triedSubmitLugar && !telefono.trim() ? "border-destructive" : undefined}
+                />
+              </div>
+            )}
 
             {lugarError && <p className="text-sm text-destructive">{lugarError}</p>}
           </div>
@@ -759,7 +800,7 @@ export function MiPracticaSettings({
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Vas a eliminar los horarios de trabajo cargados para{" "}
-            <strong>{deleteLugarTarget?.nombre ?? "este lugar particular"}</strong>. Si tenías
+            <strong>{deleteLugarTarget ? lugarLabel(deleteLugarTarget) : ""}</strong>. Si tenías
             turnos agendados que dependían de esos horarios van a seguir existiendo, pero
             convendría revisarlos antes de continuar.
           </p>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,13 +74,12 @@ export default async function LinkTurnoPage({ params }: Props) {
       turno.doctor.tituloCortesia as TituloCortesia | null,
       turno.doctor.nombre,
     );
-    const lugar = [
-      turno.lugar.nombre,
-      turno.lugar.direccion,
-      turno.lugar.ciudad,
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    const esTeleconsulta = turno.lugar.tipo === "VIRTUAL";
+    const lugar = esTeleconsulta
+      ? "Teleconsulta por videollamada"
+      : [turno.lugar.nombre, turno.lugar.direccion, turno.lugar.ciudad]
+          .filter(Boolean)
+          .join(" · ");
 
     let estado: React.ReactNode;
     if (turno.estado === "CANCELADO") {
@@ -117,6 +117,14 @@ export default async function LinkTurnoPage({ params }: Props) {
             {fecha} · {formatHoraBA(turno.inicio)} hs
           </CardTitle>
           {lugar && <p className="text-sm text-muted-foreground">{lugar}</p>}
+          {esTeleconsulta && turno.estado !== "CANCELADO" && (
+            <Link
+              href={`/t/${codigo}/sala`}
+              className="text-sm font-medium text-primary underline-offset-2 hover:underline"
+            >
+              Ir a la sala de la consulta
+            </Link>
+          )}
         </CardHeader>
         <CardContent>{estado}</CardContent>
       </>

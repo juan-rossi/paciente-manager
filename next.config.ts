@@ -10,7 +10,8 @@ const isDev = process.env.NODE_ENV === "development";
 // -- lo más valioso para datos clínicos -- que un script inyectado mande
 // datos a otro dominio (`connect-src`).
 //
-// Orígenes externos que usa el navegador: solo Turnstile (Cloudflare). Google
+// Orígenes externos que usa el navegador: Turnstile (Cloudflare) y el
+// iframe de la teleconsulta (Daily.co). Google
 // OAuth y el checkout de MercadoPago son redirecciones; Places, MercadoPago,
 // Groq y OpenAI se llaman desde el servidor. Las fuentes las sirve next/font
 // desde nuestro dominio.
@@ -19,6 +20,12 @@ const isDev = process.env.NODE_ENV === "development";
 // lo que bloquearía. Pasar a `Content-Security-Policy` cuando QA no muestre
 // violaciones (ver docs/PLAN-SEGURIDAD.md, F4).
 const TURNSTILE = "https://challenges.cloudflare.com";
+// Teleconsulta: la sala de Daily.co (Prebuilt) se embebe en un iframe y
+// necesita cámara/micrófono delegados. Con DAILY_DOMAIN se restringe al
+// subdominio de nuestra cuenta.
+// Acepta "semio360" o "semio360.daily.co".
+const DAILY_SUBDOMINIO = process.env.DAILY_DOMAIN?.trim().replace(/^https?:\/\//, "").replace(/\.daily\.co\/?$/, "");
+const DAILY = DAILY_SUBDOMINIO ? `https://${DAILY_SUBDOMINIO}.daily.co` : "https://*.daily.co";
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} ${TURNSTILE}`,
@@ -28,7 +35,7 @@ const csp = [
   // Grabación del dictado: el audio se maneja como blob.
   "media-src 'self' blob:",
   `connect-src 'self' ${TURNSTILE}`,
-  `frame-src ${TURNSTILE}`,
+  `frame-src ${TURNSTILE} ${DAILY}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -47,10 +54,11 @@ const securityHeaders = [
   // Los links /t/[codigo] e /invitacion?token=... llevan secretos en la URL:
   // a otros sitios solo viaja el origen, nunca la ruta.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // Micrófono solo para el dictado, en nuestro propio origen.
+  // Micrófono para el dictado (nuestro origen) y, con la cámara y compartir
+  // pantalla, para el iframe de la teleconsulta (solo Daily).
   {
     key: "Permissions-Policy",
-    value: "microphone=(self), camera=(), geolocation=(), payment=(), usb=()",
+    value: `microphone=(self "${DAILY}"), camera=(self "${DAILY}"), display-capture=(self "${DAILY}"), fullscreen=(self "${DAILY}"), geolocation=(), payment=(), usb=()`,
   },
   // HTTPS obligatorio por 2 años, también en subdominios (qa.). Sin
   // `preload`: sumarse a la lista de precarga de los navegadores es un

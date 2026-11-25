@@ -10,6 +10,7 @@ import {
   ESTADO_TURNO_BLOQUE,
   EstadoTurnoIcono,
   OnlineBadge,
+  TeleconsultaBadge,
   agruparBloqueados,
   formatHora,
   getGridRange,
@@ -178,7 +179,10 @@ function BloqueContiguoGrid({
                     <strong className="min-w-0 text-xs leading-tight font-semibold break-words">
                       {slot.turno!.nombreYApellido}
                     </strong>
-                    {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
+                    <span className="flex shrink-0 items-center gap-1">
+                      {slot.turno!.teleconsulta && <TeleconsultaBadge />}
+                      {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
+                    </span>
                   </span>
                   <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
                     <span className="shrink-0">
@@ -300,9 +304,12 @@ function BloqueContiguoGrid({
                                   {piece.turno!.nombreYApellido}
                                 </strong>
                               </span>
-                              {piece.turno!.origen === "ONLINE" && (
-                                <OnlineBadge className="hidden sm:inline-block" />
-                              )}
+                              <span className="flex shrink-0 items-center gap-1">
+                                {piece.turno!.teleconsulta && <TeleconsultaBadge />}
+                                {piece.turno!.origen === "ONLINE" && (
+                                  <OnlineBadge className="hidden sm:inline-block" />
+                                )}
+                              </span>
                             </span>
                             <span className="flex items-center gap-2 text-[10px] leading-tight opacity-80">
                               <span className="shrink-0">
@@ -350,9 +357,12 @@ function BloqueContiguoGrid({
                             {sob.turno!.nombreYApellido}
                           </strong>
                         </span>
-                        {sob.turno!.origen === "ONLINE" && (
-                          <OnlineBadge className="hidden sm:inline-block" />
-                        )}
+                        <span className="flex shrink-0 items-center gap-1">
+                          {sob.turno!.teleconsulta && <TeleconsultaBadge />}
+                          {sob.turno!.origen === "ONLINE" && (
+                            <OnlineBadge className="hidden sm:inline-block" />
+                          )}
+                        </span>
                       </span>
                       <span className="text-[10px] leading-tight opacity-80">
                         [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno
@@ -390,7 +400,10 @@ function BloqueContiguoGrid({
                 <strong className="min-w-0 text-xs leading-tight font-semibold break-words">
                   {slot.turno!.nombreYApellido}
                 </strong>
-                {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
+                <span className="flex shrink-0 items-center gap-1">
+                      {slot.turno!.teleconsulta && <TeleconsultaBadge />}
+                      {slot.turno!.origen === "ONLINE" && <OnlineBadge />}
+                    </span>
               </span>
               <span className="flex items-center gap-2 text-[11px] leading-tight opacity-80">
                 <span className="shrink-0">

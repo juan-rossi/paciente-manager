@@ -32,6 +32,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     body && typeof body === "object" && typeof (body as Record<string, unknown>).turnstileToken === "string"
       ? ((body as Record<string, unknown>).turnstileToken as string)
       : "";
+  // Igual que el token: el consentimiento de teleconsulta no es un dato del
+  // turno en el schema compartido, se lee aparte.
+  const consentimientoRemoto =
+    body && typeof body === "object" && (body as Record<string, unknown>).consentimientoRemoto === true;
   const parsed = reservaPublicaInputSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -67,6 +71,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const slotValido = await buscarSlotValido(doctor, inicio);
   if (!slotValido) {
     return NextResponse.json({ error: "Ese horario ya no está disponible." }, { status: 409 });
+  }
+
+  // Teleconsulta: sin el consentimiento del paciente (Ley 27.553) no se
+  // reserva. El tipo sale del lugar del slot, no del body.
+  const lugar = await prisma.lugarDeTrabajo.findUnique({
+    where: { id: slotValido.lugarId },
+    select: { tipo: true },
+  });
+  const esTeleconsulta = lugar?.tipo === "VIRTUAL";
+  if (esTeleconsulta && !consentimientoRemoto) {
+    return NextResponse.json(
+      { error: "Para una teleconsulta tenés que aceptar la atención por videollamada." },
+      { status: 400 }
+    );
   }
 
   const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);
@@ -132,6 +150,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         doctorId: doctor.id,
         lugarId: slotValido.lugarId,
         origen: "ONLINE",
+        consentimientoRemotoAt: esTeleconsulta ? new Date() : null,
       },
     });
     return { turno } as const;

@@ -1,18 +1,20 @@
 import { z } from "zod";
 
-// Dirección y teléfono son obligatorios para ambos tipos; el nombre solo
-// aplica (y es obligatorio) cuando el lugar es un consultorio -- un lugar
-// particular no tiene "nombre de fantasía".
+// La dirección y el teléfono son obligatorios para los lugares físicos: un
+// lugar VIRTUAL (teleconsulta) no tiene ninguno de los dos -- se guardan ""
+// (las columnas no son nullable) y sin coordenadas. El nombre es obligatorio solo en un consultorio -- un
+// lugar particular no tiene "nombre de fantasía" y el virtual es opcional
+// (si no hay, se muestra "Teleconsulta").
 export const lugarTrabajoSchema = z
   .object({
-    tipo: z.enum(["PARTICULAR", "CONSULTORIO"]),
+    tipo: z.enum(["PARTICULAR", "CONSULTORIO", "VIRTUAL"]),
     nombre: z
       .string()
       .trim()
       .optional()
       .transform((v) => (v && v.length > 0 ? v : null)),
-    direccion: z.string().trim().min(1, "La dirección es obligatoria."),
-    telefono: z.string().trim().min(1, "El teléfono es obligatorio."),
+    direccion: z.string().trim().optional().default(""),
+    telefono: z.string().trim().optional().default(""),
     latitud: z.number().nullable().optional(),
     longitud: z.number().nullable().optional(),
     ciudad: z.string().trim().nullable().optional(),
@@ -25,4 +27,23 @@ export const lugarTrabajoSchema = z
         message: "El nombre del consultorio es obligatorio.",
       });
     }
-  });
+    if (data.tipo !== "VIRTUAL" && !data.telefono) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["telefono"],
+        message: "El teléfono es obligatorio.",
+      });
+    }
+    if (data.tipo !== "VIRTUAL" && !data.direccion) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["direccion"],
+        message: "La dirección es obligatoria.",
+      });
+    }
+  })
+  .transform((data) =>
+    data.tipo === "VIRTUAL"
+      ? { ...data, direccion: "", telefono: "", latitud: null, longitud: null, ciudad: null }
+      : data
+  );

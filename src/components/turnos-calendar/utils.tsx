@@ -1,4 +1,5 @@
-import { Building2, Check, Clock, Mail, MapPin, X, type LucideIcon } from "lucide-react";
+import { LUGAR_TIPO_LABEL, nombreLugar, type LugarTrabajoTipo } from "@/lib/lugar-tipo";
+import { Building2, Check, Clock, Mail, MapPin, Video, X, type LucideIcon } from "lucide-react";
 import { rangesOverlap } from "@/lib/bloques-dia";
 import { ESTADO_VISUAL_LABELS, type EstadoVisualTurno } from "@/lib/turno-estado";
 import { formatHoraBA, getMinutesSinceMidnightBA } from "@/lib/timezone";
@@ -21,6 +22,22 @@ export function OnlineBadge({ className }: { className?: string }) {
       )}
     >
       ONLINE
+    </span>
+  );
+}
+
+// Turno de un lugar VIRTUAL: se atiende por videollamada.
+export function TeleconsultaBadge({ className }: { className?: string }) {
+  return (
+    <span
+      title="Teleconsulta por videollamada"
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-600 px-1.5 py-px text-[9px] font-extrabold tracking-wide text-white dark:bg-violet-500",
+        className
+      )}
+    >
+      <Video className="size-2.5" />
+      VIDEO
     </span>
   );
 }
@@ -165,15 +182,16 @@ export function getGridRange(slots: Slot[]) {
 }
 
 export function lugarNombre(lugar: LugarInfo | undefined) {
-  return lugar?.nombre?.trim() || "Consulta particular";
+  return nombreLugar(lugar);
 }
 
 export function tipoLabel(tipo: string) {
-  return tipo === "CONSULTORIO" ? "Consultorio" : "Particular";
+  return LUGAR_TIPO_LABEL[tipo as LugarTrabajoTipo] ?? "Particular";
 }
 
 export function LugarIcon({ tipo }: { tipo: string | undefined }) {
   if (tipo === "CONSULTORIO") return <Building2 className="size-3.5 text-muted-foreground" />;
   if (tipo === "PARTICULAR") return <MapPin className="size-3.5 text-muted-foreground" />;
+  if (tipo === "VIRTUAL") return <Video className="size-3.5 text-muted-foreground" />;
   return <Clock className="size-3.5 text-muted-foreground" />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { type LugarTrabajoTipo, nombreLugar } from "@/lib/lugar-tipo";
 import { Pencil, Send, Trash2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,12 +31,12 @@ type Secretaria = {
 
 type LugarOption = {
   id: string;
-  tipo: "PARTICULAR" | "CONSULTORIO";
+  tipo: LugarTrabajoTipo;
   nombre: string | null;
 };
 
 function lugarLabel(lugar: LugarOption): string {
-  return lugar.nombre ?? "Consulta particular";
+  return nombreLugar(lugar);
 }
 
 function initials(nombre: string): string {

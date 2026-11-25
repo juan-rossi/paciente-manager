@@ -10,8 +10,9 @@ export type RecordatorioTurno = {
   inicio: string;
   recordatorioEnviado: boolean;
   confirmado: boolean;
-  // Los de `{confirmar}`/`{cancelar}` de la plantilla.
-  links: { confirmar: string; cancelar: string };
+  // Los de `{confirmar}`/`{cancelar}` de la plantilla, y `{videollamada}`
+  // (solo en turnos de un lugar VIRTUAL).
+  links: { confirmar: string; cancelar: string; videollamada: string | null };
 };
 
 // Mismo criterio que `getDaySlots` para turnos: un asistente solo ve los
@@ -56,6 +57,7 @@ export async function getRecordatoriosDelDia(
       recordatorioEnviado: true,
       confirmadoAt: true,
       linkCodigo: true,
+      lugar: { select: { tipo: true } },
     },
   });
   const codigos = await asegurarLinkCodigos(turnos);
@@ -70,7 +72,11 @@ export async function getRecordatoriosDelDia(
         inicio: t.inicio.toISOString(),
         recordatorioEnviado: t.recordatorioEnviado,
         confirmado: t.confirmadoAt !== null,
-        links: { confirmar: linkPaciente(codigo, "si"), cancelar: linkPaciente(codigo, "no") },
+        links: {
+          confirmar: linkPaciente(codigo, "si"),
+          cancelar: linkPaciente(codigo, "no"),
+          videollamada: t.lugar.tipo === "VIRTUAL" ? linkPaciente(codigo, "sala") : null,
+        },
       };
     }),
     diasConHorario,

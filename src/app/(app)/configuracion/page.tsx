@@ -215,6 +215,8 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
           <TabsContent value="mensajeria" className="w-full">
             <MessagingSettings
               initialMensajeTemplate={user.mensajeTemplate}
+              initialMensajeTemplateVirtual={user.mensajeTemplateVirtual}
+              tieneTeleconsulta={lugares.some((l) => l.tipo === "VIRTUAL")}
               initialMensajeriaHabilitada={user.mensajeriaHabilitada}
               initialRecordatorioAutoEnviado={user.recordatorioAutoEnviado}
               initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}

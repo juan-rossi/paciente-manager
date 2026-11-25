@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CalendarClock, MessageSquare, Plus, Power } from "lucide-react";
+import { Ban, CalendarClock, MessageSquare, Plus, Power, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -12,38 +12,59 @@ import { cn } from "@/lib/utils";
 
 const LINKS_SUGERIDOS = "Confirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}";
 
+const LINK_VIDEOLLAMADA_SUGERIDO = "A la hora del turno, entrá a la videollamada desde acá: {videollamada}";
+
 const NOMBRE: TemplateVariable = { token: "{nombre}", description: "nombre y apellido del paciente." };
 
-const VARIABLES_RECORDATORIO: TemplateVariable[] = [
+const FECHA: TemplateVariable = {
+  token: "{fecha}",
+  description: (
+    <>
+      según cuándo sea el turno respecto al momento de enviar el recordatorio:{" "}
+      <strong>&quot;hoy&quot;</strong>, <strong>&quot;mañana&quot;</strong> o{" "}
+      <strong>&quot;el dd/mm/aaaa&quot;</strong>.
+    </>
+  ),
+};
+
+const HORA: TemplateVariable = { token: "{hora}", description: "horario del turno (HH:MM)." };
+
+const CONFIRMAR: TemplateVariable = {
+  token: "{confirmar}",
+  link: true,
+  description: (
+    <>
+      link para que el paciente confirme su asistencia. El turno pasa a{" "}
+      <strong>Confirmado</strong> en la agenda.
+    </>
+  ),
+};
+
+const CANCELAR: TemplateVariable = {
+  token: "{cancelar}",
+  link: true,
+  description: (
+    <>
+      link para que el paciente cancele el turno (hasta 1 hora antes). El horario queda libre y
+      aparece en <strong>Cancelados por pacientes</strong>.
+    </>
+  ),
+};
+
+const VARIABLES_RECORDATORIO: TemplateVariable[] = [NOMBRE, FECHA, HORA, CONFIRMAR, CANCELAR];
+
+const VARIABLES_RECORDATORIO_VIRTUAL: TemplateVariable[] = [
   NOMBRE,
+  FECHA,
+  HORA,
+  CONFIRMAR,
+  CANCELAR,
   {
-    token: "{fecha}",
-    description: (
-      <>
-        según cuándo sea el turno respecto al momento de enviar el recordatorio:{" "}
-        <strong>&quot;hoy&quot;</strong>, <strong>&quot;mañana&quot;</strong> o{" "}
-        <strong>&quot;el dd/mm/aaaa&quot;</strong>.
-      </>
-    ),
-  },
-  { token: "{hora}", description: "horario del turno (HH:MM)." },
-  {
-    token: "{confirmar}",
+    token: "{videollamada}",
     link: true,
     description: (
       <>
-        link para que el paciente confirme su asistencia. El turno pasa a{" "}
-        <strong>Confirmado</strong> en la agenda.
-      </>
-    ),
-  },
-  {
-    token: "{cancelar}",
-    link: true,
-    description: (
-      <>
-        link para que el paciente cancele el turno (hasta 1 hora antes). El horario queda libre y
-        aparece en <strong>Cancelados por pacientes</strong>.
+        link a la sala de la videollamada. Si no lo usás, se agrega igual al final del mensaje.
       </>
     ),
   },
@@ -65,6 +86,10 @@ const VARIABLES_APLAZAMIENTO: TemplateVariable[] = [
 
 type Props = {
   initialMensajeTemplate: string;
+  initialMensajeTemplateVirtual: string;
+  // Si el médico tiene algún lugar de Teleconsulta -- sin uno, la plantilla
+  // de teleconsulta no se usa y su sección se oculta.
+  tieneTeleconsulta: boolean;
   initialMensajeriaHabilitada: boolean;
   initialRecordatorioAutoEnviado: boolean;
   initialMensajeTemplateCancelado: string;
@@ -73,6 +98,8 @@ type Props = {
 
 export function MessagingSettings({
   initialMensajeTemplate,
+  initialMensajeTemplateVirtual,
+  tieneTeleconsulta,
   initialMensajeriaHabilitada,
   initialRecordatorioAutoEnviado,
   initialMensajeTemplateCancelado,
@@ -81,6 +108,7 @@ export function MessagingSettings({
   const router = useRouter();
   const [mensajeriaHabilitada, setMensajeriaHabilitada] = useState(initialMensajeriaHabilitada);
   const [mensajeTemplate, setMensajeTemplate] = useState(initialMensajeTemplate);
+  const [mensajeTemplateVirtual, setMensajeTemplateVirtual] = useState(initialMensajeTemplateVirtual);
   const [recordatorioAutoEnviado, setRecordatorioAutoEnviado] = useState(
     initialRecordatorioAutoEnviado
   );
@@ -104,6 +132,7 @@ export function MessagingSettings({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mensajeTemplate,
+          mensajeTemplateVirtual,
           mensajeriaHabilitada,
           recordatorioAutoEnviado,
           mensajeTemplateCancelado,
@@ -146,7 +175,11 @@ export function MessagingSettings({
 
       <SettingsSection
         title="Mensaje de recordatorio"
-        description="Definí el mensaje que se precarga al enviar un WhatsApp de confirmación de turno."
+        description={
+          tieneTeleconsulta
+            ? "Definí el mensaje que se precarga al enviar un WhatsApp de confirmación de un turno presencial."
+            : "Definí el mensaje que se precarga al enviar un WhatsApp de confirmación de turno."
+        }
         icon={MessageSquare}
       >
         <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
@@ -192,6 +225,59 @@ export function MessagingSettings({
           </div>
         </div>
       </SettingsSection>
+
+      {tieneTeleconsulta && (
+        <SettingsSection
+          title="Recordatorio de teleconsulta"
+          description="Se usa en lugar del anterior para los turnos de un lugar de Teleconsulta, así el paciente recibe el link a la videollamada."
+          icon={Video}
+        >
+          <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
+            <TemplateEditor
+              id="mensaje-recordatorio-virtual"
+              label="Mensaje"
+              value={mensajeTemplateVirtual}
+              onChange={setMensajeTemplateVirtual}
+              variables={VARIABLES_RECORDATORIO_VIRTUAL}
+              disabled={!mensajeriaHabilitada}
+            >
+              {(!mensajeTemplateVirtual.includes("{videollamada}") ||
+                (!mensajeTemplateVirtual.includes("{confirmar}") &&
+                  !mensajeTemplateVirtual.includes("{cancelar}"))) && (
+                <div className="flex flex-wrap gap-2">
+                  {!mensajeTemplateVirtual.includes("{videollamada}") && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!mensajeriaHabilitada}
+                      onClick={() =>
+                        setMensajeTemplateVirtual((t) => `${t.trimEnd()}\n${LINK_VIDEOLLAMADA_SUGERIDO}`)
+                      }
+                    >
+                      <Plus className="size-3.5" />
+                      Agregar link a la videollamada
+                    </Button>
+                  )}
+                  {!mensajeTemplateVirtual.includes("{confirmar}") &&
+                    !mensajeTemplateVirtual.includes("{cancelar}") && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!mensajeriaHabilitada}
+                        onClick={() => setMensajeTemplateVirtual((t) => `${t.trimEnd()}\n${LINKS_SUGERIDOS}`)}
+                      >
+                        <Plus className="size-3.5" />
+                        Agregar links de confirmar y cancelar
+                      </Button>
+                    )}
+                </div>
+              )}
+            </TemplateEditor>
+          </div>
+        </SettingsSection>
+      )}
 
       <SettingsSection
         title="Mensaje de cancelación"

@@ -405,7 +405,11 @@ model User {
   // `{fecha}` ya resuelve con su propio conector ("hoy", "mañana" o "el
   // dd/mm/aaaa" -- ver formatFechaRecordatorio en recordatorio-mensaje.ts),
   // por eso no lleva un "el" fijo antes en la plantilla.
-  mensajeTemplate          String          @default("Hola {nombre}, te recordamos tu turno para {fecha} a las {hora}hs. Respondé este mensaje para confirmar tu asistencia. ¡Gracias!")
+  // Los defaults ya traen los links de `{confirmar}`/`{cancelar}`.
+  mensajeTemplate          String          @default("Hola {nombre}, te recordamos tu turno para {fecha} a las {hora}hs. ¡Gracias!\n\nConfirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}")
+  // Recordatorio para turnos de un lugar VIRTUAL (teleconsulta): se usa en
+  // lugar de `mensajeTemplate` y suma `{videollamada}` (link a la sala).
+  mensajeTemplateVirtual   String          @default("Hola {nombre}, te recordamos tu teleconsulta para {fecha} a las {hora}hs. A esa hora entrá a la videollamada desde acá: {videollamada}\n\nConfirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}")
   // Mensajes para la resolución de conflictos de "Bloquear horarios" (ver
   // BloqueoConflicto) -- {fecha}/{hora} son las del turno ANTES del
   // cambio; {nueva_fecha} (solo en la de aplazado) es la fecha nueva.
@@ -872,6 +876,10 @@ model HorarioExcepcional {
 enum LugarTrabajoTipo {
   PARTICULAR
   CONSULTORIO
+  // Teleconsulta por videollamada (Daily.co). No tiene dirección física:
+  // `direccion` se guarda como "" y latitud/longitud/ciudad en null. Puede
+  // haber más de uno (p.ej. distintos horarios/nombres).
+  VIRTUAL
 }
 
 // Los lugares donde atiende el médico (Configuración → "Mi práctica") --
@@ -998,6 +1006,14 @@ model Turno {
   // `turno-link-paciente.ts`. Solo permite confirmar o cancelar ESTE turno.
   // Se genera la primera vez que el turno aparece en Recordatorios.
   linkCodigo String? @unique
+
+  // Teleconsulta (lugar VIRTUAL): nombre de la sala de Daily.co de este
+  // turno. Se crea la primera vez que alguien entra (ver src/lib/daily.ts),
+  // es privada y vence sola poco después de `fin`.
+  salaVideoNombre        String?
+  // El paciente aceptó la modalidad remota al reservar online (Ley 27.553).
+  // Null en turnos cargados desde el panel: ahí lo gestiona el médico.
+  consentimientoRemotoAt DateTime?
 
   @@index([inicio])
   @@index([doctorId])

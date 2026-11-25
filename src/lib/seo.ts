@@ -1,3 +1,4 @@
+import { nombreLugar } from "@/lib/lugar-tipo";
 import { ESPECIALIDAD_LABELS, especialidadPath, type Especialidad } from "@/lib/especialidad";
 import { FAQS } from "@/lib/faq";
 import type { RedesSociales } from "@/lib/redes-sociales";
@@ -192,19 +193,25 @@ export function perfilJsonLd(d: {
         ...(d.fotoUrl ? { image: absoluteUrl(d.fotoUrl) } : {}),
         ...(d.prepagas.length > 0 ? { knowsAbout: d.prepagas.map((p) => `Cobertura ${p}`) } : {}),
         ...(sameAs.length > 0 ? { sameAs } : {}),
-        ...(d.lugares[0]?.telefono ? { telephone: d.lugares[0].telefono } : {}),
+        // El primer lugar con teléfono (una teleconsulta no tiene).
+        ...(d.lugares.find((l) => l.telefono) ? { telephone: d.lugares.find((l) => l.telefono)!.telefono } : {}),
         ...(d.lugares.length > 0
           ? {
               location: d.lugares.map((l) => ({
                 "@type": "Place",
-                name: l.nombre ?? "Consulta particular",
+                name: nombreLugar(l),
                 ...(l.telefono ? { telephone: l.telefono } : {}),
-                address: {
-                  "@type": "PostalAddress",
-                  streetAddress: l.direccion,
-                  ...(l.ciudad ? { addressLocality: l.ciudad } : {}),
-                  addressCountry: "AR",
-                },
+                // Una teleconsulta no tiene dirección física.
+                ...(l.direccion
+                  ? {
+                      address: {
+                        "@type": "PostalAddress",
+                        streetAddress: l.direccion,
+                        ...(l.ciudad ? { addressLocality: l.ciudad } : {}),
+                        addressCountry: "AR",
+                      },
+                    }
+                  : {}),
               })),
             }
           : {}),

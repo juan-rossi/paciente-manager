@@ -443,7 +443,13 @@ export function TurnosCalendar({
 
       {!loading && <TurnosCanceladosOnline turnos={canceladosPorPacientes} />}
 
-      <TurnoDialogs state={turnoForm} selectedDate={selectedDate} prepagas={prepagas} />
+      <TurnoDialogs
+        state={turnoForm}
+        selectedDate={selectedDate}
+        prepagas={prepagas}
+        lugarTipo={turnoForm.formSlot ? lugaresPorId.get(turnoForm.formSlot.lugarId)?.tipo : undefined}
+        esMedico={role === "DOCTOR"}
+      />
 
       <SobreturnoDialog
         state={sobreturno}

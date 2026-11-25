@@ -10,7 +10,7 @@ const ALFABETO = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 const LARGO_CODIGO = 8;
 export const LINK_CODIGO_REGEX = /^[A-Za-z0-9]{8}$/;
 
-export type AccionLinkPaciente = "si" | "no";
+export type AccionLinkPaciente = "si" | "no" | "sala";
 
 function generarLinkCodigo(): string {
   let codigo = "";
@@ -66,11 +66,14 @@ export async function buscarTurnoPorLinkCodigo(codigo: string) {
     select: {
       id: true,
       inicio: true,
+      fin: true,
       estado: true,
       confirmadoAt: true,
       doctorId: true,
       lugarId: true,
-      lugar: { select: { nombre: true, direccion: true, ciudad: true } },
+      nombreYApellido: true,
+      salaVideoNombre: true,
+      lugar: { select: { tipo: true, nombre: true, direccion: true, ciudad: true } },
       doctor: { select: { nombre: true, tituloCortesia: true } },
     },
   });

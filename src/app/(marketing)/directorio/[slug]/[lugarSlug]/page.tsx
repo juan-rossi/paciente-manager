@@ -1,3 +1,4 @@
+import { nombreLugar as nombreDeLugar } from "@/lib/lugar-tipo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const doctor = await getDoctorPublicoPorSlug(slug);
   const lugar = doctor?.lugaresDeTrabajo.find((l) => l.publicSlug === lugarSlug);
   const nombre = doctor ? nombreDoctor(doctor) : null;
-  const nombreLugar = lugar?.nombre ?? "Consulta particular";
+  const nombreLugar = nombreDeLugar(lugar);
   // Título y texto para el preview del link al compartirlo (WhatsApp, etc.).
   const title = nombre ? `Sacá turno online con ${nombre} – ${nombreLugar}` : undefined;
   const description = lugar?.direccion
@@ -95,7 +96,7 @@ export default async function AgendaLugarPage({ params }: Props) {
                     href={`/directorio/${doctor.publicSlug}/${alt.publicSlug}`}
                     className="flex flex-col rounded-xl border border-border/60 p-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
                   >
-                    <span className="text-[13.5px] font-bold">{alt.nombre ?? "Consulta particular"}</span>
+                    <span className="text-[13.5px] font-bold">{nombreDeLugar(alt)}</span>
                     <span className="text-xs text-muted-foreground">{alt.direccion}</span>
                   </Link>
                 ))}

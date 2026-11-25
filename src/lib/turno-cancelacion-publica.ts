@@ -1,3 +1,4 @@
+import { nombreLugar } from "@/lib/lugar-tipo";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -59,7 +60,7 @@ export async function getTurnoVigenteParaPerfil(doctorId: string, slug: string) 
   if (!turno) return null;
   return {
     inicio: turno.inicio.toISOString(),
-    lugarNombre: turno.lugar.nombre ?? "Consulta particular",
+    lugarNombre: nombreLugar(turno.lugar),
     direccion: turno.lugar.direccion,
   };
 }

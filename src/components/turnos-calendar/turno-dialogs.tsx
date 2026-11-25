@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import { Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CopiarLinkSala } from "@/components/teleconsulta/copiar-link-sala";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ObraSocialSelect } from "@/components/obra-social-select";
@@ -18,10 +21,14 @@ import { EstadoTurnoIcono, formatHora } from "./utils";
 import type { TurnoFormState } from "./use-turno-form";
 
 // Diálogos de reservar/editar turno y de cancelarlo.
-export function TurnoDialogs({ state, selectedDate, prepagas }: {
+export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico }: {
   state: TurnoFormState;
   selectedDate: Date;
   prepagas: string[];
+  // Tipo del lugar del turno abierto: si es VIRTUAL se muestran los accesos
+  // a la sala de la teleconsulta.
+  lugarTipo?: string;
+  esMedico: boolean;
 }) {
   const {
     formSlot,
@@ -88,6 +95,27 @@ export function TurnoDialogs({ state, selectedDate, prepagas }: {
                 >
                   {estado === "CONFIRMADO" ? "Quitar confirmación" : "Marcar confirmado"}
                 </Button>
+              </div>
+            )}
+            {editingTurnoId && lugarTipo === "VIRTUAL" && formSlot?.turno?.estado !== "CANCELADO" && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-sky-500/30 bg-sky-500/5 px-3 py-2">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <Video className="size-4 text-sky-600" />
+                  Teleconsulta
+                </span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <CopiarLinkSala turnoId={editingTurnoId} />
+                  {esMedico && (
+                    <Button
+                      size="sm"
+                      nativeButton={false}
+                      render={<Link href={`/turnos/${editingTurnoId}/sala`} />}
+                    >
+                      <Video className="size-4" />
+                      Ir a la sala
+                    </Button>
+                  )}
+                </span>
               </div>
             )}
             <hr className="mt-2 mb-2" />

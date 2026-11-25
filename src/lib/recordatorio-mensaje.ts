@@ -21,15 +21,31 @@ export function formatFechaRecordatorio(turnoInicio: Date, ahora: Date = new Dat
   return `el ${fecha}`;
 }
 
-// `links` son los de `{confirmar}`/`{cancelar}` (ver turno-link-paciente.ts).
-// Sin links (ej. la vista previa de Configuración) los placeholders quedan
-// tal cual.
+export type PlantillasRecordatorio = {
+  // Turnos presenciales.
+  general: string;
+  // Turnos de un lugar VIRTUAL (teleconsulta) -- `User.mensajeTemplateVirtual`.
+  virtual: string;
+};
+
+// Una teleconsulta se reconoce porque trae el link de `{videollamada}` (ver
+// getRecordatoriosDelDia): usa la plantilla de teleconsulta.
+export function plantillaRecordatorio(
+  plantillas: PlantillasRecordatorio,
+  links?: { videollamada?: string | null }
+): string {
+  return links?.videollamada ? plantillas.virtual : plantillas.general;
+}
+
+// `links` son los de `{confirmar}`/`{cancelar}` (ver turno-link-paciente.ts)
+// y, solo en una teleconsulta, el de `{videollamada}`. Sin links (ej. la
+// vista previa de Configuración) los placeholders quedan tal cual.
 export function buildMensajeRecordatorio(
   template: string,
   nombre: string,
   turnoInicio: Date,
   ahora: Date = new Date(),
-  links?: { confirmar: string; cancelar: string }
+  links?: { confirmar: string; cancelar: string; videollamada?: string | null }
 ): string {
   let mensaje = template
     .replaceAll("{nombre}", nombre)
@@ -37,6 +53,18 @@ export function buildMensajeRecordatorio(
     .replaceAll("{hora}", formatHoraBA(turnoInicio));
   if (links) {
     mensaje = mensaje.replaceAll("{confirmar}", links.confirmar).replaceAll("{cancelar}", links.cancelar);
+    if (links.videollamada) {
+      // Si el médico sacó `{videollamada}` de la plantilla de teleconsulta,
+      // el link se agrega igual al final (sin él el paciente no tiene cómo
+      // entrar).
+      mensaje = mensaje.includes("{videollamada}")
+        ? mensaje.replaceAll("{videollamada}", links.videollamada)
+        : `${mensaje}\n\nEs una teleconsulta: entrá desde acá a la hora del turno ${links.videollamada}`;
+    } else {
+      // Turno presencial: la variable no aplica (puede haber quedado en la
+      // plantilla general de cuando era una sola para todos los turnos).
+      mensaje = mensaje.replaceAll("{videollamada}", "");
+    }
   }
   return mensaje;
 }

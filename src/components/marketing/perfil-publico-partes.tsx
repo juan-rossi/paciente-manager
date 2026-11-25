@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Banknote, Building2, ChevronRight, MapPin, Phone } from "lucide-react";
+import { LUGAR_TIPO_LABEL, nombreLugar, type LugarTrabajoTipo } from "@/lib/lugar-tipo";
+import { Banknote, Building2, ChevronRight, MapPin, Phone, Video } from "lucide-react";
 import { ESPECIALIDAD_LABELS, especialidadPath, type Especialidad } from "@/lib/especialidad";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { RED_SOCIAL_LABELS, type RedesSociales, type RedSocial } from "@/lib/redes-sociales";
@@ -51,7 +52,7 @@ export function ContactField({
 export function LugarCard({
   lugar,
 }: {
-  lugar: { id: string; tipo: "PARTICULAR" | "CONSULTORIO"; nombre: string | null; direccion: string; telefono: string };
+  lugar: { id: string; tipo: LugarTrabajoTipo; nombre: string | null; direccion: string; telefono: string };
 }) {
   return (
     <div className="rounded-xl border border-border/60 bg-card p-4">
@@ -60,16 +61,22 @@ export function LugarCard({
           className={
             lugar.tipo === "PARTICULAR"
               ? "rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
-              : "rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
+              : lugar.tipo === "VIRTUAL"
+                ? "rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300"
+                : "rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
           }
         >
-          {lugar.tipo === "PARTICULAR" ? "Particular" : "Consultorio"}
+          {LUGAR_TIPO_LABEL[lugar.tipo]}
         </span>
-        <span className="text-[13.5px] font-bold">{lugar.nombre ?? "Consulta particular"}</span>
+        <span className="text-[13.5px] font-bold">{nombreLugar(lugar)}</span>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ContactField icon={MapPin} label="Dirección" value={lugar.direccion} mapQuery={lugar.direccion} />
-        <ContactField icon={Phone} label="Teléfono" value={lugar.telefono} />
+        {lugar.tipo === "VIRTUAL" ? (
+          <ContactField icon={Video} label="Modalidad" value="Videollamada, sin descargar nada" />
+        ) : (
+          <ContactField icon={MapPin} label="Dirección" value={lugar.direccion} mapQuery={lugar.direccion} />
+        )}
+        {lugar.telefono && <ContactField icon={Phone} label="Teléfono" value={lugar.telefono} />}
       </div>
     </div>
   );
