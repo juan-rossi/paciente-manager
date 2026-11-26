@@ -37,10 +37,10 @@ export default async function SalaMedicoPage({ params }: Props) {
       patientId: true,
       consentimientoRemotoAt: true,
       origen: true,
-      lugar: { select: { tipo: true } },
+      teleconsulta: true,
     },
   });
-  if (!turno || turno.lugar.tipo !== "VIRTUAL") notFound();
+  if (!turno || !turno.teleconsulta) notFound();
 
   const estado = estadoSala(turno);
   const fecha = turno.inicio.toLocaleDateString("es-AR", {
@@ -122,13 +122,13 @@ export default async function SalaMedicoPage({ params }: Props) {
                 <CopiarLinkSala turnoId={turno.id} />
               </div>
             )}
-            {turno.origen === "ONLINE" && (
-              <p className="text-xs text-muted-foreground">
-                {turno.consentimientoRemotoAt
+            <p className="text-xs text-muted-foreground">
+              {!turno.consentimientoRemotoAt
+                ? "Turno sin consentimiento de atención remota registrado."
+                : turno.origen === "ONLINE"
                   ? "El paciente aceptó la atención por videollamada al reservar."
-                  : "Turno sin consentimiento de atención remota registrado."}
-              </p>
-            )}
+                  : "El paciente aceptó la atención por videollamada (registrado desde la agenda)."}
+            </p>
           </CardContent>
         </Card>
       </div>

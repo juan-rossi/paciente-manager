@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { mensajeLugarDuplicado } from "@/lib/lugar-tipo";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -31,12 +32,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
   }
 
-  if (parsed.data.tipo === "PARTICULAR") {
-    const otroParticular = await prisma.lugarDeTrabajo.findFirst({
-      where: { userId: tenantId, tipo: "PARTICULAR", deletedAt: null, id: { not: id } },
+  // Solo puede haber un lugar particular y una teleconsulta por médico.
+  if (parsed.data.tipo === "PARTICULAR" || parsed.data.tipo === "VIRTUAL") {
+    const otro = await prisma.lugarDeTrabajo.findFirst({
+      where: { userId: tenantId, tipo: parsed.data.tipo, deletedAt: null, id: { not: id } },
     });
-    if (otroParticular) {
-      return NextResponse.json({ error: "Ya tenés un lugar particular cargado." }, { status: 409 });
+    if (otro) {
+      return NextResponse.json({ error: mensajeLugarDuplicado(parsed.data.tipo) }, { status: 409 });
     }
   }
 

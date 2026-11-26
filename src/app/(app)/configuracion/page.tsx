@@ -218,7 +218,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessagingSettings
               initialMensajeTemplate={user.mensajeTemplate}
               initialMensajeTemplateVirtual={user.mensajeTemplateVirtual}
-              tieneTeleconsulta={teleconsultaHabilitada() && lugares.some((l) => l.tipo === "VIRTUAL")}
+              tieneTeleconsulta={teleconsultaHabilitada()}
               initialMensajeriaHabilitada={user.mensajeriaHabilitada}
               initialRecordatorioAutoEnviado={user.recordatorioAutoEnviado}
               initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}

@@ -62,8 +62,9 @@ export async function POST(request: NextRequest) {
   // El lugar tiene que ser de este médico y estar vigente, también cuando
   // agenda el propio médico: un `lugarId` ajeno mostraría el consultorio de
   // otro médico en el link del recordatorio al paciente.
-  const lugarValido = await prisma.lugarDeTrabajo.count({
+  const lugarValido = await prisma.lugarDeTrabajo.findFirst({
     where: { id: parsed.data.lugarId, userId: tenantId, deletedAt: null },
+    select: { tipo: true },
   });
   if (!lugarValido) {
     return NextResponse.json({ error: "El lugar no es válido." }, { status: 400 });
@@ -123,6 +124,8 @@ export async function POST(request: NextRequest) {
         creadoPorId: user.id,
         doctorId: tenantId,
         lugarId: parsed.data.lugarId,
+        // Un turno de un lugar de Teleconsulta es siempre videollamada.
+        teleconsulta: lugarValido.tipo === "VIRTUAL",
       },
     });
     return { turno } as const;

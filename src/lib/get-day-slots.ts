@@ -19,7 +19,7 @@ export type SerializedTurno = {
   patientId?: string | null;
   recordatorioEnviado: boolean;
   confirmadoAt: string | null;
-  // El turno es de un lugar VIRTUAL (videollamada).
+  // El turno se atiende por videollamada (ver `Turno.teleconsulta`).
   teleconsulta: boolean;
 };
 
@@ -170,13 +170,10 @@ export async function getDaySlots(
     );
   }
 
-  const tipoPorLugar = new Map(lugares.map((l) => [l.id, l.tipo]));
-
   function serialize(turno: (typeof turnos)[number]) {
     return serializeTurno(
       {
         ...turno,
-        teleconsulta: tipoPorLugar.get(turno.lugarId) === "VIRTUAL",
         fechaNacimiento: turno.fechaNacimiento?.toISOString() ?? null,
         confirmadoAt: turno.confirmadoAt?.toISOString() ?? null,
       },

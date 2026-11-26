@@ -167,6 +167,10 @@ enum TurnoOrigen {
 enum TurnoAvisoPendienteMotivo {
   CANCELADO
   APLAZADO
+  // El médico/asistente cambió la modalidad de un turno ya dado (ver
+  // `Turno.teleconsulta`) y el paciente todavía no se enteró.
+  PASADO_A_TELECONSULTA
+  PASADO_A_PRESENCIAL
 }
 
 enum TipoAntecedente {
@@ -550,6 +554,7 @@ model User {
   turnosCreados         Turno[]                 @relation("TurnoCreadoPor")
   pacientes             Patient[]               @relation("PatientDoctor")
   turnosDelDoctor       Turno[]                 @relation("TurnoDoctor")
+  turnosModalidadCambiada Turno[]               @relation("TurnoModalidadCambiadaPor")
   auditLogsDelTenant    AuditLog[]              @relation("AuditDoctor")
   auditLogsComoActor    AuditLog[]              @relation("AuditActor")
   pacientesVistos       PacienteVisto[]
@@ -1011,9 +1016,22 @@ model Turno {
   // turno. Se crea la primera vez que alguien entra (ver src/lib/daily.ts),
   // es privada y vence sola poco después de `fin`.
   salaVideoNombre        String?
-  // El paciente aceptó la modalidad remota al reservar online (Ley 27.553).
-  // Null en turnos cargados desde el panel: ahí lo gestiona el médico.
+  // El paciente aceptó la modalidad remota (Ley 27.553): al reservar online
+  // o, en un turno pasado a teleconsulta desde el panel, cuando el
+  // médico/asistente lo dejó registrado. Null si nadie lo registró.
   consentimientoRemotoAt DateTime?
+
+  // El turno se atiende por videollamada. Es la fuente de verdad de "es
+  // teleconsulta" (sala, link `{videollamada}`, plantilla de recordatorio,
+  // marca en la grilla) -- NO el tipo del lugar: un turno de un consultorio
+  // o particular se puede pasar a teleconsulta sin moverlo de lugar (así
+  // sigue ocupando su horario y el asistente de ese lugar lo sigue viendo).
+  // Un turno de un lugar VIRTUAL es siempre `true`.
+  teleconsulta           Boolean   @default(false)
+  // Último cambio de modalidad hecho a mano (presencial <-> teleconsulta).
+  modalidadCambiadaAt    DateTime?
+  modalidadCambiadaPorId String?
+  modalidadCambiadaPor   User?     @relation("TurnoModalidadCambiadaPor", fields: [modalidadCambiadaPorId], references: [id], onDelete: SetNull)
 
   @@index([inicio])
   @@index([doctorId])

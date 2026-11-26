@@ -39,7 +39,7 @@ export default async function SalaPacientePage({ params }: Props) {
   let contenido: React.ReactNode;
   if (!permitido) {
     contenido = <Mensaje titulo="Demasiados intentos" texto="Probá de nuevo en unos minutos." />;
-  } else if (!turno || turno.lugar.tipo !== "VIRTUAL") {
+  } else if (!turno || !turno.teleconsulta) {
     contenido = (
       <Mensaje
         titulo="Este link no es válido"

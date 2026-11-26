@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Building2,
+  House,
+  Link2,
+  MonitorSmartphone,
+  ShieldCheck,
   CalendarDays,
   Clock,
   MapPin,
@@ -39,7 +43,12 @@ import { AddressAutocomplete, type AddressResult } from "@/components/address-au
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { DIA_SEMANA_VALUES, type DiaSemana } from "@/lib/slots";
 import { cn, filterTelefono } from "@/lib/utils";
-import { LUGAR_TIPO_LABEL, type LugarTrabajoTipo, nombreLugar } from "@/lib/lugar-tipo";
+import {
+  LUGAR_TIPO_LABEL,
+  type LugarTrabajoTipo,
+  mensajeLugarDuplicado,
+  nombreLugar,
+} from "@/lib/lugar-tipo";
 
 const DIA_LABELS: Record<DiaSemana, string> = {
   LUNES: "Lunes",
@@ -243,6 +252,7 @@ export function MiPracticaSettings({
   }
 
   const hayParticular = lugares.some((l) => l.tipo === "PARTICULAR");
+  const hayVirtual = lugares.some((l) => l.tipo === "VIRTUAL");
 
   function openCreateLugar() {
     setEditingLugar(null);
@@ -289,6 +299,8 @@ export function MiPracticaSettings({
   // El radio "Particular" solo se puede elegir si no hay otro particular
   // cargado, o si el que se está editando es justamente ese.
   const particularDeshabilitado = hayParticular && editingLugar?.tipo !== "PARTICULAR";
+  // Lo mismo con la teleconsulta: una sola por médico.
+  const virtualDeshabilitado = hayVirtual && editingLugar?.tipo !== "VIRTUAL";
 
   async function handleGuardarLugar() {
     if (
@@ -309,7 +321,7 @@ export function MiPracticaSettings({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             tipo,
-            nombre: tipo === "PARTICULAR" ? undefined : nombre,
+            nombre: tipo === "CONSULTORIO" ? nombre : undefined,
             direccion: tipo === "VIRTUAL" ? undefined : direccion,
             telefono: tipo === "VIRTUAL" ? undefined : telefono,
             latitud,
@@ -685,54 +697,109 @@ export function MiPracticaSettings({
           <DialogHeader>
             <DialogTitle>{editingLugar ? "Editar lugar" : "Nuevo lugar"}</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <Label>Tipo *</Label>
-              <RadioGroup
-                value={tipo}
-                onValueChange={(v) => setTipo(v as LugarTrabajoTipo)}
-                className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem
-                    value="PARTICULAR"
-                    id="lugar-particular"
-                    disabled={particularDeshabilitado}
-                  />
-                  <Label
-                    htmlFor="lugar-particular"
-                    className="font-normal"
-                    title={particularDeshabilitado ? "Ya tenés un lugar particular cargado." : undefined}
+              {(() => {
+                // Un lugar que ya es de Teleconsulta se sigue mostrando como tal.
+                const mostrarVirtual = teleconsultaHabilitada || tipo === "VIRTUAL";
+                const opciones: {
+                  value: LugarTrabajoTipo;
+                  id: string;
+                  label: string;
+                  icon: typeof House;
+                  disabled?: boolean;
+                  title?: string;
+                }[] = [
+                  {
+                    value: "PARTICULAR",
+                    id: "lugar-particular",
+                    label: "Particular",
+                    icon: House,
+                    disabled: particularDeshabilitado,
+                    title: particularDeshabilitado
+                      ? mensajeLugarDuplicado("PARTICULAR")
+                      : undefined,
+                  },
+                  {
+                    value: "CONSULTORIO",
+                    id: "lugar-consultorio",
+                    label: "Consultorio",
+                    icon: Building2,
+                  },
+                  ...(mostrarVirtual
+                    ? [
+                        {
+                          value: "VIRTUAL" as const,
+                          id: "lugar-virtual",
+                          label: "Teleconsulta",
+                          icon: Video,
+                          disabled: virtualDeshabilitado,
+                          title: virtualDeshabilitado
+                            ? mensajeLugarDuplicado("VIRTUAL")
+                            : undefined,
+                        },
+                      ]
+                    : []),
+                ];
+                return (
+                  <RadioGroup
+                    value={tipo}
+                    onValueChange={(v) => setTipo(v as LugarTrabajoTipo)}
+                    className={cn("grid gap-2", mostrarVirtual ? "grid-cols-3" : "grid-cols-2")}
                   >
-                    Particular
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="CONSULTORIO" id="lugar-consultorio" />
-                  <Label htmlFor="lugar-consultorio" className="font-normal">
-                    Consultorio
-                  </Label>
-                </div>
-                {/* Un lugar que ya es de Teleconsulta se sigue mostrando como tal. */}
-                {(teleconsultaHabilitada || tipo === "VIRTUAL") && (
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="VIRTUAL" id="lugar-virtual" />
-                    <Label htmlFor="lugar-virtual" className="font-normal">
-                      Teleconsulta
-                    </Label>
-                  </div>
-                )}
-              </RadioGroup>
-              {tipo === "VIRTUAL" && (
-                <p className="text-xs text-muted-foreground">
-                  Consultas por videollamada dentro de Semio 360. Cada turno tiene su propia sala
-                  privada; el paciente entra con el link del turno, sin descargar nada.
-                </p>
-              )}
+                    {opciones.map((o) => {
+                      const Icon = o.icon;
+                      return (
+                        <label
+                          key={o.value}
+                          htmlFor={o.id}
+                          title={o.title}
+                          className={cn(
+                            "relative flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border bg-background px-2 pt-4 pb-3 text-sm transition-colors",
+                            "hover:border-primary/40 hover:bg-muted/40",
+                            "has-[[data-checked]]:border-primary has-[[data-checked]]:bg-primary/5 has-[[data-checked]]:text-primary",
+                            "has-[[data-disabled]]:cursor-not-allowed has-[[data-disabled]]:opacity-50 has-[[data-disabled]]:hover:border-border has-[[data-disabled]]:hover:bg-background",
+                          )}
+                        >
+                          <RadioGroupItem
+                            value={o.value}
+                            id={o.id}
+                            disabled={o.disabled}
+                            className="absolute top-2 right-2 size-3.5"
+                          />
+                          <Icon className="size-5" />
+                          <span className="font-medium">{o.label}</span>
+                        </label>
+                      );
+                    })}
+                  </RadioGroup>
+                );
+              })()}
             </div>
 
+            {tipo === "VIRTUAL" && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <p className="text-sm font-medium">Videollamada dentro de Semio 360</p>
+                <ul className="mt-2 flex flex-col gap-1.5 text-xs text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <ShieldCheck className="mt-px size-3.5 shrink-0 text-primary" />
+                    Cada turno tiene su propia sala privada.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Link2 className="mt-px size-3.5 shrink-0 text-primary" />
+                    El paciente entra con el link del turno.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <MonitorSmartphone className="mt-px size-3.5 shrink-0 text-primary" />
+                    No hace falta descargar nada: funciona desde el navegador.
+                  </li>
+                </ul>
+              </div>
+            )}
+
             {tipo === "CONSULTORIO" && (
-              <div className="flex flex-col gap-1.5 mt-2">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="lugar-nombre">Nombre del consultorio *</Label>
                 <Input
                   id="lugar-nombre"
@@ -743,20 +810,8 @@ export function MiPracticaSettings({
               </div>
             )}
 
-            {tipo === "VIRTUAL" && (
-              <div className="flex flex-col gap-1.5 mt-2">
-                <Label htmlFor="lugar-nombre-virtual">Nombre (opcional)</Label>
-                <Input
-                  id="lugar-nombre-virtual"
-                  value={nombre}
-                  placeholder="Teleconsulta"
-                  onChange={(e) => setNombre(e.target.value)}
-                />
-              </div>
-            )}
-
             {tipo !== "VIRTUAL" && (
-              <div className="flex flex-col gap-1.5 mt-2">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="lugar-direccion">Dirección *</Label>
                 <AddressAutocomplete
                   id="lugar-direccion"
@@ -769,7 +824,7 @@ export function MiPracticaSettings({
             )}
 
             {tipo !== "VIRTUAL" && (
-              <div className="flex flex-col gap-1.5 mt-2">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="lugar-telefono">Teléfono *</Label>
                 <Input
                   id="lugar-telefono"

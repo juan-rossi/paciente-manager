@@ -24,7 +24,7 @@ export function formatFechaRecordatorio(turnoInicio: Date, ahora: Date = new Dat
 export type PlantillasRecordatorio = {
   // Turnos presenciales.
   general: string;
-  // Turnos de un lugar VIRTUAL (teleconsulta) -- `User.mensajeTemplateVirtual`.
+  // Teleconsultas (ver `Turno.teleconsulta`) -- `User.mensajeTemplateVirtual`.
   virtual: string;
 };
 
@@ -92,6 +92,37 @@ export function buildMensajeCambioTurno(
       .replaceAll("{nueva_hora}", formatHoraBA(nuevaFecha));
   }
   return mensaje;
+}
+
+// Links del paciente para el aviso de "pasó a teleconsulta" (ver
+// turno-link-paciente.ts): la sala y los de confirmar/cancelar el turno.
+export type LinksTeleconsulta = { sala: string; confirmar: string; cancelar: string };
+
+// Aviso de cambio de modalidad de un turno (ver "Pendientes de notificar"
+// en Recordatorios y `Turno.teleconsulta`). Texto fijo, sin plantilla
+// configurable: `{fecha}`/`{hora}` son las actuales del turno (el horario no
+// cambia, solo la modalidad).
+export function buildMensajeCambioModalidad(
+  nombre: string,
+  turnoInicio: Date,
+  cambio:
+    | { aTeleconsulta: true; links: LinksTeleconsulta | null }
+    | { aTeleconsulta: false; dondeAtiende: string | null },
+  ahora: Date = new Date()
+): string {
+  const cuando = `${formatFechaRecordatorio(turnoInicio, ahora)} a las ${formatHoraBA(turnoInicio)} hs`;
+  if (cambio.aTeleconsulta) {
+    const links = cambio.links;
+    const aviso = `Hola ${nombre}, te avisamos que tu turno ${cuando} va a ser por videollamada (teleconsulta).`;
+    if (!links) return aviso;
+    return (
+      `${aviso} A esa hora entrá a la videollamada desde acá: ${links.sala}\n\n` +
+      `Confirmá tu asistencia: ${links.confirmar}\n` +
+      `Si no podés asistir, cancelá acá: ${links.cancelar}`
+    );
+  }
+  const donde = cambio.dondeAtiende ? `, en ${cambio.dondeAtiende}` : "";
+  return `Hola ${nombre}, te avisamos que tu turno ${cuando} ya no va a ser por videollamada: es presencial${donde}.`;
 }
 
 // Link de WhatsApp sin destinatario: el usuario elige el chat al abrirlo.

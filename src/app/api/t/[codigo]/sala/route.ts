@@ -25,7 +25,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const turno = await buscarTurnoPorLinkCodigo(codigo);
-  if (!turno || turno.lugar.tipo !== "VIRTUAL") {
+  if (!turno || !turno.teleconsulta) {
     return NextResponse.json({ error: "Link inválido." }, { status: 404 });
   }
   if (turno.estado === "CANCELADO") {

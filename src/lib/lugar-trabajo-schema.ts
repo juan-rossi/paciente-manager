@@ -3,8 +3,8 @@ import { z } from "zod";
 // La dirección y el teléfono son obligatorios para los lugares físicos: un
 // lugar VIRTUAL (teleconsulta) no tiene ninguno de los dos -- se guardan ""
 // (las columnas no son nullable) y sin coordenadas. El nombre es obligatorio solo en un consultorio -- un
-// lugar particular no tiene "nombre de fantasía" y el virtual es opcional
-// (si no hay, se muestra "Teleconsulta").
+// lugar particular no tiene "nombre de fantasía" y el virtual nunca tiene
+// nombre propio: siempre se muestra "Teleconsulta" (se guarda null).
 export const lugarTrabajoSchema = z
   .object({
     tipo: z.enum(["PARTICULAR", "CONSULTORIO", "VIRTUAL"]),
@@ -44,6 +44,6 @@ export const lugarTrabajoSchema = z
   })
   .transform((data) =>
     data.tipo === "VIRTUAL"
-      ? { ...data, direccion: "", telefono: "", latitud: null, longitud: null, ciudad: null }
+      ? { ...data, nombre: null, direccion: "", telefono: "", latitud: null, longitud: null, ciudad: null }
       : data
   );

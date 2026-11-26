@@ -27,7 +27,7 @@ export function estadoSala(turno: { inicio: Date; fin: Date }, ahora = new Date(
 
 /**
  * Devuelve la URL (sala + token) para que una persona entre a la
- * teleconsulta de un turno. Quien llama ya validó que el turno es VIRTUAL,
+ * teleconsulta de un turno. Quien llama ya validó que el turno es teleconsulta,
  * no está cancelado y que la persona tiene derecho a entrar.
  */
 export async function urlIngresoSala(

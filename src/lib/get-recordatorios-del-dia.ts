@@ -11,7 +11,7 @@ export type RecordatorioTurno = {
   recordatorioEnviado: boolean;
   confirmado: boolean;
   // Los de `{confirmar}`/`{cancelar}` de la plantilla, y `{videollamada}`
-  // (solo en turnos de un lugar VIRTUAL).
+  // (solo en las teleconsultas, ver `Turno.teleconsulta`).
   links: { confirmar: string; cancelar: string; videollamada: string | null };
 };
 
@@ -57,7 +57,7 @@ export async function getRecordatoriosDelDia(
       recordatorioEnviado: true,
       confirmadoAt: true,
       linkCodigo: true,
-      lugar: { select: { tipo: true } },
+      teleconsulta: true,
     },
   });
   const codigos = await asegurarLinkCodigos(turnos);
@@ -75,7 +75,7 @@ export async function getRecordatoriosDelDia(
         links: {
           confirmar: linkPaciente(codigo, "si"),
           cancelar: linkPaciente(codigo, "no"),
-          videollamada: t.lugar.tipo === "VIRTUAL" ? linkPaciente(codigo, "sala") : null,
+          videollamada: t.teleconsulta ? linkPaciente(codigo, "sala") : null,
         },
       };
     }),

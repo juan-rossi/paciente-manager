@@ -5,14 +5,22 @@ import { requireUser } from "@/lib/api-auth";
 import { serializeTurno } from "@/lib/turno-serialize";
 import { turnoEditSchema } from "@/lib/turno-schema";
 import { limpiarAperturasSinTurnos } from "@/lib/horario-excepcional";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { avisoPorCambioDeModalidad } from "@/lib/teleconsulta-modalidad";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 // `confirmado`: el médico/asistente marca a mano que el paciente confirmó
 // (ej. avisó por teléfono) o lo desmarca -- ver `Turno.confirmadoAt`.
+//
+// `teleconsulta`: pasa un turno de un consultorio/particular a
+// videollamada o lo vuelve a presencial, sin moverlo de lugar ni de horario
+// (ver `Turno.teleconsulta`). `consentimientoRemoto`: el paciente aceptó la
+// atención por videollamada (solo cuenta al pasarlo a teleconsulta).
 const turnoUpdateSchema = z.union([
   z.object({ estado: z.literal("CANCELADO") }),
   z.object({ confirmado: z.boolean() }),
+  z.object({ teleconsulta: z.boolean(), consentimientoRemoto: z.boolean().optional() }),
   turnoEditSchema,
 ]);
 
@@ -71,6 +79,58 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const turno = await prisma.turno.update({
       where: { id },
       data: { confirmadoAt: parsed.data.confirmado ? new Date() : null },
+    });
+    return NextResponse.json({ turno: serializeTurno(turno, user.role) });
+  }
+
+  if ("teleconsulta" in parsed.data) {
+    if (!teleconsultaHabilitada()) {
+      return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
+    }
+    const actual = await prisma.turno.findUniqueOrThrow({
+      where: { id },
+      select: {
+        estado: true,
+        fin: true,
+        teleconsulta: true,
+        avisoPendiente: true,
+        avisoPendienteMotivo: true,
+        lugar: { select: { tipo: true } },
+      },
+    });
+    // Un turno de un lugar de Teleconsulta es videollamada por definición:
+    // para atenderlo presencial hay que darle un turno en otro lugar.
+    if (actual.lugar.tipo === "VIRTUAL") {
+      return NextResponse.json(
+        { error: "Los turnos de Teleconsulta no se pueden pasar a presencial." },
+        { status: 409 }
+      );
+    }
+    if (actual.estado === "CANCELADO") {
+      return NextResponse.json({ error: "Este turno está cancelado." }, { status: 409 });
+    }
+    if (actual.fin <= new Date()) {
+      return NextResponse.json({ error: "Este turno ya pasó." }, { status: 409 });
+    }
+    const { teleconsulta, consentimientoRemoto } = parsed.data;
+    if (actual.teleconsulta === teleconsulta) {
+      const turno = await prisma.turno.findUniqueOrThrow({ where: { id } });
+      return NextResponse.json({ turno: serializeTurno(turno, user.role) });
+    }
+
+    const turno = await prisma.turno.update({
+      where: { id },
+      data: {
+        teleconsulta,
+        // Al volver a presencial el consentimiento deja de aplicar: si
+        // después se lo vuelve a pasar, se pregunta de nuevo.
+        consentimientoRemotoAt: teleconsulta && consentimientoRemoto ? new Date() : null,
+        modalidadCambiadaAt: new Date(),
+        modalidadCambiadaPorId: user.id,
+        // La confirmación del paciente era para la otra modalidad.
+        confirmadoAt: null,
+        ...avisoPorCambioDeModalidad(actual, teleconsulta),
+      },
     });
     return NextResponse.json({ turno: serializeTurno(turno, user.role) });
   }

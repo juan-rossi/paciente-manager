@@ -4,23 +4,69 @@ import { useState } from "react";
 import { Check, Loader2, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { buildMensajeCambioTurno, buildWhatsAppHref } from "@/lib/recordatorio-mensaje";
+import { buildMensajeCambioModalidad, buildMensajeCambioTurno, buildWhatsAppHref } from "@/lib/recordatorio-mensaje";
 import { formatHoraBA } from "@/lib/timezone";
-
-type TurnoPendienteAviso = {
-  id: string;
-  nombreYApellido: string;
-  telefono: string;
-  inicio: string;
-  avisoPendienteMotivo: "CANCELADO" | "APLAZADO";
-  avisoPendienteFechaAnterior: string | null;
-};
+import type { TurnoPendienteAviso } from "@/lib/turnos-pendientes-aviso";
 
 type Props = {
   initialPendientes: TurnoPendienteAviso[];
   mensajeTemplateCancelado: string;
   mensajeTemplateAplazado: string;
 };
+
+function fechaLarga(date: Date) {
+  return date.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+}
+
+// Mensaje de WhatsApp y textos de la fila según el motivo.
+function contenidoAviso(
+  turno: TurnoPendienteAviso,
+  plantillas: { cancelado: string; aplazado: string }
+): { mensaje: string; detalle: string; detalleCorto: string } {
+  const inicio = new Date(turno.inicio);
+  switch (turno.avisoPendienteMotivo) {
+    case "PASADO_A_TELECONSULTA":
+      return {
+        mensaje: buildMensajeCambioModalidad(turno.nombreYApellido, inicio, {
+          aTeleconsulta: true,
+          links: turno.linksTeleconsulta,
+        }),
+        detalle: `Pasó a teleconsulta · ${fechaLarga(inicio)} a las ${formatHoraBA(inicio)}`,
+        detalleCorto: `Teleconsulta · ${fechaCorta(inicio)} ${formatHoraBA(inicio)}`,
+      };
+    case "PASADO_A_PRESENCIAL":
+      return {
+        mensaje: buildMensajeCambioModalidad(turno.nombreYApellido, inicio, {
+          aTeleconsulta: false,
+          dondeAtiende: turno.dondeAtiende,
+        }),
+        detalle: `Volvió a presencial · ${fechaLarga(inicio)} a las ${formatHoraBA(inicio)}`,
+        detalleCorto: `Presencial · ${fechaCorta(inicio)} ${formatHoraBA(inicio)}`,
+      };
+    case "CANCELADO": {
+      // El turno nunca se movió: `inicio` sigue siendo la fecha original.
+      const fechaOriginal = new Date(turno.avisoPendienteFechaAnterior ?? turno.inicio);
+      return {
+        mensaje: buildMensajeCambioTurno(plantillas.cancelado, turno.nombreYApellido, fechaOriginal, null),
+        detalle: `Turno cancelado · era el ${fechaLarga(fechaOriginal)} a las ${formatHoraBA(fechaOriginal)}`,
+        // Versión corta para mobile -- el detalle completo wrappeaba feo en
+        // pantallas angostas.
+        detalleCorto: `Cancelado · ${fechaCorta(fechaOriginal)} ${formatHoraBA(fechaOriginal)}`,
+      };
+    }
+    case "APLAZADO": {
+      // `avisoPendienteFechaAnterior` es la fecha vieja (lo que le toca a
+      // {fecha}/{hora} en la plantilla) e `inicio` (ya pisado) la nueva
+      // ({nueva_fecha}).
+      const fechaOriginal = new Date(turno.avisoPendienteFechaAnterior ?? turno.inicio);
+      return {
+        mensaje: buildMensajeCambioTurno(plantillas.aplazado, turno.nombreYApellido, fechaOriginal, inicio),
+        detalle: `Turno aplazado · ahora es el ${fechaLarga(inicio)} a las ${formatHoraBA(inicio)}`,
+        detalleCorto: `Aplazado → ${fechaCorta(inicio)} ${formatHoraBA(inicio)}`,
+      };
+    }
+  }
+}
 
 function fechaCorta(date: Date) {
   return date.toLocaleDateString("es-AR", {
@@ -32,8 +78,9 @@ function fechaCorta(date: Date) {
 
 // Sección fija (no colapsable, alternativa "F"): a diferencia del
 // navegador de abajo, no depende de qué día se esté mirando -- lista TODOS
-// los turnos que la resolución de conflictos de "Bloquear horarios" tocó y
-// todavía nadie marcó como notificados. Se oculta sola en cuanto la lista
+// los turnos que la resolución de conflictos de "Bloquear horarios" tocó, o
+// a los que se les cambió la modalidad, y todavía nadie marcó como
+// notificados. Se oculta sola en cuanto la lista
 // queda vacía.
 export function RecordatoriosPendientes({
   initialPendientes,
@@ -65,27 +112,11 @@ export function RecordatoriosPendientes({
       </div>
       <ul className="flex flex-col gap-2">
         {pendientes.map((turno) => {
-          // Para APLAZADO, `avisoPendienteFechaAnterior` es la fecha vieja
-          // (lo que le tocan a {fecha}/{hora} en la plantilla) y `inicio`
-          // (ya pisado) es la nueva ({nueva_fecha}). Para CANCELADO, el
-          // turno nunca se movió: `inicio` sigue siendo la fecha original.
-          const fechaOriginal = new Date(turno.avisoPendienteFechaAnterior ?? turno.inicio);
-          const nuevaFecha = turno.avisoPendienteMotivo === "APLAZADO" ? new Date(turno.inicio) : null;
-          const template =
-            turno.avisoPendienteMotivo === "CANCELADO" ? mensajeTemplateCancelado : mensajeTemplateAplazado;
-          const mensaje = buildMensajeCambioTurno(template, turno.nombreYApellido, fechaOriginal, nuevaFecha);
+          const { mensaje, detalle, detalleCorto } = contenidoAviso(turno, {
+            cancelado: mensajeTemplateCancelado,
+            aplazado: mensajeTemplateAplazado,
+          });
           const href = buildWhatsAppHref(turno.telefono, mensaje);
-          const detalle =
-            turno.avisoPendienteMotivo === "CANCELADO"
-              ? `Turno cancelado · era el ${fechaOriginal.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })} a las ${formatHoraBA(fechaOriginal)}`
-              : `Turno aplazado · ahora es el ${nuevaFecha!.toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })} a las ${formatHoraBA(nuevaFecha!)}`;
-          // Versión corta para mobile -- el detalle completo de arriba
-          // wrappeaba feo en pantallas angostas ("Turno aplazado - ahora es
-          // el 24/9/2026 a las 18:25" en varias líneas).
-          const detalleCorto =
-            turno.avisoPendienteMotivo === "CANCELADO"
-              ? `Cancelado · ${fechaCorta(fechaOriginal)} ${formatHoraBA(fechaOriginal)}`
-              : `Aplazado → ${fechaCorta(nuevaFecha!)} ${formatHoraBA(nuevaFecha!)}`;
           const marcando = marcandoId === turno.id;
 
           return (

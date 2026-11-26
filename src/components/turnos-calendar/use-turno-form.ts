@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DNI_ERROR_MESSAGE, DNI_REGEX } from "@/lib/dni";
+import type { LinksTeleconsulta } from "@/lib/recordatorio-mensaje";
 import type { Slot } from "./types";
 
 // Estado y acciones del diálogo de reservar/editar turno y del de
@@ -24,6 +25,24 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [togglingConfirmado, setTogglingConfirmado] = useState(false);
+
+  // Diálogo de confirmación de "Pasar a teleconsulta" / "Volver a
+  // presencial" (ver `Turno.teleconsulta`).
+  const [modalidadTarget, setModalidadTarget] = useState<Slot | null>(null);
+  const [consentimientoRemoto, setConsentimientoRemoto] = useState(false);
+  const [cambiandoModalidad, setCambiandoModalidad] = useState(false);
+  const [modalidadError, setModalidadError] = useState<string | null>(null);
+  // Confirmación después de pasar un turno a teleconsulta: permite mandarle
+  // el aviso con el link de la sala por WhatsApp en el momento. El link se
+  // pide antes de mostrarla para que el botón sea un <a> directo (abrir
+  // wa.me después de un await lo bloquea el navegador).
+  const [teleconsultaExito, setTeleconsultaExito] = useState<{
+    turnoId: string;
+    nombreYApellido: string;
+    telefono: string;
+    inicio: string;
+    links: LinksTeleconsulta | null;
+  } | null>(null);
 
   function openBooking(slot: Slot) {
     setFormSlot(slot);
@@ -116,6 +135,64 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     }
   }
 
+  // Cierra el diálogo de edición y abre la confirmación del cambio de
+  // modalidad (mismo patrón que "Cancelar turno").
+  function openCambioModalidad() {
+    if (!formSlot?.turno) return;
+    setModalidadTarget(formSlot);
+    setConsentimientoRemoto(false);
+    setModalidadError(null);
+    setFormSlot(null);
+  }
+
+  async function handleCambiarModalidad() {
+    const turno = modalidadTarget?.turno;
+    if (!turno) return;
+    const teleconsulta = !turno.teleconsulta;
+    setCambiandoModalidad(true);
+    setModalidadError(null);
+    try {
+      const response = await fetch(`/api/turnos/${turno.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teleconsulta, ...(teleconsulta ? { consentimientoRemoto } : {}) }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setModalidadError(data.error ?? "No se pudo cambiar la modalidad del turno.");
+        return;
+      }
+      if (teleconsulta) {
+        const links = await fetch(`/api/turnos/${turno.id}/sala`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: { link?: string; confirmar?: string; cancelar?: string } | null) =>
+            d?.link && d.confirmar && d.cancelar ? { sala: d.link, confirmar: d.confirmar, cancelar: d.cancelar } : null
+          )
+          .catch(() => null);
+        setTeleconsultaExito({
+          turnoId: turno.id,
+          nombreYApellido: turno.nombreYApellido,
+          telefono: turno.telefono,
+          inicio: modalidadTarget.inicio,
+          links,
+        });
+      }
+      setModalidadTarget(null);
+      await loadSlots(selectedDate);
+    } finally {
+      setCambiandoModalidad(false);
+    }
+  }
+
+  // Al abrir el WhatsApp desde la confirmación se da por notificado: sale
+  // de "Pendientes de notificar". Si no se envía, queda ahí para después.
+  function handleAvisoTeleconsultaEnviado() {
+    const exito = teleconsultaExito;
+    if (!exito) return;
+    setTeleconsultaExito(null);
+    fetch(`/api/turnos/${exito.turnoId}/aviso`, { method: "PATCH" }).catch(() => {});
+  }
+
   async function handleCancelar() {
     if (!cancelTarget?.turno) return;
     setCancelling(true);
@@ -157,6 +234,17 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     setCancelling,
     togglingConfirmado,
     handleToggleConfirmado,
+    modalidadTarget,
+    setModalidadTarget,
+    consentimientoRemoto,
+    setConsentimientoRemoto,
+    cambiandoModalidad,
+    modalidadError,
+    openCambioModalidad,
+    handleCambiarModalidad,
+    teleconsultaExito,
+    setTeleconsultaExito,
+    handleAvisoTeleconsultaEnviado,
     openBooking,
     openEdit,
     handleSubmitForm,

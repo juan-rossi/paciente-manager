@@ -74,7 +74,7 @@ export default async function LinkTurnoPage({ params }: Props) {
       turno.doctor.tituloCortesia as TituloCortesia | null,
       turno.doctor.nombre,
     );
-    const esTeleconsulta = turno.lugar.tipo === "VIRTUAL";
+    const esTeleconsulta = turno.teleconsulta;
     const lugar = esTeleconsulta
       ? "Teleconsulta por videollamada"
       : [turno.lugar.nombre, turno.lugar.direccion, turno.lugar.ciudad]

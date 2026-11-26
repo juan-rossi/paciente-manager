@@ -150,6 +150,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         doctorId: doctor.id,
         lugarId: slotValido.lugarId,
         origen: "ONLINE",
+        teleconsulta: esTeleconsulta,
         consentimientoRemotoAt: esTeleconsulta ? new Date() : null,
       },
     });

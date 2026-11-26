@@ -8,6 +8,7 @@ import { getTurnosCanceladosPorPacientes } from "@/lib/turnos-cancelados-por-pac
 import { nombreDoctor } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
 import { PageEnter } from "@/components/page-transition";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,7 @@ export default async function TurnosPage() {
         initialCanceladosPorPacientes={canceladosPorPacientes}
         prepagas={prepagas}
         compartir={compartir}
+        teleconsultaHabilitada={teleconsultaHabilitada()}
       />
     </PageEnter>
   );

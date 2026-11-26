@@ -30,14 +30,20 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       doctorId: tenantId,
       ...(user.role === "SECRETARY" ? { lugarId: activeLugarId! } : {}),
     },
-    select: { id: true, linkCodigo: true, estado: true, lugar: { select: { tipo: true } } },
+    select: { id: true, linkCodigo: true, estado: true, teleconsulta: true },
   });
-  if (!turno || turno.lugar.tipo !== "VIRTUAL") {
+  if (!turno || !turno.teleconsulta) {
     return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
   }
 
   const codigos = await asegurarLinkCodigos([turno]);
-  return NextResponse.json({ link: linkPaciente(codigos.get(turno.id)!, "sala") });
+  const codigo = codigos.get(turno.id)!;
+  // `confirmar`/`cancelar`: para el aviso de "pasó a teleconsulta".
+  return NextResponse.json({
+    link: linkPaciente(codigo, "sala"),
+    confirmar: linkPaciente(codigo, "si"),
+    cancelar: linkPaciente(codigo, "no"),
+  });
 }
 
 // POST: el médico entra a la sala (como dueño). El asistente nunca entra a
@@ -58,11 +64,11 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       fin: true,
       estado: true,
       salaVideoNombre: true,
-      lugar: { select: { tipo: true } },
+      teleconsulta: true,
       doctor: { select: { nombre: true, tituloCortesia: true } },
     },
   });
-  if (!turno || turno.lugar.tipo !== "VIRTUAL") {
+  if (!turno || !turno.teleconsulta) {
     return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
   }
   if (turno.estado === "CANCELADO") {

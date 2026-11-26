@@ -73,6 +73,7 @@ export async function buscarTurnoPorLinkCodigo(codigo: string) {
       lugarId: true,
       nombreYApellido: true,
       salaVideoNombre: true,
+      teleconsulta: true,
       lugar: { select: { tipo: true, nombre: true, direccion: true, ciudad: true } },
       doctor: { select: { nombre: true, tituloCortesia: true } },
     },
