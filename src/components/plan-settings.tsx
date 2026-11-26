@@ -20,7 +20,7 @@ import {
   diasRestantesDePagoUnico,
   MESES_POR_DURACION,
   PLAN_DURACION_LABEL,
-  PLAN_FEATURES,
+  getPlanFeatures,
   PLAN_PRICING,
   precioMensualEquivalente,
   precioTotalDuracion,
@@ -41,6 +41,8 @@ type Props = {
   mpPreapprovalStatus: "PENDING" | "AUTHORIZED" | "PAUSED" | "CANCELLED" | null;
   pagoEnGracia: boolean;
   graciaVenceEl: string | null;
+  // Flag TELECONSULTA_HABILITADA: suma la teleconsulta a la lista de Premium.
+  teleconsultaDisponible: boolean;
 };
 
 // Clave de localStorage bajo la que se recuerda el ID de la última preapproval
@@ -64,7 +66,9 @@ export function PlanSettings({
   mpPreapprovalStatus,
   pagoEnGracia,
   graciaVenceEl,
+  teleconsultaDisponible,
 }: Props) {
+  const planFeatures = getPlanFeatures(teleconsultaDisponible);
   const [duracion, setDuracion] = useState<PlanDuracion>(planDuracion ?? "MENSUAL");
   const [cargando, setCargando] = useState<"BASICA" | "PREMIUM" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -173,16 +177,16 @@ export function PlanSettings({
         })()
       : null;
   // Todo lo que incluye el plan actual del médico -- Premium suma lo de
-  // Básico (el primer item de PLAN_FEATURES.PREMIUM, "Todo lo de Básico",
+  // Básico (el primer item de planFeatures.PREMIUM, "Todo lo de Básico",
   // es solo una frase resumen, no una función propia).
   const featuresDelPlan =
-    plan === "PREMIUM" ? [...PLAN_FEATURES.BASICA, ...PLAN_FEATURES.PREMIUM.slice(1)] : PLAN_FEATURES.BASICA;
+    plan === "PREMIUM" ? [...planFeatures.BASICA, ...planFeatures.PREMIUM.slice(1)] : planFeatures.BASICA;
   // Tabla comparativa: todo lo de Básico (incluido también en Premium) más
-  // lo que suma Premium -- el primer item de PLAN_FEATURES.PREMIUM ("Todo
+  // lo que suma Premium -- el primer item de planFeatures.PREMIUM ("Todo
   // lo de Básico") es solo una frase resumen, no una fila propia.
   const filasComparacion = [
-    ...PLAN_FEATURES.BASICA.map((label) => ({ label, basica: true })),
-    ...PLAN_FEATURES.PREMIUM.slice(1).map((label) => ({ label, basica: false })),
+    ...planFeatures.BASICA.map((label) => ({ label, basica: true })),
+    ...planFeatures.PREMIUM.slice(1).map((label) => ({ label, basica: false })),
   ];
 
   // Básico pago único vigente -> Premium hasta el mismo vencimiento, pagando
@@ -572,7 +576,7 @@ export function PlanSettings({
                 <div className="text-xs text-foreground/70">Todo lo de Básico, más:</div>
               </div>
               <div className="flex flex-col gap-2">
-                {PLAN_FEATURES.PREMIUM.slice(1).map((f) => (
+                {planFeatures.PREMIUM.slice(1).map((f) => (
                   <div key={f} className="flex items-start gap-2 text-sm font-medium text-foreground">
                     <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                     <span>{f}</span>
@@ -817,7 +821,7 @@ export function PlanSettings({
               <div className="border-t border-border/40 pt-3">
                 <span className="text-xs font-semibold text-foreground/80">Incluye:</span>
                 <ul className="mt-2.5 flex flex-col gap-2 text-xs">
-                  {PLAN_FEATURES.BASICA.map((f) => (
+                  {planFeatures.BASICA.map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 size-3.5 shrink-0 text-primary" />
                       <span className="text-muted-foreground">{f}</span>
@@ -882,7 +886,7 @@ export function PlanSettings({
               <div className="border-t border-primary/15 pt-3">
                 <span className="text-xs font-semibold text-foreground/80">Todo lo de Básico, más:</span>
                 <ul className="mt-2.5 flex flex-col gap-2 text-xs">
-                  {PLAN_FEATURES.PREMIUM.slice(1).map((f) => (
+                  {planFeatures.PREMIUM.slice(1).map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 size-3.5 shrink-0 text-primary" />
                       <span className="font-medium text-foreground">{f}</span>

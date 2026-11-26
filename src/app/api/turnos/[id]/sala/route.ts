@@ -6,6 +6,7 @@ import { estadoSala, SALA_ABRE_MINUTOS_ANTES, urlIngresoSala } from "@/lib/telec
 import { asegurarLinkCodigos, linkPaciente } from "@/lib/turno-link-paciente";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { medicoPuedeUsarSalas } from "@/lib/teleconsulta-medico";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -70,6 +71,12 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
   });
   if (!turno || !turno.teleconsulta) {
     return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
+  }
+  if (!(await medicoPuedeUsarSalas(tenantId))) {
+    return NextResponse.json(
+      { error: "La teleconsulta es parte del plan Premium." },
+      { status: 403 }
+    );
   }
   if (turno.estado === "CANCELADO") {
     return NextResponse.json({ error: "Este turno está cancelado." }, { status: 409 });

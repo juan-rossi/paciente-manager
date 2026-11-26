@@ -5,11 +5,11 @@ import { motion } from "motion/react";
 import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PLAN_FEATURES, TRIAL_DIAS } from "@/lib/plan";
+import { getPlanFeatures, TRIAL_DIAS } from "@/lib/plan";
 import { SectionHeading } from "./section-heading";
 import { cn } from "@/lib/utils";
 
-// Reusa `PLAN_FEATURES` de `@/lib/plan` -- la misma fuente que usa el resto
+// Reusa `getPlanFeatures` de `@/lib/plan` -- la misma fuente que usa el resto
 // de la app (Configuración > Mi plan) -- para no duplicar el contenido. No
 // hay precio/moneda en ningún lado del producto todavía, así que no se
 // muestra ninguno acá tampoco.
@@ -28,7 +28,10 @@ const PLANS = [
   },
 ];
 
-export function Pricing() {
+// `teleconsultaDisponible`: flag TELECONSULTA_HABILITADA (lo lee la página,
+// que es del servidor).
+export function Pricing({ teleconsultaDisponible }: { teleconsultaDisponible: boolean }) {
+  const features = getPlanFeatures(teleconsultaDisponible);
   return (
     <section id="planes" className="border-t border-border/60 py-20 sm:py-28">
       <div className="mx-auto max-w-4xl px-4">
@@ -60,7 +63,7 @@ export function Pricing() {
                 <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
               </div>
               <ul className="flex flex-col gap-2.5 text-sm">
-                {PLAN_FEATURES[plan.key].map((f) => (
+                {features[plan.key].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                     {f}
@@ -80,7 +83,7 @@ export function Pricing() {
         </div>
 
         {/* Vale para los dos planes, por eso va debajo de las tarjetas y no
-            en PLAN_FEATURES. Linkea a la sección Migracion del home. */}
+            en getPlanFeatures. Linkea a la sección Migracion del home. */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}

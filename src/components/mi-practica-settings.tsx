@@ -314,10 +314,9 @@ export function MiPracticaSettings({
 
   // Pasar turnos de este lugar a teleconsulta: solo en lugares presenciales
   // y si el médico lo tiene prendido en Configuración > Teleconsulta. Si lo
-  // apagó después, un lugar que ya lo tenía lo sigue mostrando para poder
-  // desactivarlo.
-  const mostrarPermiteTeleconsulta =
-    tipo !== "VIRTUAL" && (puedePasarATeleconsulta || !!editingLugar?.permiteTeleconsulta);
+  // apagó, no se muestra (y no se manda: lo guardado en el lugar queda como
+  // estaba, sin efecto mientras la opción general esté apagada).
+  const mostrarPermiteTeleconsulta = tipo !== "VIRTUAL" && puedePasarATeleconsulta;
 
   async function handleGuardarLugar() {
     if (
@@ -650,7 +649,7 @@ export function MiPracticaSettings({
                     {lugarActivo.telefono}
                   </span>
                 )}
-                {lugarActivo.tipo !== "VIRTUAL" && lugarActivo.permiteTeleconsulta && (
+                {puedePasarATeleconsulta && lugarActivo.tipo !== "VIRTUAL" && lugarActivo.permiteTeleconsulta && (
                   <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
                     <Video className="size-3.5 shrink-0" />
                     Sus turnos se pueden pasar a teleconsulta

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
-import { validarConfigTeleconsulta } from "@/lib/teleconsulta-config";
+import { planPermiteTeleconsulta, validarConfigTeleconsulta } from "@/lib/teleconsulta-config";
 import { TELECONSULTA_CONFIG_SELECT } from "@/lib/teleconsulta-medico";
 
 // Configuración > Teleconsulta (ver `User.teleconsulta*`).
@@ -27,6 +27,14 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
       { status: 400 }
+    );
+  }
+
+  // Función Premium: sin el plan se puede apagar, pero no prender.
+  if (parsed.data.teleconsultaHabilitada && !planPermiteTeleconsulta(user)) {
+    return NextResponse.json(
+      { error: "La teleconsulta es parte del plan Premium." },
+      { status: 403 }
     );
   }
 

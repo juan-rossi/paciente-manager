@@ -70,6 +70,20 @@ export const PLAN_FEATURES: Record<"BASICA" | "PREMIUM", string[]> = {
   ],
 };
 
+export const FEATURE_TELECONSULTA = "Teleconsulta por videollamada";
+
+// Lista para mostrar (landing, Configuración > Mi plan). La teleconsulta se
+// suma a Premium solo si la plataforma la tiene prendida
+// (TELECONSULTA_HABILITADA): mientras esté apagada no se ofrece.
+export function getPlanFeatures(teleconsultaDisponible: boolean): Record<"BASICA" | "PREMIUM", string[]> {
+  if (!teleconsultaDisponible) return PLAN_FEATURES;
+  const [todoBasico, dictado, ia, ...resto] = PLAN_FEATURES.PREMIUM;
+  return {
+    BASICA: PLAN_FEATURES.BASICA,
+    PREMIUM: [todoBasico, FEATURE_TELECONSULTA, dictado, ia, ...resto],
+  };
+}
+
 
 export type PlanDuracion = "MENSUAL" | "SEMESTRAL" | "ANUAL" | "MESES_18" | "BIANUAL";
 

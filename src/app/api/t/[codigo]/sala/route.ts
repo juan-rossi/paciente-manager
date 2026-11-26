@@ -5,6 +5,7 @@ import { buscarTurnoPorLinkCodigo } from "@/lib/turno-link-paciente";
 import { dailyConfigurado } from "@/lib/daily";
 import { estadoSala, urlIngresoSala } from "@/lib/teleconsulta";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { medicoPuedeUsarSalas } from "@/lib/teleconsulta-medico";
 
 type RouteParams = { params: Promise<{ codigo: string }> };
 
@@ -38,7 +39,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 409 }
     );
   }
-  if (!dailyConfigurado()) {
+  // El médico dejó de tener Premium: la sala no se abre. Al paciente no se
+  // le explica el plan del médico.
+  if (!dailyConfigurado() || !(await medicoPuedeUsarSalas(turno.doctorId))) {
     return NextResponse.json({ error: "La videollamada no está disponible en este momento." }, { status: 503 });
   }
 

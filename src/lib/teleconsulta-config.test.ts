@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { teleconsultaEfectiva, validarConfigTeleconsulta } from "./teleconsulta-config";
+import { planPermiteTeleconsulta, teleconsultaEfectiva, validarConfigTeleconsulta } from "./teleconsulta-config";
 
 const todo = {
   teleconsultaHabilitada: true,
@@ -59,5 +59,22 @@ describe("validarConfigTeleconsulta", () => {
 
   it("deja dejar de pasar presenciales aunque haya turnos ya pasados", () => {
     expect(validarConfigTeleconsulta({ ...todo, teleconsultaPasarPresenciales: false }, true)).toBeNull();
+  });
+});
+
+describe("planPermiteTeleconsulta", () => {
+  const futuro = new Date(Date.now() + 86_400_000);
+  const pasado = new Date(Date.now() - 86_400_000);
+
+  it("Premium vigente: sí", () => {
+    expect(planPermiteTeleconsulta({ plan: "PREMIUM", trialEndsAt: null, planEndsAt: futuro })).toBe(true);
+  });
+
+  it("Básico: no, aunque esté vigente", () => {
+    expect(planPermiteTeleconsulta({ plan: "BASICA", trialEndsAt: null, planEndsAt: futuro })).toBe(false);
+  });
+
+  it("Premium vencido: no", () => {
+    expect(planPermiteTeleconsulta({ plan: "PREMIUM", trialEndsAt: pasado, planEndsAt: pasado })).toBe(false);
   });
 });

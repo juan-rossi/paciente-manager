@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { SIN_SANCION } from "@/lib/sanciones";
+import { getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
 import { esActivo } from "@/lib/plan";
 import { generarSlots } from "@/lib/slots";
 import { startOfDayBA, formatDateParamBA } from "@/lib/timezone";
@@ -30,12 +31,19 @@ export async function getDoctorParaReserva(slug: string) {
 // Lugares donde el médico habilitó reservas online (el switch por lugar de
 // "Agenda pública" en Mi perfil). Todo slot público se filtra contra esto, del
 // lado del server -- no alcanza con ocultarlo en la UI.
+// El lugar de Teleconsulta solo si el médico la tiene disponible (plan
+// Premium + Configuración > Teleconsulta).
 async function getLugaresReservables(doctorId: string): Promise<Set<string>> {
-  const lugares = await prisma.lugarDeTrabajo.findMany({
-    where: { userId: doctorId, deletedAt: null, reservaPublicaHabilitada: true },
-    select: { id: true },
-  });
-  return new Set(lugares.map((l) => l.id));
+  const [lugares, teleconsulta] = await Promise.all([
+    prisma.lugarDeTrabajo.findMany({
+      where: { userId: doctorId, deletedAt: null, reservaPublicaHabilitada: true },
+      select: { id: true, tipo: true },
+    }),
+    getTeleconsultaDelMedico(doctorId),
+  ]);
+  return new Set(
+    lugares.filter((l) => l.tipo !== "VIRTUAL" || teleconsulta.lugarVirtual).map((l) => l.id)
+  );
 }
 
 export type HorarioDisponible = {

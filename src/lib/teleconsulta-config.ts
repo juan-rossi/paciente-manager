@@ -2,6 +2,21 @@
 // Sin dependencias de servidor: lo usan la API, las páginas y los tests. El
 // flag de plataforma (TELECONSULTA_HABILITADA, ver `feature-flags.ts`) se
 // pasa como argumento.
+//
+// La teleconsulta es una función Premium: hace falta plan Premium con la
+// cuenta vigente (mismo criterio que Dictado e IA).
+
+import { esActivo, isPremium } from "@/lib/plan";
+
+export type PlanTeleconsulta = {
+  plan: "BASICA" | "PREMIUM";
+  trialEndsAt: Date | null;
+  planEndsAt: Date | null;
+};
+
+export function planPermiteTeleconsulta(user: PlanTeleconsulta): boolean {
+  return isPremium(user) && esActivo(user);
+}
 
 export type TeleconsultaConfigGuardada = {
   teleconsultaHabilitada: boolean;
@@ -10,7 +25,8 @@ export type TeleconsultaConfigGuardada = {
 };
 
 // Lo que el médico (y su asistente) puede hacer de verdad: la configuración
-// guardada vale solo si la plataforma tiene la teleconsulta prendida.
+// guardada vale solo si la teleconsulta está disponible para él -- la
+// plataforma la tiene prendida y su plan la incluye (`disponible`).
 export type TeleconsultaEfectiva = {
   habilitada: boolean;
   pasarPresenciales: boolean;
@@ -24,10 +40,10 @@ export const TELECONSULTA_APAGADA: TeleconsultaEfectiva = {
 };
 
 export function teleconsultaEfectiva(
-  plataformaHabilitada: boolean,
+  disponible: boolean,
   config: TeleconsultaConfigGuardada
 ): TeleconsultaEfectiva {
-  const habilitada = plataformaHabilitada && config.teleconsultaHabilitada;
+  const habilitada = disponible && config.teleconsultaHabilitada;
   return {
     habilitada,
     pasarPresenciales: habilitada && config.teleconsultaPasarPresenciales,

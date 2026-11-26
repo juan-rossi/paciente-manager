@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CalendarClock, Loader2, Plus, Repeat, Video } from "lucide-react";
+import { ArrowRight, CalendarClock, Loader2, Lock, Plus, Repeat, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -17,12 +17,15 @@ type Props = {
   // Hay un lugar VIRTUAL en Mi práctica: mientras exista no se puede apagar
   // la teleconsulta ni la opción del lugar (ver `validarConfigTeleconsulta`).
   initialTieneLugarVirtual: boolean;
+  // Función Premium (ver `planPermiteTeleconsulta`): sin el plan la sección
+  // se ve bloqueada y apagada, con el acceso a Mi plan.
+  incluidaEnPlan: boolean;
 };
 
 // Configuración > Teleconsulta. Cada cambio se guarda al toque (como un
 // interruptor), así el botón "Crear lugar de Teleconsulta" siempre refleja
 // lo que el servidor ya tiene guardado.
-export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual }: Props) {
+export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual, incluidaEnPlan }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
   const [tieneLugarVirtual, setTieneLugarVirtual] = useState(initialTieneLugarVirtual);
@@ -30,7 +33,8 @@ export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual }
   const [creandoLugar, setCreandoLugar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const habilitada = config.teleconsultaHabilitada;
+  // Sin Premium se muestra apagada aunque haya quedado guardada prendida.
+  const habilitada = incluidaEnPlan && config.teleconsultaHabilitada;
 
   async function guardar(cambios: Partial<TeleconsultaConfigGuardada>) {
     const anterior = config;
@@ -118,20 +122,40 @@ export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual }
         description="Atendé pacientes por videollamada desde Semio 360. El paciente entra a la sala con el link que le llega en el recordatorio, sin instalar nada."
         icon={Video}
       >
-        <div className="flex items-start gap-3">
+        {!incluidaEnPlan && (
+          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-border bg-muted/40 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <Lock className="size-3.5 shrink-0" />
+              La teleconsulta es parte del plan Premium.
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-start sm:self-auto"
+              onClick={() => irAConfiguracionTab("plan")}
+            >
+              Ver Mi plan
+            </Button>
+          </div>
+        )}
+
+        <div className={cn("flex items-start gap-3", !incluidaEnPlan && "opacity-60")}>
           <Switch
             id="teleconsulta-habilitada"
             className="mt-0.5"
             checked={habilitada}
             onCheckedChange={(checked) => guardar({ teleconsultaHabilitada: checked })}
-            disabled={saving || (habilitada && bloqueadoPorLugar)}
+            disabled={!incluidaEnPlan || saving || (habilitada && bloqueadoPorLugar)}
           />
           <div className="flex flex-col gap-0.5">
             <Label htmlFor="teleconsulta-habilitada" className="font-medium">
               Atender por teleconsulta
             </Label>
             <p className="text-xs text-muted-foreground">
-              {habilitada && bloqueadoPorLugar
+              {!incluidaEnPlan
+                ? "Atendé por videollamada y pasá turnos presenciales a teleconsulta."
+                : habilitada && bloqueadoPorLugar
                 ? avisoBloqueo
                 : "Elegí abajo cómo querés usarla. Las asistentes siguen esta misma configuración."}
             </p>
@@ -148,7 +172,7 @@ export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual }
             <Checkbox
               id="teleconsulta-pasar-presenciales"
               className="mt-0.5"
-              checked={config.teleconsultaPasarPresenciales}
+              checked={habilitada && config.teleconsultaPasarPresenciales}
               onCheckedChange={(checked) => guardar({ teleconsultaPasarPresenciales: checked === true })}
               disabled={!habilitada || saving}
             />
@@ -170,7 +194,7 @@ export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual }
               <Checkbox
                 id="teleconsulta-lugar-virtual"
                 className="mt-0.5"
-                checked={config.teleconsultaLugarVirtual}
+                checked={habilitada && config.teleconsultaLugarVirtual}
                 onCheckedChange={(checked) => guardar({ teleconsultaLugarVirtual: checked === true })}
                 disabled={
                   !habilitada || saving || (config.teleconsultaLugarVirtual && bloqueadoPorLugar)

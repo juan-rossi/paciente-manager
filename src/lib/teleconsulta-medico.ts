@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
 import {
+  planPermiteTeleconsulta,
   TELECONSULTA_APAGADA,
   teleconsultaEfectiva,
   type TeleconsultaEfectiva,
@@ -12,14 +13,26 @@ export const TELECONSULTA_CONFIG_SELECT = {
   teleconsultaLugarVirtual: true,
 } as const;
 
+const PLAN_SELECT = { plan: true, trialEndsAt: true, planEndsAt: true } as const;
+
 // Qué puede hacer con la teleconsulta el médico `doctorId` (o su asistente:
-// pasarle el tenant). Combina el flag de plataforma con Configuración >
-// Teleconsulta del médico.
+// pasarle el tenant). Combina el flag de plataforma, el plan Premium y
+// Configuración > Teleconsulta del médico.
 export async function getTeleconsultaDelMedico(doctorId: string): Promise<TeleconsultaEfectiva> {
   if (!teleconsultaHabilitada()) return TELECONSULTA_APAGADA;
-  const config = await prisma.user.findUnique({
+  const medico = await prisma.user.findUnique({
     where: { id: doctorId },
-    select: TELECONSULTA_CONFIG_SELECT,
+    select: { ...TELECONSULTA_CONFIG_SELECT, ...PLAN_SELECT },
   });
-  return config ? teleconsultaEfectiva(true, config) : TELECONSULTA_APAGADA;
+  if (!medico) return TELECONSULTA_APAGADA;
+  return teleconsultaEfectiva(planPermiteTeleconsulta(medico), medico);
+}
+
+// Para entrar a la sala de un turno que ya es teleconsulta solo importa el
+// plan (no la configuración: un turno pasado antes de apagarla se sigue
+// pudiendo atender). Sin Premium vigente no se abren salas de video.
+export async function medicoPuedeUsarSalas(doctorId: string): Promise<boolean> {
+  if (!teleconsultaHabilitada()) return false;
+  const medico = await prisma.user.findUnique({ where: { id: doctorId }, select: PLAN_SELECT });
+  return !!medico && planPermiteTeleconsulta(medico);
 }

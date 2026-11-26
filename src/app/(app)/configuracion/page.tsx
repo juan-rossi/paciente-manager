@@ -45,7 +45,7 @@ import { ensureLugarSlugs } from "@/lib/public-slug";
 import { listarSecretariasDelMedico } from "@/lib/secretarias";
 import { PageEnter } from "@/components/page-transition";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
-import { teleconsultaEfectiva } from "@/lib/teleconsulta-config";
+import { planPermiteTeleconsulta, teleconsultaEfectiva } from "@/lib/teleconsulta-config";
 import { TeleconsultaSettings } from "@/components/teleconsulta-settings";
 
 export const dynamic = "force-dynamic";
@@ -83,9 +83,11 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   // Aranceles: solo el odontólogo (prellenan sus presupuestos).
   const arancelesHabilitados = user.role === "DOCTOR" && esOdontologica(user.especialidad);
   // Teleconsulta: la sección existe solo si la plataforma la tiene prendida
-  // (TELECONSULTA_HABILITADA); adentro, cada médico elige si la usa.
+  // (TELECONSULTA_HABILITADA). Es Premium: sin el plan se ve bloqueada (para
+  // que se sepa que existe); con el plan, cada médico elige si la usa.
   const plataformaTeleconsulta = teleconsultaHabilitada();
-  const teleconsulta = teleconsultaEfectiva(plataformaTeleconsulta, user);
+  const premiumTeleconsulta = planPermiteTeleconsulta(user);
+  const teleconsulta = teleconsultaEfectiva(plataformaTeleconsulta && premiumTeleconsulta, user);
   const tabsOcultas: ConfiguracionTab[] = [
     ...(iaHabilitada ? [] : (["dictado"] as const)),
     ...(plataformaTeleconsulta ? [] : (["teleconsulta"] as const)),
@@ -249,6 +251,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                   teleconsultaLugarVirtual: user.teleconsultaLugarVirtual,
                 }}
                 initialTieneLugarVirtual={lugares.some((l) => l.tipo === "VIRTUAL")}
+                incluidaEnPlan={premiumTeleconsulta}
               />
             </TabsContent>
           )}
@@ -313,6 +316,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               mpPreapprovalStatus={mpPreapprovalStatus}
               pagoEnGracia={user.pagoEnGracia}
               graciaVenceEl={user.graciaVenceEl?.toISOString() ?? null}
+              teleconsultaDisponible={plataformaTeleconsulta}
             />
           </TabsContent>
           <TabsContent value="datos" className="w-full">

@@ -8,6 +8,7 @@ import { fotoDoctorPath } from "@/lib/site-url";
 import { formatDateParamBA } from "@/lib/timezone";
 import { getDisponibilidadPublica } from "@/lib/public-booking";
 import { SIN_SANCION } from "@/lib/sanciones";
+import { getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
 
 const doctorPublicoSelect = {
   id: true,
@@ -410,6 +411,14 @@ export async function getDoctorPublicoPorSlug(slug: string) {
   // Sin plan activo y sin perfil público, el link directo a la agenda deja de
   // ser un motivo para exponer la página.
   if (!activo && !resto.perfilPublico) return null;
+  // El lugar de Teleconsulta solo se muestra si el médico la tiene
+  // disponible (plan Premium + Configuración > Teleconsulta).
+  if (resto.lugaresDeTrabajo.some((l) => l.tipo === "VIRTUAL")) {
+    const teleconsulta = await getTeleconsultaDelMedico(resto.id);
+    if (!teleconsulta.lugarVirtual) {
+      resto.lugaresDeTrabajo = resto.lugaresDeTrabajo.filter((l) => l.tipo !== "VIRTUAL");
+    }
+  }
   return {
     ...resto,
     biografia: biografiaPublica,

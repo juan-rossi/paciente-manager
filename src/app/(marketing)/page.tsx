@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 import { Hero } from "@/components/marketing/hero";
 import { ScrollToHash } from "@/components/marketing/scroll-to-hash";
 import { DirectorioBanner } from "@/components/marketing/directorio-banner";
@@ -74,7 +75,7 @@ export default function MarketingHomePage() {
       <TrustSecurity />
       <Testimonials />
       <DirectorioBanner />
-      <Pricing />
+      <Pricing teleconsultaDisponible={teleconsultaHabilitada()} />
       <FAQ />
       <FinalCTA />
     </>
