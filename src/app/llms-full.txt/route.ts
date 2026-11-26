@@ -1,4 +1,4 @@
-import { FAQS } from "@/lib/faq";
+import { getFaqs } from "@/lib/faq";
 import { absoluteUrl, esProduccion } from "@/lib/site-url";
 import { SITE_DESCRIPTION } from "@/lib/seo";
 
@@ -8,7 +8,7 @@ export const revalidate = 86400;
 export function GET() {
   if (!esProduccion()) return new Response("Not found", { status: 404 });
 
-  const faq = FAQS.map((f) => `### ${f.q}\n${f.a}`).join("\n\n");
+  const faq = getFaqs().map((f) => `### ${f.q}\n${f.a}`).join("\n\n");
   const body = `# Semio360
 
 > ${SITE_DESCRIPTION}

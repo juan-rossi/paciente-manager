@@ -68,7 +68,7 @@ export default function MarketingHomePage() {
       <Hero />
       <ConceptOrbit />
       <ScrollStory />
-      <Features />
+      <Features teleconsultaDisponible={teleconsultaHabilitada()} />
       <LessAdmin />
       <InteractiveDemo />
       <Migracion />

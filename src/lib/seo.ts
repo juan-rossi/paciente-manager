@@ -1,6 +1,6 @@
 import { nombreLugar } from "@/lib/lugar-tipo";
 import { ESPECIALIDAD_LABELS, especialidadPath, type Especialidad } from "@/lib/especialidad";
-import { FAQS } from "@/lib/faq";
+import { getFaqs } from "@/lib/faq";
 import type { RedesSociales } from "@/lib/redes-sociales";
 import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
@@ -107,7 +107,7 @@ export function homeJsonLd() {
       {
         "@type": "FAQPage",
         "@id": `${url}/#faq`,
-        mainEntity: FAQS.map((f) => ({
+        mainEntity: getFaqs().map((f) => ({
           "@type": "Question",
           name: f.q,
           acceptedAnswer: { "@type": "Answer", text: f.a },

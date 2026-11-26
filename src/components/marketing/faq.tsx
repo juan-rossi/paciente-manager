@@ -1,5 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FAQS } from "@/lib/faq";
+import { getFaqs } from "@/lib/faq";
 import { SectionHeading } from "./section-heading";
 
 export function FAQ() {
@@ -8,7 +8,7 @@ export function FAQ() {
       <div className="mx-auto max-w-2xl px-4">
         <SectionHeading kicker="Preguntas frecuentes" title="Todo lo que necesitás saber" className="mb-12" />
         <Accordion className="rounded-2xl border border-border/60 bg-card px-5">
-          {FAQS.map((item) => (
+          {getFaqs().map((item) => (
             <AccordionItem key={item.q} value={item.q}>
               <AccordionTrigger className="text-base" headerRender={<div />}>{item.q}</AccordionTrigger>
               <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
