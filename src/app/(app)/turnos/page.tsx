@@ -9,6 +9,7 @@ import { nombreDoctor } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
 import { PageEnter } from "@/components/page-transition";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,8 @@ export default async function TurnosPage() {
   }
 
   const canceladosPorPacientes = await getTurnosCanceladosPorPacientes(today, tenantId, activeLugarId);
+  // El asistente usa la configuración del médico.
+  const teleconsulta = await getTeleconsultaDelMedico(tenantId);
 
   return (
     <PageEnter>
@@ -97,6 +100,7 @@ export default async function TurnosPage() {
         prepagas={prepagas}
         compartir={compartir}
         teleconsultaHabilitada={teleconsultaHabilitada()}
+        puedePasarATeleconsulta={teleconsulta.pasarPresenciales}
       />
     </PageEnter>
   );

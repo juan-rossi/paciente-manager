@@ -12,6 +12,9 @@
  *
  * Apagada: no se pueden crear lugares de Teleconsulta (UI y API), las salas
  * devuelven 404 y la plantilla de recordatorio de teleconsulta no se muestra.
+ *
+ * Prendida, cada médico elige si la usa en Configuración > Teleconsulta (ver
+ * `src/lib/teleconsulta-config.ts` y `getTeleconsultaDelMedico`).
  */
 export function teleconsultaHabilitada(): boolean {
   return process.env.TELECONSULTA_HABILITADA === "true";

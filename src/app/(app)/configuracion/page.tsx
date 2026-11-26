@@ -10,6 +10,7 @@ import {
   Sparkles,
   User,
   Users,
+  Video,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -44,6 +45,8 @@ import { ensureLugarSlugs } from "@/lib/public-slug";
 import { listarSecretariasDelMedico } from "@/lib/secretarias";
 import { PageEnter } from "@/components/page-transition";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { teleconsultaEfectiva } from "@/lib/teleconsulta-config";
+import { TeleconsultaSettings } from "@/components/teleconsulta-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -79,8 +82,13 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
   const iaHabilitada = isPremium(user) && esActivo(user);
   // Aranceles: solo el odontólogo (prellenan sus presupuestos).
   const arancelesHabilitados = user.role === "DOCTOR" && esOdontologica(user.especialidad);
+  // Teleconsulta: la sección existe solo si la plataforma la tiene prendida
+  // (TELECONSULTA_HABILITADA); adentro, cada médico elige si la usa.
+  const plataformaTeleconsulta = teleconsultaHabilitada();
+  const teleconsulta = teleconsultaEfectiva(plataformaTeleconsulta, user);
   const tabsOcultas: ConfiguracionTab[] = [
     ...(iaHabilitada ? [] : (["dictado"] as const)),
+    ...(plataformaTeleconsulta ? [] : (["teleconsulta"] as const)),
     ...(arancelesHabilitados ? [] : (["aranceles"] as const)),
   ];
   const esTabVisible = (tab: string | undefined): tab is ConfiguracionTab =>
@@ -164,6 +172,12 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               <MessageSquare className="size-4" />
               Mensajería
             </TabsTrigger>
+            {plataformaTeleconsulta && (
+              <TabsTrigger value="teleconsulta" className={navItemClass}>
+                <Video className="size-4" />
+                Teleconsulta
+              </TabsTrigger>
+            )}
             {iaHabilitada && (
               <TabsTrigger value="dictado" className={navItemClass}>
                 <Mic className="size-4" />
@@ -196,7 +210,8 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
 
           <TabsContent value="practica" className="w-full">
             <MiPracticaSettings
-              teleconsultaHabilitada={teleconsultaHabilitada()}
+              puedeCrearLugarVirtual={teleconsulta.lugarVirtual}
+              puedePasarATeleconsulta={teleconsulta.pasarPresenciales}
               initialLugares={lugares}
               initialBlocks={blocks}
               initialSlotDurationMinutes={user.slotDurationMinutes}
@@ -218,13 +233,25 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessagingSettings
               initialMensajeTemplate={user.mensajeTemplate}
               initialMensajeTemplateVirtual={user.mensajeTemplateVirtual}
-              tieneTeleconsulta={teleconsultaHabilitada()}
+              tieneTeleconsulta={teleconsulta.habilitada}
               initialMensajeriaHabilitada={user.mensajeriaHabilitada}
               initialRecordatorioAutoEnviado={user.recordatorioAutoEnviado}
               initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
               initialMensajeTemplateAplazado={user.mensajeTemplateAplazado}
             />
           </TabsContent>
+          {plataformaTeleconsulta && (
+            <TabsContent value="teleconsulta" className="w-full">
+              <TeleconsultaSettings
+                initialConfig={{
+                  teleconsultaHabilitada: user.teleconsultaHabilitada,
+                  teleconsultaPasarPresenciales: user.teleconsultaPasarPresenciales,
+                  teleconsultaLugarVirtual: user.teleconsultaLugarVirtual,
+                }}
+                initialTieneLugarVirtual={lugares.some((l) => l.tipo === "VIRTUAL")}
+              />
+            </TabsContent>
+          )}
           {iaHabilitada && (
             <TabsContent value="dictado" className="w-full">
               <DictadoSettings

@@ -16,6 +16,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  Repeat,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -69,6 +70,7 @@ type LugarDeTrabajo = {
   latitud: number | null;
   longitud: number | null;
   ciudad: string | null;
+  permiteTeleconsulta: boolean;
 };
 
 type Block = {
@@ -87,9 +89,13 @@ type ReprogramacionPreview = {
 };
 
 type Props = {
-  // TELECONSULTA_HABILITADA (ver `src/lib/feature-flags.ts`): sin esto no se
-  // ofrece crear lugares de Teleconsulta.
-  teleconsultaHabilitada: boolean;
+  // Flag de plataforma + Configuración > Teleconsulta del médico (ver
+  // `teleconsultaEfectiva`): sin esto no se ofrece crear lugares de
+  // Teleconsulta.
+  puedeCrearLugarVirtual: boolean;
+  // "Pasar turnos presenciales a teleconsulta" prendido en Configuración >
+  // Teleconsulta: sin esto no se ofrece habilitarlo por lugar.
+  puedePasarATeleconsulta: boolean;
   initialLugares: LugarDeTrabajo[];
   initialBlocks: Block[];
   initialSlotDurationMinutes: number;
@@ -107,7 +113,8 @@ function formatFechaHora(iso: string) {
 }
 
 export function MiPracticaSettings({
-  teleconsultaHabilitada,
+  puedeCrearLugarVirtual,
+  puedePasarATeleconsulta,
   initialLugares,
   initialBlocks,
   initialSlotDurationMinutes,
@@ -145,6 +152,7 @@ export function MiPracticaSettings({
   const [longitud, setLongitud] = useState<number | null>(null);
   const [ciudad, setCiudad] = useState<string | null>(null);
   const [telefono, setTelefono] = useState("");
+  const [permiteTeleconsulta, setPermiteTeleconsulta] = useState(false);
   const [savingLugar, setSavingLugar] = useState(false);
   const [lugarError, setLugarError] = useState<string | null>(null);
   const [triedSubmitLugar, setTriedSubmitLugar] = useState(false);
@@ -263,6 +271,7 @@ export function MiPracticaSettings({
     setLongitud(null);
     setCiudad(null);
     setTelefono("");
+    setPermiteTeleconsulta(false);
     setLugarError(null);
     setTriedSubmitLugar(false);
     setLugarOpen(true);
@@ -277,6 +286,7 @@ export function MiPracticaSettings({
     setLongitud(lugar.longitud);
     setCiudad(lugar.ciudad);
     setTelefono(lugar.telefono);
+    setPermiteTeleconsulta(lugar.permiteTeleconsulta);
     setLugarError(null);
     setTriedSubmitLugar(false);
     setLugarOpen(true);
@@ -301,6 +311,13 @@ export function MiPracticaSettings({
   const particularDeshabilitado = hayParticular && editingLugar?.tipo !== "PARTICULAR";
   // Lo mismo con la teleconsulta: una sola por médico.
   const virtualDeshabilitado = hayVirtual && editingLugar?.tipo !== "VIRTUAL";
+
+  // Pasar turnos de este lugar a teleconsulta: solo en lugares presenciales
+  // y si el médico lo tiene prendido en Configuración > Teleconsulta. Si lo
+  // apagó después, un lugar que ya lo tenía lo sigue mostrando para poder
+  // desactivarlo.
+  const mostrarPermiteTeleconsulta =
+    tipo !== "VIRTUAL" && (puedePasarATeleconsulta || !!editingLugar?.permiteTeleconsulta);
 
   async function handleGuardarLugar() {
     if (
@@ -327,6 +344,9 @@ export function MiPracticaSettings({
             latitud,
             longitud,
             ciudad,
+            // Solo se manda si la opción está a la vista (ver
+            // `mostrarPermiteTeleconsulta`); si no, el servidor no lo toca.
+            permiteTeleconsulta: mostrarPermiteTeleconsulta ? permiteTeleconsulta : undefined,
           }),
         }
       );
@@ -630,6 +650,12 @@ export function MiPracticaSettings({
                     {lugarActivo.telefono}
                   </span>
                 )}
+                {lugarActivo.tipo !== "VIRTUAL" && lugarActivo.permiteTeleconsulta && (
+                  <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <Video className="size-3.5 shrink-0" />
+                    Sus turnos se pueden pasar a teleconsulta
+                  </span>
+                )}
               </div>
             </div>
 
@@ -702,7 +728,7 @@ export function MiPracticaSettings({
               <Label>Tipo *</Label>
               {(() => {
                 // Un lugar que ya es de Teleconsulta se sigue mostrando como tal.
-                const mostrarVirtual = teleconsultaHabilitada || tipo === "VIRTUAL";
+                const mostrarVirtual = puedeCrearLugarVirtual || tipo === "VIRTUAL";
                 const opciones: {
                   value: LugarTrabajoTipo;
                   id: string;
@@ -833,6 +859,27 @@ export function MiPracticaSettings({
                   onChange={(e) => setTelefono(filterTelefono(e.target.value))}
                   className={triedSubmitLugar && !telefono.trim() ? "border-destructive" : undefined}
                 />
+              </div>
+            )}
+
+            {mostrarPermiteTeleconsulta && (
+              <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/30 p-3">
+                <Switch
+                  id="lugar-permite-teleconsulta"
+                  className="mt-0.5"
+                  checked={permiteTeleconsulta}
+                  onCheckedChange={setPermiteTeleconsulta}
+                />
+                <div className="flex flex-col gap-0.5">
+                  <Label htmlFor="lugar-permite-teleconsulta" className="flex items-center gap-1.5 font-medium">
+                    <Repeat className="size-3.5 text-muted-foreground" />
+                    Permitir pasar turnos a teleconsulta
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Un turno presencial de este lugar se puede atender por videollamada, sin cambiarle el
+                    lugar ni el horario.
+                  </p>
+                </div>
               </div>
             )}
 

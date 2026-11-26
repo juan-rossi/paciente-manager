@@ -7,6 +7,7 @@ import { turnoEditSchema } from "@/lib/turno-schema";
 import { limpiarAperturasSinTurnos } from "@/lib/horario-excepcional";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
 import { avisoPorCambioDeModalidad } from "@/lib/teleconsulta-modalidad";
+import { getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -87,6 +88,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!teleconsultaHabilitada()) {
       return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
     }
+    // Pasar a teleconsulta depende de Configuración > Teleconsulta del
+    // médico; volver a presencial se permite siempre (un turno ya pasado no
+    // puede quedar atrapado si el médico apagó la opción después).
+    if (parsed.data.teleconsulta && !(await getTeleconsultaDelMedico(tenantId)).pasarPresenciales) {
+      return NextResponse.json(
+        { error: "Pasar turnos a teleconsulta está desactivado en Configuración > Teleconsulta." },
+        { status: 403 }
+      );
+    }
     const actual = await prisma.turno.findUniqueOrThrow({
       where: { id },
       select: {
@@ -95,7 +105,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         teleconsulta: true,
         avisoPendiente: true,
         avisoPendienteMotivo: true,
-        lugar: { select: { tipo: true } },
+        lugar: { select: { tipo: true, permiteTeleconsulta: true } },
       },
     });
     // Un turno de un lugar de Teleconsulta es videollamada por definición:
@@ -104,6 +114,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: "Los turnos de Teleconsulta no se pueden pasar a presencial." },
         { status: 409 }
+      );
+    }
+    // Cada lugar elige si sus turnos se pueden pasar a teleconsulta (Mi
+    // práctica > Editar lugar). Volver a presencial se permite siempre.
+    if (parsed.data.teleconsulta && !actual.teleconsulta && !actual.lugar.permiteTeleconsulta) {
+      return NextResponse.json(
+        { error: "Este lugar no permite pasar turnos a teleconsulta." },
+        { status: 403 }
       );
     }
     if (actual.estado === "CANCELADO") {

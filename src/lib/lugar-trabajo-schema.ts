@@ -18,6 +18,9 @@ export const lugarTrabajoSchema = z
     latitud: z.number().nullable().optional(),
     longitud: z.number().nullable().optional(),
     ciudad: z.string().trim().nullable().optional(),
+    // Pasar turnos de este lugar a teleconsulta (ver
+    // `LugarDeTrabajo.permiteTeleconsulta`). Sin mandar = no se toca.
+    permiteTeleconsulta: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.tipo === "CONSULTORIO" && !data.nombre) {
@@ -44,6 +47,15 @@ export const lugarTrabajoSchema = z
   })
   .transform((data) =>
     data.tipo === "VIRTUAL"
-      ? { ...data, nombre: null, direccion: "", telefono: "", latitud: null, longitud: null, ciudad: null }
+      ? {
+          ...data,
+          nombre: null,
+          direccion: "",
+          telefono: "",
+          latitud: null,
+          longitud: null,
+          ciudad: null,
+          permiteTeleconsulta: false,
+        }
       : data
   );

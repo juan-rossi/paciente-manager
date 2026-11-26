@@ -74,9 +74,13 @@ type Props = {
   // Link público de reserva para compartir; null si la agenda pública no
   // está habilitada.
   compartir: { url: string; nombreMedico: string; lugarNombre: string | null } | null;
-  // Flag TELECONSULTA_HABILITADA: permite pasar turnos presenciales a
-  // teleconsulta (y volverlos) desde el diálogo del turno.
+  // Flag TELECONSULTA_HABILITADA: permite volver a presencial un turno que
+  // se pasó a teleconsulta, desde el diálogo del turno.
   teleconsultaHabilitada: boolean;
+  // Configuración > Teleconsulta del médico: permite pasar turnos
+  // presenciales a teleconsulta (además, el lugar del turno tiene que
+  // tenerlo habilitado -- `LugarInfo.permiteTeleconsulta`).
+  puedePasarATeleconsulta: boolean;
 };
 
 export function TurnosCalendar({
@@ -97,6 +101,7 @@ export function TurnosCalendar({
   prepagas,
   compartir,
   teleconsultaHabilitada,
+  puedePasarATeleconsulta,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -454,6 +459,11 @@ export function TurnosCalendar({
         lugarTipo={turnoForm.formSlot ? lugaresPorId.get(turnoForm.formSlot.lugarId)?.tipo : undefined}
         esMedico={role === "DOCTOR"}
         teleconsultaHabilitada={teleconsultaHabilitada}
+        puedePasarATeleconsulta={
+          puedePasarATeleconsulta &&
+          !!turnoForm.formSlot &&
+          !!lugaresPorId.get(turnoForm.formSlot.lugarId)?.permiteTeleconsulta
+        }
       />
 
       <SobreturnoDialog

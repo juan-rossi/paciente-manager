@@ -40,6 +40,8 @@ export type LugarInfo = {
   nombre: string | null;
   tipo: string;
   ciudad: string | null;
+  // Ver `LugarDeTrabajo.permiteTeleconsulta`.
+  permiteTeleconsulta: boolean;
 };
 
 export type BloqueoDelDia = {
@@ -90,7 +92,7 @@ export async function getDaySlots(
 
   const lugares = await prisma.lugarDeTrabajo.findMany({
     where: { userId: doctor.id, deletedAt: null, ...(lugarId ? { id: lugarId } : {}) },
-    select: { id: true, nombre: true, tipo: true, ciudad: true },
+    select: { id: true, nombre: true, tipo: true, ciudad: true, permiteTeleconsulta: true },
     orderBy: { createdAt: "asc" },
   });
 

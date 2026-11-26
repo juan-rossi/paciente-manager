@@ -87,10 +87,10 @@ const VARIABLES_APLAZAMIENTO: TemplateVariable[] = [
 type Props = {
   initialMensajeTemplate: string;
   initialMensajeTemplateVirtual: string;
-  // Flag TELECONSULTA_HABILITADA -- apagado, la plantilla de teleconsulta no
-  // se usa y su sección se oculta. Prendido se muestra siempre, aunque el
-  // médico no tenga un lugar de Teleconsulta: cualquier turno presencial se
-  // puede pasar a teleconsulta (ver `Turno.teleconsulta`).
+  // Flag TELECONSULTA_HABILITADA + Configuración > Teleconsulta del médico
+  // -- apagado, la plantilla de teleconsulta se oculta. Prendido se muestra
+  // siempre, aunque el médico no tenga un lugar de Teleconsulta: puede pasar
+  // turnos presenciales a teleconsulta (ver `Turno.teleconsulta`).
   tieneTeleconsulta: boolean;
   initialMensajeriaHabilitada: boolean;
   initialRecordatorioAutoEnviado: boolean;

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
 import { slugParaLugarNuevo } from "@/lib/public-slug";
-import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
 import { mensajeLugarDuplicado } from "@/lib/lugar-tipo";
 
 export async function GET() {
@@ -32,8 +32,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (parsed.data.tipo === "VIRTUAL" && !teleconsultaHabilitada()) {
-    return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
+  const teleconsulta = await getTeleconsultaDelMedico(tenantId);
+  // Configuración > Teleconsulta: el lugar de Teleconsulta es opcional.
+  if (parsed.data.tipo === "VIRTUAL" && !teleconsulta.lugarVirtual) {
+    return NextResponse.json(
+      { error: "Activá el lugar de Teleconsulta en Configuración > Teleconsulta." },
+      { status: 403 }
+    );
+  }
+  if (parsed.data.permiteTeleconsulta && !teleconsulta.pasarPresenciales) {
+    return NextResponse.json(
+      { error: 'Activá "Pasar turnos presenciales a teleconsulta" en Configuración > Teleconsulta.' },
+      { status: 403 }
+    );
   }
 
   // Solo puede haber un lugar particular y una teleconsulta por médico.
@@ -56,6 +67,7 @@ export async function POST(request: NextRequest) {
       latitud: parsed.data.latitud ?? null,
       longitud: parsed.data.longitud ?? null,
       ciudad: parsed.data.ciudad ?? null,
+      permiteTeleconsulta: parsed.data.permiteTeleconsulta ?? false,
       publicSlug: await slugParaLugarNuevo(tenantId, parsed.data.nombre ?? null),
     },
   });

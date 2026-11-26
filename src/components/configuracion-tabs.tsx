@@ -14,6 +14,7 @@ import {
   Sparkles,
   User,
   Users,
+  Video,
 } from "lucide-react";
 import { Tabs } from "@/components/ui/tabs";
 import {
@@ -34,6 +35,7 @@ export const CONFIGURACION_SECTIONS = [
       { value: "aranceles" as const, label: "Aranceles", icon: ReceiptText },
       { value: "usuarios" as const, label: "Usuarios", icon: Users },
       { value: "mensajeria" as const, label: "Mensajería", icon: MessageSquare },
+      { value: "teleconsulta" as const, label: "Teleconsulta", icon: Video },
       { value: "dictado" as const, label: "Dictado e IA", icon: Mic },
     ],
   },

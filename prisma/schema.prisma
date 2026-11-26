@@ -430,6 +430,14 @@ model User {
   // Habilita agregar sobreturnos (turnos extra en el medio o al final de un
   // bloque de horario, fuera de la grilla normal de `slotDurationMinutes`).
   sobreturnosHabilitados   Boolean         @default(false)
+  // Configuración > Teleconsulta (ver `src/lib/teleconsulta-config.ts`). Solo
+  // cuenta si la plataforma tiene TELECONSULTA_HABILITADA. El interruptor
+  // general manda; los otros dos eligen qué se puede hacer: pasar turnos
+  // presenciales a videollamada, y tener un lugar VIRTUAL en Mi práctica.
+  // Las asistentes usan la configuración del médico.
+  teleconsultaHabilitada        Boolean    @default(false)
+  teleconsultaPasarPresenciales Boolean    @default(true)
+  teleconsultaLugarVirtual      Boolean    @default(true)
   // Resumen con IA apenas termina la transcripción de un dictado, sin tocar
   // "Resumir con IA" (ver Configuración > Dictado e IA). El interruptor
   // general manda; los otros dos eligen en qué campos aplica. Las
@@ -907,6 +915,11 @@ model LugarDeTrabajo {
   latitud                  Float?
   longitud                 Float?
   telefono                 String
+  // Los turnos presenciales de este lugar (PARTICULAR/CONSULTORIO) se
+  // pueden pasar a teleconsulta (ver `Turno.teleconsulta`). Además tiene
+  // que estar prendido "Pasar turnos presenciales a teleconsulta" en
+  // Configuración > Teleconsulta del médico. Siempre false en un VIRTUAL.
+  permiteTeleconsulta      Boolean          @default(false)
   // Baja lógica -- ver DELETE /api/lugares-trabajo/[id]. Un lugar que
   // alguna vez tuvo un turno asociado (Turno.lugarId) nunca se borra de
   // verdad, solo se marca acá; toda lectura (lista, dropdown de horario,

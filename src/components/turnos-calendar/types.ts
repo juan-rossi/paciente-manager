@@ -36,6 +36,8 @@ export type LugarInfo = {
   nombre: string | null;
   tipo: string;
   ciudad: string | null;
+  // Ver `LugarDeTrabajo.permiteTeleconsulta`.
+  permiteTeleconsulta: boolean;
 };
 
 // Estado de resolución por bloque del wizard de "Bloquear horarios" --

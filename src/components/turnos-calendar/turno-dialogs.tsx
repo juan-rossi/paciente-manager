@@ -23,7 +23,7 @@ import { EstadoTurnoIcono, formatHora } from "./utils";
 import type { TurnoFormState } from "./use-turno-form";
 
 // Diálogos de reservar/editar turno y de cancelarlo.
-export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada }: {
+export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta }: {
   state: TurnoFormState;
   selectedDate: Date;
   prepagas: string[];
@@ -32,6 +32,10 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
   lugarTipo?: string;
   esMedico: boolean;
   teleconsultaHabilitada: boolean;
+  // Configuración > Teleconsulta del médico Y el lugar del turno lo permite
+  // (Mi práctica > Editar lugar): si no, no se ofrece pasar el turno a
+  // teleconsulta, pero uno que ya se pasó se puede volver a presencial.
+  puedePasarATeleconsulta: boolean;
 }) {
   const {
     formSlot,
@@ -133,7 +137,7 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
                 </Button>
               </div>
             )}
-            {turnoAbierto && !turnoAbierto.teleconsulta && puedeCambiarModalidad && (
+            {turnoAbierto && !turnoAbierto.teleconsulta && puedeCambiarModalidad && puedePasarATeleconsulta && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
                 <span className="flex items-center gap-2 text-sm">
                   <MapPin className="size-4 text-muted-foreground" />

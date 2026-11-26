@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
 import { mensajeLugarDuplicado } from "@/lib/lugar-tipo";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -31,6 +32,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (parsed.data.tipo === "VIRTUAL" && !teleconsultaHabilitada()) {
     return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
   }
+  const teleconsulta = await getTeleconsultaDelMedico(tenantId);
+  // Convertir otro lugar en Teleconsulta depende de Configuración >
+  // Teleconsulta (editar el que ya es de Teleconsulta, no).
+  if (parsed.data.tipo === "VIRTUAL" && existing.tipo !== "VIRTUAL" && !teleconsulta.lugarVirtual) {
+    return NextResponse.json(
+      { error: "Activá el lugar de Teleconsulta en Configuración > Teleconsulta." },
+      { status: 403 }
+    );
+  }
+  // Prenderlo requiere la opción del médico; apagarlo se permite siempre.
+  if (parsed.data.permiteTeleconsulta && !existing.permiteTeleconsulta && !teleconsulta.pasarPresenciales) {
+    return NextResponse.json(
+      { error: 'Activá "Pasar turnos presenciales a teleconsulta" en Configuración > Teleconsulta.' },
+      { status: 403 }
+    );
+  }
 
   // Solo puede haber un lugar particular y una teleconsulta por médico.
   if (parsed.data.tipo === "PARTICULAR" || parsed.data.tipo === "VIRTUAL") {
@@ -52,6 +69,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       latitud: parsed.data.latitud ?? null,
       longitud: parsed.data.longitud ?? null,
       ciudad: parsed.data.ciudad ?? null,
+      // Apagarlo no toca los turnos que ya se pasaron: siguen siendo
+      // teleconsulta y se pueden volver a presencial.
+      ...(parsed.data.permiteTeleconsulta !== undefined
+        ? { permiteTeleconsulta: parsed.data.permiteTeleconsulta }
+        : {}),
     },
   });
 

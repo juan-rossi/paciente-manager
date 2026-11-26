@@ -3,6 +3,7 @@ export const CONFIGURACION_TABS = [
   "aranceles",
   "usuarios",
   "mensajeria",
+  "teleconsulta",
   "dictado",
   "perfil",
   "visibilidad",
