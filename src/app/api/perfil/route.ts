@@ -42,6 +42,15 @@ export async function PATCH(request: NextRequest) {
       data: prepagaIds.map((prepagaId) => ({ doctorId: user.id, prepagaId })),
       skipDuplicates: true,
     }),
+    // Aranceles (reporte de ingresos): una cobertura que no vino en la
+    // lista, o que no está entre las elegidas, se ignora.
+    ...prepagaIds.map((prepagaId) => {
+      const arancel = parsed.data.aranceles.find((a) => a.prepagaId === prepagaId);
+      return prisma.doctorPrepaga.updateMany({
+        where: { doctorId: user.id, prepagaId },
+        data: { montoConsulta: arancel?.montoConsulta ?? null, montoPlus: arancel?.montoPlus ?? null },
+      });
+    }),
   ]);
 
   return NextResponse.json({

@@ -19,6 +19,11 @@ const CAMPOS_INTERNOS = ["cancelTokenHash", "linkCodigo", "creadoPorId"] as cons
 export function serializeTurno<T extends TurnoLike>(turno: T, role: UserRole) {
   const rest: Record<string, unknown> = { ...turno };
   for (const campo of CAMPOS_INTERNOS) delete rest[campo];
-  if (role !== "DOCTOR") delete rest.patientId;
+  if (role !== "DOCTOR") {
+    delete rest.patientId;
+    // Lo que cobra el médico (reporte de ingresos) tampoco es del asistente.
+    delete rest.montoCobertura;
+    delete rest.montoPlus;
+  }
   return rest as Omit<T, (typeof CAMPOS_INTERNOS)[number]>;
 }

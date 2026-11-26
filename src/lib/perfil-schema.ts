@@ -13,6 +13,16 @@ const optionalString = z
   .optional()
   .transform((v) => (v && v.length > 0 ? v : null));
 
+// Pesos sin centavos; null = sin cargar.
+const montoOpcional = z
+  .number({ message: "Ingresá un monto válido." })
+  .int("El monto no lleva centavos.")
+  .min(0, "El monto no puede ser negativo.")
+  .max(100_000_000, "El monto es demasiado alto.")
+  .nullable()
+  .optional()
+  .transform((v) => v ?? null);
+
 export const perfilSchema = z.object({
   tituloCortesia: tituloCortesiaSchema,
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
@@ -23,14 +33,20 @@ export const perfilSchema = z.object({
   // Ids del catálogo `Prepaga` con las que trabaja el médico.
   prepagaIds: z.array(z.string()).max(500),
   // Monto de la consulta particular en pesos (sin centavos); null = sin cargar.
-  montoConsultaParticular: z
-    .number({ message: "Ingresá un monto válido." })
-    .int("El monto no lleva centavos.")
-    .min(0, "El monto no puede ser negativo.")
-    .max(100_000_000, "El monto es demasiado alto.")
-    .nullable()
+  montoConsultaParticular: montoOpcional,
+  // Lo que paga cada cobertura por consulta y el plus que se cobra aparte
+  // (reporte de ingresos). Solo se aplica a las de `prepagaIds`.
+  aranceles: z
+    .array(
+      z.object({
+        prepagaId: z.string(),
+        montoConsulta: montoOpcional,
+        montoPlus: montoOpcional,
+      })
+    )
+    .max(500)
     .optional()
-    .transform((v) => v ?? null),
+    .default([]),
 });
 
 // Acepta "@usuario" o el link tal cual y lo guarda como URL completa; vacío

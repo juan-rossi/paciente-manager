@@ -24,6 +24,7 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
   const [cancelTarget, setCancelTarget] = useState<Slot | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [togglingConfirmado, setTogglingConfirmado] = useState(false);
+  const [guardandoAsistencia, setGuardandoAsistencia] = useState(false);
 
   function openBooking(slot: Slot) {
     setFormSlot(slot);
@@ -116,6 +117,31 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     }
   }
 
+  // "Asistió" / "No vino" (reporte de ingresos). Tocar el que ya está
+  // marcado lo desmarca. Igual que la confirmación: el diálogo sigue abierto.
+  async function handleSetAsistencia(valor: "ASISTIO" | "AUSENTE") {
+    const turno = formSlot?.turno;
+    if (!turno) return;
+    const asistencia = turno.asistencia === valor ? null : valor;
+    setGuardandoAsistencia(true);
+    try {
+      const response = await fetch(`/api/turnos/${turno.id}/asistencia`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asistencia }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "No se pudo actualizar el turno.");
+        return;
+      }
+      setFormSlot((slot) => (slot?.turno ? { ...slot, turno: { ...slot.turno, asistencia: data.asistencia } } : slot));
+      await loadSlots(selectedDate);
+    } finally {
+      setGuardandoAsistencia(false);
+    }
+  }
+
   async function handleCancelar() {
     if (!cancelTarget?.turno) return;
     setCancelling(true);
@@ -157,6 +183,8 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     setCancelling,
     togglingConfirmado,
     handleToggleConfirmado,
+    guardandoAsistencia,
+    handleSetAsistencia,
     openBooking,
     openEdit,
     handleSubmitForm,

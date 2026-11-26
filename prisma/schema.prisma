@@ -164,6 +164,13 @@ enum TurnoOrigen {
   ONLINE
 }
 
+// Si el paciente vino al turno -- lo marca el médico o su asistente después
+// del horario. Sin marcar (null) no suma al reporte de ingresos.
+enum TurnoAsistencia {
+  ASISTIO
+  AUSENTE
+}
+
 enum TurnoAvisoPendienteMotivo {
   CANCELADO
   APLAZADO
@@ -999,8 +1006,19 @@ model Turno {
   // Se genera la primera vez que el turno aparece en Recordatorios.
   linkCodigo String? @unique
 
+  // Reporte de ingresos (ver `src/lib/ingresos.ts`). Al marcar ASISTIO se
+  // congelan los montos vigentes (arancel de la cobertura o consulta
+  // particular, y el plus) para que cambiar un arancel después no reescriba
+  // meses viejos; el médico puede corregirlos a mano. Se borran si deja de
+  // estar marcado ASISTIO. Pesos sin centavos. Los montos nunca viajan a un
+  // asistente (ver `serializeTurno`).
+  asistencia     TurnoAsistencia?
+  montoCobertura Int?
+  montoPlus      Int?
+
   @@index([inicio])
   @@index([doctorId])
+  @@index([doctorId, inicio])
   @@index([lugarId])
   @@index([doctorId, avisoPendiente])
   @@index([doctorId, canceladoPorPacienteAt])
@@ -1563,6 +1581,11 @@ model DoctorPrepaga {
   doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   prepagaId String
   prepaga   Prepaga  @relation(fields: [prepagaId], references: [id], onDelete: Cascade)
+  // Lo que paga esta cobertura por consulta y el plus que se le cobra al
+  // paciente (pesos, sin centavos; null = sin cargar / sin plus). Se copian
+  // al turno al marcarlo ASISTIO -- ver `Turno.montoCobertura`.
+  montoConsulta Int?
+  montoPlus     Int?
   createdAt DateTime @default(now())
 
   @@id([doctorId, prepagaId])

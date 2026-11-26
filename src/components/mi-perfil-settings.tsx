@@ -43,7 +43,50 @@ type Props = {
   // Catálogo completo de coberturas y las que ya eligió el médico.
   prepagas: { id: string; nombre: string; nombreCompleto: string | null }[];
   initialPrepagaIds: string[];
+  // Lo que paga cada cobertura por consulta y el plus (reporte de ingresos).
+  initialArancelesCobertura: { prepagaId: string; montoConsulta: number | null; montoPlus: number | null }[];
 };
+
+type ArancelEditable = { consulta: string; plus: string };
+
+// Los montos se editan como dígitos ("15000") y se muestran con separador de
+// miles ("15.000").
+function soloDigitos(valor: string) {
+  return valor.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 9);
+}
+
+function formatDigitos(valor: string) {
+  return valor ? Number(valor).toLocaleString("es-AR") : "";
+}
+
+function MontoInput({
+  value,
+  onChange,
+  placeholder = "0",
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+        $
+      </span>
+      <Input
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        value={formatDigitos(value)}
+        onChange={(e) => onChange(soloDigitos(e.target.value))}
+        className="pl-7 tabular-nums"
+      />
+    </div>
+  );
+}
 
 export function MiPerfilSettings({
   initialFotoPerfilBase64,
@@ -56,6 +99,7 @@ export function MiPerfilSettings({
   initialMontoConsultaParticular,
   prepagas,
   initialPrepagaIds,
+  initialArancelesCobertura,
 }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,13 +124,33 @@ export function MiPerfilSettings({
   const [montoConsulta, setMontoConsulta] = useState(
     initialMontoConsultaParticular != null ? String(initialMontoConsultaParticular) : ""
   );
-  const montoConsultaFormateado = montoConsulta
-    ? Number(montoConsulta).toLocaleString("es-AR")
-    : "";
 
   // Coberturas con las que trabaja -- se guardan con "Guardar cambios".
   const [prepagaIds, setPrepagaIds] = useState<string[]>(initialPrepagaIds);
   const [prepagaBusqueda, setPrepagaBusqueda] = useState("");
+  const [aranceles, setAranceles] = useState<Record<string, ArancelEditable>>(() =>
+    Object.fromEntries(
+      initialArancelesCobertura.map((a) => [
+        a.prepagaId,
+        {
+          consulta: a.montoConsulta != null ? String(a.montoConsulta) : "",
+          plus: a.montoPlus != null ? String(a.montoPlus) : "",
+        },
+      ])
+    )
+  );
+  function setArancel(prepagaId: string, campo: keyof ArancelEditable, valor: string) {
+    setAranceles((prev) => ({
+      ...prev,
+      [prepagaId]: { ...(prev[prepagaId] ?? { consulta: "", plus: "" }), [campo]: valor },
+    }));
+  }
+  // Solo los de coberturas elegidas, en orden estable (para comparar cambios).
+  const arancelesElegidos = [...prepagaIds].sort().map((prepagaId) => ({
+    prepagaId,
+    consulta: aranceles[prepagaId]?.consulta ?? "",
+    plus: aranceles[prepagaId]?.plus ?? "",
+  }));
   const prepagaOptions = prepagas
     .filter((p) => !prepagaIds.includes(p.id))
     .map((p) => ({
@@ -115,6 +179,7 @@ export function MiPerfilSettings({
     nroMatricula,
     montoConsulta,
     prepagaIds: [...prepagaIds].sort(),
+    arancelesElegidos,
   });
   const [perfilGuardado, setPerfilGuardado] = useState(perfilSnapshot);
   const hayCambios = perfilSnapshot !== perfilGuardado;
@@ -208,6 +273,11 @@ export function MiPerfilSettings({
           nroMatricula,
           prepagaIds,
           montoConsultaParticular: montoConsulta ? Number(montoConsulta) : null,
+          aranceles: arancelesElegidos.map((a) => ({
+            prepagaId: a.prepagaId,
+            montoConsulta: a.consulta ? Number(a.consulta) : null,
+            montoPlus: a.plus ? Number(a.plus) : null,
+          })),
         }),
       });
       const data = await response.json();
@@ -379,28 +449,59 @@ export function MiPerfilSettings({
             Todavía no cargaste ninguna. Buscá arriba para empezar.
           </p>
         ) : (
-          <ul className="flex flex-wrap gap-1.5" aria-label="Coberturas elegidas">
-            {prepagasElegidas.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  aria-label={`Quitar ${p.nombre}`}
-                  onClick={() => setPrepagaIds((prev) => prev.filter((id) => id !== p.id))}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-1.5 pl-3 text-[12.5px] font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          <div className="flex flex-col gap-2">
+            <div className="hidden grid-cols-[minmax(0,1fr)_9rem_9rem_2rem] gap-3 px-3 text-xs font-medium text-muted-foreground sm:grid">
+              <span>Cobertura</span>
+              <span>Paga por consulta</span>
+              <span>Plus (opcional)</span>
+              <span />
+            </div>
+            <ul
+              className="flex flex-col divide-y divide-border rounded-lg border border-border"
+              aria-label="Coberturas elegidas"
+            >
+              {prepagasElegidas.map((p) => (
+                <li
+                  key={p.id}
+                  className="grid grid-cols-[minmax(0,1fr)_2rem] items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_9rem_9rem_2rem]"
                 >
-                  {p.nombre}
-                  <span className="flex size-[18px] items-center justify-center rounded-full group-hover:bg-primary group-hover:text-primary-foreground">
-                    <X className="size-3" />
+                  <span
+                    className="col-start-1 row-start-1 min-w-0 truncate text-sm font-semibold"
+                    title={p.nombreCompleto ?? p.nombre}
+                  >
+                    {p.nombre}
                   </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {prepagasElegidas.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}
-          </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Quitar ${p.nombre}`}
+                    onClick={() => setPrepagaIds((prev) => prev.filter((id) => id !== p.id))}
+                    className="col-start-2 row-start-1 text-muted-foreground sm:col-start-4"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                  <div className="col-span-2 grid grid-cols-2 gap-3 sm:col-span-2 sm:col-start-2 sm:row-start-1">
+                    <MontoInput
+                      value={aranceles[p.id]?.consulta ?? ""}
+                      onChange={(v) => setArancel(p.id, "consulta", v)}
+                      ariaLabel={`Lo que paga ${p.nombre} por consulta`}
+                    />
+                    <MontoInput
+                      value={aranceles[p.id]?.plus ?? ""}
+                      onChange={(v) => setArancel(p.id, "plus", v)}
+                      placeholder="Sin plus"
+                      ariaLabel={`Plus que cobrás a pacientes de ${p.nombre}`}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted-foreground">
+              {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}. Los
+              montos son opcionales: se usan para tu reporte de ingresos y nunca se publican.
+            </p>
+          </div>
         )}
       </SettingsSection>
 
@@ -416,8 +517,8 @@ export function MiPerfilSettings({
               inputMode="numeric"
               autoComplete="off"
               placeholder="0"
-              value={montoConsultaFormateado}
-              onChange={(e) => setMontoConsulta(e.target.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 9))}
+              value={formatDigitos(montoConsulta)}
+              onChange={(e) => setMontoConsulta(soloDigitos(e.target.value))}
               className="pl-7 tabular-nums"
               aria-describedby="perfil-monto-consulta-ayuda"
             />
@@ -433,8 +534,7 @@ export function MiPerfilSettings({
           <Info className="mt-px size-3.5 shrink-0" />
           <p>
             Cargar este monto no lo publica en tu perfil: para mostrarlo a tus pacientes, prendelo
-            en Información pública. Además, nos sirve como referencia para los reportes financieros que
-            sumemos más adelante.
+            en Información pública. También se usa en tu reporte de ingresos.
           </p>
         </div>
       </SettingsSection>

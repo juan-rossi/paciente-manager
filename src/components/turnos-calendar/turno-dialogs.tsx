@@ -11,7 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Check, UserX } from "lucide-react";
 import { DNI_REGEX } from "@/lib/dni";
+import { formatDateParamBA } from "@/lib/timezone";
+import { cn } from "@/lib/utils";
 import { ESTADO_VISUAL_LABELS, estadoVisualTurno } from "@/lib/turno-estado";
 import { filterTelefono } from "@/lib/utils";
 import { EstadoTurnoIcono, formatHora } from "./utils";
@@ -43,10 +46,16 @@ export function TurnoDialogs({ state, selectedDate, prepagas }: {
     cancelling,
     togglingConfirmado,
     handleToggleConfirmado,
+    guardandoAsistencia,
+    handleSetAsistencia,
     handleSubmitForm,
     handleCancelar,
   } = state;
   const estado = editingTurnoId && formSlot?.turno ? estadoVisualTurno(formSlot.turno) : null;
+  // La asistencia se marca desde el día del turno en adelante.
+  const asistencia = formSlot?.turno?.asistencia ?? null;
+  const puedeMarcarAsistencia =
+    !!editingTurnoId && !!formSlot?.turno && formatDateParamBA(selectedDate) <= formatDateParamBA(new Date());
 
   return (
     <>
@@ -88,6 +97,43 @@ export function TurnoDialogs({ state, selectedDate, prepagas }: {
                 >
                   {estado === "CONFIRMADO" ? "Quitar confirmación" : "Marcar confirmado"}
                 </Button>
+              </div>
+            )}
+            {puedeMarcarAsistencia && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <span className="text-sm text-muted-foreground">¿Vino al turno?</span>
+                <div className="flex gap-2" role="group" aria-label="Asistencia">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-pressed={asistencia === "ASISTIO"}
+                    disabled={guardandoAsistencia}
+                    onClick={() => handleSetAsistencia("ASISTIO")}
+                    className={cn(
+                      asistencia === "ASISTIO" &&
+                        "border-emerald-600 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300"
+                    )}
+                  >
+                    <Check className="size-3.5" />
+                    Asistió
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-pressed={asistencia === "AUSENTE"}
+                    disabled={guardandoAsistencia}
+                    onClick={() => handleSetAsistencia("AUSENTE")}
+                    className={cn(
+                      asistencia === "AUSENTE" &&
+                        "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/15"
+                    )}
+                  >
+                    <UserX className="size-3.5" />
+                    No vino
+                  </Button>
+                </div>
               </div>
             )}
             <hr className="mt-2 mb-2" />

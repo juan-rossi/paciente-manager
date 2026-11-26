@@ -11,6 +11,8 @@ export type TurnoInfo = {
   estado: string;
   recordatorioEnviado: boolean;
   confirmadoAt: string | null;
+  // Si vino al turno (reporte de ingresos) -- null = sin marcar.
+  asistencia: "ASISTIO" | "AUSENTE" | null;
 };
 
 export type Slot = {

@@ -108,7 +108,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
       orderBy: { createdAt: "asc" },
     }),
     prisma.prepaga.findMany({ select: { id: true, nombre: true, nombreCompleto: true }, orderBy: { nombre: "asc" } }),
-    prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
+    prisma.doctorPrepaga.findMany({
+      where: { doctorId: user.id },
+      select: { prepagaId: true, montoConsulta: true, montoPlus: true },
+    }),
     getEstadoModeracionPerfil(user.id),
     getImportacionesVista(user.id),
   ]);
@@ -244,6 +247,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               initialMontoConsultaParticular={user.montoConsultaParticular}
               prepagas={prepagas}
               initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
+              initialArancelesCobertura={prepagasDelDoctor}
             />
           </TabsContent>
           <TabsContent value="visibilidad" className="w-full">

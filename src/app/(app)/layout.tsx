@@ -125,6 +125,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(mensajeriaHabilitada
       ? [{ href: "/recordatorios", label: "Recordatorios", icon: "MessageCircle" as const }]
       : []),
+    // Lo que factura el médico: nunca para el asistente.
+    ...(isDoctor ? [{ href: "/ingresos", label: "Ingresos", icon: "Wallet" as const }] : []),
   ];
 
   // El asistente no tiene Configuración (es del médico): su equivalente es

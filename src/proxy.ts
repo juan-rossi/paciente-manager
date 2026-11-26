@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/patients",
   "/turnos",
   "/recordatorios",
+  "/ingresos",
   "/configuracion",
   "/onboarding",
   "/admin",
@@ -19,8 +20,9 @@ const PROTECTED_PREFIXES = [
 ];
 // Con la cuenta dada de baja (ver src/lib/baja-cuenta.ts) solo queda
 // `/cuenta-baja`, desde donde se descargan los datos o se cancela la baja.
-const BAJA_GATED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios", "/configuracion"];
-const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/configuracion"];
+const BAJA_GATED_PREFIXES = ["/dashboard", "/patients", "/turnos", "/recordatorios", "/ingresos", "/configuracion"];
+// `/ingresos`: lo que factura el médico nunca lo ve su asistente.
+const DOCTOR_ONLY_PREFIXES = ["/dashboard", "/patients", "/ingresos", "/configuracion"];
 // Rutas que requieren una cuenta al día (trial vigente o suscripción paga
 // vigente, ver `esActivo()`) -- deliberadamente sin `/configuracion`, que
 // tiene que seguir siendo alcanzable con la cuenta vencida para poder
@@ -34,6 +36,7 @@ const APP_PREFIXES = [
   "/patients",
   "/turnos",
   "/recordatorios",
+  "/ingresos",
   "/configuracion",
   "/onboarding",
   // Sin plan-gate: con la cuenta vencida también pueden escribirnos.
@@ -155,6 +158,7 @@ export const config = {
     "/patients/:path*",
     "/turnos/:path*",
     "/recordatorios/:path*",
+    "/ingresos/:path*",
     "/configuracion/:path*",
     "/onboarding",
     "/admin/:path*",

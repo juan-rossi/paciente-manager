@@ -308,6 +308,7 @@ function BloqueContiguoGrid({
                               <span className="shrink-0">
                                 [ {formatHora(piece.inicio)} - {formatHora(piece.fin)} ]
                               </span>
+                              <AsistenciaLabel asistencia={piece.turno!.asistencia} />
                               {role === "DOCTOR" && piece.turno!.patientId && (
                                 <Link
                                   href={`/patients/${piece.turno!.patientId}`}
@@ -355,7 +356,8 @@ function BloqueContiguoGrid({
                         )}
                       </span>
                       <span className="text-[10px] leading-tight opacity-80">
-                        [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno
+                        [ {formatHora(sob.inicio)} - {formatHora(sob.fin)} ] · Sobreturno{" "}
+                        <AsistenciaLabel asistencia={sob.turno!.asistencia} />
                       </span>
                     </button>
                   ))}
@@ -500,5 +502,13 @@ export function LugarDayGrid({
         );
       })}
     </div>
+  );
+}
+
+// "Asistió" / "No vino" en la grilla (reporte de ingresos); nada si no se marcó.
+function AsistenciaLabel({ asistencia }: { asistencia: "ASISTIO" | "AUSENTE" | null }) {
+  if (!asistencia) return null;
+  return (
+    <span className="shrink-0 font-semibold">{asistencia === "ASISTIO" ? "✓ Asistió" : "✕ No vino"}</span>
   );
 }
