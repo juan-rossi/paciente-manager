@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Check, Loader2, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { buildMensajeCambioModalidad, buildMensajeCambioTurno, buildWhatsAppHref } from "@/lib/recordatorio-mensaje";
+import {
+  buildMensajeCambioTurno,
+  buildMensajePasoTeleconsulta,
+  buildMensajeVueltaPresencial,
+  buildWhatsAppHref,
+  type AvisoPasoTeleconsulta,
+} from "@/lib/recordatorio-mensaje";
 import { formatHoraBA } from "@/lib/timezone";
 import type { TurnoPendienteAviso } from "@/lib/turnos-pendientes-aviso";
 
@@ -12,6 +18,7 @@ type Props = {
   initialPendientes: TurnoPendienteAviso[];
   mensajeTemplateCancelado: string;
   mensajeTemplateAplazado: string;
+  avisoPasoTeleconsulta: AvisoPasoTeleconsulta;
 };
 
 function fechaLarga(date: Date) {
@@ -21,25 +28,24 @@ function fechaLarga(date: Date) {
 // Mensaje de WhatsApp y textos de la fila según el motivo.
 function contenidoAviso(
   turno: TurnoPendienteAviso,
-  plantillas: { cancelado: string; aplazado: string }
+  plantillas: { cancelado: string; aplazado: string; pasoTeleconsulta: AvisoPasoTeleconsulta }
 ): { mensaje: string; detalle: string; detalleCorto: string } {
   const inicio = new Date(turno.inicio);
   switch (turno.avisoPendienteMotivo) {
     case "PASADO_A_TELECONSULTA":
       return {
-        mensaje: buildMensajeCambioModalidad(turno.nombreYApellido, inicio, {
-          aTeleconsulta: true,
-          links: turno.linksTeleconsulta,
-        }),
+        mensaje: buildMensajePasoTeleconsulta(
+          plantillas.pasoTeleconsulta,
+          turno.nombreYApellido,
+          inicio,
+          turno.linksTeleconsulta
+        ),
         detalle: `Pasó a teleconsulta · ${fechaLarga(inicio)} a las ${formatHoraBA(inicio)}`,
         detalleCorto: `Teleconsulta · ${fechaCorta(inicio)} ${formatHoraBA(inicio)}`,
       };
     case "PASADO_A_PRESENCIAL":
       return {
-        mensaje: buildMensajeCambioModalidad(turno.nombreYApellido, inicio, {
-          aTeleconsulta: false,
-          dondeAtiende: turno.dondeAtiende,
-        }),
+        mensaje: buildMensajeVueltaPresencial(turno.nombreYApellido, inicio, turno.dondeAtiende),
         detalle: `Volvió a presencial · ${fechaLarga(inicio)} a las ${formatHoraBA(inicio)}`,
         detalleCorto: `Presencial · ${fechaCorta(inicio)} ${formatHoraBA(inicio)}`,
       };
@@ -86,6 +92,7 @@ export function RecordatoriosPendientes({
   initialPendientes,
   mensajeTemplateCancelado,
   mensajeTemplateAplazado,
+  avisoPasoTeleconsulta,
 }: Props) {
   const [pendientes, setPendientes] = useState<TurnoPendienteAviso[]>(initialPendientes);
   const [marcandoId, setMarcandoId] = useState<string | null>(null);
@@ -115,6 +122,7 @@ export function RecordatoriosPendientes({
           const { mensaje, detalle, detalleCorto } = contenidoAviso(turno, {
             cancelado: mensajeTemplateCancelado,
             aplazado: mensajeTemplateAplazado,
+            pasoTeleconsulta: avisoPasoTeleconsulta,
           });
           const href = buildWhatsAppHref(turno.telefono, mensaje);
           const marcando = marcandoId === turno.id;

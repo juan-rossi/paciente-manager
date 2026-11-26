@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CalendarClock, MessageSquare, Plus, Power, Video } from "lucide-react";
+import { Ban, CalendarClock, MessageSquare, Plus, Power, Repeat, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -51,7 +51,33 @@ const CANCELAR: TemplateVariable = {
   ),
 };
 
+// Se configuran en Configuración > Teleconsulta > Cobro (ver teleconsulta-cobro.ts).
+const ALIAS: TemplateVariable = {
+  token: "{alias}",
+  description: (
+    <>
+      tu alias o CBU/CVU para transferencias, tal como lo cargaste en{" "}
+      <strong>Teleconsulta</strong>. Si no cargaste ninguno, queda en blanco.
+    </>
+  ),
+};
+
+const PAGO: TemplateVariable = {
+  token: "{pago}",
+  description: (
+    <>
+      cuándo, cuánto y cómo se paga, según lo que elegiste en <strong>Teleconsulta</strong>. Ej.:{" "}
+      <strong>
+        &quot;Recordá abonar la consulta ($ 20.000) por transferencia a tu.alias antes del turno.&quot;
+      </strong>
+    </>
+  ),
+};
+
 const VARIABLES_RECORDATORIO: TemplateVariable[] = [NOMBRE, FECHA, HORA, CONFIRMAR, CANCELAR];
+
+// Con teleconsulta, el alias de cobro también sirve en el recordatorio presencial.
+const VARIABLES_RECORDATORIO_CON_ALIAS: TemplateVariable[] = [...VARIABLES_RECORDATORIO, ALIAS];
 
 const VARIABLES_RECORDATORIO_VIRTUAL: TemplateVariable[] = [
   NOMBRE,
@@ -68,6 +94,8 @@ const VARIABLES_RECORDATORIO_VIRTUAL: TemplateVariable[] = [
       </>
     ),
   },
+  PAGO,
+  ALIAS,
 ];
 
 const VARIABLES_CANCELACION: TemplateVariable[] = [
@@ -92,6 +120,10 @@ type Props = {
   // siempre, aunque el médico no tenga un lugar de Teleconsulta: puede pasar
   // turnos presenciales a teleconsulta (ver `Turno.teleconsulta`).
   tieneTeleconsulta: boolean;
+  // Configuración > Teleconsulta > "Pasar turnos presenciales a
+  // teleconsulta": sin eso no hay aviso de paso que configurar.
+  puedePasarATeleconsulta: boolean;
+  initialMensajeTemplatePasoTeleconsulta: string;
   initialMensajeriaHabilitada: boolean;
   initialRecordatorioAutoEnviado: boolean;
   initialMensajeTemplateCancelado: string;
@@ -102,6 +134,8 @@ export function MessagingSettings({
   initialMensajeTemplate,
   initialMensajeTemplateVirtual,
   tieneTeleconsulta,
+  puedePasarATeleconsulta,
+  initialMensajeTemplatePasoTeleconsulta,
   initialMensajeriaHabilitada,
   initialRecordatorioAutoEnviado,
   initialMensajeTemplateCancelado,
@@ -111,6 +145,9 @@ export function MessagingSettings({
   const [mensajeriaHabilitada, setMensajeriaHabilitada] = useState(initialMensajeriaHabilitada);
   const [mensajeTemplate, setMensajeTemplate] = useState(initialMensajeTemplate);
   const [mensajeTemplateVirtual, setMensajeTemplateVirtual] = useState(initialMensajeTemplateVirtual);
+  const [mensajeTemplatePasoTeleconsulta, setMensajeTemplatePasoTeleconsulta] = useState(
+    initialMensajeTemplatePasoTeleconsulta
+  );
   const [recordatorioAutoEnviado, setRecordatorioAutoEnviado] = useState(
     initialRecordatorioAutoEnviado
   );
@@ -135,6 +172,7 @@ export function MessagingSettings({
         body: JSON.stringify({
           mensajeTemplate,
           mensajeTemplateVirtual,
+          mensajeTemplatePasoTeleconsulta,
           mensajeriaHabilitada,
           recordatorioAutoEnviado,
           mensajeTemplateCancelado,
@@ -176,7 +214,7 @@ export function MessagingSettings({
       </SettingsSection>
 
       <SettingsSection
-        title="Mensaje de recordatorio"
+        title="Recordatorio de turno presencial"
         description={
           tieneTeleconsulta
             ? "Definí el mensaje que se precarga al enviar un WhatsApp de confirmación de un turno presencial."
@@ -190,7 +228,7 @@ export function MessagingSettings({
             label="Mensaje"
             value={mensajeTemplate}
             onChange={setMensajeTemplate}
-            variables={VARIABLES_RECORDATORIO}
+            variables={tieneTeleconsulta ? VARIABLES_RECORDATORIO_CON_ALIAS : VARIABLES_RECORDATORIO}
             disabled={!mensajeriaHabilitada}
           >
             {!mensajeTemplate.includes("{confirmar}") && !mensajeTemplate.includes("{cancelar}") && (
@@ -269,6 +307,61 @@ export function MessagingSettings({
                         size="sm"
                         disabled={!mensajeriaHabilitada}
                         onClick={() => setMensajeTemplateVirtual((t) => `${t.trimEnd()}\n${LINKS_SUGERIDOS}`)}
+                      >
+                        <Plus className="size-3.5" />
+                        Agregar links de confirmar y cancelar
+                      </Button>
+                    )}
+                </div>
+              )}
+            </TemplateEditor>
+          </div>
+        </SettingsSection>
+      )}
+
+      {puedePasarATeleconsulta && (
+        <SettingsSection
+          title="Aviso de turno pasado a teleconsulta"
+          description="Se precarga al avisarle al paciente que su turno presencial pasó a ser por videollamada, desde la agenda o desde Pendientes de notificar."
+          icon={Repeat}
+        >
+          <div className={cn("flex flex-col gap-3", !mensajeriaHabilitada && "opacity-60")}>
+            <TemplateEditor
+              id="mensaje-paso-teleconsulta"
+              label="Mensaje"
+              value={mensajeTemplatePasoTeleconsulta}
+              onChange={setMensajeTemplatePasoTeleconsulta}
+              variables={VARIABLES_RECORDATORIO_VIRTUAL}
+              disabled={!mensajeriaHabilitada}
+            >
+              {(!mensajeTemplatePasoTeleconsulta.includes("{videollamada}") ||
+                (!mensajeTemplatePasoTeleconsulta.includes("{confirmar}") &&
+                  !mensajeTemplatePasoTeleconsulta.includes("{cancelar}"))) && (
+                <div className="flex flex-wrap gap-2">
+                  {!mensajeTemplatePasoTeleconsulta.includes("{videollamada}") && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!mensajeriaHabilitada}
+                      onClick={() =>
+                        setMensajeTemplatePasoTeleconsulta((t) => `${t.trimEnd()}\n${LINK_VIDEOLLAMADA_SUGERIDO}`)
+                      }
+                    >
+                      <Plus className="size-3.5" />
+                      Agregar link a la videollamada
+                    </Button>
+                  )}
+                  {!mensajeTemplatePasoTeleconsulta.includes("{confirmar}") &&
+                    !mensajeTemplatePasoTeleconsulta.includes("{cancelar}") && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!mensajeriaHabilitada}
+                        onClick={() =>
+                          setMensajeTemplatePasoTeleconsulta((t) => `${t.trimEnd()}\n${LINKS_SUGERIDOS}`)
+                        }
                       >
                         <Plus className="size-3.5" />
                         Agregar links de confirmar y cancelar

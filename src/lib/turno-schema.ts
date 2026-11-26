@@ -30,6 +30,8 @@ export const messagingSchema = z.object({
   mensajeTemplate: z.string().trim().min(1, "El mensaje es obligatorio.").max(TEXTO_MEDIO),
   // Recordatorio de los turnos de un lugar VIRTUAL (teleconsulta).
   mensajeTemplateVirtual: z.string().trim().min(1, "El mensaje es obligatorio.").max(TEXTO_MEDIO),
+  // Aviso de un turno presencial que pasó a teleconsulta.
+  mensajeTemplatePasoTeleconsulta: z.string().trim().min(1, "El mensaje es obligatorio.").max(TEXTO_MEDIO),
   mensajeriaHabilitada: z.boolean(),
   recordatorioAutoEnviado: z.boolean(),
   // Plantillas de la resolución de conflictos de "Bloquear horarios" -- ver

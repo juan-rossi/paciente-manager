@@ -2,14 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CalendarClock, Loader2, Lock, Plus, Repeat, Video } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Loader2,
+  Lock,
+  Plus,
+  Repeat,
+  Video,
+  Wallet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { SettingsSection } from "@/components/settings-section";
 import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
 import type { TeleconsultaConfigGuardada } from "@/lib/teleconsulta-config";
+import {
+  type CobroTeleconsulta,
+  type MomentoCobro,
+} from "@/lib/teleconsulta-cobro";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -20,18 +36,60 @@ type Props = {
   // Función Premium (ver `planPermiteTeleconsulta`): sin el plan la sección
   // se ve bloqueada y apagada, con el acceso a Mi plan.
   incluidaEnPlan: boolean;
+  initialCobro: CobroTeleconsulta;
+  // El de Mi perfil, para la opción "Igual a la consulta particular".
+  montoConsultaParticular: number | null;
 };
+
+const OPCIONES_COBRO: { value: MomentoCobro; label: string; descripcion: string }[] = [
+  { value: "ANTES", label: "Por adelantado", descripcion: "El paciente paga antes del turno." },
+  {
+    value: "DESPUES",
+    label: "Después de la consulta",
+    descripcion: "El paciente paga al terminar la videollamada.",
+  },
+];
 
 // Configuración > Teleconsulta. Cada cambio se guarda al toque (como un
 // interruptor), así el botón "Crear lugar de Teleconsulta" siempre refleja
 // lo que el servidor ya tiene guardado.
-export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual, incluidaEnPlan }: Props) {
+export function TeleconsultaSettings({
+  initialConfig,
+  initialTieneLugarVirtual,
+  incluidaEnPlan,
+  initialCobro,
+  montoConsultaParticular,
+}: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
   const [tieneLugarVirtual, setTieneLugarVirtual] = useState(initialTieneLugarVirtual);
   const [saving, setSaving] = useState(false);
   const [creandoLugar, setCreandoLugar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cobro: el momento se guarda al toque (como el resto de las opciones); el
+  // alias, que es texto, con su botón.
+  const [cobro, setCobro] = useState(initialCobro);
+  const [alias, setAlias] = useState(initialCobro.aliasCobro ?? "");
+  // Qué campos del cobro se están guardando: cada control se bloquea solo
+  // mientras se guarda lo suyo (bloquear todo hacía parpadear los campos de
+  // abajo al cambiar el momento del cobro).
+  const [guardandoCampos, setGuardandoCampos] = useState<Set<keyof CobroTeleconsulta>>(
+    () => new Set()
+  );
+  const guardando = (...campos: (keyof CobroTeleconsulta)[]) =>
+    campos.some((c) => guardandoCampos.has(c));
+  const [aliasGuardado, setAliasGuardado] = useState(false);
+  const [errorCobro, setErrorCobro] = useState<string | null>(null);
+  const aliasCambiado = alias.trim() !== (cobro.aliasCobro ?? "");
+  // Monto propio de la teleconsulta: solo dígitos ("15000"), se muestra con
+  // separador de miles (igual que el de la consulta particular en Mi perfil).
+  const [monto, setMonto] = useState(
+    initialCobro.montoTeleconsulta != null ? String(initialCobro.montoTeleconsulta) : ""
+  );
+  const [montoGuardado, setMontoGuardado] = useState(false);
+  const montoNumero = monto ? Number(monto) : null;
+  const montoCambiado = montoNumero !== cobro.montoTeleconsulta;
 
   // Sin Premium se muestra apagada aunque haya quedado guardada prendida.
   const habilitada = incluidaEnPlan && config.teleconsultaHabilitada;
@@ -109,6 +167,56 @@ export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual, 
       setError("No se pudo conectar para crear el lugar de Teleconsulta.");
     } finally {
       setCreandoLugar(false);
+    }
+  }
+
+  async function guardarCobro(cambios: Partial<CobroTeleconsulta>) {
+    const campos = Object.keys(cambios) as (keyof CobroTeleconsulta)[];
+    // Al terminar se tocan solo los campos de este guardado, para no pisar
+    // otro guardado que siga en curso.
+    const aplicar = (origen: CobroTeleconsulta) =>
+      setCobro((actual) => ({
+        ...actual,
+        ...Object.fromEntries(campos.map((c) => [c, origen[c]])),
+      }));
+    const anterior = cobro;
+    const nuevo = { ...cobro, ...cambios };
+    setCobro(nuevo);
+    setGuardandoCampos((s) => new Set([...s, ...campos]));
+    setAliasGuardado(false);
+    setMontoGuardado(false);
+    setErrorCobro(null);
+    try {
+      const response = await fetch("/api/teleconsulta/cobro", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevo),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        aplicar(anterior);
+        setErrorCobro(data?.error ?? "No se pudo guardar el cobro.");
+        return;
+      }
+      aplicar(data);
+      if ("aliasCobro" in cambios) {
+        // El servidor lo normaliza (p.ej. saca los espacios de un CBU).
+        setAlias(data.aliasCobro ?? "");
+        setAliasGuardado(true);
+      }
+      if ("montoTeleconsulta" in cambios) {
+        setMonto(data.montoTeleconsulta != null ? String(data.montoTeleconsulta) : "");
+        setMontoGuardado(true);
+      }
+    } catch {
+      aplicar(anterior);
+      setErrorCobro("No se pudo conectar para guardar el cobro.");
+    } finally {
+      setGuardandoCampos((s) => {
+        const resto = new Set(s);
+        campos.forEach((c) => resto.delete(c));
+        return resto;
+      });
     }
   }
 
@@ -248,6 +356,216 @@ export function TeleconsultaSettings({ initialConfig, initialTieneLugarVirtual, 
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
+      </SettingsSection>
+
+      <SettingsSection
+        title="Cobro de la teleconsulta"
+        description={
+          <>
+            Cuándo y cuánto le cobrás al paciente, y a dónde te transfiere. Se usa en los recordatorios con las
+            variables {"{pago}"} y {"{alias}"}.{" "}
+            <button
+              type="button"
+              onClick={() => irAConfiguracionTab("mensajeria")}
+              className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-2 hover:underline"
+            >
+              Ir a Mensajería
+              <ArrowRight className="size-3" />
+            </button>
+          </>
+        }
+        icon={Wallet}
+      >
+        <div className={cn("flex flex-col gap-5", !habilitada && "opacity-50")}>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium">¿Cuándo se cobra?</span>
+            <RadioGroup
+              value={cobro.teleconsultaCobro}
+              onValueChange={(v) => guardarCobro({ teleconsultaCobro: v as MomentoCobro })}
+              disabled={!habilitada || guardando("teleconsultaCobro")}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              {OPCIONES_COBRO.map((o) => (
+                <label
+                  key={o.value}
+                  htmlFor={`teleconsulta-cobro-${o.value}`}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-2.5 rounded-lg border bg-background p-3 transition-colors",
+                    "hover:border-primary/40 hover:bg-muted/40",
+                    "has-[[data-checked]]:border-primary has-[[data-checked]]:bg-primary/5",
+                    "has-[[data-disabled]]:cursor-not-allowed has-[[data-disabled]]:hover:border-border has-[[data-disabled]]:hover:bg-background"
+                  )}
+                >
+                  <RadioGroupItem
+                    value={o.value}
+                    id={`teleconsulta-cobro-${o.value}`}
+                    className="mt-0.5"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">{o.label}</span>
+                    <span className="text-xs text-muted-foreground">{o.descripcion}</span>
+                  </span>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-border/60 pt-4">
+            <Label htmlFor="teleconsulta-monto" className="text-sm font-medium">
+              Monto de la teleconsulta
+            </Label>
+            {/* El monto es un dato, no una elección: un solo campo, y el switch
+                decide de dónde sale. Con el switch prendido muestra (bloqueado)
+                el de la consulta particular de Mi perfil. */}
+            <form
+              className="flex flex-col gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                guardarCobro({ montoTeleconsulta: montoNumero });
+              }}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative sm:max-w-xs sm:flex-1">
+                  <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="teleconsulta-monto"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder={
+                      cobro.montoTeleconsultaUsaParticular && montoConsultaParticular == null
+                        ? "Sin cargar"
+                        : "0"
+                    }
+                    value={
+                      cobro.montoTeleconsultaUsaParticular
+                        ? (montoConsultaParticular?.toLocaleString("es-AR") ?? "")
+                        : montoNumero != null
+                          ? montoNumero.toLocaleString("es-AR")
+                          : ""
+                    }
+                    onChange={(e) => {
+                      setMonto(
+                        e.target.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 9)
+                      );
+                      setMontoGuardado(false);
+                    }}
+                    disabled={
+                      !habilitada ||
+                      guardando("montoTeleconsulta", "montoTeleconsultaUsaParticular") ||
+                      cobro.montoTeleconsultaUsaParticular
+                    }
+                    className="pl-7 tabular-nums"
+                  />
+                </div>
+                {!cobro.montoTeleconsultaUsaParticular && (
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="self-start"
+                    disabled={!habilitada || guardando("montoTeleconsulta") || !montoCambiado}
+                  >
+                    {guardando("montoTeleconsulta") && <Loader2 className="size-4 animate-spin" />}
+                    Guardar
+                  </Button>
+                )}
+              </div>
+              {!cobro.montoTeleconsultaUsaParticular && montoGuardado && !montoCambiado && (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Check className="size-3.5 text-emerald-600" />
+                  Guardado.
+                </p>
+              )}
+            </form>
+
+            <div className="flex items-start gap-2.5">
+              <Switch
+                id="teleconsulta-monto-particular"
+                className="mt-0.5"
+                checked={cobro.montoTeleconsultaUsaParticular}
+                onCheckedChange={(checked) =>
+                  guardarCobro({ montoTeleconsultaUsaParticular: checked })
+                }
+                disabled={!habilitada || guardando("montoTeleconsultaUsaParticular")}
+              />
+              <div className="flex flex-col gap-0.5">
+                <Label htmlFor="teleconsulta-monto-particular" className="text-sm font-normal">
+                  Usar el monto de la consulta particular
+                </Label>
+                {montoConsultaParticular != null ? (
+                  <span className="text-xs text-muted-foreground">El que cargaste en Mi perfil.</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">
+                    Todavía no lo cargaste en Mi perfil.{" "}
+                    <button
+                      type="button"
+                      onClick={() => irAConfiguracionTab("perfil", "perfil-monto-consulta")}
+                      className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      Cargarlo
+                      <ArrowRight className="size-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Se suma al texto de <strong>{"{pago}"}</strong> en los recordatorios. Si no hay monto
+              cargado, el recordatorio no lo menciona.
+            </p>
+          </div>
+
+          <form
+            className="flex flex-col gap-2 border-t border-border/60 pt-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              guardarCobro({ aliasCobro: alias.trim() || null });
+            }}
+          >
+            <Label htmlFor="teleconsulta-alias" className="font-medium">
+              Alias o CBU/CVU <span className="font-normal text-muted-foreground">(opcional)</span>
+            </Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                id="teleconsulta-alias"
+                value={alias}
+                onChange={(e) => {
+                  setAlias(e.target.value);
+                  setAliasGuardado(false);
+                }}
+                placeholder="Ej.: consultorio.perez.mp"
+                maxLength={60}
+                autoComplete="off"
+                spellCheck={false}
+                disabled={!habilitada || guardando("aliasCobro")}
+                className="sm:max-w-xs"
+              />
+              <Button
+                type="submit"
+                variant="outline"
+                className="self-start"
+                disabled={!habilitada || guardando("aliasCobro") || !aliasCambiado}
+              >
+                {guardando("aliasCobro") && <Loader2 className="size-4 animate-spin" />}
+                Guardar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Se completa en los recordatorios donde pongas <strong>{"{alias}"}</strong>. Si lo dejás
+              vacío, la variable queda en blanco.
+            </p>
+            {aliasGuardado && !aliasCambiado && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Check className="size-3.5 text-emerald-600" />
+                Guardado.
+              </p>
+            )}
+          </form>
+
+          {errorCobro && <p className="text-sm text-destructive">{errorCobro}</p>}
+        </div>
       </SettingsSection>
     </div>
   );

@@ -16,14 +16,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DNI_REGEX } from "@/lib/dni";
-import { buildMensajeCambioModalidad, buildWhatsAppHref } from "@/lib/recordatorio-mensaje";
+import {
+  buildMensajePasoTeleconsulta,
+  buildWhatsAppHref,
+  type AvisoPasoTeleconsulta,
+} from "@/lib/recordatorio-mensaje";
 import { ESTADO_VISUAL_LABELS, estadoVisualTurno } from "@/lib/turno-estado";
 import { filterTelefono } from "@/lib/utils";
 import { EstadoTurnoIcono, formatHora } from "./utils";
 import type { TurnoFormState } from "./use-turno-form";
 
 // Diálogos de reservar/editar turno y de cancelarlo.
-export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta }: {
+export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta, avisoPasoTeleconsulta }: {
   state: TurnoFormState;
   selectedDate: Date;
   prepagas: string[];
@@ -36,6 +40,7 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
   // (Mi práctica > Editar lugar): si no, no se ofrece pasar el turno a
   // teleconsulta, pero uno que ya se pasó se puede volver a presencial.
   puedePasarATeleconsulta: boolean;
+  avisoPasoTeleconsulta: AvisoPasoTeleconsulta | null;
 }) {
   const {
     formSlot,
@@ -83,15 +88,18 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
     !!formSlot &&
     new Date(formSlot.fin) > new Date();
   const aTeleconsulta = !modalidadTarget?.turno?.teleconsulta;
-  const whatsappTeleconsultaHref = teleconsultaExito
-    ? buildWhatsAppHref(
-        teleconsultaExito.telefono,
-        buildMensajeCambioModalidad(teleconsultaExito.nombreYApellido, new Date(teleconsultaExito.inicio), {
-          aTeleconsulta: true,
-          links: teleconsultaExito.links,
-        })
-      )
-    : null;
+  const whatsappTeleconsultaHref =
+    teleconsultaExito && avisoPasoTeleconsulta
+      ? buildWhatsAppHref(
+          teleconsultaExito.telefono,
+          buildMensajePasoTeleconsulta(
+            avisoPasoTeleconsulta,
+            teleconsultaExito.nombreYApellido,
+            new Date(teleconsultaExito.inicio),
+            teleconsultaExito.links
+          )
+        )
+      : null;
 
   return (
     <>

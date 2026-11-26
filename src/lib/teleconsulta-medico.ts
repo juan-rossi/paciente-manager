@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
+import { montoDeTeleconsulta } from "@/lib/teleconsulta-cobro";
+import type { AvisoPasoTeleconsulta } from "@/lib/recordatorio-mensaje";
 import {
   planPermiteTeleconsulta,
   TELECONSULTA_APAGADA,
@@ -35,4 +37,28 @@ export async function medicoPuedeUsarSalas(doctorId: string): Promise<boolean> {
   if (!teleconsultaHabilitada()) return false;
   const medico = await prisma.user.findUnique({ where: { id: doctorId }, select: PLAN_SELECT });
   return !!medico && planPermiteTeleconsulta(medico);
+}
+
+// Plantilla y cobro del médico para el aviso de "pasó a teleconsulta" (ver
+// `buildMensajePasoTeleconsulta`). El asistente usa los del médico: pasarle el tenant.
+export async function getAvisoPasoTeleconsulta(doctorId: string): Promise<AvisoPasoTeleconsulta> {
+  const medico = await prisma.user.findUniqueOrThrow({
+    where: { id: doctorId },
+    select: {
+      mensajeTemplatePasoTeleconsulta: true,
+      teleconsultaCobro: true,
+      aliasCobro: true,
+      montoTeleconsulta: true,
+      montoTeleconsultaUsaParticular: true,
+      montoConsultaParticular: true,
+    },
+  });
+  return {
+    plantilla: medico.mensajeTemplatePasoTeleconsulta,
+    cobro: {
+      teleconsultaCobro: medico.teleconsultaCobro,
+      aliasCobro: medico.aliasCobro,
+      monto: montoDeTeleconsulta(medico, medico.montoConsultaParticular),
+    },
+  };
 }

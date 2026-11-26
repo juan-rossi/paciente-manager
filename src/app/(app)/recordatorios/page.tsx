@@ -4,6 +4,7 @@ import { getTenantId, resolveActiveLugarId } from "@/lib/tenant";
 import { getRecordatoriosDelDia } from "@/lib/get-recordatorios-del-dia";
 import { getTurnosPendientesDeAviso } from "@/lib/turnos-pendientes-aviso";
 import { formatDateParamBA } from "@/lib/timezone";
+import { montoDeTeleconsulta } from "@/lib/teleconsulta-cobro";
 import { RecordatoriosCalendar } from "@/components/recordatorios-calendar";
 import { RecordatoriosPendientes } from "@/components/recordatorios-pendientes";
 import { PageEnter } from "@/components/page-transition";
@@ -30,6 +31,12 @@ export default async function RecordatoriosPage() {
       recordatorioAutoEnviado: true,
       mensajeTemplateCancelado: true,
       mensajeTemplateAplazado: true,
+      mensajeTemplatePasoTeleconsulta: true,
+      teleconsultaCobro: true,
+      aliasCobro: true,
+      montoTeleconsulta: true,
+      montoTeleconsultaUsaParticular: true,
+      montoConsultaParticular: true,
     },
   });
 
@@ -40,6 +47,12 @@ export default async function RecordatoriosPage() {
       </p>
     );
   }
+
+  const cobro = {
+    teleconsultaCobro: doctor.teleconsultaCobro,
+    aliasCobro: doctor.aliasCobro,
+    monto: montoDeTeleconsulta(doctor, doctor.montoConsultaParticular),
+  };
 
   const activeLugarId = await resolveActiveLugarId(user);
   const today = new Date();
@@ -56,6 +69,7 @@ export default async function RecordatoriosPage() {
           initialPendientes={pendientes}
           mensajeTemplateCancelado={doctor.mensajeTemplateCancelado}
           mensajeTemplateAplazado={doctor.mensajeTemplateAplazado}
+          avisoPasoTeleconsulta={{ plantilla: doctor.mensajeTemplatePasoTeleconsulta, cobro }}
         />
         <RecordatoriosCalendar
           tenantId={tenantId}
@@ -66,6 +80,7 @@ export default async function RecordatoriosPage() {
           initialSinConfigurar={sinConfigurar}
           plantillas={{ general: doctor.mensajeTemplate, virtual: doctor.mensajeTemplateVirtual }}
           autoMarcarEnviado={doctor.recordatorioAutoEnviado}
+          cobro={cobro}
         />
       </div>
     </PageEnter>

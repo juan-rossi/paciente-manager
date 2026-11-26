@@ -19,6 +19,7 @@ import {
   isSameDayBA,
 } from "@/lib/timezone";
 import type { DiaSemana } from "@/lib/slots";
+import type { CobroRecordatorio } from "@/lib/teleconsulta-cobro";
 import type { RecordatorioTurno } from "@/lib/get-recordatorios-del-dia";
 
 function capitalize(text: string) {
@@ -36,6 +37,8 @@ type Props = {
   // Config del médico (Mensajería): "Enviar WhatsApp" también marca el
   // turno como enviado, y el botón aparte "Marcar como enviado" se oculta.
   autoMarcarEnviado: boolean;
+  // Configuración > Teleconsulta: arma `{pago}` y `{alias}`.
+  cobro: CobroRecordatorio;
 };
 
 export function RecordatoriosCalendar({
@@ -47,6 +50,7 @@ export function RecordatoriosCalendar({
   initialSinConfigurar,
   plantillas,
   autoMarcarEnviado,
+  cobro,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -190,7 +194,8 @@ export function RecordatoriosCalendar({
                   turno.nombreYApellido,
                   inicio,
                   new Date(),
-                  turno.links
+                  turno.links,
+                  cobro
                 );
                 const href = buildWhatsAppHref(turno.telefono, mensaje);
 

@@ -414,6 +414,10 @@ model User {
   // Recordatorio para turnos de un lugar VIRTUAL (teleconsulta): se usa en
   // lugar de `mensajeTemplate` y suma `{videollamada}` (link a la sala).
   mensajeTemplateVirtual   String          @default("Hola {nombre}, te recordamos tu teleconsulta para {fecha} a las {hora}hs. A esa hora entrá a la videollamada desde acá: {videollamada}\n\nConfirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}")
+  // Aviso al paciente cuando un turno presencial pasa a teleconsulta (ver
+  // `Turno.teleconsulta` y "Pendientes de notificar"). {fecha}/{hora} son
+  // las del turno (no cambian, solo la modalidad).
+  mensajeTemplatePasoTeleconsulta String   @default("Hola {nombre}, te avisamos que tu turno para {fecha} a las {hora}hs va a ser por videollamada (teleconsulta). A esa hora entrá a la videollamada desde acá: {videollamada}\n\nConfirmá tu asistencia: {confirmar}\nSi no podés venir, cancelá acá: {cancelar}")
   // Mensajes para la resolución de conflictos de "Bloquear horarios" (ver
   // BloqueoConflicto) -- {fecha}/{hora} son las del turno ANTES del
   // cambio; {nueva_fecha} (solo en la de aplazado) es la fecha nueva.
@@ -438,6 +442,17 @@ model User {
   teleconsultaHabilitada        Boolean    @default(false)
   teleconsultaPasarPresenciales Boolean    @default(true)
   teleconsultaLugarVirtual      Boolean    @default(true)
+  // Cobro de la teleconsulta (Configuración > Teleconsulta, ver
+  // `src/lib/teleconsulta-cobro.ts`): si se cobra antes o después de la
+  // videollamada, y el alias/CBU/CVU para transferir. Arman las variables
+  // `{pago}` y `{alias}` de las plantillas de recordatorio.
+  teleconsultaCobro             TeleconsultaCobro @default(ANTES)
+  aliasCobro                    String?
+  // Monto de la teleconsulta, en pesos sin centavos. Con
+  // `montoTeleconsultaUsaParticular` se usa `montoConsultaParticular` (Mi
+  // perfil) y este queda guardado pero sin usar; null = no lo cargó.
+  montoTeleconsulta              Int?
+  montoTeleconsultaUsaParticular Boolean    @default(true)
   // Resumen con IA apenas termina la transcripción de un dictado, sin tocar
   // "Resumir con IA" (ver Configuración > Dictado e IA). El interruptor
   // general manda; los otros dos eligen en qué campos aplica. Las
@@ -1838,4 +1853,10 @@ model ImportacionArchivo {
   createdAt     DateTime      @default(now())
 
   @@index([importacionId])
+}
+
+// Cuándo se le cobra al paciente una teleconsulta (ver `User.teleconsultaCobro`).
+enum TeleconsultaCobro {
+  ANTES
+  DESPUES
 }

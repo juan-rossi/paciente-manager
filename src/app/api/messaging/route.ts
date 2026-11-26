@@ -10,6 +10,7 @@ export async function GET() {
   return NextResponse.json({
     mensajeTemplate: user.mensajeTemplate,
     mensajeTemplateVirtual: user.mensajeTemplateVirtual,
+    mensajeTemplatePasoTeleconsulta: user.mensajeTemplatePasoTeleconsulta,
     mensajeriaHabilitada: user.mensajeriaHabilitada,
     recordatorioAutoEnviado: user.recordatorioAutoEnviado,
     mensajeTemplateCancelado: user.mensajeTemplateCancelado,
@@ -39,6 +40,7 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json({
     mensajeTemplate: updated.mensajeTemplate,
     mensajeTemplateVirtual: updated.mensajeTemplateVirtual,
+    mensajeTemplatePasoTeleconsulta: updated.mensajeTemplatePasoTeleconsulta,
     mensajeriaHabilitada: updated.mensajeriaHabilitada,
     recordatorioAutoEnviado: updated.recordatorioAutoEnviado,
     mensajeTemplateCancelado: updated.mensajeTemplateCancelado,

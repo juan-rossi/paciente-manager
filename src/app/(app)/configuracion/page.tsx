@@ -235,6 +235,8 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessagingSettings
               initialMensajeTemplate={user.mensajeTemplate}
               initialMensajeTemplateVirtual={user.mensajeTemplateVirtual}
+              initialMensajeTemplatePasoTeleconsulta={user.mensajeTemplatePasoTeleconsulta}
+              puedePasarATeleconsulta={teleconsulta.pasarPresenciales}
               tieneTeleconsulta={teleconsulta.habilitada}
               initialMensajeriaHabilitada={user.mensajeriaHabilitada}
               initialRecordatorioAutoEnviado={user.recordatorioAutoEnviado}
@@ -252,6 +254,13 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                 }}
                 initialTieneLugarVirtual={lugares.some((l) => l.tipo === "VIRTUAL")}
                 incluidaEnPlan={premiumTeleconsulta}
+                initialCobro={{
+                  teleconsultaCobro: user.teleconsultaCobro,
+                  aliasCobro: user.aliasCobro,
+                  montoTeleconsulta: user.montoTeleconsulta,
+                  montoTeleconsultaUsaParticular: user.montoTeleconsultaUsaParticular,
+                }}
+                montoConsultaParticular={user.montoConsultaParticular}
               />
             </TabsContent>
           )}

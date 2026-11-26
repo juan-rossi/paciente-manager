@@ -41,6 +41,7 @@ import { useBloqueo } from "@/components/turnos-calendar/use-bloqueo";
 import { TurnoDialogs } from "@/components/turnos-calendar/turno-dialogs";
 import { SobreturnoDialog } from "@/components/turnos-calendar/sobreturno-dialog";
 import { BloqueoDialogs } from "@/components/turnos-calendar/bloqueo-dialogs";
+import type { AvisoPasoTeleconsulta } from "@/lib/recordatorio-mensaje";
 
 type Props = {
   role: UserRole;
@@ -81,6 +82,9 @@ type Props = {
   // presenciales a teleconsulta (además, el lugar del turno tiene que
   // tenerlo habilitado -- `LugarInfo.permiteTeleconsulta`).
   puedePasarATeleconsulta: boolean;
+  // Plantilla (Configuración > Mensajería) y cobro del médico para el
+  // WhatsApp de "pasó a teleconsulta". null si no puede pasar turnos.
+  avisoPasoTeleconsulta: AvisoPasoTeleconsulta | null;
 };
 
 export function TurnosCalendar({
@@ -102,6 +106,7 @@ export function TurnosCalendar({
   compartir,
   teleconsultaHabilitada,
   puedePasarATeleconsulta,
+  avisoPasoTeleconsulta,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -464,6 +469,7 @@ export function TurnosCalendar({
           !!turnoForm.formSlot &&
           !!lugaresPorId.get(turnoForm.formSlot.lugarId)?.permiteTeleconsulta
         }
+        avisoPasoTeleconsulta={avisoPasoTeleconsulta}
       />
 
       <SobreturnoDialog

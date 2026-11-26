@@ -1,4 +1,5 @@
 import { formatHoraBA, startOfDayBA } from "@/lib/timezone";
+import { textoPago, type CobroRecordatorio } from "@/lib/teleconsulta-cobro";
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
@@ -40,12 +41,16 @@ export function plantillaRecordatorio(
 // `links` son los de `{confirmar}`/`{cancelar}` (ver turno-link-paciente.ts)
 // y, solo en una teleconsulta, el de `{videollamada}`. Sin links (ej. la
 // vista previa de Configuración) los placeholders quedan tal cual.
+// `cobro` (Configuración > Teleconsulta) arma `{alias}` (en cualquier
+// recordatorio) y `{pago}` (solo en una teleconsulta; en un turno presencial
+// queda vacío). Sin `cobro` esas dos quedan tal cual.
 export function buildMensajeRecordatorio(
   template: string,
   nombre: string,
   turnoInicio: Date,
   ahora: Date = new Date(),
-  links?: { confirmar: string; cancelar: string; videollamada?: string | null }
+  links?: { confirmar: string; cancelar: string; videollamada?: string | null },
+  cobro?: CobroRecordatorio
 ): string {
   let mensaje = template
     .replaceAll("{nombre}", nombre)
@@ -65,6 +70,11 @@ export function buildMensajeRecordatorio(
       // plantilla general de cuando era una sola para todos los turnos).
       mensaje = mensaje.replaceAll("{videollamada}", "");
     }
+  }
+  if (cobro) {
+    mensaje = mensaje
+      .replaceAll("{alias}", cobro.aliasCobro ?? "")
+      .replaceAll("{pago}", links?.videollamada ? textoPago(cobro) : "");
   }
   return mensaje;
 }
@@ -98,30 +108,69 @@ export function buildMensajeCambioTurno(
 // turno-link-paciente.ts): la sala y los de confirmar/cancelar el turno.
 export type LinksTeleconsulta = { sala: string; confirmar: string; cancelar: string };
 
-// Aviso de cambio de modalidad de un turno (ver "Pendientes de notificar"
-// en Recordatorios y `Turno.teleconsulta`). Texto fijo, sin plantilla
-// configurable: `{fecha}`/`{hora}` son las actuales del turno (el horario no
-// cambia, solo la modalidad).
-export function buildMensajeCambioModalidad(
+// Lo que hace falta para armar el aviso de "pasó a teleconsulta": la
+// plantilla del médico (`User.mensajeTemplatePasoTeleconsulta`, Configuración
+// > Mensajería) y su cobro, para `{pago}`/`{alias}`.
+export type AvisoPasoTeleconsulta = { plantilla: string; cobro: CobroRecordatorio };
+
+const VARIABLES_LINK = /\{(videollamada|confirmar|cancelar)\}/g;
+
+// Aviso de un turno presencial que pasó a teleconsulta (ver "Pendientes de
+// notificar" en Recordatorios y `Turno.teleconsulta`). `{fecha}`/`{hora}`
+// son las actuales del turno (el horario no cambia, solo la modalidad).
+// Sin `links` (no se pudieron generar) se sacan las variables de link, y
+// también el renglón que queda colgando ("Confirmá tu asistencia:").
+export function buildMensajePasoTeleconsulta(
+  aviso: AvisoPasoTeleconsulta,
   nombre: string,
   turnoInicio: Date,
-  cambio:
-    | { aTeleconsulta: true; links: LinksTeleconsulta | null }
-    | { aTeleconsulta: false; dondeAtiende: string | null },
+  links: LinksTeleconsulta | null,
+  ahora: Date = new Date()
+): string {
+  let template = aviso.plantilla;
+  if (!links) {
+    template = template
+      .split("\n")
+      .flatMap((linea) => {
+        if (!linea.match(VARIABLES_LINK)) return [linea];
+        // "…(teleconsulta). Entrá desde acá: {videollamada}" → "…(teleconsulta)."
+        const sinLink = linea
+          .replace(VARIABLES_LINK, "")
+          .replace(/[^.!?]*:\s*$/, "")
+          .trim();
+        return sinLink ? [sinLink] : [];
+      })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+  let mensaje = template
+    .replaceAll("{nombre}", nombre)
+    .replaceAll("{fecha}", formatFechaRecordatorio(turnoInicio, ahora))
+    .replaceAll("{hora}", formatHoraBA(turnoInicio))
+    .replaceAll("{alias}", aviso.cobro.aliasCobro ?? "")
+    .replaceAll("{pago}", textoPago(aviso.cobro));
+  if (links) {
+    mensaje = mensaje.replaceAll("{confirmar}", links.confirmar).replaceAll("{cancelar}", links.cancelar);
+    // Igual que en el recordatorio: sin el link a la sala el paciente no
+    // tiene cómo entrar, así que va al final si la plantilla no lo tiene.
+    mensaje = mensaje.includes("{videollamada}")
+      ? mensaje.replaceAll("{videollamada}", links.sala)
+      : `${mensaje}\n\nEntrá a la videollamada desde acá a la hora del turno: ${links.sala}`;
+  }
+  return mensaje;
+}
+
+// Aviso de un turno de teleconsulta que vuelve a presencial. Texto fijo,
+// sin plantilla configurable.
+export function buildMensajeVueltaPresencial(
+  nombre: string,
+  turnoInicio: Date,
+  dondeAtiende: string | null,
   ahora: Date = new Date()
 ): string {
   const cuando = `${formatFechaRecordatorio(turnoInicio, ahora)} a las ${formatHoraBA(turnoInicio)} hs`;
-  if (cambio.aTeleconsulta) {
-    const links = cambio.links;
-    const aviso = `Hola ${nombre}, te avisamos que tu turno ${cuando} va a ser por videollamada (teleconsulta).`;
-    if (!links) return aviso;
-    return (
-      `${aviso} A esa hora entrá a la videollamada desde acá: ${links.sala}\n\n` +
-      `Confirmá tu asistencia: ${links.confirmar}\n` +
-      `Si no podés asistir, cancelá acá: ${links.cancelar}`
-    );
-  }
-  const donde = cambio.dondeAtiende ? `, en ${cambio.dondeAtiende}` : "";
+  const donde = dondeAtiende ? `, en ${dondeAtiende}` : "";
   return `Hola ${nombre}, te avisamos que tu turno ${cuando} ya no va a ser por videollamada: es presencial${donde}.`;
 }
 

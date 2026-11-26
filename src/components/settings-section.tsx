@@ -8,7 +8,7 @@ export function SettingsSection({
   children,
 }: {
   title: string;
-  description?: string;
+  description?: ReactNode;
   icon: ComponentType<LucideProps>;
   children: ReactNode;
 }) {
