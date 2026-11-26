@@ -5,6 +5,7 @@ import { dailyConfigurado } from "@/lib/daily";
 import { estadoSala, SALA_ABRE_MINUTOS_ANTES, urlIngresoSala } from "@/lib/teleconsulta";
 import { asegurarLinkCodigos, linkPaciente } from "@/lib/turno-link-paciente";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -13,6 +14,9 @@ type RouteParams = { params: Promise<{ id: string }> };
 // resto de las rutas de turnos: un asistente solo ve turnos de su lugar
 // activo.
 export async function GET(_request: NextRequest, { params }: RouteParams) {
+  if (!teleconsultaHabilitada()) {
+    return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
+  }
   const { user, tenantId, activeLugarId, response } = await requireUser();
   if (response) return response;
   const { id } = await params;
@@ -39,6 +43,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 // POST: el médico entra a la sala (como dueño). El asistente nunca entra a
 // la consulta.
 export async function POST(_request: NextRequest, { params }: RouteParams) {
+  if (!teleconsultaHabilitada()) {
+    return NextResponse.json({ error: "Turno no encontrado." }, { status: 404 });
+  }
   const { tenantId, response } = await requireDoctor({ escritura: true });
   if (response) return response;
   const { id } = await params;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -24,6 +25,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
       { status: 400 }
     );
+  }
+
+  if (parsed.data.tipo === "VIRTUAL" && !teleconsultaHabilitada()) {
+    return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
   }
 
   if (parsed.data.tipo === "PARTICULAR") {

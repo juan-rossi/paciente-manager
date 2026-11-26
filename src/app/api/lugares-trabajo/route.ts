@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDoctor } from "@/lib/api-auth";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
 import { slugParaLugarNuevo } from "@/lib/public-slug";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 export async function GET() {
   const { tenantId, response } = await requireDoctor();
@@ -28,6 +29,10 @@ export async function POST(request: NextRequest) {
       { error: "Datos inválidos.", issues: parsed.error.flatten() },
       { status: 400 }
     );
+  }
+
+  if (parsed.data.tipo === "VIRTUAL" && !teleconsultaHabilitada()) {
+    return NextResponse.json({ error: "La teleconsulta no está disponible." }, { status: 403 });
   }
 
   if (parsed.data.tipo === "PARTICULAR") {

@@ -4,6 +4,7 @@ import { rateLimitOk } from "@/lib/rate-limit";
 import { buscarTurnoPorLinkCodigo } from "@/lib/turno-link-paciente";
 import { dailyConfigurado } from "@/lib/daily";
 import { estadoSala, urlIngresoSala } from "@/lib/teleconsulta";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 type RouteParams = { params: Promise<{ codigo: string }> };
 
@@ -11,6 +12,9 @@ type RouteParams = { params: Promise<{ codigo: string }> };
 // del link es el único "login": solo sirve para ESTE turno, solo si es
 // virtual, no está cancelado y estamos dentro de la ventana de la sala.
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  if (!teleconsultaHabilitada()) {
+    return NextResponse.json({ error: "Link inválido." }, { status: 404 });
+  }
   const { codigo } = await params;
 
   if (!(await rateLimitOk(getClientIp(request), codigo, "link-turno"))) {

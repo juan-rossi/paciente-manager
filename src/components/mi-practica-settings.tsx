@@ -78,6 +78,9 @@ type ReprogramacionPreview = {
 };
 
 type Props = {
+  // TELECONSULTA_HABILITADA (ver `src/lib/feature-flags.ts`): sin esto no se
+  // ofrece crear lugares de Teleconsulta.
+  teleconsultaHabilitada: boolean;
   initialLugares: LugarDeTrabajo[];
   initialBlocks: Block[];
   initialSlotDurationMinutes: number;
@@ -95,6 +98,7 @@ function formatFechaHora(iso: string) {
 }
 
 export function MiPracticaSettings({
+  teleconsultaHabilitada,
   initialLugares,
   initialBlocks,
   initialSlotDurationMinutes,
@@ -709,12 +713,15 @@ export function MiPracticaSettings({
                     Consultorio
                   </Label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="VIRTUAL" id="lugar-virtual" />
-                  <Label htmlFor="lugar-virtual" className="font-normal">
-                    Teleconsulta
-                  </Label>
-                </div>
+                {/* Un lugar que ya es de Teleconsulta se sigue mostrando como tal. */}
+                {(teleconsultaHabilitada || tipo === "VIRTUAL") && (
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="VIRTUAL" id="lugar-virtual" />
+                    <Label htmlFor="lugar-virtual" className="font-normal">
+                      Teleconsulta
+                    </Label>
+                  </div>
+                )}
               </RadioGroup>
               {tipo === "VIRTUAL" && (
                 <p className="text-xs text-muted-foreground">

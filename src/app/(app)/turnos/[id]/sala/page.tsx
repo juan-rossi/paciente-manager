@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SalaVideo } from "@/components/teleconsulta/sala-video";
 import { CopiarLinkSala } from "@/components/teleconsulta/copiar-link-sala";
 import { PageEnter } from "@/components/page-transition";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ type Props = { params: Promise<{ id: string }> };
 // que el asistente nunca entra.
 export default async function SalaMedicoPage({ params }: Props) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "DOCTOR") notFound();
+  if (!teleconsultaHabilitada() || !user || user.role !== "DOCTOR") notFound();
   const tenantId = getTenantId(user);
   const { id } = await params;
 

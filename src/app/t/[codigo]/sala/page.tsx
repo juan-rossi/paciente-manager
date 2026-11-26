@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Semio360Mark, Semio360Wordmark } from "@/components/brand/logo";
@@ -9,6 +10,7 @@ import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesia";
 import { buscarTurnoPorLinkCodigo } from "@/lib/turno-link-paciente";
 import { estadoSala, SALA_ABRE_MINUTOS_ANTES, ventanaSala } from "@/lib/teleconsulta";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 // Mismo criterio que los links `/si` y `/no`: el código viaja en la URL, no
 // se filtra por Referer ni se indexa.
@@ -28,6 +30,7 @@ function capitalize(text: string) {
 // recordatorio). Abrirla no crea nada: la sala y el token se piden recién
 // al tocar "Entrar a la consulta" (ver /api/t/[codigo]/sala).
 export default async function SalaPacientePage({ params }: Props) {
+  if (!teleconsultaHabilitada()) notFound();
   const { codigo } = await params;
 
   const permitido = await rateLimitOk(getClientIp({ headers: await headers() }), codigo, "link-turno");

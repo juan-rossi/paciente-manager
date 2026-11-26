@@ -43,6 +43,7 @@ import { diasRestantesDeTrial, esActivo, isPremium } from "@/lib/plan";
 import { ensureLugarSlugs } from "@/lib/public-slug";
 import { listarSecretariasDelMedico } from "@/lib/secretarias";
 import { PageEnter } from "@/components/page-transition";
+import { teleconsultaHabilitada } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -195,6 +196,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
 
           <TabsContent value="practica" className="w-full">
             <MiPracticaSettings
+              teleconsultaHabilitada={teleconsultaHabilitada()}
               initialLugares={lugares}
               initialBlocks={blocks}
               initialSlotDurationMinutes={user.slotDurationMinutes}
@@ -216,7 +218,7 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <MessagingSettings
               initialMensajeTemplate={user.mensajeTemplate}
               initialMensajeTemplateVirtual={user.mensajeTemplateVirtual}
-              tieneTeleconsulta={lugares.some((l) => l.tipo === "VIRTUAL")}
+              tieneTeleconsulta={teleconsultaHabilitada() && lugares.some((l) => l.tipo === "VIRTUAL")}
               initialMensajeriaHabilitada={user.mensajeriaHabilitada}
               initialRecordatorioAutoEnviado={user.recordatorioAutoEnviado}
               initialMensajeTemplateCancelado={user.mensajeTemplateCancelado}
