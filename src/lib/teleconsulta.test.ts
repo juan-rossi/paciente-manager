@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 
-import { estadoSala, ventanaSala } from "@/lib/teleconsulta";
+import { cierreLlamada, estadoSala, ventanaSala } from "@/lib/teleconsulta";
 import { buildMensajeRecordatorio, plantillaRecordatorio } from "@/lib/recordatorio-mensaje";
 import { lugarTrabajoSchema } from "@/lib/lugar-trabajo-schema";
 
@@ -23,6 +23,27 @@ describe("ventana de la sala", () => {
     expect(estadoSala(turno, new Date("2026-12-01T12:45:00Z"))).toBe("abierta");
     expect(estadoSala(turno, new Date("2026-12-01T14:30:00Z"))).toBe("abierta");
     expect(estadoSala(turno, new Date("2026-12-01T14:31:00Z"))).toBe("cerrada");
+  });
+});
+
+describe("límite de 45 minutos de la llamada", () => {
+  it("cuenta desde la hora del turno si el médico entra antes", () => {
+    expect(cierreLlamada(turno, new Date("2026-12-01T12:50:00Z")).toISOString()).toBe(
+      "2026-12-01T13:45:00.000Z"
+    );
+  });
+
+  it("cuenta desde que entra el médico si llega tarde", () => {
+    expect(cierreLlamada(turno, new Date("2026-12-01T13:20:00Z")).toISOString()).toBe(
+      "2026-12-01T14:05:00.000Z"
+    );
+  });
+
+  it("una vez fijado el cierre, la sala cierra a esa hora", () => {
+    const conCierre = { ...turno, salaVideoCierraAt: new Date("2026-12-01T13:45:00Z") };
+    expect(ventanaSala(conCierre).hasta.toISOString()).toBe("2026-12-01T13:45:00.000Z");
+    expect(estadoSala(conCierre, new Date("2026-12-01T13:44:00Z"))).toBe("abierta");
+    expect(estadoSala(conCierre, new Date("2026-12-01T13:46:00Z"))).toBe("cerrada");
   });
 });
 

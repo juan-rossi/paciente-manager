@@ -65,6 +65,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
       fin: true,
       estado: true,
       salaVideoNombre: true,
+      salaVideoCierraAt: true,
       teleconsulta: true,
       doctor: { select: { nombre: true, tituloCortesia: true } },
     },

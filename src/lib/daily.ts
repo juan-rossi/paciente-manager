@@ -44,7 +44,8 @@ type Room = { name: string; url: string };
  * Crea (o recupera, si ya existe) la sala privada de un turno. Sin
  * grabación ni transcripción: el video de la consulta nunca se guarda.
  * `desde`/`hasta` acotan cuándo se puede entrar; al llegar `hasta` Daily
- * saca a todos y la sala deja de servir.
+ * saca a todos y la sala deja de servir. `hasta` puede acortarse después
+ * (ver DURACION_LLAMADA_MINUTOS en teleconsulta.ts).
  */
 export async function asegurarSala(nombre: string, desde: Date, hasta: Date): Promise<Room> {
   const creada = await dailyFetch<Room & { info?: string; error?: string }>("/rooms", {
@@ -66,9 +67,25 @@ export async function asegurarSala(nombre: string, desde: Date, hasta: Date): Pr
   });
   if (creada.ok) return { name: creada.data.name, url: creada.data.url };
 
-  // Ya existía (otra persona del turno entró antes): se usa la misma.
-  const existente = await dailyFetch<Room>(`/rooms/${encodeURIComponent(nombre)}`);
-  if (existente.ok) return { name: existente.data.name, url: existente.data.url };
+  // Ya existía (otra persona del turno entró antes): se usa la misma. Si
+  // cambió el cierre (el médico entró y arrancó el reloj de la llamada) se
+  // actualiza: con `eject_at_room_exp` Daily saca a todos a esa hora.
+  const path = `/rooms/${encodeURIComponent(nombre)}`;
+  const existente = await dailyFetch<Room & { config?: { exp?: number } }>(path);
+  if (existente.ok) {
+    if (existente.data.config?.exp !== segundos(hasta)) {
+      const actualizada = await dailyFetch<{ info?: string; error?: string }>(path, {
+        method: "POST",
+        body: JSON.stringify({ properties: { exp: segundos(hasta), eject_at_room_exp: true } }),
+      });
+      if (!actualizada.ok) {
+        throw new Error(
+          `Daily: no se pudo actualizar el cierre de la sala (${actualizada.status} ${actualizada.data.info ?? actualizada.data.error ?? ""}).`
+        );
+      }
+    }
+    return { name: existente.data.name, url: existente.data.url };
+  }
 
   throw new Error(`Daily: no se pudo crear la sala (${creada.status} ${creada.data.info ?? creada.data.error ?? ""}).`);
 }
@@ -91,6 +108,7 @@ export async function crearTokenSala(opciones: {
         user_name: opciones.nombreVisible,
         is_owner: opciones.esMedico,
         exp: segundos(opciones.hasta),
+        eject_at_token_exp: true,
         lang: "es",
       },
     }),

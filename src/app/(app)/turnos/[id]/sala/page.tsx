@@ -6,7 +6,12 @@ import { getTenantId } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { dailyConfigurado } from "@/lib/daily";
-import { estadoSala, SALA_ABRE_MINUTOS_ANTES, ventanaSala } from "@/lib/teleconsulta";
+import {
+  DURACION_LLAMADA_MINUTOS,
+  estadoSala,
+  SALA_ABRE_MINUTOS_ANTES,
+  ventanaSala,
+} from "@/lib/teleconsulta";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SalaVideo } from "@/components/teleconsulta/sala-video";
 import { CopiarLinkSala } from "@/components/teleconsulta/copiar-link-sala";
@@ -32,6 +37,7 @@ export default async function SalaMedicoPage({ params }: Props) {
       id: true,
       inicio: true,
       fin: true,
+      salaVideoCierraAt: true,
       estado: true,
       nombreYApellido: true,
       patientId: true,
@@ -121,6 +127,13 @@ export default async function SalaMedicoPage({ params }: Props) {
                 <span className="text-sm font-medium">Link para el paciente</span>
                 <CopiarLinkSala turnoId={turno.id} />
               </div>
+            )}
+            {turno.estado !== "CANCELADO" && estado === "abierta" && (
+              <p className="text-xs text-muted-foreground">
+                {turno.salaVideoCierraAt
+                  ? `La videollamada se corta a las ${formatHoraBA(turno.salaVideoCierraAt)} hs.`
+                  : `La videollamada dura hasta ${DURACION_LLAMADA_MINUTOS} minutos desde que entrás (nunca cuenta antes de la hora del turno).`}
+              </p>
             )}
             <p className="text-xs text-muted-foreground">
               {!turno.consentimientoRemotoAt

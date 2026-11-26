@@ -1029,6 +1029,10 @@ model Turno {
   // turno. Se crea la primera vez que alguien entra (ver src/lib/daily.ts),
   // es privada y vence sola poco después de `fin`.
   salaVideoNombre        String?
+  // Hora en que se corta la videollamada: la primera vez que entra el médico
+  // se fija en max(ahora, inicio) + 45 min (ver DURACION_LLAMADA_MINUTOS en
+  // src/lib/teleconsulta.ts). Null hasta entonces.
+  salaVideoCierraAt      DateTime?
   // El paciente aceptó la modalidad remota (Ley 27.553): al reservar online
   // o, en un turno pasado a teleconsulta desde el panel, cuando el
   // médico/asistente lo dejó registrado. Null si nadie lo registró.

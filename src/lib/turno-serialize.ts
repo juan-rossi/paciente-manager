@@ -16,6 +16,7 @@ const CAMPOS_INTERNOS = [
   "creadoPorId",
   "modalidadCambiadaPorId",
   "salaVideoNombre",
+  "salaVideoCierraAt",
 ] as const;
 
 /**
