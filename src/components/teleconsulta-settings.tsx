@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -65,6 +65,10 @@ export function TeleconsultaSettings({
   const [tieneLugarVirtual, setTieneLugarVirtual] = useState(initialTieneLugarVirtual);
   const [saving, setSaving] = useState(false);
   const [creandoLugar, setCreandoLugar] = useState(false);
+  // El refresh que trae el lugar nuevo a Mi práctica: hasta que termine no se
+  // muestra "Ir a Mi práctica" -- si no, la tab se monta con la lista vieja
+  // (la guarda en su estado) y el lugar recién aparece al recargar la página.
+  const [refrescandoLugar, startRefrescoLugar] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   // Cobro: el momento se guarda al toque (como el resto de las opciones); el
@@ -161,8 +165,10 @@ export function TeleconsultaSettings({
         setError(data?.error ?? "No se pudo crear el lugar de Teleconsulta.");
         return;
       }
-      setTieneLugarVirtual(true);
-      router.refresh();
+      startRefrescoLugar(() => {
+        setTieneLugarVirtual(true);
+        router.refresh();
+      });
     } catch {
       setError("No se pudo conectar para crear el lugar de Teleconsulta.");
     } finally {
@@ -344,9 +350,9 @@ export function TeleconsultaSettings({
                     size="sm"
                     className="self-start sm:self-auto"
                     onClick={crearLugarVirtual}
-                    disabled={creandoLugar || saving}
+                    disabled={creandoLugar || refrescandoLugar || saving}
                   >
-                    {creandoLugar ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                    {creandoLugar || refrescandoLugar ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                     Crear lugar de Teleconsulta
                   </Button>
                 )}
