@@ -41,11 +41,26 @@ export async function medicoPuedeUsarSalas(doctorId: string): Promise<boolean> {
 
 // Plantilla y cobro del médico para el aviso de "pasó a teleconsulta" (ver
 // `buildMensajePasoTeleconsulta`). El asistente usa los del médico: pasarle el tenant.
-export async function getAvisoPasoTeleconsulta(doctorId: string): Promise<AvisoPasoTeleconsulta> {
+export function getAvisoPasoTeleconsulta(doctorId: string): Promise<AvisoPasoTeleconsulta> {
+  return getPlantillaTeleconsulta(doctorId, "mensajeTemplatePasoTeleconsulta");
+}
+
+// Plantilla del recordatorio de teleconsulta (`User.mensajeTemplateVirtual`)
+// y cobro, para el WhatsApp que se ofrece al reservar un turno en un lugar de
+// Teleconsulta (ver `buildMensajeRecordatorio`).
+export function getRecordatorioTeleconsulta(doctorId: string): Promise<AvisoPasoTeleconsulta> {
+  return getPlantillaTeleconsulta(doctorId, "mensajeTemplateVirtual");
+}
+
+async function getPlantillaTeleconsulta(
+  doctorId: string,
+  campo: "mensajeTemplatePasoTeleconsulta" | "mensajeTemplateVirtual"
+): Promise<AvisoPasoTeleconsulta> {
   const medico = await prisma.user.findUniqueOrThrow({
     where: { id: doctorId },
     select: {
       mensajeTemplatePasoTeleconsulta: true,
+      mensajeTemplateVirtual: true,
       teleconsultaCobro: true,
       aliasCobro: true,
       montoTeleconsulta: true,
@@ -54,7 +69,7 @@ export async function getAvisoPasoTeleconsulta(doctorId: string): Promise<AvisoP
     },
   });
   return {
-    plantilla: medico.mensajeTemplatePasoTeleconsulta,
+    plantilla: medico[campo],
     cobro: {
       teleconsultaCobro: medico.teleconsultaCobro,
       aliasCobro: medico.aliasCobro,

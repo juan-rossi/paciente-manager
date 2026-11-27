@@ -18,6 +18,7 @@ import {
 import { DNI_REGEX } from "@/lib/dni";
 import {
   buildMensajePasoTeleconsulta,
+  buildMensajeRecordatorio,
   buildWhatsAppHref,
   type AvisoPasoTeleconsulta,
 } from "@/lib/recordatorio-mensaje";
@@ -27,7 +28,7 @@ import { EstadoTurnoIcono, formatHora } from "./utils";
 import type { TurnoFormState } from "./use-turno-form";
 
 // Diálogos de reservar/editar turno y de cancelarlo.
-export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta, avisoPasoTeleconsulta }: {
+export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta, avisoPasoTeleconsulta, recordatorioTeleconsulta }: {
   state: TurnoFormState;
   selectedDate: Date;
   prepagas: string[];
@@ -41,6 +42,9 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
   // teleconsulta, pero uno que ya se pasó se puede volver a presencial.
   puedePasarATeleconsulta: boolean;
   avisoPasoTeleconsulta: AvisoPasoTeleconsulta | null;
+  // Plantilla del recordatorio de teleconsulta: WhatsApp al reservar en un
+  // lugar de Teleconsulta.
+  recordatorioTeleconsulta: AvisoPasoTeleconsulta | null;
 }) {
   const {
     formSlot,
@@ -88,17 +92,31 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
     !!formSlot &&
     new Date(formSlot.fin) > new Date();
   const aTeleconsulta = !modalidadTarget?.turno?.teleconsulta;
+  const esReserva = teleconsultaExito?.motivo === "reserva";
+  let mensajeTeleconsulta: string | null = null;
+  if (teleconsultaExito && !esReserva && avisoPasoTeleconsulta) {
+    mensajeTeleconsulta = buildMensajePasoTeleconsulta(
+      avisoPasoTeleconsulta,
+      teleconsultaExito.nombreYApellido,
+      new Date(teleconsultaExito.inicio),
+      teleconsultaExito.links
+    );
+  } else if (teleconsultaExito && esReserva && recordatorioTeleconsulta && teleconsultaExito.links) {
+    // Sin links no se arma: la plantilla del recordatorio quedaría con
+    // `{videollamada}`/`{confirmar}` sin reemplazar.
+    const { sala, confirmar, cancelar } = teleconsultaExito.links;
+    mensajeTeleconsulta = buildMensajeRecordatorio(
+      recordatorioTeleconsulta.plantilla,
+      teleconsultaExito.nombreYApellido,
+      new Date(teleconsultaExito.inicio),
+      new Date(),
+      { confirmar, cancelar, videollamada: sala },
+      recordatorioTeleconsulta.cobro
+    );
+  }
   const whatsappTeleconsultaHref =
-    teleconsultaExito && avisoPasoTeleconsulta
-      ? buildWhatsAppHref(
-          teleconsultaExito.telefono,
-          buildMensajePasoTeleconsulta(
-            avisoPasoTeleconsulta,
-            teleconsultaExito.nombreYApellido,
-            new Date(teleconsultaExito.inicio),
-            teleconsultaExito.links
-          )
-        )
+    teleconsultaExito && mensajeTeleconsulta
+      ? buildWhatsAppHref(teleconsultaExito.telefono, mensajeTeleconsulta)
       : null;
 
   return (
@@ -317,7 +335,7 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
       <Dialog open={teleconsultaExito !== null} onOpenChange={(open) => !open && setTeleconsultaExito(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Turno pasado a teleconsulta</DialogTitle>
+            <DialogTitle>{esReserva ? "Teleconsulta reservada" : "Turno pasado a teleconsulta"}</DialogTitle>
           </DialogHeader>
           {teleconsultaExito && (
             <div className="flex flex-col gap-4">
@@ -325,20 +343,30 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
                 <CircleCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" />
                 <p className="text-sm">
                   El turno de <strong>{teleconsultaExito.nombreYApellido}</strong> del{" "}
-                  {selectedDate.toLocaleDateString("es-AR")} a las {formatHora(teleconsultaExito.inicio)} ahora
-                  es por videollamada.
+                  {selectedDate.toLocaleDateString("es-AR")} a las {formatHora(teleconsultaExito.inicio)}{" "}
+                  {esReserva ? "quedó reservado. Es por videollamada." : "ahora es por videollamada."}
                 </p>
               </div>
               <p className="text-sm text-muted-foreground">
-                Avisale ahora por WhatsApp con el link de la sala. Si preferís hacerlo más tarde, queda en{" "}
-                <strong className="font-medium text-foreground">Pendientes de notificar</strong> (Recordatorios).
+                {esReserva ? (
+                  whatsappTeleconsultaHref ? (
+                    "Si querés, mandale ahora por WhatsApp el link de la videollamada. Es opcional: el link también va en el recordatorio que le mandes desde Recordatorios."
+                  ) : (
+                    "No se pudo armar el mensaje de WhatsApp. Podés copiar el link de la videollamada y mandárselo vos."
+                  )
+                ) : (
+                  <>
+                    Avisale ahora por WhatsApp con el link de la sala. Si preferís hacerlo más tarde, queda en{" "}
+                    <strong className="font-medium text-foreground">Pendientes de notificar</strong> (Recordatorios).
+                  </>
+                )}
               </p>
               <CopiarLinkSala turnoId={teleconsultaExito.turnoId} />
             </div>
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setTeleconsultaExito(null)}>
-              Avisar más tarde
+              {esReserva ? "Ahora no" : "Avisar más tarde"}
             </Button>
             {whatsappTeleconsultaHref && (
               <Button

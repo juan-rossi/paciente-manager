@@ -9,7 +9,11 @@ import { nombreDoctor } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site-url";
 import { PageEnter } from "@/components/page-transition";
 import { teleconsultaHabilitada } from "@/lib/feature-flags";
-import { getAvisoPasoTeleconsulta, getTeleconsultaDelMedico } from "@/lib/teleconsulta-medico";
+import {
+  getAvisoPasoTeleconsulta,
+  getRecordatorioTeleconsulta,
+  getTeleconsultaDelMedico,
+} from "@/lib/teleconsulta-medico";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +86,10 @@ export default async function TurnosPage() {
   const avisoPasoTeleconsulta = teleconsulta.pasarPresenciales
     ? await getAvisoPasoTeleconsulta(tenantId)
     : null;
+  // WhatsApp opcional al reservar un turno en un lugar de Teleconsulta.
+  const recordatorioTeleconsulta = teleconsulta.lugarVirtual
+    ? await getRecordatorioTeleconsulta(tenantId)
+    : null;
 
   return (
     <PageEnter>
@@ -105,6 +113,7 @@ export default async function TurnosPage() {
         teleconsultaHabilitada={teleconsultaHabilitada()}
         puedePasarATeleconsulta={teleconsulta.pasarPresenciales}
         avisoPasoTeleconsulta={avisoPasoTeleconsulta}
+        recordatorioTeleconsulta={recordatorioTeleconsulta}
       />
     </PageEnter>
   );

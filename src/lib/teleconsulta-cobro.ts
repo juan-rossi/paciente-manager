@@ -35,7 +35,17 @@ export function montoDeTeleconsulta(
 }
 
 export function formatMonto(monto: number): string {
-  return `$ ${monto.toLocaleString("es-AR")}`;
+  return `$${monto.toLocaleString("es-AR")}`;
+}
+
+/**
+ * Qué es lo que cargó el médico como destino de la transferencia. Ya viene
+ * normalizado (ver `normalizarAliasCobro`): un CBU/CVU son 22 dígitos, y el
+ * CVU (billeteras virtuales) es el que empieza con 000.
+ */
+export function tipoAliasCobro(aliasCobro: string): "alias" | "CBU" | "CVU" {
+  if (!/^\d{22}$/.test(aliasCobro)) return "alias";
+  return aliasCobro.startsWith("000") ? "CVU" : "CBU";
 }
 
 /**
@@ -70,7 +80,10 @@ export function normalizarAliasCobro(
  * si están cargados, cuánto y a qué alias/CBU transferir.
  */
 export function textoPago(cobro: CobroRecordatorio): string {
-  const destino = cobro.aliasCobro ? ` por transferencia a ${cobro.aliasCobro}` : "";
+  // Ej.: ` por transferencia al alias "dr.perez"` / ` … al CBU "0170…"`.
+  const destino = cobro.aliasCobro
+    ? ` por transferencia al ${tipoAliasCobro(cobro.aliasCobro)} "${cobro.aliasCobro}"`
+    : "";
   const monto = cobro.monto != null ? ` (${formatMonto(cobro.monto)})` : "";
   return cobro.teleconsultaCobro === "ANTES"
     ? `Recordá abonar la consulta${monto}${destino} antes del turno.`

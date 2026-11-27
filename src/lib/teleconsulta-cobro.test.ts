@@ -29,13 +29,22 @@ describe("normalizarAliasCobro", () => {
 describe("textoPago", () => {
   it("por adelantado, con alias", () => {
     expect(textoPago({ teleconsultaCobro: "ANTES", aliasCobro: "dr.perez" })).toBe(
-      "Recordá abonar la consulta por transferencia a dr.perez antes del turno."
+      "Recordá abonar la consulta por transferencia al alias \"dr.perez\" antes del turno."
     );
   });
 
   it("después, sin alias", () => {
     expect(textoPago({ teleconsultaCobro: "DESPUES", aliasCobro: null })).toBe(
       "La consulta se abona al terminar la videollamada."
+    );
+  });
+
+  it("dice si es un CBU o un CVU", () => {
+    expect(textoPago({ teleconsultaCobro: "ANTES", aliasCobro: "0110599520000001234567", monto: 20000 })).toBe(
+      'Recordá abonar la consulta ($20.000) por transferencia al CBU "0110599520000001234567" antes del turno.'
+    );
+    expect(textoPago({ teleconsultaCobro: "DESPUES", aliasCobro: "0000003100012345678901" })).toBe(
+      'La consulta se abona al terminar la videollamada por transferencia al CVU "0000003100012345678901".'
     );
   });
 });
@@ -58,10 +67,10 @@ describe("monto de la teleconsulta", () => {
 
   it("{pago} incluye el monto, antes y después", () => {
     expect(textoPago({ teleconsultaCobro: "ANTES", aliasCobro: "dr.perez", monto: 20000 })).toBe(
-      "Recordá abonar la consulta ($ 20.000) por transferencia a dr.perez antes del turno."
+      "Recordá abonar la consulta ($20.000) por transferencia al alias \"dr.perez\" antes del turno."
     );
     expect(textoPago({ teleconsultaCobro: "DESPUES", aliasCobro: null, monto: 15500 })).toBe(
-      "La consulta ($ 15.500) se abona al terminar la videollamada."
+      "La consulta ($15.500) se abona al terminar la videollamada."
     );
   });
 });
@@ -77,7 +86,7 @@ describe("{pago} y {alias} en el recordatorio", () => {
       ...links,
       videollamada: "sala",
     }, cobro);
-    expect(m).toBe("Recordá abonar la consulta por transferencia a dr.perez antes del turno. Alias: dr.perez sala");
+    expect(m).toBe('Recordá abonar la consulta por transferencia al alias "dr.perez" antes del turno. Alias: dr.perez sala');
   });
 
   it("en un turno presencial {pago} queda vacío y {alias} se completa", () => {

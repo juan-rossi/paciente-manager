@@ -32,11 +32,13 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
   const [consentimientoRemoto, setConsentimientoRemoto] = useState(false);
   const [cambiandoModalidad, setCambiandoModalidad] = useState(false);
   const [modalidadError, setModalidadError] = useState<string | null>(null);
-  // Confirmación después de pasar un turno a teleconsulta: permite mandarle
-  // el aviso con el link de la sala por WhatsApp en el momento. El link se
+  // Confirmación después de pasar un turno a teleconsulta (`motivo: "paso"`)
+  // o de reservar uno en un lugar de Teleconsulta (`"reserva"`): permite
+  // mandarle el WhatsApp con el link de la sala en el momento. El link se
   // pide antes de mostrarla para que el botón sea un <a> directo (abrir
   // wa.me después de un await lo bloquea el navegador).
   const [teleconsultaExito, setTeleconsultaExito] = useState<{
+    motivo: "paso" | "reserva";
     turnoId: string;
     nombreYApellido: string;
     telefono: string;
@@ -102,6 +104,19 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
         setError(data.error ?? "No se pudo guardar el turno.");
         return;
       }
+      // Turno nuevo en un lugar de Teleconsulta: el siguiente paso (opcional)
+      // es mandarle al paciente el WhatsApp con el link de la videollamada.
+      if (!editingTurnoId && data.turno?.teleconsulta) {
+        const links = await fetchLinksTeleconsulta(data.turno.id);
+        setTeleconsultaExito({
+          motivo: "reserva",
+          turnoId: data.turno.id,
+          nombreYApellido: nombreYApellido.trim(),
+          telefono,
+          inicio: formSlot.inicio,
+          links,
+        });
+      }
       setFormSlot(null);
       await loadSlots(selectedDate);
     } finally {
@@ -163,13 +178,9 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
         return;
       }
       if (teleconsulta) {
-        const links = await fetch(`/api/turnos/${turno.id}/sala`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d: { link?: string; confirmar?: string; cancelar?: string } | null) =>
-            d?.link && d.confirmar && d.cancelar ? { sala: d.link, confirmar: d.confirmar, cancelar: d.cancelar } : null
-          )
-          .catch(() => null);
+        const links = await fetchLinksTeleconsulta(turno.id);
         setTeleconsultaExito({
+          motivo: "paso",
           turnoId: turno.id,
           nombreYApellido: turno.nombreYApellido,
           telefono: turno.telefono,
@@ -184,12 +195,14 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
     }
   }
 
-  // Al abrir el WhatsApp desde la confirmación se da por notificado: sale
-  // de "Pendientes de notificar". Si no se envía, queda ahí para después.
+  // Al abrir el WhatsApp del aviso de "pasó a teleconsulta" se da por
+  // notificado: sale de "Pendientes de notificar". Si no se envía, queda ahí
+  // para después. El de una reserva nueva no deja nada pendiente.
   function handleAvisoTeleconsultaEnviado() {
     const exito = teleconsultaExito;
     if (!exito) return;
     setTeleconsultaExito(null);
+    if (exito.motivo !== "paso") return;
     fetch(`/api/turnos/${exito.turnoId}/aviso`, { method: "PATCH" }).catch(() => {});
   }
 
@@ -253,3 +266,14 @@ export function useTurnoForm({ selectedDate, loadSlots }: {
 }
 
 export type TurnoFormState = ReturnType<typeof useTurnoForm>;
+
+// Links del paciente (sala, confirmar, cancelar) de un turno de
+// teleconsulta. null si no se pudieron generar.
+async function fetchLinksTeleconsulta(turnoId: string): Promise<LinksTeleconsulta | null> {
+  return fetch(`/api/turnos/${turnoId}/sala`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d: { link?: string; confirmar?: string; cancelar?: string } | null) =>
+      d?.link && d.confirmar && d.cancelar ? { sala: d.link, confirmar: d.confirmar, cancelar: d.cancelar } : null
+    )
+    .catch(() => null);
+}

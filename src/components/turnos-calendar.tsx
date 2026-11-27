@@ -85,6 +85,9 @@ type Props = {
   // Plantilla (Configuración > Mensajería) y cobro del médico para el
   // WhatsApp de "pasó a teleconsulta". null si no puede pasar turnos.
   avisoPasoTeleconsulta: AvisoPasoTeleconsulta | null;
+  // Plantilla del recordatorio de teleconsulta y cobro, para ofrecer el
+  // WhatsApp al reservar en un lugar de Teleconsulta. null sin ese lugar.
+  recordatorioTeleconsulta: AvisoPasoTeleconsulta | null;
 };
 
 export function TurnosCalendar({
@@ -107,6 +110,7 @@ export function TurnosCalendar({
   teleconsultaHabilitada,
   puedePasarATeleconsulta,
   avisoPasoTeleconsulta,
+  recordatorioTeleconsulta,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<Date>(
     () => dateParamToDateBA(initialDate) ?? new Date()
@@ -470,6 +474,7 @@ export function TurnosCalendar({
           !!lugaresPorId.get(turnoForm.formSlot.lugarId)?.permiteTeleconsulta
         }
         avisoPasoTeleconsulta={avisoPasoTeleconsulta}
+        recordatorioTeleconsulta={recordatorioTeleconsulta}
       />
 
       <SobreturnoDialog

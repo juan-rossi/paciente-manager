@@ -55,7 +55,7 @@ describe("mensaje de cambio de modalidad", () => {
   it("completa {pago} y {alias}", () => {
     expect(
       buildMensajePasoTeleconsulta({ plantilla: "{videollamada} {pago} Alias: {alias}", cobro }, "Ana", inicio, links, ahora)
-    ).toBe("x.com/t/abc/sala Recordá abonar la consulta ($ 20.000) por transferencia a mi.alias antes del turno. Alias: mi.alias");
+    ).toBe("x.com/t/abc/sala Recordá abonar la consulta ($20.000) por transferencia al alias \"mi.alias\" antes del turno. Alias: mi.alias");
   });
 
   it("sin {videollamada} en la plantilla, el link de la sala va al final", () => {
