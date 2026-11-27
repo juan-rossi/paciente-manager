@@ -271,7 +271,9 @@ export function MiPracticaSettings({
     setLongitud(null);
     setCiudad(null);
     setTelefono("");
-    setPermiteTeleconsulta(false);
+    // Con "pasar turnos presenciales" prendido, un lugar nuevo arranca
+    // permitiéndolo (igual que los existentes al activarlo); se puede destildar.
+    setPermiteTeleconsulta(puedePasarATeleconsulta);
     setLugarError(null);
     setTriedSubmitLugar(false);
     setLugarOpen(true);

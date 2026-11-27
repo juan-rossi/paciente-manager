@@ -45,10 +45,33 @@ export async function PATCH(request: NextRequest) {
   const error = validarConfigTeleconsulta(parsed.data, !!lugarVirtual);
   if (error) return NextResponse.json({ error }, { status: 409 });
 
-  const updated = await prisma.user.update({
+  const anterior = await prisma.user.findUniqueOrThrow({
     where: { id: user.id },
-    data: parsed.data,
     select: TELECONSULTA_CONFIG_SELECT,
+  });
+  const pasabaPresenciales = anterior.teleconsultaHabilitada && anterior.teleconsultaPasarPresenciales;
+  const pasaPresenciales = parsed.data.teleconsultaHabilitada && parsed.data.teleconsultaPasarPresenciales;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    // Al prender "pasar turnos presenciales", si ningún lugar presencial lo
+    // permite, se habilita en todos: si no, el botón del turno no aparece
+    // hasta que el médico edite cada lugar. Si ya había elegido algunos
+    // (apagó y volvió a prender), se respeta esa selección.
+    if (pasaPresenciales && !pasabaPresenciales) {
+      const presenciales = { userId: user.id, tipo: { not: "VIRTUAL" as const }, deletedAt: null };
+      const algunoPermite = await tx.lugarDeTrabajo.findFirst({
+        where: { ...presenciales, permiteTeleconsulta: true },
+        select: { id: true },
+      });
+      if (!algunoPermite) {
+        await tx.lugarDeTrabajo.updateMany({ where: presenciales, data: { permiteTeleconsulta: true } });
+      }
+    }
+    return tx.user.update({
+      where: { id: user.id },
+      data: parsed.data,
+      select: TELECONSULTA_CONFIG_SELECT,
+    });
   });
   return NextResponse.json(updated);
 }

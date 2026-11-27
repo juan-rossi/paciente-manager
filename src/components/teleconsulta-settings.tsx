@@ -296,8 +296,9 @@ export function TeleconsultaSettings({
                 Pasar turnos presenciales a teleconsulta
               </Label>
               <p className="text-xs text-muted-foreground">
-                Desde el turno en la agenda, sin moverlo de lugar ni de horario. Elegí en qué lugares
-                desde Mi práctica, al editar cada lugar. Si lo desactivás, los turnos que ya pasaste
+                Desde el turno en la agenda, sin moverlo de lugar ni de horario. Al activarlo queda
+                habilitado en todos tus lugares; podés sacarlo de alguno desde Mi práctica, al editar
+                el lugar. Si lo desactivás, los turnos que ya pasaste
                 siguen siendo por videollamada y los podés volver a presencial.
               </p>
             </div>
