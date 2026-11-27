@@ -203,8 +203,8 @@ export function CoberturasSettings({
           <div className="flex gap-2.5 rounded-lg bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-px size-3.5 shrink-0" />
             <p>
-              Si un paciente elige una cobertura que no aceptás por teleconsulta para un turno por
-              videollamada, le avisamos que esa consulta sería particular.
+              Al reservar un turno por videollamada, tus pacientes solo ven las coberturas que
+              aceptás por teleconsulta. El resto puede reservarlo como particular.
             </p>
           </div>
         )}

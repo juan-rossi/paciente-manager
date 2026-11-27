@@ -365,7 +365,9 @@ export function TeleconsultaSettings({
               </div>
             )}
           </div>
+        </div>
 
+        <div className={cn(!habilitada && "opacity-50")}>
           <EstadoCoberturas
             total={coberturas.total}
             conTeleconsulta={coberturas.conTeleconsulta}
@@ -625,7 +627,7 @@ function EstadoCoberturas({
             {total === 1
               ? "Tu cobertura no acepta teleconsulta."
               : `Ninguna de tus ${total} coberturas acepta teleconsulta.`}{" "}
-            Si un paciente la elige para un turno por videollamada, le avisamos que sería particular.
+            Al reservar por videollamada, tus pacientes solo van a poder elegir Particular.
           </span>
         </span>
         {boton("Elegir en Coberturas")}

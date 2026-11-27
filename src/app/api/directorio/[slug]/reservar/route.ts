@@ -87,6 +87,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  // Teleconsulta: el formulario solo ofrece las coberturas que el médico
+  // acepta por videollamada; cualquier otra se rechaza.
+  if (esTeleconsulta && parsed.data.obraSocial) {
+    const cobertura = await prisma.doctorPrepaga.findFirst({
+      where: { doctorId: doctor.id, aceptaTeleconsulta: true, prepaga: { nombre: parsed.data.obraSocial } },
+      select: { prepagaId: true },
+    });
+    if (!cobertura) {
+      return NextResponse.json(
+        { error: "Este profesional no atiende esa cobertura por teleconsulta. Elegí otra o Particular." },
+        { status: 400 }
+      );
+    }
+  }
+
   const fin = new Date(inicio.getTime() + doctor.slotDurationMinutes * 60_000);
 
   const patient = parsed.data.dni

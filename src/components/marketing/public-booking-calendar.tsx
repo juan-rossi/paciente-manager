@@ -84,7 +84,7 @@ type Props = {
   lugarDestacado?: string;
   // Prepagas con las que trabaja el médico (opciones de Obra Social).
   prepagas?: string[];
-  // Las que el médico no acepta por teleconsulta: aviso si el lugar es de Teleconsulta.
+  // Las que el médico no acepta por teleconsulta: no se ofrecen si el lugar es de Teleconsulta.
   prepagasSinTeleconsulta?: string[];
   // En mobile abre el wizard de turnos apenas carga la página.
   abrirWizardEnMobile?: boolean;
@@ -586,11 +586,14 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
       />
     </div>
   );
+  // Teleconsulta: solo las coberturas que el médico acepta por videollamada
+  // (Configuración > Coberturas); el resto no se ofrece.
+  const prepagasDelLugar =
+    lugarElegido?.tipo === "VIRTUAL" ? prepagas.filter((p) => !prepagasSinTeleconsulta.includes(p)) : prepagas;
   const campoObraSocial = (
     <div className="flex flex-col gap-1.5">
       <Label>Obra Social</Label>
-      <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagas} triggerClassName="bg-white dark:bg-white"
-        sinTeleconsulta={lugarElegido?.tipo === "VIRTUAL" ? prepagasSinTeleconsulta : []} avisoPara="paciente" />
+      <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagasDelLugar} triggerClassName="bg-white dark:bg-white" />
     </div>
   );
 
