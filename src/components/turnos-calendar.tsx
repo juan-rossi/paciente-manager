@@ -72,6 +72,8 @@ type Props = {
   // Nombres de las prepagas con las que trabaja el médico (opciones del
   // desplegable de Obra Social).
   prepagas: string[];
+  // Las que no acepta por teleconsulta (aviso en turnos por videollamada).
+  prepagasSinTeleconsulta: string[];
   // Link público de reserva para compartir; null si la agenda pública no
   // está habilitada.
   compartir: { url: string; nombreMedico: string; lugarNombre: string | null } | null;
@@ -106,6 +108,7 @@ export function TurnosCalendar({
   initialBloqueosDelDia,
   initialCanceladosPorPacientes,
   prepagas,
+  prepagasSinTeleconsulta,
   compartir,
   teleconsultaHabilitada,
   puedePasarATeleconsulta,
@@ -465,6 +468,7 @@ export function TurnosCalendar({
         state={turnoForm}
         selectedDate={selectedDate}
         prepagas={prepagas}
+        prepagasSinTeleconsulta={prepagasSinTeleconsulta}
         lugarTipo={turnoForm.formSlot ? lugaresPorId.get(turnoForm.formSlot.lugarId)?.tipo : undefined}
         esMedico={role === "DOCTOR"}
         teleconsultaHabilitada={teleconsultaHabilitada}
@@ -481,6 +485,7 @@ export function TurnosCalendar({
         state={sobreturno}
         selectedDate={selectedDate}
         prepagas={prepagas}
+        prepagasSinTeleconsulta={prepagasSinTeleconsulta}
         bloques={bloques}
         lugaresPorId={lugaresPorId}
       />

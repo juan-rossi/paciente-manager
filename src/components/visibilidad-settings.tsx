@@ -72,7 +72,7 @@ type Props = {
   // local) para reflejar los cambios hechos en "Mi práctica" tras un refresh.
   lugares: LugarResumen[];
   initialBiografia: string | null;
-  // Se carga en "Mi perfil"; acá solo se decide si se publica. Se lee de las
+  // Se carga en "Coberturas"; acá solo se decide si se publica. Se lee de las
   // props para reflejar lo guardado allá tras un refresh. Null = sin cargar.
   montoConsultaParticular: number | null;
   initialMontoConsultaVisible: boolean;
@@ -545,11 +545,11 @@ export function VisibilidadSettings({
                       en tu perfil público.{" "}
                     </>
                   ) : (
-                    "Primero cargá el monto en Mi perfil. "
+                    "Primero cargá el monto en Coberturas. "
                   )}
                   <button
                     type="button"
-                    onClick={() => irAConfiguracionTab("perfil", "perfil-monto-consulta")}
+                    onClick={() => irAConfiguracionTab("coberturas", "coberturas-monto-consulta")}
                     className="font-semibold text-primary hover:underline"
                   >
                     {montoConsultaParticular != null ? "Cambiar monto" : "Cargar monto"}

@@ -380,7 +380,7 @@ export async function getDoctorPublicoPorSlug(slug: string) {
       telefono: true,
       direccion: true,
       prepagas: {
-        select: { prepaga: { select: { id: true, nombre: true, nombreCompleto: true } } },
+        select: { aceptaTeleconsulta: true, prepaga: { select: { id: true, nombre: true, nombreCompleto: true } } },
         orderBy: { prepaga: { nombre: "asc" } },
       },
       lugaresDeTrabajo: {

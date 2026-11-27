@@ -19,12 +19,12 @@ export type CobroRecordatorio = {
   monto?: number | null;
 };
 
-// Tope del monto (igual que el de la consulta particular en Mi perfil: 9 dígitos).
+// Tope del monto (igual que el de la consulta particular en Coberturas: 9 dígitos).
 export const MONTO_TELECONSULTA_MAX = 999_999_999;
 
 /**
  * El monto que se le cobra al paciente por una teleconsulta: el de la consulta
- * particular (Mi perfil) o uno propio, según lo que eligió el médico. null si
+ * particular (Coberturas) o uno propio, según lo que eligió el médico. null si
  * el que corresponde no está cargado.
  */
 export function montoDeTeleconsulta(

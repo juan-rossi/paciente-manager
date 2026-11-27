@@ -84,11 +84,13 @@ type Props = {
   lugarDestacado?: string;
   // Prepagas con las que trabaja el médico (opciones de Obra Social).
   prepagas?: string[];
+  // Las que el médico no acepta por teleconsulta: aviso si el lugar es de Teleconsulta.
+  prepagasSinTeleconsulta?: string[];
   // En mobile abre el wizard de turnos apenas carga la página.
   abrirWizardEnMobile?: boolean;
 };
 
-export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugarDestacado, prepagas = [], abrirWizardEnMobile = false }: Props) {
+export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugarDestacado, prepagas = [], prepagasSinTeleconsulta = [], abrirWizardEnMobile = false }: Props) {
   // Con más de un lugar se elige con pestañas. Arranca en el lugar que ya
   // matcheó la búsqueda por ciudad (lugarDestacado) o, si no hay, en el
   // primero con turnos disponibles una vez cargada la disponibilidad.
@@ -587,7 +589,8 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
   const campoObraSocial = (
     <div className="flex flex-col gap-1.5">
       <Label>Obra Social</Label>
-      <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagas} triggerClassName="bg-white dark:bg-white" />
+      <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagas} triggerClassName="bg-white dark:bg-white"
+        sinTeleconsulta={lugarElegido?.tipo === "VIRTUAL" ? prepagasSinTeleconsulta : []} avisoPara="paciente" />
     </div>
   );
 

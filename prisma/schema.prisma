@@ -1629,6 +1629,9 @@ model DoctorPrepaga {
   doctor    User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   prepagaId String
   prepaga   Prepaga  @relation(fields: [prepagaId], references: [id], onDelete: Cascade)
+  // La acepta también en turnos de teleconsulta (Configuración > Coberturas).
+  // Arranca en false: el médico tilda una por una las que cubren la videollamada.
+  aceptaTeleconsulta Boolean @default(false)
   createdAt DateTime @default(now())
 
   @@id([doctorId, prepagaId])

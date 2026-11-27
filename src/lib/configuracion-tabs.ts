@@ -1,5 +1,6 @@
 export const CONFIGURACION_TABS = [
   "practica",
+  "coberturas",
   "aranceles",
   "usuarios",
   "mensajeria",

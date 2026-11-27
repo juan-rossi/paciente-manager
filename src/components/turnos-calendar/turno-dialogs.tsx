@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CopiarLinkSala } from "@/components/teleconsulta/copiar-link-sala";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ObraSocialSelect } from "@/components/obra-social-select";
+import { AvisoSinTeleconsulta, ObraSocialSelect } from "@/components/obra-social-select";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,12 @@ import { EstadoTurnoIcono, formatHora } from "./utils";
 import type { TurnoFormState } from "./use-turno-form";
 
 // Diálogos de reservar/editar turno y de cancelarlo.
-export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta, avisoPasoTeleconsulta, recordatorioTeleconsulta }: {
+export function TurnoDialogs({ state, selectedDate, prepagas, prepagasSinTeleconsulta, lugarTipo, esMedico, teleconsultaHabilitada, puedePasarATeleconsulta, avisoPasoTeleconsulta, recordatorioTeleconsulta }: {
   state: TurnoFormState;
   selectedDate: Date;
   prepagas: string[];
+  // Las que el médico no acepta por teleconsulta: aviso en turnos por videollamada.
+  prepagasSinTeleconsulta: string[];
   // Tipo del lugar del turno abierto: un turno de un lugar VIRTUAL es
   // siempre teleconsulta y no se puede pasar a presencial.
   lugarTipo?: string;
@@ -241,7 +243,14 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Obra Social</Label>
-              <ObraSocialSelect value={obraSocial} onChange={setObraSocial} prepagas={prepagas} />
+              <ObraSocialSelect
+                value={obraSocial}
+                onChange={setObraSocial}
+                prepagas={prepagas}
+                sinTeleconsulta={
+                  lugarTipo === "VIRTUAL" || formSlot?.turno?.teleconsulta ? prepagasSinTeleconsulta : []
+                }
+              />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
@@ -294,6 +303,11 @@ export function TurnoDialogs({ state, selectedDate, prepagas, lugarTipo, esMedic
               (Recordatorios) con el mensaje listo para avisarle por WhatsApp
               {aTeleconsulta ? ", junto con el link de la videollamada." : "."}
             </p>
+            {aTeleconsulta &&
+              modalidadTarget?.turno?.obraSocial &&
+              prepagasSinTeleconsulta.includes(modalidadTarget.turno.obraSocial) && (
+                <AvisoSinTeleconsulta cobertura={modalidadTarget.turno.obraSocial} para="consultorio" />
+              )}
             {aTeleconsulta && (
               <div className="flex items-start gap-2.5 rounded-md border border-border p-3">
                 <Checkbox

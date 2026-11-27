@@ -151,6 +151,7 @@ export default async function PerfilPublicoPage({ params, searchParams }: Props)
             lugares={lugaresReservables}
             lugarDestacado={lugarDestacado}
             prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
+            prepagasSinTeleconsulta={doctor.prepagas.filter((p) => !p.aceptaTeleconsulta).map(({ prepaga }) => prepaga.nombre)}
             abrirWizardEnMobile={reservar === "1"}
           />
         </div>

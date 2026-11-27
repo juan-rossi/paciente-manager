@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banknote, Briefcase, IdCard, Info, ShieldCheck, X } from "lucide-react";
+import { Briefcase, IdCard } from "lucide-react";
 import { SettingsSection } from "@/components/settings-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Combobox,
-  ComboboxInputGroup,
-  ComboboxInput,
-  ComboboxTrigger,
-  ComboboxContent,
-  ComboboxItem,
-} from "@/components/ui/combobox";
 import {
   TITULO_CORTESIA_LABELS,
   TITULO_CORTESIA_OPTIONS,
@@ -39,10 +31,6 @@ type Props = {
   initialApellido: string;
   initialEspecialidad: Especialidad | null;
   initialNroMatricula: string;
-  initialMontoConsultaParticular: number | null;
-  // Catálogo completo de coberturas y las que ya eligió el médico.
-  prepagas: { id: string; nombre: string; nombreCompleto: string | null }[];
-  initialPrepagaIds: string[];
 };
 
 export function MiPerfilSettings({
@@ -53,9 +41,6 @@ export function MiPerfilSettings({
   initialApellido,
   initialEspecialidad,
   initialNroMatricula,
-  initialMontoConsultaParticular,
-  prepagas,
-  initialPrepagaIds,
 }: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,32 +60,6 @@ export function MiPerfilSettings({
     ESPECIALIDAD_OPTIONS.find((o) => o.value === initialEspecialidad)?.label ?? "Sin especialidad";
   const [nroMatricula, setNroMatricula] = useState(initialNroMatricula);
 
-  // Monto de la consulta particular: se guarda solo con dígitos ("15000") y se
-  // muestra con separador de miles ("15.000").
-  const [montoConsulta, setMontoConsulta] = useState(
-    initialMontoConsultaParticular != null ? String(initialMontoConsultaParticular) : ""
-  );
-  const montoConsultaFormateado = montoConsulta
-    ? Number(montoConsulta).toLocaleString("es-AR")
-    : "";
-
-  // Coberturas con las que trabaja -- se guardan con "Guardar cambios".
-  const [prepagaIds, setPrepagaIds] = useState<string[]>(initialPrepagaIds);
-  const [prepagaBusqueda, setPrepagaBusqueda] = useState("");
-  const prepagaOptions = prepagas
-    .filter((p) => !prepagaIds.includes(p.id))
-    .map((p) => ({
-      value: p.id,
-      label:
-        p.nombreCompleto && p.nombreCompleto !== p.nombre
-          ? `${p.nombre} (${p.nombreCompleto})`
-          : p.nombre,
-    }));
-  const prepagasElegidas = prepagaIds
-    .map((id) => prepagas.find((p) => p.id === id))
-    .filter((p): p is (typeof prepagas)[number] => !!p)
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -113,8 +72,6 @@ export function MiPerfilSettings({
     nombre,
     apellido,
     nroMatricula,
-    montoConsulta,
-    prepagaIds: [...prepagaIds].sort(),
   });
   const [perfilGuardado, setPerfilGuardado] = useState(perfilSnapshot);
   const hayCambios = perfilSnapshot !== perfilGuardado;
@@ -206,8 +163,6 @@ export function MiPerfilSettings({
           nombre,
           apellido,
           nroMatricula,
-          prepagaIds,
-          montoConsultaParticular: montoConsulta ? Number(montoConsulta) : null,
         }),
       });
       const data = await response.json();
@@ -344,98 +299,6 @@ export function MiPerfilSettings({
               className={triedSubmit && !nroMatricula.trim() ? "border-destructive" : undefined}
             />
           </div>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection title="Coberturas" icon={ShieldCheck}>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="perfil-prepagas">Prepagas y obras sociales con las que trabajás</Label>
-          <Combobox
-            items={prepagaOptions}
-            value={null}
-            inputValue={prepagaBusqueda}
-            onInputValueChange={setPrepagaBusqueda}
-            onValueChange={(item) => {
-              const id = (item as { value: string } | null)?.value;
-              if (id) setPrepagaIds((prev) => [...prev, id]);
-              setPrepagaBusqueda("");
-            }}
-          >
-            <ComboboxInputGroup>
-              <ComboboxInput id="perfil-prepagas" placeholder="Buscar cobertura..." />
-              <ComboboxTrigger aria-label="Abrir coberturas" />
-            </ComboboxInputGroup>
-            <ComboboxContent>
-              {(option: (typeof prepagaOptions)[number]) => (
-                <ComboboxItem key={option.value} value={option}>
-                  {option.label}
-                </ComboboxItem>
-              )}
-            </ComboboxContent>
-          </Combobox>
-        </div>
-        {prepagasElegidas.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
-            Todavía no cargaste ninguna. Buscá arriba para empezar.
-          </p>
-        ) : (
-          <ul className="flex flex-wrap gap-1.5" aria-label="Coberturas elegidas">
-            {prepagasElegidas.map((p) => (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  aria-label={`Quitar ${p.nombre}`}
-                  onClick={() => setPrepagaIds((prev) => prev.filter((id) => id !== p.id))}
-                  className="group inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pr-1.5 pl-3 text-[12.5px] font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  {p.nombre}
-                  <span className="flex size-[18px] items-center justify-center rounded-full group-hover:bg-primary group-hover:text-primary-foreground">
-                    <X className="size-3" />
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {prepagasElegidas.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {prepagasElegidas.length === 1 ? "1 cobertura" : `${prepagasElegidas.length} coberturas`}
-          </p>
-        )}
-      </SettingsSection>
-
-      <SettingsSection title="Consulta particular" icon={Banknote}>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="perfil-monto-consulta">Monto de la consulta particular</Label>
-          <div className="relative sm:max-w-xs">
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
-              $
-            </span>
-            <Input
-              id="perfil-monto-consulta"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="0"
-              value={montoConsultaFormateado}
-              onChange={(e) => setMontoConsulta(e.target.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 9))}
-              className="pl-7 tabular-nums"
-              aria-describedby="perfil-monto-consulta-ayuda"
-            />
-          </div>
-          <span className="text-xs text-muted-foreground">
-            Lo que cobrás a pacientes sin cobertura. Podés dejarlo vacío.
-          </span>
-        </div>
-        <div
-          id="perfil-monto-consulta-ayuda"
-          className="flex gap-2.5 rounded-lg bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"
-        >
-          <Info className="mt-px size-3.5 shrink-0" />
-          <p>
-            Cargar este monto no lo publica en tu perfil: para mostrarlo a tus pacientes, prendelo
-            en Información pública. Además, nos sirve como referencia para los reportes financieros que
-            sumemos más adelante.
-          </p>
         </div>
       </SettingsSection>
 

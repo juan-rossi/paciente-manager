@@ -10,6 +10,7 @@ import {
   Lock,
   Plus,
   Repeat,
+  TriangleAlert,
   Video,
   Wallet,
 } from "lucide-react";
@@ -37,8 +38,11 @@ type Props = {
   // se ve bloqueada y apagada, con el acceso a Mi plan.
   incluidaEnPlan: boolean;
   initialCobro: CobroTeleconsulta;
-  // El de Mi perfil, para la opción "Igual a la consulta particular".
+  // El de Coberturas, para la opción "Igual a la consulta particular".
   montoConsultaParticular: number | null;
+  // Configuración > Coberturas: cuántas cargó y cuántas acepta por
+  // teleconsulta (arrancan apagadas, así que hay que avisar dónde se eligen).
+  coberturas: { total: number; conTeleconsulta: number };
 };
 
 const OPCIONES_COBRO: { value: MomentoCobro; label: string; descripcion: string }[] = [
@@ -59,6 +63,7 @@ export function TeleconsultaSettings({
   incluidaEnPlan,
   initialCobro,
   montoConsultaParticular,
+  coberturas,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -87,7 +92,7 @@ export function TeleconsultaSettings({
   const [errorCobro, setErrorCobro] = useState<string | null>(null);
   const aliasCambiado = alias.trim() !== (cobro.aliasCobro ?? "");
   // Monto propio de la teleconsulta: solo dígitos ("15000"), se muestra con
-  // separador de miles (igual que el de la consulta particular en Mi perfil).
+  // separador de miles (igual que el de la consulta particular en Coberturas).
   const [monto, setMonto] = useState(
     initialCobro.montoTeleconsulta != null ? String(initialCobro.montoTeleconsulta) : ""
   );
@@ -360,6 +365,12 @@ export function TeleconsultaSettings({
               </div>
             )}
           </div>
+
+          <EstadoCoberturas
+            total={coberturas.total}
+            conTeleconsulta={coberturas.conTeleconsulta}
+            disabled={!habilitada}
+          />
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -423,7 +434,7 @@ export function TeleconsultaSettings({
             </Label>
             {/* El monto es un dato, no una elección: un solo campo, y el switch
                 decide de dónde sale. Con el switch prendido muestra (bloqueado)
-                el de la consulta particular de Mi perfil. */}
+                el de la consulta particular de Coberturas. */}
             <form
               className="flex flex-col gap-2"
               onSubmit={(e) => {
@@ -501,13 +512,13 @@ export function TeleconsultaSettings({
                   Usar el monto de la consulta particular
                 </Label>
                 {montoConsultaParticular != null ? (
-                  <span className="text-xs text-muted-foreground">El que cargaste en Mi perfil.</span>
+                  <span className="text-xs text-muted-foreground">El que cargaste en Coberturas.</span>
                 ) : (
                   <span className="text-xs text-muted-foreground">
-                    Todavía no lo cargaste en Mi perfil.{" "}
+                    Todavía no lo cargaste en Coberturas.{" "}
                     <button
                       type="button"
-                      onClick={() => irAConfiguracionTab("perfil", "perfil-monto-consulta")}
+                      onClick={() => irAConfiguracionTab("coberturas", "coberturas-monto-consulta")}
                       className="inline-flex items-center gap-0.5 font-medium text-primary underline-offset-2 hover:underline"
                     >
                       Cargarlo
@@ -574,6 +585,70 @@ export function TeleconsultaSettings({
           {errorCobro && <p className="text-sm text-destructive">{errorCobro}</p>}
         </div>
       </SettingsSection>
+    </div>
+  );
+}
+
+// Fila al pie de las opciones de Teleconsulta: las coberturas arrancan sin
+// teleconsulta y se habilitan en Configuración > Coberturas. En ámbar cuando
+// no hay ninguna habilitada (a los pacientes se les avisa que sería particular).
+function EstadoCoberturas({
+  total,
+  conTeleconsulta,
+  disabled,
+}: {
+  total: number;
+  conTeleconsulta: number;
+  disabled: boolean;
+}) {
+  const ninguna = total > 0 && conTeleconsulta === 0;
+  const boton = (texto: string) => (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="self-start sm:self-auto"
+      onClick={() => irAConfiguracionTab("coberturas")}
+      disabled={disabled}
+    >
+      {texto}
+      <ArrowRight className="size-4" />
+    </Button>
+  );
+
+  if (ninguna) {
+    return (
+      <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+        <span className="flex gap-2">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {total === 1
+              ? "Tu cobertura no acepta teleconsulta."
+              : `Ninguna de tus ${total} coberturas acepta teleconsulta.`}{" "}
+            Si un paciente la elige para un turno por videollamada, le avisamos que sería particular.
+          </span>
+        </span>
+        {boton("Elegir en Coberturas")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-muted-foreground">
+        {total === 0 ? (
+          "Todavía no cargaste prepagas ni obras sociales."
+        ) : (
+          <>
+            <strong className="font-semibold text-foreground tabular-nums">
+              {conTeleconsulta} de {total}
+            </strong>{" "}
+            {total === 1 ? "cobertura" : "coberturas"} {conTeleconsulta === 1 ? "acepta" : "aceptan"}{" "}
+            teleconsulta.
+          </>
+        )}
+      </span>
+      {boton(total === 0 ? "Cargar coberturas" : "Ir a Coberturas")}
     </div>
   );
 }

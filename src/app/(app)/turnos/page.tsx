@@ -36,13 +36,13 @@ export default async function TurnosPage() {
     bloqueosDelDia,
   } = await getDaySlots(today, user.role, tenantId, activeLugarId);
 
-  const prepagas = (
-    await prisma.doctorPrepaga.findMany({
-      where: { doctorId: tenantId },
-      select: { prepaga: { select: { nombre: true } } },
-      orderBy: { prepaga: { nombre: "asc" } },
-    })
-  ).map((d) => d.prepaga.nombre);
+  const coberturas = await prisma.doctorPrepaga.findMany({
+    where: { doctorId: tenantId },
+    select: { aceptaTeleconsulta: true, prepaga: { select: { nombre: true } } },
+    orderBy: { prepaga: { nombre: "asc" } },
+  });
+  const prepagas = coberturas.map((d) => d.prepaga.nombre);
+  const prepagasSinTeleconsulta = coberturas.filter((d) => !d.aceptaTeleconsulta).map((d) => d.prepaga.nombre);
 
   // Link público de reserva para el botón "Compartir". El asistente solo
   // comparte el de su lugar activo; el médico, el general.
@@ -109,6 +109,7 @@ export default async function TurnosPage() {
         initialBloqueosDelDia={bloqueosDelDia}
         initialCanceladosPorPacientes={canceladosPorPacientes}
         prepagas={prepagas}
+        prepagasSinTeleconsulta={prepagasSinTeleconsulta}
         compartir={compartir}
         teleconsultaHabilitada={teleconsultaHabilitada()}
         puedePasarATeleconsulta={teleconsulta.pasarPresenciales}

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Mic,
   ReceiptText,
+  ShieldCheck,
   Sparkles,
   User,
   Users,
@@ -32,6 +33,7 @@ export const CONFIGURACION_SECTIONS = [
     group: "Consultorio",
     items: [
       { value: "practica" as const, label: "Mi práctica", icon: Building2 },
+      { value: "coberturas" as const, label: "Coberturas", icon: ShieldCheck },
       { value: "aranceles" as const, label: "Aranceles", icon: ReceiptText },
       { value: "usuarios" as const, label: "Usuarios", icon: Users },
       { value: "mensajeria" as const, label: "Mensajería", icon: MessageSquare },

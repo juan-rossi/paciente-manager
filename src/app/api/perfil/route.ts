@@ -17,32 +17,15 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  // Un id que no está en el catálogo simplemente se descarta.
-  const prepagaIds = (
-    await prisma.prepaga.findMany({
-      where: { id: { in: parsed.data.prepagaIds } },
-      select: { id: true },
-    })
-  ).map((p) => p.id);
-  const [updated] = await prisma.$transaction([
-    prisma.user.update({
-      where: { id: user.id },
-      data: {
-        tituloCortesia: parsed.data.tituloCortesia,
-        nombre: parsed.data.nombre,
-        apellido: parsed.data.apellido,
-        nroMatricula: parsed.data.nroMatricula,
-        montoConsultaParticular: parsed.data.montoConsultaParticular,
-      },
-    }),
-    prisma.doctorPrepaga.deleteMany({
-      where: { doctorId: user.id, prepagaId: { notIn: prepagaIds } },
-    }),
-    prisma.doctorPrepaga.createMany({
-      data: prepagaIds.map((prepagaId) => ({ doctorId: user.id, prepagaId })),
-      skipDuplicates: true,
-    }),
-  ]);
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      tituloCortesia: parsed.data.tituloCortesia,
+      nombre: parsed.data.nombre,
+      apellido: parsed.data.apellido,
+      nroMatricula: parsed.data.nroMatricula,
+    },
+  });
 
   return NextResponse.json({
     tituloCortesia: updated.tituloCortesia,
@@ -50,6 +33,5 @@ export async function PATCH(request: NextRequest) {
     apellido: updated.apellido,
     especialidad: updated.especialidad,
     nroMatricula: updated.nroMatricula,
-    montoConsultaParticular: updated.montoConsultaParticular,
   });
 }

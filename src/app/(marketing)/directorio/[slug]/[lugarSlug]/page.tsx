@@ -76,6 +76,7 @@ export default async function AgendaLugarPage({ params }: Props) {
         {disponible ? (
           <PublicBookingCalendar slug={doctor.publicSlug!} turnoActivo={turnoActivo} lugares={[lugar]} abrirWizardEnMobile
             prepagas={doctor.prepagas.map(({ prepaga }) => prepaga.nombre)}
+            prepagasSinTeleconsulta={doctor.prepagas.filter((p) => !p.aceptaTeleconsulta).map(({ prepaga }) => prepaga.nombre)}
           />
         ) : (
           <>

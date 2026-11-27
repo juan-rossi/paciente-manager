@@ -58,7 +58,7 @@ type Props = {
   // Médico con perfil ya público pero sin biografía: acceso rápido que lo
   // invita a completarla (la edita en la pestaña Visibilidad).
   sugerirCompletarBiografia?: boolean;
-  // Médico sin ninguna prepaga/obra social cargada: acceso rápido a Mi perfil.
+  // Médico sin ninguna prepaga/obra social cargada: acceso rápido a Coberturas.
   sugerirCargarPrepagas?: boolean;
   // Médico que marcó en el registro que quiere importar sus HC y todavía no
   // mandó la importación: acceso rápido a Configuración > Mis datos.
@@ -370,7 +370,7 @@ export function TurnosPorDia({
                 )}
                 {sugerirCargarPrepagas && (
                   <Link
-                    href="/configuracion?tab=perfil"
+                    href="/configuracion?tab=coberturas"
                     className="flex items-center gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:bg-accent/40"
                   >
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">

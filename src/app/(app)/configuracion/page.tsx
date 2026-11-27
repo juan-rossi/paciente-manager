@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Mic,
   ReceiptText,
+  ShieldCheck,
   Sparkles,
   User,
   Users,
@@ -37,6 +38,7 @@ import { ImportacionSettings } from "@/components/importacion-settings";
 import { BajaCuentaSettings } from "@/components/baja-cuenta-settings";
 import { getImportacionesVista } from "@/lib/importacion-vista";
 import { MiPerfilSettings } from "@/components/mi-perfil-settings";
+import { CoberturasSettings } from "@/components/coberturas-settings";
 import { VisibilidadSettings } from "@/components/visibilidad-settings";
 import { redesDeUsuario } from "@/lib/redes-sociales";
 import { SeguridadSettings } from "@/components/seguridad-settings";
@@ -119,7 +121,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
       orderBy: { createdAt: "asc" },
     }),
     prisma.prepaga.findMany({ select: { id: true, nombre: true, nombreCompleto: true }, orderBy: { nombre: "asc" } }),
-    prisma.doctorPrepaga.findMany({ where: { doctorId: user.id }, select: { prepagaId: true } }),
+    prisma.doctorPrepaga.findMany({
+      where: { doctorId: user.id },
+      select: { prepagaId: true, aceptaTeleconsulta: true },
+    }),
     getEstadoModeracionPerfil(user.id),
     getImportacionesVista(user.id),
   ]);
@@ -159,6 +164,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
             <TabsTrigger value="practica" className={navItemClass}>
               <Building2 className="size-4" />
               Mi práctica
+            </TabsTrigger>
+            <TabsTrigger value="coberturas" className={navItemClass}>
+              <ShieldCheck className="size-4" />
+              Coberturas
             </TabsTrigger>
             {arancelesHabilitados && (
               <TabsTrigger value="aranceles" className={navItemClass}>
@@ -220,6 +229,14 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               initialSobreturnosHabilitados={user.sobreturnosHabilitados}
             />
           </TabsContent>
+          <TabsContent value="coberturas" className="w-full">
+            <CoberturasSettings
+              prepagas={prepagas}
+              initialElegidas={prepagasDelDoctor}
+              initialMontoConsultaParticular={user.montoConsultaParticular}
+              mostrarTeleconsulta={teleconsulta.habilitada}
+            />
+          </TabsContent>
           {arancelesHabilitados && (
             <TabsContent value="aranceles" className="w-full">
               <ArancelesSettings
@@ -261,6 +278,10 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
                   montoTeleconsultaUsaParticular: user.montoTeleconsultaUsaParticular,
                 }}
                 montoConsultaParticular={user.montoConsultaParticular}
+                coberturas={{
+                  total: prepagasDelDoctor.length,
+                  conTeleconsulta: prepagasDelDoctor.filter((p) => p.aceptaTeleconsulta).length,
+                }}
               />
             </TabsContent>
           )}
@@ -284,9 +305,6 @@ export default async function ConfiguracionPage({ searchParams }: Props) {
               initialApellido={user.apellido}
               initialEspecialidad={user.especialidad}
               initialNroMatricula={user.nroMatricula}
-              initialMontoConsultaParticular={user.montoConsultaParticular}
-              prepagas={prepagas}
-              initialPrepagaIds={prepagasDelDoctor.map((p) => p.prepagaId)}
             />
           </TabsContent>
           <TabsContent value="visibilidad" className="w-full">

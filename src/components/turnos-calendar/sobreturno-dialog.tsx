@@ -27,10 +27,12 @@ import { formatHora, lugarNombre } from "./utils";
 import type { SobreturnoState } from "./use-sobreturno";
 
 // Diálogo "Agregar sobreturno".
-export function SobreturnoDialog({ state, selectedDate, prepagas, bloques, lugaresPorId }: {
+export function SobreturnoDialog({ state, selectedDate, prepagas, prepagasSinTeleconsulta, bloques, lugaresPorId }: {
   state: SobreturnoState;
   selectedDate: Date;
   prepagas: string[];
+  // Las que el médico no acepta por teleconsulta: aviso si el bloque es de Teleconsulta.
+  prepagasSinTeleconsulta: string[];
   bloques: BloqueDelDia<Slot>[];
   lugaresPorId: Map<string, LugarInfo>;
 }) {
@@ -202,6 +204,11 @@ export function SobreturnoDialog({ state, selectedDate, prepagas, bloques, lugar
                 value={sobreturnoObraSocial}
                 onChange={setSobreturnoObraSocial}
                 prepagas={prepagas}
+                sinTeleconsulta={
+                  bloqueSobreturno && lugaresPorId.get(bloqueSobreturno.lugarId)?.tipo === "VIRTUAL"
+                    ? prepagasSinTeleconsulta
+                    : []
+                }
               />
             </div>
             {sobreturnoError && <p className="text-sm text-destructive">{sobreturnoError}</p>}

@@ -20,8 +20,16 @@ export const perfilSchema = z.object({
   // La especialidad no se acepta acá: se fija al registrarse y no se cambia
   // desde Mi perfil.
   nroMatricula: z.string().trim().min(1, "El número de matrícula es obligatorio."),
-  // Ids del catálogo `Prepaga` con las que trabaja el médico.
-  prepagaIds: z.array(z.string()).max(500),
+});
+
+// Configuración > Coberturas: con qué prepagas/obras sociales trabaja el médico
+// (y si cada una vale también por teleconsulta) y el monto de la consulta
+// particular -- lo que cobra a quien no tiene cobertura.
+export const coberturasSchema = z.object({
+  // Ítems del catálogo `Prepaga`.
+  prepagas: z
+    .array(z.object({ id: z.string(), aceptaTeleconsulta: z.boolean() }))
+    .max(500),
   // Monto de la consulta particular en pesos (sin centavos); null = sin cargar.
   montoConsultaParticular: z
     .number({ message: "Ingresá un monto válido." })
@@ -66,7 +74,7 @@ export const visibilidadSchema = z.object({
   // oculto (`LugarDeTrabajo.perfilVisible`).
   lugaresVisibles: z.array(z.string()),
   redes: redesSocialesSchema,
-  // Muestra el monto de la consulta particular (Mi perfil) en el perfil público.
+  // Muestra el monto de la consulta particular (Coberturas) en el perfil público.
   montoConsultaVisible: z.boolean().default(false),
 });
 
