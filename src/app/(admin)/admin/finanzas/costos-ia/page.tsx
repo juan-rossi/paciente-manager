@@ -119,9 +119,7 @@ export default async function AdminCostosIAPage({ searchParams }: { searchParams
                 <TableHeader>
                   <TableRow>
                     <TableHead className="pl-5">Médico</TableHead>
-                    <TableHead className="text-right">Min/mes prom.</TableHead>
-                    <TableHead className="text-right">Resúmenes/mes prom.</TableHead>
-                    <TableHead className="text-right">Costo/mes prom.</TableHead>
+                    <TableHead className="text-right">Promedio mensual</TableHead>
                     <TableHead className="text-right">% del plan</TableHead>
                     <TableHead className="text-right">{data.mesLabel}</TableHead>
                     <TableHead className="pr-5">Uso</TableHead>
@@ -170,37 +168,73 @@ function FilaMedico({ fila, maxPromedio }: { fila: FilaMedicoCostosIA; maxPromed
 
   return (
     <TableRow>
-      <TableCell className="pl-5">
-        <div className="flex flex-col">
+      <TableCell className="py-3 pl-5 whitespace-normal">
+        <div className="flex min-w-40 flex-col">
           <Link href={`/admin/medicos/${fila.id}`} className="font-medium hover:underline">
             {fila.nombreCompleto}
           </Link>
           {!fila.esPremiumVigente && <span className="text-xs text-muted-foreground">Ya no es Premium</span>}
         </div>
       </TableCell>
-      <TableCell className="text-right tabular-nums">{p ? formatNumero(p.minutos) : "—"}</TableCell>
-      <TableCell className="text-right tabular-nums">{p ? formatNumero(p.resumenes) : "—"}</TableCell>
-      <TableCell className="text-right tabular-nums">{p ? formatUsd(p.costoUsd) : "—"}</TableCell>
-      <TableCell className="text-right tabular-nums">
-        {fila.porcentajePlan !== null ? `${formatNumero(fila.porcentajePlan, 1)} %` : "—"}
+      <TableCell className="py-3 text-right tabular-nums">
+        {p ? (
+          <CeldaUso costoUsd={p.costoUsd} minutos={p.minutos} resumenes={p.resumenes} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </TableCell>
-      <TableCell className="text-right text-muted-foreground tabular-nums">
-        {formatNumero(fila.mes.minutos)} min · {fila.mes.resumenes} res. · {formatUsd(fila.mes.costoUsd)}
+      <TableCell className="py-3 text-right tabular-nums">
+        {fila.porcentajePlan !== null ? (
+          `${formatNumero(fila.porcentajePlan, 1)} %`
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </TableCell>
-      <TableCell className="pr-5">
-        <div className="flex items-center gap-2">
-          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+      <TableCell className="py-3 text-right tabular-nums">
+        <CeldaUso
+          costoUsd={fila.mes.costoUsd}
+          minutos={fila.mes.minutos}
+          resumenes={fila.mes.resumenes}
+          tenue
+        />
+      </TableCell>
+      <TableCell className="py-3 pr-5">
+        <div className="flex w-fit flex-col items-start gap-1.5">
+          <Badge variant="outline" className={nivel.className}>
+            {nivel.label}
+          </Badge>
+          <div className="h-1.5 w-full min-w-16 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary"
               style={{ width: `${((p?.costoUsd ?? 0) / maxPromedio) * 100}%` }}
             />
           </div>
-          <Badge variant="outline" className={nivel.className}>
-            {nivel.label}
-          </Badge>
         </div>
       </TableCell>
     </TableRow>
+  );
+}
+
+// Costo arriba (dato principal) y el volumen que lo explica debajo, en una sola celda.
+function CeldaUso({
+  costoUsd,
+  minutos,
+  resumenes,
+  tenue = false,
+}: {
+  costoUsd: number;
+  minutos: number;
+  resumenes: number;
+  tenue?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-end">
+      <span className={tenue ? "text-muted-foreground" : "font-medium"}>{formatUsd(costoUsd)}</span>
+      <span className="text-xs text-muted-foreground">
+        {formatNumero(minutos)} {minutos === 1 ? "minuto" : "minutos"} · {formatNumero(resumenes)}{" "}
+        {resumenes === 1 ? "resumen" : "resúmenes"}
+      </span>
+    </div>
   );
 }
 

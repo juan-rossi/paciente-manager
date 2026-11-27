@@ -232,7 +232,7 @@ export function AdminCostosIASkeleton() {
             <h2 className="font-heading text-sm font-semibold">Por médico</h2>
             <Skeleton className="h-3 w-40" />
           </div>
-          <TableSkeleton columns={["w-40", "ml-auto w-14", "w-14", "w-16", "w-16", "w-16", "w-28"]} rows={6} />
+          <TableSkeleton columns={["w-40", "ml-auto w-20", "ml-auto w-12", "ml-auto w-20", "w-20"]} rows={6} />
         </div>
       </div>
     </SkeletonExit>
