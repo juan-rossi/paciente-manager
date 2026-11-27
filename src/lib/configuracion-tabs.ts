@@ -50,3 +50,25 @@ export function enfocarCampoCuandoAparezca(id: string, intentos = 30) {
 export function esConfiguracionTab(value: string | undefined): value is ConfiguracionTab {
   return !!value && (CONFIGURACION_TABS as readonly string[]).includes(value);
 }
+
+// Mi práctica: qué lugar dejar seleccionado al llegar desde otra tab (p.ej.
+// "Ir a Mi práctica" desde Teleconsulta abre el lugar VIRTUAL). Las tabs se
+// desmontan al salir, así que el pedido queda pendiente y Mi práctica lo toma
+// al montarse.
+export type LugarPendienteMiPractica = { tipo: "VIRTUAL" };
+let lugarPendienteMiPractica: LugarPendienteMiPractica | null = null;
+
+export function irAMiPracticaConLugar(lugar: LugarPendienteMiPractica) {
+  lugarPendienteMiPractica = lugar;
+  irAConfiguracionTab("practica", "mi-practica-lugar-seleccionado");
+}
+
+// Leer y borrar van separados: StrictMode corre dos veces el inicializador
+// de useState y la segunda lectura no puede encontrarlo ya borrado.
+export function leerLugarPendienteMiPractica() {
+  return lugarPendienteMiPractica;
+}
+
+export function borrarLugarPendienteMiPractica() {
+  lugarPendienteMiPractica = null;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -44,6 +44,10 @@ import { AddressAutocomplete, type AddressResult } from "@/components/address-au
 import { formatHoraBA, TIME_ZONE } from "@/lib/timezone";
 import { DIA_SEMANA_VALUES, type DiaSemana } from "@/lib/slots";
 import { cn, filterTelefono } from "@/lib/utils";
+import {
+  borrarLugarPendienteMiPractica,
+  leerLugarPendienteMiPractica,
+} from "@/lib/configuracion-tabs";
 import {
   LUGAR_TIPO_LABEL,
   type LugarTrabajoTipo,
@@ -123,7 +127,14 @@ export function MiPracticaSettings({
   const router = useRouter();
   const [lugares, setLugares] = useState<LugarDeTrabajo[]>(initialLugares);
   const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
-  const [activeLugarId, setActiveLugarId] = useState<string | null>(initialLugares[0]?.id ?? null);
+  // Arranca en el lugar que pidió otra tab (p.ej. el VIRTUAL desde
+  // Teleconsulta, ver `irAMiPracticaConLugar`) o, si no, en el primero.
+  const [activeLugarId, setActiveLugarId] = useState<string | null>(() => {
+    const pendiente = leerLugarPendienteMiPractica();
+    const pedido = pendiente && initialLugares.find((l) => l.tipo === pendiente.tipo);
+    return pedido?.id ?? initialLugares[0]?.id ?? null;
+  });
+  useEffect(() => borrarLugarPendienteMiPractica(), []);
 
   // --- Duración de turnos / sobreturnos (config global de la agenda, no
   // por lugar) -- migrado tal cual de la vieja pantalla "Horario de trabajo".
@@ -559,6 +570,7 @@ export function MiPracticaSettings({
             {lugares.map((lugar) => (
               <button
                 key={lugar.id}
+                id={lugar.id === activeLugarId ? "mi-practica-lugar-seleccionado" : undefined}
                 type="button"
                 onClick={() => setActiveLugarId(lugar.id)}
                 className={cn(

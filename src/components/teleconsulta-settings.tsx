@@ -16,12 +16,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { SettingsSection } from "@/components/settings-section";
-import { irAConfiguracionTab } from "@/lib/configuracion-tabs";
+import { irAConfiguracionTab, irAMiPracticaConLugar } from "@/lib/configuracion-tabs";
 import type { TeleconsultaConfigGuardada } from "@/lib/teleconsulta-config";
 import {
   type CobroTeleconsulta,
@@ -75,6 +82,9 @@ export function TeleconsultaSettings({
   // (la guarda en su estado) y el lugar recién aparece al recargar la página.
   const [refrescandoLugar, startRefrescoLugar] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Diálogo que explica por qué no se puede apagar mientras exista el lugar
+  // VIRTUAL (antes el control quedaba deshabilitado y el click no hacía nada).
+  const [avisoLugarAbierto, setAvisoLugarAbierto] = useState(false);
 
   // Cobro: el momento se guarda al toque (como el resto de las opciones); el
   // alias, que es texto, con su botón.
@@ -264,8 +274,14 @@ export function TeleconsultaSettings({
             id="teleconsulta-habilitada"
             className="mt-0.5"
             checked={habilitada}
-            onCheckedChange={(checked) => guardar({ teleconsultaHabilitada: checked })}
-            disabled={!incluidaEnPlan || saving || (habilitada && bloqueadoPorLugar)}
+            onCheckedChange={(checked) => {
+              if (!checked && bloqueadoPorLugar) {
+                setAvisoLugarAbierto(true);
+                return;
+              }
+              guardar({ teleconsultaHabilitada: checked });
+            }}
+            disabled={!incluidaEnPlan || saving}
           />
           <div className="flex flex-col gap-0.5">
             <Label htmlFor="teleconsulta-habilitada" className="font-medium">
@@ -315,10 +331,14 @@ export function TeleconsultaSettings({
                 id="teleconsulta-lugar-virtual"
                 className="mt-0.5"
                 checked={habilitada && config.teleconsultaLugarVirtual}
-                onCheckedChange={(checked) => guardar({ teleconsultaLugarVirtual: checked === true })}
-                disabled={
-                  !habilitada || saving || (config.teleconsultaLugarVirtual && bloqueadoPorLugar)
-                }
+                onCheckedChange={(checked) => {
+                  if (checked !== true && bloqueadoPorLugar) {
+                    setAvisoLugarAbierto(true);
+                    return;
+                  }
+                  guardar({ teleconsultaLugarVirtual: checked === true });
+                }}
+                disabled={!habilitada || saving}
               />
               <div className="flex flex-col gap-0.5">
                 <Label htmlFor="teleconsulta-lugar-virtual" className="flex items-center gap-1.5 font-normal">
@@ -332,42 +352,25 @@ export function TeleconsultaSettings({
               </div>
             </div>
 
-            {habilitada && config.teleconsultaLugarVirtual && (
+            {habilitada && config.teleconsultaLugarVirtual && !tieneLugarVirtual && (
               <div className="ml-6.5 flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-muted-foreground">
-                  {tieneLugarVirtual
-                    ? "Ya tenés el lugar de Teleconsulta. Sus horarios se cargan en Mi práctica."
-                    : "Todavía no creaste el lugar de Teleconsulta."}
-                </span>
-                {tieneLugarVirtual ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="self-start sm:self-auto"
-                    onClick={() => irAConfiguracionTab("practica")}
-                  >
-                    Ir a Mi práctica
-                    <ArrowRight className="size-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="self-start sm:self-auto"
-                    onClick={crearLugarVirtual}
-                    disabled={creandoLugar || refrescandoLugar || saving}
-                  >
-                    {creandoLugar || refrescandoLugar ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                    Crear lugar de Teleconsulta
-                  </Button>
-                )}
+                <span className="text-muted-foreground">Todavía no creaste el lugar de Teleconsulta.</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="self-start sm:self-auto"
+                  onClick={crearLugarVirtual}
+                  disabled={creandoLugar || refrescandoLugar || saving}
+                >
+                  {creandoLugar || refrescandoLugar ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                  Crear lugar de Teleconsulta
+                </Button>
               </div>
             )}
           </div>
         </div>
 
-        <div className={cn(!habilitada && "opacity-50")}>
+        <div className={cn("border-t border-border/60 pt-4", !habilitada && "opacity-50")}>
           <EstadoCoberturas
             total={coberturas.total}
             conTeleconsulta={coberturas.conTeleconsulta}
@@ -587,6 +590,36 @@ export function TeleconsultaSettings({
           {errorCobro && <p className="text-sm text-destructive">{errorCobro}</p>}
         </div>
       </SettingsSection>
+
+      <Dialog open={avisoLugarAbierto} onOpenChange={setAvisoLugarAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Primero eliminá el lugar de Teleconsulta</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <p>
+              Tenés un lugar de Teleconsulta en Mi práctica, con sus horarios y su reserva online.
+              Mientras exista, la teleconsulta tiene que seguir activada.
+            </p>
+            <p>Eliminalo desde Mi práctica y después vas a poder desactivar esta opción.</p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAvisoLugarAbierto(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setAvisoLugarAbierto(false);
+                irAMiPracticaConLugar({ tipo: "VIRTUAL" });
+              }}
+            >
+              Ir a Mi práctica
+              <ArrowRight className="size-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
