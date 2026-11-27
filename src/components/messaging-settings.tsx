@@ -375,7 +375,7 @@ export function MessagingSettings({
       )}
 
       <SettingsSection
-        title="Mensaje de cancelación"
+        title="Mensaje de cancelación de turno"
         description="Se usa al notificar a un paciente cuyo turno se canceló al resolver un conflicto de &quot;Bloquear horarios&quot;."
         icon={Ban}
       >
@@ -392,7 +392,7 @@ export function MessagingSettings({
       </SettingsSection>
 
       <SettingsSection
-        title="Mensaje de aplazamiento"
+        title="Mensaje de aplazamiento de turno"
         description="Se usa al notificar a un paciente cuyo turno se reprogramó al resolver un conflicto de &quot;Bloquear horarios&quot;."
         icon={CalendarClock}
       >
