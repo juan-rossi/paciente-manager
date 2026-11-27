@@ -112,7 +112,7 @@ function TeleconsultaCard() {
             paciente durante la consulta.
           </p>
         </div>
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/15 bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           Consentimiento del paciente según Ley 27.553
         </span>
       </div>
@@ -120,7 +120,7 @@ function TeleconsultaCard() {
         {TELECONSULTA_PUNTOS.map((punto) => (
           <li
             key={punto}
-            className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm"
+            className="flex items-start gap-3 rounded-xl border border-border/60 bg-[color-mix(in_oklch,var(--muted)_30%,var(--card))] px-4 py-3 text-sm"
           >
             <Check className="mt-0.5 size-4 shrink-0 text-primary" />
             {punto}
@@ -168,7 +168,7 @@ export function Features({ teleconsultaDisponible }: { teleconsultaDisponible: b
                 <h3 className="font-heading text-lg font-bold">{f.title}</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">{f.text}</p>
               </div>
-              <span className="relative mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              <span className="relative mt-auto inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/15 bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 {f.detail}
               </span>
             </motion.div>
