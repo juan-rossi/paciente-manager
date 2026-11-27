@@ -6,6 +6,7 @@ import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesi
 import { RED_SOCIAL_LABELS, type RedesSociales, type RedSocial } from "@/lib/redes-sociales";
 import { cn } from "@/lib/utils";
 import { RED_SOCIAL_ICONS, WhatsappIcon } from "@/components/redes-sociales-icons";
+import { LUGAR_TIPO_ICON } from "@/components/lugar-tipo-icon";
 import { BiografiaPerfil } from "./biografia-perfil";
 
 // Piezas compartidas entre el perfil público del médico
@@ -54,18 +55,20 @@ export function LugarCard({
 }: {
   lugar: { id: string; tipo: LugarTrabajoTipo; nombre: string | null; direccion: string; telefono: string };
 }) {
+  const Icono = LUGAR_TIPO_ICON[lugar.tipo];
   return (
     <div className="rounded-xl border border-border/60 bg-card p-4">
       <div className="flex items-center gap-2">
         <span
           className={
             lugar.tipo === "PARTICULAR"
-              ? "rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
+              ? "inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground"
               : lugar.tipo === "VIRTUAL"
-                ? "rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300"
-                : "rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
+                ? "inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2.5 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300"
+                : "inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
           }
         >
+          <Icono aria-hidden className="size-3" />
           {LUGAR_TIPO_LABEL[lugar.tipo]}
         </span>
         <span className="text-[13.5px] font-bold">{nombreLugar(lugar)}</span>

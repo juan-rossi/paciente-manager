@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LUGAR_TIPO_LABEL, nombreLugar, type LugarTrabajoTipo } from "@/lib/lugar-tipo";
 import { CalendarDays, Loader2, MapPin, Phone, X, Video } from "lucide-react";
 import { ObraSocialSelect } from "@/components/obra-social-select";
+import { LUGAR_TIPO_ICON } from "@/components/lugar-tipo-icon";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -422,6 +423,7 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
       {lugares.map((lugar) => {
         const activo = lugar.id === lugarSeleccionado;
         const tieneDisponibilidad = dias.some((d) => d.horarios.some((h) => h.lugarId === lugar.id));
+        const Icono = LUGAR_TIPO_ICON[lugar.tipo];
         return (
           <button
             key={lugar.id}
@@ -431,17 +433,23 @@ export function PublicBookingCalendar({ slug, turnoActivo = null, lugares, lugar
             onClick={() => elegirLugar(lugar.id)}
             className={
               activo
-                ? "min-w-0 flex-1 rounded-lg bg-card px-3 py-2 text-left shadow-sm"
-                : "min-w-0 flex-1 rounded-lg px-3 py-2 text-left transition-colors hover:bg-card/60"
+                ? "flex min-w-0 flex-1 items-center gap-2.5 rounded-lg bg-card px-3 py-2 text-left shadow-sm"
+                : "flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-card/60"
             }
           >
-            <span className={`block truncate text-[13px] font-bold ${activo ? "text-primary" : "text-foreground"}`}>
-              {lugarLabel(lugar)}
-            </span>
-            <span className="block truncate text-[11.5px] text-muted-foreground">
-              {LUGAR_TIPO_LABEL[lugar.tipo]}
-              {lugar.ciudad && ` · ${lugar.ciudad}`}
-              {!tieneDisponibilidad && " · sin turnos"}
+            <Icono
+              aria-hidden
+              className={`size-4 shrink-0 ${activo ? "text-primary" : "text-muted-foreground"}`}
+            />
+            <span className="min-w-0">
+              <span className={`block truncate text-[13px] font-bold ${activo ? "text-primary" : "text-foreground"}`}>
+                {lugarLabel(lugar)}
+              </span>
+              <span className="block truncate text-[11.5px] text-muted-foreground">
+                {LUGAR_TIPO_LABEL[lugar.tipo]}
+                {lugar.ciudad && ` · ${lugar.ciudad}`}
+                {!tieneDisponibilidad && " · sin turnos"}
+              </span>
             </span>
           </button>
         );
