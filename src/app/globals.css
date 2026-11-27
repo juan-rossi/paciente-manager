@@ -139,29 +139,113 @@
   }
 }
 
-/* Marketing home: rotación orbital decorativa (sección "Concepto Semio360")
-   -- CSS puro porque es continua e infinita, no ligada a scroll/interacción. */
+/* Marketing home, sección "El concepto" (orbit-diagram.tsx): los módulos
+   arrancan desordenados como archivos sueltos y, cuando la sección entra en
+   pantalla (`data-assembled`), se acomodan en el anillo; después aparecen el
+   centro, el anillo y las líneas. Con reduced-motion se ve directamente el
+   estado final (sin transiciones ni pulsos). */
 @layer utilities {
-  @keyframes orbit-spin {
+  .orbit-node {
+    transform: translate(var(--dx), var(--dy)) rotate(var(--r));
+    transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 70ms);
+  }
+  .orbit-root .orbit-tile {
+    color: var(--muted-foreground);
+    border-style: dashed;
+    border-color: var(--border);
+    transition:
+      color 0.3s,
+      border-color 0.3s,
+      box-shadow 0.3s,
+      transform 0.3s;
+  }
+  .orbit-label-final {
+    display: none;
+  }
+  .orbit-hub {
+    opacity: 0;
+    transform: scale(0.85);
+    transition:
+      opacity 0.4s 0.5s,
+      transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.5s;
+  }
+  .orbit-ring {
+    opacity: 0;
+    transition: opacity 0.6s 0.9s;
+  }
+  .orbit-spoke {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 0.6s ease-out calc(0.9s + var(--i) * 80ms);
+  }
+
+  .orbit-root[data-assembled] .orbit-node {
+    transform: none;
+  }
+  .orbit-root[data-assembled] .orbit-tile {
+    color: var(--primary);
+    border-style: solid;
+    transition-delay: calc(0.6s + var(--i) * 70ms);
+  }
+  .orbit-root[data-assembled] .orbit-label-loose {
+    display: none;
+  }
+  .orbit-root[data-assembled] .orbit-label-final {
+    display: inline;
+  }
+  .orbit-root[data-assembled] :is(.orbit-hub, .orbit-ring) {
+    opacity: 1;
+    transform: none;
+  }
+  .orbit-root[data-assembled] .orbit-spoke {
+    stroke-dashoffset: 0;
+  }
+
+  /* Pulsos (después de armado): el módulo que emite/recibe se resalta y el
+     centro "late" al recibir el dato. */
+  .orbit-root .orbit-on .orbit-tile {
+    transition-delay: 0s;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 14%, transparent);
+    transform: scale(1.06);
+  }
+  @keyframes orbit-ping {
+    from {
+      opacity: 0.7;
+      transform: scale(1);
+    }
     to {
-      transform: rotate(360deg);
+      opacity: 0;
+      transform: scale(1.18);
     }
   }
-  @keyframes orbit-spin-reverse {
-    to {
-      transform: rotate(-360deg);
-    }
+  .orbit-pinging {
+    animation: orbit-ping 0.6s ease-out;
   }
-  .animate-orbit {
-    animation: orbit-spin 70s linear infinite;
-  }
-  .animate-orbit-reverse {
-    animation: orbit-spin-reverse 70s linear infinite;
-  }
+
   @media (prefers-reduced-motion: reduce) {
-    .animate-orbit,
-    .animate-orbit-reverse {
-      animation: none;
+    .orbit-root :is(.orbit-node, .orbit-tile, .orbit-hub, .orbit-ring, .orbit-spoke) {
+      transition: none;
+    }
+    .orbit-root .orbit-node {
+      transform: none;
+    }
+    .orbit-root .orbit-tile {
+      color: var(--primary);
+      border-style: solid;
+    }
+    .orbit-root .orbit-label-loose {
+      display: none;
+    }
+    .orbit-root .orbit-label-final {
+      display: inline;
+    }
+    .orbit-root :is(.orbit-hub, .orbit-ring) {
+      opacity: 1;
+      transform: none;
+    }
+    .orbit-root .orbit-spoke {
+      stroke-dashoffset: 0;
     }
   }
   /* Modal "Pago confirmado": el círculo verde aparece con un pequeño rebote
