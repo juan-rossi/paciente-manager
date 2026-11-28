@@ -19,3 +19,17 @@
 export function teleconsultaHabilitada(): boolean {
   return process.env.TELECONSULTA_HABILITADA === "true";
 }
+
+/**
+ * Mails automáticos de activación del trial (ver `src/lib/engagement.ts`).
+ * Variable: ENGAGEMENT_EMAILS=true. Además necesita
+ * ENGAGEMENT_EMAILS_DESDE=AAAA-MM-DD: solo reciben mails los médicos
+ * registrados desde esa fecha (evita mandarle la secuencia entera, de golpe, a
+ * todos los que ya estaban).
+ *
+ * Apagada: el cron corre en modo prueba -- calcula a quién le mandaría qué y
+ * lo devuelve/loguea, sin mandar nada ni guardar nada.
+ */
+export function engagementEmailsHabilitados(): boolean {
+  return process.env.ENGAGEMENT_EMAILS === "true";
+}

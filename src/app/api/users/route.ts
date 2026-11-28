@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Tope de invitaciones: frena que se use este formulario para averiguar en
-  // masa qué emails tienen cuenta en Semio 360.
+  // masa qué emails tienen cuenta en Semio360.
   if (!(await rateLimitOk(`doctor:${tenantId}`, tenantId, "invitar"))) {
     return NextResponse.json(
       { error: "Enviaste muchas invitaciones seguidas. Esperá un rato y volvé a intentar." },

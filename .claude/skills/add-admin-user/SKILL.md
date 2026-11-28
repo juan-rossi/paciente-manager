@@ -1,6 +1,6 @@
 ---
 name: add-admin-user
-description: Da de alta (o le otorga acceso) a una cuenta ADMIN del panel /admin de Semio 360, preguntando los datos de a uno y en qué entorno (local o el proyecto de producción de un médico puntual). Usar cuando el usuario pide "agregar un admin", "dar acceso admin a alguien", "crear un usuario admin".
+description: Da de alta (o le otorga acceso) a una cuenta ADMIN del panel /admin de Semio360, preguntando los datos de a uno y en qué entorno (local o el proyecto de producción de un médico puntual). Usar cuando el usuario pide "agregar un admin", "dar acceso admin a alguien", "crear un usuario admin".
 ---
 
 # Alta de un usuario ADMIN

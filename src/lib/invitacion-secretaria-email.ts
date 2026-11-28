@@ -13,14 +13,14 @@ type DatosMail = {
 export function mailInvitacionSecretaria(datos: DatosMail, link: string) {
   const baseUrl = new URL(link).origin;
   const saludo = datos.nombreSecretaria ? `Hola, ${datos.nombreSecretaria}` : "Hola";
-  const subject = `${datos.nombreMedico} te invitó a administrar su agenda en Semio 360`;
+  const subject = `${datos.nombreMedico} te invitó a administrar su agenda en Semio360`;
   const cuerpo = datos.cuentaNueva
-    ? `${datos.nombreMedico} quiere sumarte como asistente en Semio 360 para que puedas gestionar sus turnos. Para aceptar, elegí tu contraseña o entrá con tu cuenta de Google.`
-    : `${datos.nombreMedico} quiere sumarte como asistente en Semio 360. Entrá con tu cuenta de siempre para aceptar la invitación. Hasta que la aceptes no vas a ver su agenda, y si no lo conocés podés ignorarla.`;
+    ? `${datos.nombreMedico} quiere sumarte como asistente en Semio360 para que puedas gestionar sus turnos. Para aceptar, elegí tu contraseña o entrá con tu cuenta de Google.`
+    : `${datos.nombreMedico} quiere sumarte como asistente en Semio360. Entrá con tu cuenta de siempre para aceptar la invitación. Hasta que la aceptes no vas a ver su agenda, y si no lo conocés podés ignorarla.`;
   const nota = `El link vence en ${INVITACION_VALIDEZ_DIAS} días. Si no conocés a quien te invitó, ignorá este mail.`;
   const logo = `${baseUrl}/email/semio360-logo.png`;
 
-  const text = [`${saludo}:`, "", cuerpo, "", `Aceptar la invitación: ${link}`, "", nota, "", "Equipo de Semio 360"].join(
+  const text = [`${saludo}:`, "", cuerpo, "", `Aceptar la invitación: ${link}`, "", nota, "", "Equipo de Semio360"].join(
     "\n"
   );
 
@@ -32,7 +32,7 @@ export function mailInvitacionSecretaria(datos: DatosMail, link: string) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
         <tr><td style="padding:32px 32px 8px;">
-          <img src="${escapeHtml(logo)}" width="200" height="56" alt="Semio 360" style="display:block;width:200px;height:auto;border:0;">
+          <img src="${escapeHtml(logo)}" width="200" height="56" alt="Semio360" style="display:block;width:200px;height:auto;border:0;">
         </td></tr>
         <tr><td style="padding:16px 32px 32px;">
           <p style="margin:0 0 16px;font-size:20px;font-weight:600;line-height:1.3;">${escapeHtml(saludo)}</p>
@@ -41,7 +41,7 @@ export function mailInvitacionSecretaria(datos: DatosMail, link: string) {
           <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#71717a;">${escapeHtml(nota)} Si el botón no funciona, copiá esta dirección en el navegador:<br><span style="word-break:break-all;color:#4F46E5;">${linkHtml}</span></p>
         </td></tr>
       </table>
-      <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio 360 · Más tiempo para lo importante</p>
+      <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio360 · Más tiempo para lo importante</p>
     </td></tr>
   </table>
 </body>

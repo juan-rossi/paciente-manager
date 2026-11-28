@@ -56,7 +56,7 @@ export function AdminDashboardSkeleton() {
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="font-heading text-xl font-semibold">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Resumen del negocio · Semio 360</p>
+          <p className="mt-1 text-sm text-muted-foreground">Resumen del negocio · Semio360</p>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (

@@ -7,8 +7,8 @@ import { formatNombreConTitulo, type TituloCortesia } from "@/lib/titulo-cortesi
 
 export const SITE_NAME = "Semio360";
 // Grafías con las que la gente busca la marca: Google trata "Semio360" y
-// "Semio 360" como consultas distintas, así que se declaran ambas.
-export const SITE_ALTERNATE_NAMES = ["Semio 360", "semio360.com"];
+// "Semio360" como consultas distintas, así que se declaran ambas.
+export const SITE_ALTERNATE_NAMES = ["Semio360", "semio360.com"];
 // Perfiles oficiales de la marca: van en `sameAs` del JSON-LD y en el footer.
 export const SITE_SOCIAL_PROFILES = [
   { label: "Instagram", url: "https://www.instagram.com/semio360" },

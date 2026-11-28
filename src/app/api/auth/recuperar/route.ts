@@ -7,7 +7,7 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 import { getSiteUrl } from "@/lib/site-url";
 
 // Respuesta idéntica exista o no la cuenta -- si distinguiera, cualquiera
-// podría usar este endpoint para averiguar qué emails son médicos de Semio 360.
+// podría usar este endpoint para averiguar qué emails son médicos de Semio360.
 const RESPUESTA_OK = { ok: true };
 
 export async function POST(request: NextRequest) {

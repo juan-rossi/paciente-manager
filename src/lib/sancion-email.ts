@@ -38,21 +38,21 @@ export function mailSancion(tipo: TipoSancion, datos: DatosSancion) {
   const { subject, intro, detalle, cierre } =
     tipo === "SUSPENSION"
       ? {
-          subject: "Tu cuenta de Semio 360 fue suspendida",
-          intro: "Suspendimos tu cuenta de Semio 360 por mal uso de la plataforma.",
+          subject: "Tu cuenta de Semio360 fue suspendida",
+          intro: "Suspendimos tu cuenta de Semio360 por mal uso de la plataforma.",
           detalle:
-            "Mientras dure la suspensión no vas a poder ingresar a Semio 360 y tu perfil no aparece en el directorio. Tus pacientes y sus historias clínicas se conservan intactos.",
+            "Mientras dure la suspensión no vas a poder ingresar a Semio360 y tu perfil no aparece en el directorio. Tus pacientes y sus historias clínicas se conservan intactos.",
           cierre: `Si creés que se trata de un error, o necesitás una copia de las historias clínicas de tus pacientes, escribinos a ${CONTACTO_EMAIL}.`,
         }
       : {
-          subject: "Tu perfil fue quitado del directorio de Semio 360",
-          intro: "Quitamos tu perfil del directorio de Semio 360 por mal uso de la plataforma.",
+          subject: "Tu perfil fue quitado del directorio de Semio360",
+          intro: "Quitamos tu perfil del directorio de Semio360 por mal uso de la plataforma.",
           detalle:
             "Tu cuenta sigue funcionando con normalidad: podés seguir atendiendo a tus pacientes y gestionando tus turnos. Lo único que cambia es que tu perfil y tu agenda pública no se muestran a los pacientes.",
           cierre: `Si creés que se trata de un error, escribinos a ${CONTACTO_EMAIL}.`,
         };
 
-  const text = [`${saludo}:`, "", intro, "", `Motivo: ${datos.motivo}`, "", detalle, "", cierre, "", "Equipo de Semio 360"].join(
+  const text = [`${saludo}:`, "", intro, "", `Motivo: ${datos.motivo}`, "", detalle, "", cierre, "", "Equipo de Semio360"].join(
     "\n"
   );
 
@@ -68,7 +68,7 @@ export function mailSancion(tipo: TipoSancion, datos: DatosSancion) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
         <tr><td style="padding:32px 32px 8px;">
-          <img src="${escapeHtml(logo)}" width="200" height="56" alt="Semio 360" style="display:block;width:200px;height:auto;border:0;">
+          <img src="${escapeHtml(logo)}" width="200" height="56" alt="Semio360" style="display:block;width:200px;height:auto;border:0;">
         </td></tr>
         <tr><td style="padding:16px 32px 32px;">
           <p style="margin:0 0 16px;font-size:20px;font-weight:600;line-height:1.3;">${escapeHtml(saludo)}</p>
@@ -83,7 +83,7 @@ export function mailSancion(tipo: TipoSancion, datos: DatosSancion) {
           <p style="margin:0;font-size:15px;line-height:1.6;color:#3f3f46;">${cierreHtml}</p>
         </td></tr>
       </table>
-      <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio 360 · Más tiempo para lo importante</p>
+      <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio360 · Más tiempo para lo importante</p>
     </td></tr>
   </table>
 </body>

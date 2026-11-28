@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
  * en el momento de setear `activeDoctorId` (ver
  * `src/app/api/account/active-doctor/route.ts`), no acá en cada lectura.
  *
- * Un `ADMIN` (owner de Semio 360) NO es un tenant -- ve todas las cuentas
+ * Un `ADMIN` (owner de Semio360) NO es un tenant -- ve todas las cuentas
  * de médicos de la plataforma, no una en particular. Cualquier ruta bajo
  * `/admin` consulta directamente por todos los `DOCTOR` (ver
  * `src/lib/admin-metrics.ts`), nunca a través de `getTenantId`.

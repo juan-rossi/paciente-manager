@@ -1,6 +1,6 @@
 ---
 name: canDeploy
-description: Consulta (solo lectura) la base de PRODUCCIÓN de Semio 360 y dice si en este momento algún médico tiene un horario de atención activo. Si no hay nadie, avisa que se puede deployar; si hay, dice cuánto falta para que nadie tenga horario activo. Usar cuando el usuario pide "canDeploy", "¿puedo deployar?", "¿hay alguien atendiendo?", "¿cuándo puedo deployar sin molestar?", o similar.
+description: Consulta (solo lectura) la base de PRODUCCIÓN de Semio360 y dice si en este momento algún médico tiene un horario de atención activo. Si no hay nadie, avisa que se puede deployar; si hay, dice cuánto falta para que nadie tenga horario activo. Usar cuando el usuario pide "canDeploy", "¿puedo deployar?", "¿hay alguien atendiendo?", "¿cuándo puedo deployar sin molestar?", o similar.
 ---
 
 # ¿Puedo deployar ahora?

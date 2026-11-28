@@ -90,7 +90,7 @@ export function InvitacionForm({ token, nombreMedico, email, nombreInicial, tien
         <Link href="/" className="mb-1">
           <Semio360Mark className="size-11" />
         </Link>
-        <CardTitle className="text-xl">{nombreMedico} te invitó a Semio 360</CardTitle>
+        <CardTitle className="text-xl">{nombreMedico} te invitó a Semio360</CardTitle>
         <p className="text-sm text-muted-foreground">
           Vas a poder gestionar su agenda de turnos.{" "}
           {tienePassword ? "Ingresá con tu cuenta para aceptar." : "Creá tu acceso para empezar."}

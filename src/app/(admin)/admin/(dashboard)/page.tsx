@@ -26,7 +26,7 @@ export default async function AdminDashboardPage() {
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="font-heading text-xl font-semibold">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Resumen del negocio · Semio 360</p>
+          <p className="mt-1 text-sm text-muted-foreground">Resumen del negocio · Semio360</p>
         </div>
 
         {/* 12 columnas en desktop: fila de 4 (estado de la base) + fila de 3 (negocio), ambas a ancho completo. */}
@@ -99,7 +99,7 @@ export default async function AdminDashboardPage() {
 
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
           Los montos de MRR usan precios de plan placeholder (<code>PLAN_PRICING</code> en{" "}
-          <code>src/lib/plan.ts</code>) — el pricing final de Semio 360 todavía no está definido.
+          <code>src/lib/plan.ts</code>) — el pricing final de Semio360 todavía no está definido.
         </div>
 
         <Card className="py-0">

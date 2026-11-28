@@ -24,10 +24,10 @@ export const metadata: Metadata = {
   },
   // ≤ 155 caracteres por el mismo motivo.
   description:
-    "Semio 360: software para profesionales de la salud en Argentina con turnos, historia clínica electrónica y dictado por voz. Probalo gratis, sin tarjeta.",
+    "Semio360: software para profesionales de la salud en Argentina con turnos, historia clínica electrónica y dictado por voz. Probalo gratis, sin tarjeta.",
   keywords: [
     "Semio360",
-    "Semio 360",
+    "Semio360",
     "software para profesionales de la salud",
     "software para consultorio médico",
     "software para odontólogos",

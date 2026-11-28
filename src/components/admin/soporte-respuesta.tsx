@@ -132,7 +132,7 @@ export function SoporteRespuesta({
       </div>
       {!interno && hayTexto && (
         <p className="text-xs text-muted-foreground">
-          {nombreAutor} la ve en Semio 360 y le llega un aviso por email.
+          {nombreAutor} la ve en Semio360 y le llega un aviso por email.
         </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}

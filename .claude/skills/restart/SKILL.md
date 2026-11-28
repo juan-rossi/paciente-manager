@@ -1,6 +1,6 @@
 ---
 name: restart
-description: Reinicia el entorno LOCAL de Semio 360 completo y en orden seguro — frena `next dev`, reinicia la base Prisma Dev `paciente-manager` y vuelve a levantar `next dev` — y verifica que el login funcione de punta a punta. Usar cuando el usuario pide "restart", "reiniciá el servidor local", "reiniciá next", "levantá el server de nuevo", "se cayó el local", o cuando el local da "Server has closed the connection" / JWTSessionError / login que rebota.
+description: Reinicia el entorno LOCAL de Semio360 completo y en orden seguro — frena `next dev`, reinicia la base Prisma Dev `paciente-manager` y vuelve a levantar `next dev` — y verifica que el login funcione de punta a punta. Usar cuando el usuario pide "restart", "reiniciá el servidor local", "reiniciá next", "levantá el server de nuevo", "se cayó el local", o cuando el local da "Server has closed the connection" / JWTSessionError / login que rebota.
 ---
 
 # Reiniciar el servidor local

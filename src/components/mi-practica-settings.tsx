@@ -649,7 +649,7 @@ export function MiPracticaSettings({
                 {lugarActivo.tipo === "VIRTUAL" ? (
                   <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
                     <Video className="size-3.5 shrink-0" />
-                    Videollamada dentro de Semio 360 · el paciente recibe el link para entrar
+                    Videollamada dentro de Semio360 · el paciente recibe el link para entrar
                   </span>
                 ) : (
                   <span className="flex items-center gap-2 text-[13px] text-muted-foreground">
@@ -819,7 +819,7 @@ export function MiPracticaSettings({
 
             {tipo === "VIRTUAL" && (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                <p className="text-sm font-medium">Videollamada dentro de Semio 360</p>
+                <p className="text-sm font-medium">Videollamada dentro de Semio360</p>
                 <ul className="mt-2 flex flex-col gap-1.5 text-xs text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <ShieldCheck className="mt-px size-3.5 shrink-0 text-primary" />

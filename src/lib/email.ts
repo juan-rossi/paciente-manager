@@ -3,7 +3,7 @@ import { Resend } from "resend";
 // Remitente desde el subdominio `mail.semio360.com` (verificado en Resend
 // con SPF/DKIM propios) -- así la reputación de los envíos automáticos no
 // se mezcla con la del mail de Google Workspace del dominio raíz.
-const FROM_DEFAULT = "Semio 360 <no-responder@mail.semio360.com>";
+const FROM_DEFAULT = "Semio360 <no-responder@mail.semio360.com>";
 
 type EmailInput = {
   to: string;
@@ -12,12 +12,17 @@ type EmailInput = {
   // Siempre se manda también la versión en texto plano: mejora la
   // entregabilidad y es lo que ven los clientes de mail sin HTML.
   text: string;
+  // Opcionales: por defecto salen de `EMAIL_FROM`/`EMAIL_REPLY_TO`. Los usan
+  // los mails de activación (remitente personal, header `List-Unsubscribe`).
+  from?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
 };
 
 // Sin `RESEND_API_KEY` (dev local) no se manda nada: el mail se imprime en
 // la consola del `npm run dev` para poder seguir el link a mano. En
 // producción sin key es un error de configuración y se lanza.
-export async function sendEmail({ to, subject, html, text }: EmailInput): Promise<void> {
+export async function sendEmail({ to, subject, html, text, from, replyTo, headers }: EmailInput): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     if (process.env.NODE_ENV === "production") {
@@ -29,8 +34,9 @@ export async function sendEmail({ to, subject, html, text }: EmailInput): Promis
 
   const resend = new Resend(apiKey);
   const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || FROM_DEFAULT,
-    replyTo: process.env.EMAIL_REPLY_TO || undefined,
+    from: from || process.env.EMAIL_FROM || FROM_DEFAULT,
+    replyTo: replyTo || process.env.EMAIL_REPLY_TO || undefined,
+    headers,
     to,
     subject,
     html,

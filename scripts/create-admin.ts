@@ -5,7 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// Crea (o actualiza) un usuario ADMIN -- el owner/staff de Semio 360 que ve
+// Crea (o actualiza) un usuario ADMIN -- el owner/staff de Semio360 que ve
 // el panel cross-tenant en /admin (médicos activos/inactivos, vencimientos,
 // conversión, MRR). A diferencia de un DOCTOR, un ADMIN NUNCA se crea por
 // /signup ni por login con Google (ver src/auth.ts) -- es el único rol que
@@ -17,7 +17,7 @@ const prisma = new PrismaClient({ adapter });
 //   ADMIN_NOMBRE="Juan" ADMIN_APELLIDO="Rossi" \
 //     npx tsx scripts/create-admin.ts
 //
-// Correr una vez por entorno (cada entorno de Semio 360 tiene su propia
+// Correr una vez por entorno (cada entorno de Semio360 tiene su propia
 // base -- ver ENTORNOS.md) contra el DATABASE_URL de ese entorno.
 
 async function main() {

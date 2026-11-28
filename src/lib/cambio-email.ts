@@ -134,7 +134,7 @@ function envolver(parrafos: string[], boton?: { texto: string; link: string }) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;padding:32px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
         <tr><td>
-          <p style="margin:0 0 24px;font-size:18px;font-weight:600;">Semio 360</p>
+          <p style="margin:0 0 24px;font-size:18px;font-weight:600;">Semio360</p>
           ${cuerpo}${botonHtml}
         </td></tr>
       </table>
@@ -151,12 +151,12 @@ function saludoDe(nombre: string) {
 function mailConfirmar(nombre: string, emailNuevo: string, link: string) {
   const parrafos = [
     saludoDe(nombre),
-    `Pediste usar ${emailNuevo} como el email de tu cuenta de Semio 360. Para confirmarlo, entrá a este link.`,
+    `Pediste usar ${emailNuevo} como el email de tu cuenta de Semio360. Para confirmarlo, entrá a este link.`,
     `El link vence en ${CAMBIO_EMAIL_VALIDEZ_HORAS} horas y sirve una sola vez. Si no lo pediste vos, ignorá este mail: no se cambia nada.`,
   ];
   return {
-    subject: "Confirmá tu nuevo email de Semio 360",
-    text: [...parrafos.slice(0, 2), "", link, "", parrafos[2], "", "Equipo de Semio 360"].join("\n"),
+    subject: "Confirmá tu nuevo email de Semio360",
+    text: [...parrafos.slice(0, 2), "", link, "", parrafos[2], "", "Equipo de Semio360"].join("\n"),
     html: envolver(parrafos, { texto: "Confirmar email", link }),
   };
 }
@@ -166,17 +166,17 @@ function mailAviso(nombre: string, etapa: "pedido" | "confirmado", emailNuevo: s
     etapa === "pedido"
       ? [
           saludoDe(nombre),
-          `Se pidió cambiar el email de tu cuenta de Semio 360 por ${emailNuevo}. El cambio se hace recién cuando se confirme desde esa casilla.`,
+          `Se pidió cambiar el email de tu cuenta de Semio360 por ${emailNuevo}. El cambio se hace recién cuando se confirme desde esa casilla.`,
           `Si no fuiste vos, cambiá tu contraseña y escribinos a ${CONTACTO_EMAIL}.`,
         ]
       : [
           saludoDe(nombre),
-          `El email de tu cuenta de Semio 360 ahora es ${emailNuevo}. Desde ahora ingresás con ese email, y cerramos las sesiones que tenías abiertas.`,
+          `El email de tu cuenta de Semio360 ahora es ${emailNuevo}. Desde ahora ingresás con ese email, y cerramos las sesiones que tenías abiertas.`,
           `Si no fuiste vos, escribinos cuanto antes a ${CONTACTO_EMAIL}.`,
         ];
   return {
-    subject: etapa === "pedido" ? "Pedido de cambio de email en Semio 360" : "Cambiaste el email de tu cuenta de Semio 360",
-    text: [...parrafos, "", "Equipo de Semio 360"].join("\n"),
+    subject: etapa === "pedido" ? "Pedido de cambio de email en Semio360" : "Cambiaste el email de tu cuenta de Semio360",
+    text: [...parrafos, "", "Equipo de Semio360"].join("\n"),
     html: envolver(parrafos),
   };
 }

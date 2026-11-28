@@ -21,7 +21,7 @@ export type AccesoImportacion = {
   // "22 nov, 14:05"
   fecha: string;
   tipo: "AUTORIZAR_ACCESO" | "REVOCAR_ACCESO" | "DESCARGAR" | "ELIMINAR";
-  // Quién: el propio médico o alguien del equipo de Semio 360.
+  // Quién: el propio médico o alguien del equipo de Semio360.
   quien: string;
   esEquipo: boolean;
   archivo: string | null;

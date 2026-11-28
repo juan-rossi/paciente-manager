@@ -83,12 +83,12 @@ export async function tokenRestablecerValido(token: string): Promise<boolean> {
 // los <style>.
 function mailRestablecer(nombre: string, link: string) {
   const saludo = nombre.trim() ? `Hola ${nombre.trim()},` : "Hola,";
-  const subject = "Restablecé tu contraseña de Semio 360";
+  const subject = "Restablecé tu contraseña de Semio360";
 
   const text = [
     saludo,
     "",
-    "Recibimos un pedido para restablecer la contraseña de tu cuenta de Semio 360.",
+    "Recibimos un pedido para restablecer la contraseña de tu cuenta de Semio360.",
     "Para elegir una contraseña nueva, entrá a este link:",
     "",
     link,
@@ -96,7 +96,7 @@ function mailRestablecer(nombre: string, link: string) {
     `El link vence en ${RESET_VALIDEZ_MINUTOS} minutos y sirve una sola vez.`,
     "Si no lo pediste vos, ignorá este mail: tu contraseña actual sigue funcionando.",
     "",
-    "Equipo de Semio 360",
+    "Equipo de Semio360",
   ].join("\n");
 
   const linkHtml = escapeHtml(link);
@@ -107,7 +107,7 @@ function mailRestablecer(nombre: string, link: string) {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;padding:32px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
         <tr><td>
-          <p style="margin:0 0 24px;font-size:18px;font-weight:600;">Semio 360</p>
+          <p style="margin:0 0 24px;font-size:18px;font-weight:600;">Semio360</p>
           <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">${escapeHtml(saludo)}</p>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">Recibimos un pedido para restablecer la contraseña de tu cuenta. Tocá el botón para elegir una nueva:</p>
           <p style="margin:0 0 24px;">

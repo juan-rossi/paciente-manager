@@ -5,7 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// Punto de entrada único para dar acceso al panel /admin de Semio 360:
+// Punto de entrada único para dar acceso al panel /admin de Semio360:
 // - Si el email NO existe todavía, crea una cuenta ADMIN de plataforma
 //   pura (sin tenant), igual que scripts/create-admin.ts.
 // - Si el email YA existe como DOCTOR, le setea `isAdmin = true` (una

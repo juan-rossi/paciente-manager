@@ -90,10 +90,10 @@ export function CancelarSuscripcionButton({ fechaVencimiento }: Props) {
           <p className="text-sm text-muted-foreground">
             {fechaVencimiento ? (
               <>
-                Vas a poder usar Semio 360 hasta el <strong>{fechaVencimiento}</strong>.{" "}
+                Vas a poder usar Semio360 hasta el <strong>{fechaVencimiento}</strong>.{" "}
               </>
             ) : (
-              "Vas a poder usar Semio 360 hasta el final del período que ya pagaste. "
+              "Vas a poder usar Semio360 hasta el final del período que ya pagaste. "
             )}
             Después de esa fecha no vas a poder seguir utilizando la aplicación, a menos que vuelvas a
             contratar un plan.

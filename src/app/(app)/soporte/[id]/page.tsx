@@ -90,7 +90,7 @@ export default async function SoporteTicketPage({ params }: { params: Params }) 
                   )}
                 >
                   <span className="text-[11px] font-medium text-muted-foreground">
-                    {m.esEquipo ? "Equipo de Semio 360" : "Vos"} · {formatFechaTicket(m.createdAt)}
+                    {m.esEquipo ? "Equipo de Semio360" : "Vos"} · {formatFechaTicket(m.createdAt)}
                   </span>
                   <p className="text-sm leading-relaxed break-words whitespace-pre-line">{m.cuerpo}</p>
                 </li>

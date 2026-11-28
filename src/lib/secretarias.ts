@@ -49,7 +49,7 @@ function aSecretariaDelMedico(
     // Invitación todavía no aceptada: nunca se muestra el nombre, tampoco
     // cuando la cuenta se acaba de crear con el nombre que tipeó el médico.
     // Si solo se ocultara el de cuentas preexistentes, la respuesta de
-    // "invitar" diría qué emails ya son asistentes en Semio 360 (y el
+    // "invitar" diría qué emails ya son asistentes en Semio360 (y el
     // nombre con el que se registraron).
     nombre: propia?.aceptadaAt ? s.nombre : "",
     // Fecha de la asignación con ESTE médico, no de la cuenta: la de la

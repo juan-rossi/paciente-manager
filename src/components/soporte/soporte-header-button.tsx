@@ -71,7 +71,7 @@ export function SoporteHeaderButton({ tickets, noLeidos }: Props) {
 
           {tickets.length === 0 ? (
             <p className="px-3.5 py-4 text-sm leading-relaxed text-muted-foreground">
-              Que estés conforme con Semio 360 es lo más importante para nosotros. Contanos qué mejorarías o avisanos
+              Que estés conforme con Semio360 es lo más importante para nosotros. Contanos qué mejorarías o avisanos
               si algo no funciona: leemos cada mensaje.
             </p>
           ) : (

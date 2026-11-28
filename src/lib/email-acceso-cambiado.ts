@@ -23,13 +23,13 @@ export async function avisarEmailDeAccesoCambiado(datos: Datos): Promise<void> {
 
 export function mailEmailDeAccesoCambiado(datos: Datos) {
   const saludo = datos.nombreSecretaria ? `Hola, ${datos.nombreSecretaria}` : "Hola";
-  const subject = "Cambiaron el email de tu cuenta de Semio 360";
-  const intro = `${datos.nombreMedico} cambió el email con el que ingresás a Semio 360 por ${datos.emailNuevo}.`;
+  const subject = "Cambiaron el email de tu cuenta de Semio360";
+  const intro = `${datos.nombreMedico} cambió el email con el que ingresás a Semio360 por ${datos.emailNuevo}.`;
   const detalle =
     "Desde ahora vas a tener que ingresar con ese email, y cerramos las sesiones que tenías abiertas.";
   const cierre = `Si no estabas al tanto de este cambio, escribinos a ${CONTACTO_EMAIL}.`;
 
-  const text = [`${saludo}:`, "", intro, "", detalle, "", cierre, "", "Equipo de Semio 360"].join("\n");
+  const text = [`${saludo}:`, "", intro, "", detalle, "", cierre, "", "Equipo de Semio360"].join("\n");
 
   const html = `<!doctype html>
 <html lang="es">

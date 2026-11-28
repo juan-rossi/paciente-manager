@@ -121,7 +121,7 @@ export function mailRespuestaSoporte(datos: { nombre: string; ticketId: string; 
   const link = `${getSiteUrl()}/soporte/${datos.ticketId}`;
   const logo = `${getSiteUrl()}/email/semio360-logo.png`;
   const subject = `Respondimos tu mensaje: ${datos.asunto}`;
-  const intro = "Te respondimos el mensaje que nos mandaste desde Semio 360. Gracias por tomarte el tiempo de escribirnos.";
+  const intro = "Te respondimos el mensaje que nos mandaste desde Semio360. Gracias por tomarte el tiempo de escribirnos.";
 
   const text = [
     `${saludo}:`,
@@ -134,7 +134,7 @@ export function mailRespuestaSoporte(datos: { nombre: string; ticketId: string; 
     "",
     `Podés ver la conversación y contestarnos acá: ${link}`,
     "",
-    "Equipo de Semio 360",
+    "Equipo de Semio360",
   ].join("\n");
 
   const html = `<!doctype html>
@@ -144,7 +144,7 @@ export function mailRespuestaSoporte(datos: { nombre: string; ticketId: string; 
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
         <tr><td style="padding:32px 32px 8px;">
-          <img src="${escapeHtml(logo)}" width="200" height="56" alt="Semio 360" style="display:block;width:200px;height:auto;border:0;">
+          <img src="${escapeHtml(logo)}" width="200" height="56" alt="Semio360" style="display:block;width:200px;height:auto;border:0;">
         </td></tr>
         <tr><td style="padding:16px 32px 32px;">
           <p style="margin:0 0 16px;font-size:20px;font-weight:600;line-height:1.3;">${escapeHtml(saludo)}</p>
@@ -158,7 +158,7 @@ export function mailRespuestaSoporte(datos: { nombre: string; ticketId: string; 
           <a href="${escapeHtml(link)}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#4f46e5;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">Ver la conversación</a>
         </td></tr>
       </table>
-      <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio 360 · Más tiempo para lo importante</p>
+      <p style="margin:16px 0 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#a1a1aa;">Semio360 · Más tiempo para lo importante</p>
     </td></tr>
   </table>
 </body>

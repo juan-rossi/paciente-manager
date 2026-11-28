@@ -22,7 +22,7 @@ enum EstadoCivil {
 enum UserRole {
   DOCTOR
   SECRETARY
-  // Owner/staff de Semio 360 (no de un consultorio) -- ve todas las cuentas
+  // Owner/staff de Semio360 (no de un consultorio) -- ve todas las cuentas
   // de médicos de la plataforma para tomar decisiones de negocio (altas,
   // vencimientos, conversión, uso). No es un tenant: nunca tiene
   // `activeDoctorId` ni pacientes/turnos propios. Se crea a mano
@@ -400,7 +400,7 @@ model User {
   publicSlug               String?         @unique
   // Un DOCTOR (o SECRETARY) puntual puede tener también acceso al panel
   // /admin sin dejar de ser un tenant normal -- p.ej. un médico que
-  // además es owner/staff de Semio 360. No reemplaza `role: ADMIN` (esa
+  // además es owner/staff de Semio360. No reemplaza `role: ADMIN` (esa
   // cuenta de plataforma pura sigue sin tenant, ver getTenantId()); es un
   // permiso adicional que se otorga con `scripts/grant-admin-access.ts`.
   // Ver `isPlatformAdmin()` en `src/lib/admin-access.ts`.
@@ -559,6 +559,11 @@ model User {
   // Solo existe si el admin ya publicó su placa de bienvenida en redes (ver
   // /admin/marketing/bienvenidas).
   marketingBienvenida MarketingBienvenida?
+  // Mails automáticos de activación del trial (ver `src/lib/engagement.ts`).
+  // `recibeMailsEngagement` = false cuando el médico se dio de baja desde el
+  // link del mail; los transaccionales (pagos, cuenta) siguen saliendo.
+  recibeMailsEngagement Boolean          @default(true)
+  mailsEngagement       MailEngagement[]
   // Motivo (opcional) que el médico da al cancelar la suscripción -- ver
   // `src/lib/cancelacion-motivos.ts`. Se pisa si cancela de nuevo más adelante.
   cancelacionMotivo   String?
@@ -1545,7 +1550,7 @@ model ConsentimientoInformado {
   @@index([patientId])
 }
 
-// Placa de bienvenida de un médico ya publicada en las redes de Semio 360. La
+// Placa de bienvenida de un médico ya publicada en las redes de Semio360. La
 // fila solo existe una vez publicada (sin fila = pendiente), así que borrarla
 // lo devuelve a pendientes. `genero` queda guardado para saber con qué forma
 // ("Bienvenido"/"Bienvenida") salió la placa: el perfil del médico no guarda
@@ -1559,7 +1564,32 @@ model MarketingBienvenida {
   publicadaAt    DateTime @default(now())
 }
 
-// Gastos operativos de Semio 360 (la plataforma, no de un médico puntual) --
+// Mails de activación ya enviados a un médico (ver `src/lib/engagement.ts`).
+// Uno por tipo: el unique evita mandarlo dos veces aunque el cron se repita.
+model MailEngagement {
+  id        String             @id @default(cuid())
+  doctorId  String
+  doctor    User               @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  tipo      MailEngagementTipo
+  enviadoAt DateTime           @default(now())
+
+  @@unique([doctorId, tipo])
+  @@index([tipo, enviadoAt])
+}
+
+enum MailEngagementTipo {
+  CONFIGURAR_CONSULTORIO
+  PRIMER_PACIENTE
+  FUNDADOR
+  PRIMER_TURNO
+  PRIMER_DICTADO
+  SEGUIMIENTO
+  TRIAL_TERMINA_PRONTO
+  TRIAL_TERMINA_MANANA
+  TRIAL_VENCIDO
+}
+
+// Gastos operativos de Semio360 (la plataforma, no de un médico puntual) --
 // lo carga a mano el owner/admin desde /admin/gastos para tener una idea de
 // costos junto al MRR estimado del dashboard.
 model Gasto {
@@ -1712,7 +1742,7 @@ model TicketMensaje {
   ticket    TicketSoporte @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   autorId   String
   autor     User          @relation(fields: [autorId], references: [id], onDelete: Cascade)
-  // Escrito por el equipo de Semio 360 desde /admin/soporte.
+  // Escrito por el equipo de Semio360 desde /admin/soporte.
   esEquipo  Boolean       @default(false)
   // Nota interna del equipo: el autor del ticket nunca la ve.
   interno   Boolean       @default(false)
@@ -1783,7 +1813,7 @@ model PresupuestoItem {
 
 // Importación de historias clínicas que el médico lleva en otro sistema,
 // planillas o documentos (ver el Acuerdo de tratamiento de datos, punto 3, y
-// src/lib/importacion.ts). La carga la hace el equipo de Semio 360 a mano: el
+// src/lib/importacion.ts). La carga la hace el equipo de Semio360 a mano: el
 // médico sube los archivos desde Configuración > Mis datos y, al enviarlos,
 // habilita al equipo a descargarlos durante `IMPORTACION_ACCESO_HORAS`. Los
 // archivos se borran al marcar la carga como terminada, al cancelar, o a los

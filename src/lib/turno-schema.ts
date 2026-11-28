@@ -104,7 +104,7 @@ export const secretaryInputSchema = z.object({
   email: z.string().trim().toLowerCase().min(1, "El email es obligatorio.").email("Email inválido."),
   // Obligatorio siempre, aunque el email ya tenga cuenta (ahí se ignora y se
   // usa el suyo): si solo se pidiera para un email nuevo, el "falta el
-  // nombre" revelaría qué emails tienen cuenta en Semio 360.
+  // nombre" revelaría qué emails tienen cuenta en Semio360.
   nombre: z.string().trim().min(1, "El nombre es obligatorio."),
   // Lugares del médico que este asistente va a poder administrar --
   // específico de esta relación médico-asistente, no de la cuenta en

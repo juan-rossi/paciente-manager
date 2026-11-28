@@ -248,7 +248,7 @@ export function TeleconsultaSettings({
     <div className="flex flex-col gap-6">
       <SettingsSection
         title="Teleconsulta"
-        description="Atendé pacientes por videollamada desde Semio 360. El paciente entra a la sala con el link que le llega en el recordatorio, sin instalar nada."
+        description="Atendé pacientes por videollamada desde Semio360. El paciente entra a la sala con el link que le llega en el recordatorio, sin instalar nada."
         icon={Video}
       >
         {!incluidaEnPlan && (

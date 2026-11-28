@@ -141,7 +141,7 @@ export default async function AdminSoportePage({ searchParams }: { searchParams:
           <h1 className="font-heading text-xl font-semibold">Soporte</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Sugerencias y reportes de problemas que mandan médicos y asistentes desde la app. Tus respuestas les
-            llegan en Semio 360 y por email; las notas internas solo las ve el equipo.
+            llegan en Semio360 y por email; las notas internas solo las ve el equipo.
           </p>
         </div>
 

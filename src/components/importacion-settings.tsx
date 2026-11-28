@@ -81,7 +81,7 @@ function describirAcceso(acceso: AccesoImportacion) {
   switch (acceso.tipo) {
     case "DESCARGAR":
       return acceso.esEquipo
-        ? `${acceso.quien} (equipo de Semio 360) abrió ${acceso.archivo ?? "un archivo"}`
+        ? `${acceso.quien} (equipo de Semio360) abrió ${acceso.archivo ?? "un archivo"}`
         : `Abriste ${acceso.archivo ?? "un archivo"}`;
     case "AUTORIZAR_ACCESO":
       return `${acceso.quien === "Vos" ? "Diste" : `${acceso.quien} dio`} permiso al equipo por ${IMPORTACION_ACCESO_HORAS} h`;

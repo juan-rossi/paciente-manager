@@ -18,7 +18,7 @@ export default async function MiCuentaPage() {
         <div className="flex flex-col gap-1">
           <h1 className="font-heading text-xl font-semibold">Mi cuenta</h1>
           <p className="text-sm text-muted-foreground">
-            Tu email y tu contraseña para ingresar a Semio 360. Son tuyos: no cambian según el médico que estés
+            Tu email y tu contraseña para ingresar a Semio360. Son tuyos: no cambian según el médico que estés
             asistiendo.
           </p>
         </div>

@@ -10,7 +10,7 @@ const prisma = new PrismaClient({ adapter });
 // nunca dar: ver `isPlatformAdmin`), sin tocar su rol, su
 // password ni su login (Google o contraseña siguen funcionando igual).
 // Pensado para el caso típico: un médico que también es owner/staff de
-// Semio 360 y necesita ver el panel admin con su cuenta de siempre.
+// Semio360 y necesita ver el panel admin con su cuenta de siempre.
 async function main() {
   const email = process.env.GRANT_ADMIN_EMAIL;
   const revoke = process.env.GRANT_ADMIN_REVOKE === "true";

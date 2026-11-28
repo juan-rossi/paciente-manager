@@ -17,7 +17,7 @@ const FAQ_TELECONSULTA = {
 const FAQS_BASE = [
   {
     q: "¿Qué es Semio360?",
-    a: "Semio360 (o Semio 360) es una plataforma en la nube para profesionales de la salud (médicos, odontólogos, psicólogos y nutricionistas) que reúne la gestión de tu consultorio: turnos, historia clínica y evolución de tus pacientes, todo en un mismo lugar.",
+    a: "Semio360 (o Semio360) es una plataforma en la nube para profesionales de la salud (médicos, odontólogos, psicólogos y nutricionistas) que reúne la gestión de tu consultorio: turnos, historia clínica y evolución de tus pacientes, todo en un mismo lugar.",
   },
   {
     q: "¿Cómo empiezo?",

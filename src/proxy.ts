@@ -62,7 +62,7 @@ export default auth(async (request) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // El ADMIN (owner de Semio 360) ve todas las cuentas de la plataforma, no
+  // El ADMIN (owner de Semio360) ve todas las cuentas de la plataforma, no
   // pertenece a ningún tenant -- no tiene nada que hacer en la app de un
   // médico (chocaría con getTenantId(), ver src/lib/tenant.ts).
   if (
@@ -73,7 +73,7 @@ export default auth(async (request) => {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
 
-  // A la inversa: /admin es para el owner/staff de Semio 360 -- la cuenta
+  // A la inversa: /admin es para el owner/staff de Semio360 -- la cuenta
   // de plataforma pura (role === "ADMIN") o un médico/asistente al que se
   // le otorgó el flag `isAdmin` (ver isPlatformAdmin()).
   if (session && !isPlatformAdmin(session.user) && pathname.startsWith("/admin")) {

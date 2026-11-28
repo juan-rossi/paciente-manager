@@ -41,7 +41,7 @@ export default async function SoportePage() {
             <div className="flex flex-col gap-1.5">
               <h1 className="font-heading text-lg font-semibold">Sugerencias y soporte</h1>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Que estés conforme con Semio 360 es lo más importante para nosotros. Contanos qué te falta, qué
+                Que estés conforme con Semio360 es lo más importante para nosotros. Contanos qué te falta, qué
                 cambiarías o qué no está funcionando: leemos cada mensaje y te respondemos por acá.
               </p>
             </div>

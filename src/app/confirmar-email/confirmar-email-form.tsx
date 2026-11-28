@@ -52,7 +52,7 @@ export function ConfirmarEmailForm({ token, emailNuevo }: { token: string; email
             </>
           ) : (
             <>
-              Tu cuenta de Semio 360 va a usar{" "}
+              Tu cuenta de Semio360 va a usar{" "}
               <strong className="font-medium text-foreground">{emailNuevo}</strong> para ingresar y para recibir
               los avisos.
             </>

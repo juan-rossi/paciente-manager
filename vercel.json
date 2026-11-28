@@ -1,4 +1,7 @@
 {
   "framework": "nextjs",
-  "crons": [{ "path": "/api/cron/limpieza-datos", "schedule": "0 9 * * *" }]
+  "crons": [
+    { "path": "/api/cron/limpieza-datos", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/engagement", "schedule": "0 13 * * *" }
+  ]
 }

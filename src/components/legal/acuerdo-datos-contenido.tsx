@@ -35,7 +35,7 @@ export function AcuerdoDatosContenido() {
         Semio360 · Versión {ACUERDO_DATOS_VERSION} · Vigente desde el {ACUERDO_DATOS_VIGENTE_DESDE}
       </p>
       <p>
-        Los datos de tus pacientes son tuyos. Semio 360 los guarda y los procesa solo para que puedas
+        Los datos de tus pacientes son tuyos. Semio360 los guarda y los procesa solo para que puedas
         usar la aplicación, y los cuida como pide la ley de protección de datos personales.
       </p>
       <p>Aceptás este acuerdo al registrarte y otra vez antes de importar tus historias clínicas.</p>
@@ -47,7 +47,7 @@ export function AcuerdoDatosContenido() {
             sus historias clínicas.
           </li>
           <li>
-            <strong>Semio 360</strong> presta el servicio y trata los datos solo por tu cuenta y
+            <strong>Semio360</strong> presta el servicio y trata los datos solo por tu cuenta y
             siguiendo tus indicaciones. No es dueño de esos datos.
           </li>
         </Lista>
@@ -55,7 +55,7 @@ export function AcuerdoDatosContenido() {
 
       <Seccion id="uso" titulo="2. Qué hacemos con los datos y qué no">
         <p>
-          Usamos los datos únicamente para que funcione Semio 360: agenda, historia clínica,
+          Usamos los datos únicamente para que funcione Semio360: agenda, historia clínica,
           controles, recordatorios y las funciones de IA que vos uses.
         </p>
         <p>Nunca vamos a:</p>
@@ -79,7 +79,7 @@ export function AcuerdoDatosContenido() {
         </p>
         <Lista ordenada>
           <li>
-            <strong>Subís los archivos solo desde Semio 360.</strong> No aceptamos archivos por mail,
+            <strong>Subís los archivos solo desde Semio360.</strong> No aceptamos archivos por mail,
             WhatsApp ni Drive. Si nos llegan por ahí, los borramos sin abrirlos.
           </li>
           <li>
@@ -120,7 +120,7 @@ export function AcuerdoDatosContenido() {
         <p>Si un paciente nos pide algo sobre sus datos, te lo derivamos a vos, porque sos quien decide.</p>
       </Seccion>
 
-      <Seccion id="baja" titulo="6. Si dejás de usar Semio 360">
+      <Seccion id="baja" titulo="6. Si dejás de usar Semio360">
         <p>
           Podés descargar tus datos cuando quieras. Si das de baja la cuenta, tenés{" "}
           {BAJA_DIAS_PARA_DESCARGAR} días para descargarlos. Después los borramos, y las copias de
@@ -141,7 +141,7 @@ export function AcuerdoDatosContenido() {
           </li>
         </Lista>
         <p>
-          Si incumplís estos puntos y eso genera un reclamo contra Semio 360, la responsabilidad es
+          Si incumplís estos puntos y eso genera un reclamo contra Semio360, la responsabilidad es
           tuya.
         </p>
       </Seccion>

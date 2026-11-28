@@ -16,7 +16,7 @@ function formatFecha(fecha: Date): string {
 }
 
 function armarMail(saludo: string, subject: string, parrafos: string[]) {
-  const text = [`${saludo}:`, "", ...parrafos.flatMap((p) => [p, ""]), "Equipo de Semio 360"].join("\n");
+  const text = [`${saludo}:`, "", ...parrafos.flatMap((p) => [p, ""]), "Equipo de Semio360"].join("\n");
   const cuerpo = parrafos
     .map(
       (p, i) =>
@@ -46,7 +46,7 @@ function saludoPara(nombre: string) {
 }
 
 export function mailBajaCuenta(datos: { nombre: string; eliminacionEl: Date; baseUrl: string }) {
-  return armarMail(saludoPara(datos.nombre), "Diste de baja tu cuenta de Semio 360", [
+  return armarMail(saludoPara(datos.nombre), "Diste de baja tu cuenta de Semio360", [
     `Recibimos tu pedido de baja. Durante los próximos ${BAJA_DIAS_PARA_DESCARGAR} días podés ingresar solo para descargar tus datos, desde ${datos.baseUrl}/cuenta-baja.`,
     `El ${formatFecha(datos.eliminacionEl)} vamos a borrar todos los datos de tu cuenta. Recordá que las historias clínicas se deben conservar 10 años: guardá tu descarga.`,
     "Si te arrepentiste, podés cancelar la baja desde esa misma pantalla antes de esa fecha.",
@@ -64,7 +64,7 @@ export async function avisarBajaCuenta(to: string, datos: Parameters<typeof mail
 
 export function mailImportacionCargada(datos: { nombre: string; notaEquipo: string | null; baseUrl: string }) {
   return armarMail(saludoPara(datos.nombre), "Terminamos de cargar tus historias clínicas", [
-    "Terminamos de cargar en Semio 360 las historias clínicas que nos enviaste, y ya borramos los archivos.",
+    "Terminamos de cargar en Semio360 las historias clínicas que nos enviaste, y ya borramos los archivos.",
     ...(datos.notaEquipo ? [datos.notaEquipo] : []),
     `Revisá tus pacientes y confirmanos que está todo bien desde Configuración > Mis datos: ${datos.baseUrl}/configuracion?tab=datos`,
     "Si algo no quedó bien, contanos desde Soporte.",

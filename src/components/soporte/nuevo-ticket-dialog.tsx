@@ -23,7 +23,7 @@ const TIPOS: { value: TipoTicket; label: string; icon: typeof Lightbulb }[] = [
 const PLACEHOLDERS: Record<TipoTicket, { asunto: string; cuerpo: string }> = {
   SUGERENCIA: {
     asunto: "Ej.: Poder mover un turno arrastrándolo",
-    cuerpo: "Contanos qué te gustaría que haga Semio 360 y cómo te ayudaría en el día a día.",
+    cuerpo: "Contanos qué te gustaría que haga Semio360 y cómo te ayudaría en el día a día.",
   },
   PROBLEMA: {
     asunto: "Ej.: No se descarga el PDF de la receta",
@@ -110,7 +110,7 @@ export function NuevoTicketDialog({ open, onOpenChange, tipoInicial = "SUGERENCI
             <DialogHeader>
               <DialogTitle className="font-heading text-base">¿Cómo podemos mejorar?</DialogTitle>
               <DialogDescription>
-                Que estés conforme con Semio 360 es lo más importante para nosotros. Contanos qué te falta, qué
+                Que estés conforme con Semio360 es lo más importante para nosotros. Contanos qué te falta, qué
                 cambiarías o qué no está funcionando: leemos cada mensaje y te respondemos.
               </DialogDescription>
             </DialogHeader>
